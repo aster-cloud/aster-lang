@@ -73,6 +73,8 @@
     "release": "changeset publish",
     "docs:api": "typedoc --options typedoc.json",
     "docs:all": "npm run docs:api && npm run docs:build"
+    ,
+    "pr:create": "node scripts/create-pr.js"
   },
   "keywords": [
     "programming-language",
