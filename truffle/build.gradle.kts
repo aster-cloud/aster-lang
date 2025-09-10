@@ -7,5 +7,4 @@ dependencies {
 
 application { mainClass.set("aster.truffle.Runner") }
 
-java { toolchain { languageVersion.set(JavaLanguageVersion.of(17)) } }
-
+java { toolchain { languageVersion.set(JavaLanguageVersion.of(21)) } }

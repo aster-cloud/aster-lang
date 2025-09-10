@@ -6,7 +6,7 @@
 - `test/` — property, fuzz, and benchmark tests.
 - `cnl/examples/` — sample programs and golden fixtures.
 - `docs/` — VitePress site; `dist/` — build output.
-- Gradle modules: `aster-asm-emitter/`, `truffle/`, `examples/*` (Java 17 toolchain).
+- Gradle modules: `aster-asm-emitter/`, `truffle/`, `examples/*` (Java 21 toolchain).
 
 ## Build, Test, and Development Commands
 - Install: `npm ci` (or `npm install`). Build: `npm run build` (tsc + PEG generation).
@@ -35,5 +35,5 @@
 - Do not commit `dist/` or generated artifacts. Keep changes minimal; avoid drive-by reformatting.
 
 ## Environment & Tips
-- Requirements: Node 18+, npm; Java 17 for Gradle modules. macOS/Linux recommended.
-- For Graal/Truffle work, ensure a JDK 17 toolchain and set `JAVA_HOME` appropriately.
+- Requirements: Node 22+, npm; Java 21+ for Gradle modules. macOS/Linux recommended.
+- For Graal/Truffle work, ensure a JDK 21 toolchain and set `JAVA_HOME` appropriately.

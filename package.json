@@ -92,7 +92,7 @@
   },
   "homepage": "https://aster-lang.org",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "vscode-languageserver": "^9.0.0",
@@ -114,7 +114,7 @@
     "typedoc": "^0.28.12",
     "typedoc-plugin-markdown": "^4.8.1",
     "typescript": "^5.0.0",
-    "vitepress": "^0.1.1"
+    "vitepress": "^1.6.4"
   },
   "files": [
     "dist",

@@ -30,7 +30,8 @@ function main(): void {
   }
   collect(rtSrc);
   collect(srcDir);
-  sh(`javac -source 17 -target 17 -g -d ${outDir} ${srcs.join(' ')}`);
+  // Use --release 21 to align with JDK 21+ toolchain
+  sh(`javac --release 21 -g -d ${outDir} ${srcs.join(' ')}`);
   console.log(`Compiled classes into ${outDir}`);
 }
 
