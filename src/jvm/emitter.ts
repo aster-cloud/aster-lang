@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Core } from '../types.js';
 
-function ensureDir(p: string) {
+function ensureDir(p: string): void {
   fs.mkdirSync(p, { recursive: true });
 }
 
@@ -209,5 +209,4 @@ function collectEnums(core: Core.Module): Map<string,string> {
   }
   return map;
 }
-
 

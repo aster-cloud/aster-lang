@@ -364,7 +364,8 @@ export function parse(tokens: readonly Token[]): Module {
   function parseComparison(): Expression {
     let left = parseAddition();
 
-    while (true) {
+    let more = true;
+    while (more) {
       if (at(TokenKind.LT)) {
         next();
         const right = parseAddition();
@@ -386,7 +387,7 @@ export function parse(tokens: readonly Token[]): Module {
         const right = parseAddition();
         left = Node.Call(Node.Name('=='), [left, right]);
       } else {
-        break;
+        more = false;
       }
     }
     return left;
@@ -395,7 +396,8 @@ export function parse(tokens: readonly Token[]): Module {
   function parseAddition(): Expression {
     let left = parsePrimary();
 
-    while (true) {
+    let more = true;
+    while (more) {
       if (at(TokenKind.PLUS)) {
         next();
         const right = parsePrimary();
@@ -413,7 +415,7 @@ export function parse(tokens: readonly Token[]): Module {
         const right = parsePrimary();
         left = Node.Call(Node.Name('-'), [left, right]);
       } else {
-        break;
+        more = false;
       }
     }
     return left;
