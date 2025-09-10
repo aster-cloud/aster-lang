@@ -4,7 +4,7 @@
 
 # Interface: AstNode
 
-Defined in: types.ts:46
+Defined in: [types.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L50)
 
 ## Extended by
 
@@ -50,4 +50,4 @@ Defined in: types.ts:46
 
 > `readonly` **kind**: `string`
 
-Defined in: types.ts:47
+Defined in: [types.ts:51](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L51)

@@ -48,22 +48,25 @@ export default defineConfig({
         },
       ],
     },
-    search: process.env.DOCSEARCH_APP_ID && process.env.DOCSEARCH_API_KEY && process.env.DOCSEARCH_INDEX_NAME ? {
-      provider: 'algolia',
-      options: {
-        appId: process.env.DOCSEARCH_APP_ID,
-        apiKey: process.env.DOCSEARCH_API_KEY,
-        indexName: process.env.DOCSEARCH_INDEX_NAME
-      }
-    } : {
-      provider: 'local'
-    },
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/aster-lang/aster' },
-    ],
+    search:
+      process.env.DOCSEARCH_APP_ID &&
+      process.env.DOCSEARCH_API_KEY &&
+      process.env.DOCSEARCH_INDEX_NAME
+        ? {
+            provider: 'algolia',
+            options: {
+              appId: process.env.DOCSEARCH_APP_ID,
+              apiKey: process.env.DOCSEARCH_API_KEY,
+              indexName: process.env.DOCSEARCH_INDEX_NAME,
+            },
+          }
+        : {
+            provider: 'local',
+          },
+    socialLinks: [{ icon: 'github', link: 'https://github.com/aster-lang/aster' }],
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2025 Aster Language Team'
-    }
-  }
+      copyright: 'Copyright © 2025 Aster Language Team',
+    },
+  },
 });

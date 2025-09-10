@@ -4,7 +4,7 @@
 
 # Interface: Bool
 
-Defined in: types.ts:406
+Defined in: [types.ts:410](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L410)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:406
 
 > `readonly` **kind**: `"Bool"`
 
-Defined in: types.ts:407
+Defined in: [types.ts:411](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L411)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: types.ts:407
 
 > `readonly` **value**: `boolean`
 
-Defined in: types.ts:408
+Defined in: [types.ts:412](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L412)

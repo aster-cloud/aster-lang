@@ -185,15 +185,19 @@ export const Diagnostics = {
       .withMessage(`Unexpected token '${token}'`)
       .withPosition(pos),
 
-  expectedPunctuation: (punct: string, pos: Position, fixIt?: { span: Span; replacement: string }): DiagnosticBuilder => {
+  expectedPunctuation: (
+    punct: string,
+    pos: Position,
+    fixIt?: { span: Span; replacement: string }
+  ): DiagnosticBuilder => {
     const builder = DiagnosticBuilder.error(DiagnosticCode.P006_ExpectedPunctuation)
       .withMessage(`Expected '${punct}'`)
       .withPosition(pos);
-    
+
     if (fixIt) {
       builder.withFixIt(`Add '${punct}'`, fixIt.span, fixIt.replacement);
     }
-    
+
     return builder;
   },
 
@@ -223,16 +227,16 @@ export const Diagnostics = {
 export function formatDiagnostic(diagnostic: Diagnostic, source?: string): string {
   const { severity, code, message, span } = diagnostic;
   const pos = `${span.start.line}:${span.start.col}`;
-  
+
   let result = `${severity} ${code}: ${message} at ${pos}`;
-  
+
   if (source && diagnostic.fixIts && diagnostic.fixIts.length > 0) {
     result += '\n\nSuggested fixes:';
     for (const fixIt of diagnostic.fixIts) {
       result += `\n  - ${fixIt.description}: "${fixIt.replacement}"`;
     }
   }
-  
+
   if (source) {
     const lines = source.split(/\r?\n/);
     const line = lines[span.start.line - 1];
@@ -241,6 +245,6 @@ export function formatDiagnostic(diagnostic: Diagnostic, source?: string): strin
       result += `\n> ${' '.repeat(String(span.start.line).length)}  ${' '.repeat(span.start.col - 1)}^`;
     }
   }
-  
+
   return result;
 }

@@ -12,7 +12,10 @@ function main(): void {
   const srcDir = 'build/jvm-src';
   const outDir = 'build/jvm-classes';
   const rtSrc = 'aster-runtime/src/main/java';
-  if (!fs.existsSync(srcDir)) { console.error(`${srcDir} not found; run emit:jvm first`); process.exit(2); }
+  if (!fs.existsSync(srcDir)) {
+    console.error(`${srcDir} not found; run emit:jvm first`);
+    process.exit(2);
+  }
   fs.rmSync(outDir, { recursive: true, force: true });
   fs.mkdirSync(outDir, { recursive: true });
   // Compile runtime and emitted sources

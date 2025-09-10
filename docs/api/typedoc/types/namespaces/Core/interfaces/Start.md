@@ -4,7 +4,7 @@
 
 # Interface: Start
 
-Defined in: types.ts:327
+Defined in: [types.ts:331](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L331)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:327
 
 > `readonly` **kind**: `"Start"`
 
-Defined in: types.ts:328
+Defined in: [types.ts:332](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L332)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: types.ts:328
 
 > `readonly` **name**: `string`
 
-Defined in: types.ts:329
+Defined in: [types.ts:333](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L333)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: types.ts:329
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: types.ts:330
+Defined in: [types.ts:334](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L334)

@@ -101,8 +101,7 @@ export interface Block extends AstNode {
 
 export type Declaration = Import | Data | Enum | Func;
 
-export type Statement =
-  | Let | Set | Return | If | Match | Start | Wait | Expression | Block;
+export type Statement = Let | Set | Return | If | Match | Start | Wait | Expression | Block;
 
 export interface Let extends AstNode {
   readonly kind: 'Let';
@@ -150,7 +149,6 @@ export interface Wait extends AstNode {
   readonly names: readonly string[];
 }
 
-
 export type Pattern = PatternNull | PatternCtor | PatternName;
 
 export interface PatternNull extends AstNode {
@@ -169,8 +167,18 @@ export interface PatternName extends AstNode {
 }
 
 export type Expression =
-  | Name | Bool | Int | String | Null
-  | Call | Construct | Ok | Err | Some | None | Await;
+  | Name
+  | Bool
+  | Int
+  | String
+  | Null
+  | Call
+  | Construct
+  | Ok
+  | Err
+  | Some
+  | None
+  | Await;
 
 export interface Await extends AstNode {
   readonly kind: 'Await';
@@ -237,8 +245,7 @@ export interface None extends AstNode {
   readonly kind: 'None';
 }
 
-export type Type =
-  | TypeName | Maybe | Option | Result | List | Map;
+export type Type = TypeName | Maybe | Option | Result | List | Map;
 
 export interface TypeName extends AstNode {
   readonly kind: 'TypeName';
@@ -342,8 +349,7 @@ export namespace Core {
     readonly statements: readonly Statement[];
   }
 
-  export type Statement =
-    | Let | Set | Return | If | Match | Scope | Start | Wait;
+  export type Statement = Let | Set | Return | If | Match | Scope | Start | Wait;
 
   export interface Let extends CoreNode {
     readonly kind: 'Let';
@@ -399,8 +405,17 @@ export namespace Core {
   }
 
   export type Expression =
-    | Name | Bool | Int | String | Null
-    | Call | Construct | Ok | Err | Some | None;
+    | Name
+    | Bool
+    | Int
+    | String
+    | Null
+    | Call
+    | Construct
+    | Ok
+    | Err
+    | Some
+    | None;
 
   export interface Name extends CoreNode {
     readonly kind: 'Name';
@@ -462,8 +477,7 @@ export namespace Core {
     readonly kind: 'None';
   }
 
-  export type Type =
-    | TypeName | Maybe | Option | Result | List | Map;
+  export type Type = TypeName | Maybe | Option | Result | List | Map;
 
   export interface TypeName extends CoreNode {
     readonly kind: 'TypeName';

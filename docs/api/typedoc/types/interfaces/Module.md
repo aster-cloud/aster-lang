@@ -4,7 +4,7 @@
 
 # Interface: Module
 
-Defined in: types.ts:50
+Defined in: [types.ts:54](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L54)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:50
 
 > `readonly` **kind**: `"Module"`
 
-Defined in: types.ts:51
+Defined in: [types.ts:55](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L55)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: types.ts:51
 
 > `readonly` **name**: `null` \| `string`
 
-Defined in: types.ts:52
+Defined in: [types.ts:56](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L56)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: types.ts:52
 
 > `readonly` **decls**: readonly [`Declaration`](../type-aliases/Declaration.md)[]
 
-Defined in: types.ts:53
+Defined in: [types.ts:57](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L57)

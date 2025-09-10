@@ -4,7 +4,7 @@
 
 # Interface: PatName
 
-Defined in: types.ts:392
+Defined in: [types.ts:396](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L396)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:392
 
 > `readonly` **kind**: `"PatName"`
 
-Defined in: types.ts:393
+Defined in: [types.ts:397](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L397)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: types.ts:393
 
 > `readonly` **name**: `string`
 
-Defined in: types.ts:394
+Defined in: [types.ts:398](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L398)
