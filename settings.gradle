@@ -1,0 +1,12 @@
+rootProject.name = 'aster-lang'
+include ':aster-asm-emitter'
+include ':examples:hello-native'
+project(':examples:hello-native').projectDir = file('examples/hello-native')
+include ':examples:login-native'
+project(':examples:login-native').projectDir = file('examples/login-native')
+include ':examples:math-jvm'
+project(':examples:math-jvm').projectDir = file('examples/math-jvm')
+include ':truffle'
+project(':truffle').projectDir = file('truffle')
+include ':examples:login-jvm'
+project(':examples:login-jvm').projectDir = file('examples/login-jvm')

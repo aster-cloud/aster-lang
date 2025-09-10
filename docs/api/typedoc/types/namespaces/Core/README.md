@@ -1,0 +1,55 @@
+[**aster-lang**](../../../README.md)
+
+***
+
+# Core
+
+## Interfaces
+
+- [CoreNode](interfaces/CoreNode.md)
+- [Module](interfaces/Module.md)
+- [Import](interfaces/Import.md)
+- [Data](interfaces/Data.md)
+- [Field](interfaces/Field.md)
+- [Enum](interfaces/Enum.md)
+- [Func](interfaces/Func.md)
+- [Parameter](interfaces/Parameter.md)
+- [Block](interfaces/Block.md)
+- [Start](interfaces/Start.md)
+- [Wait](interfaces/Wait.md)
+- [Scope](interfaces/Scope.md)
+- [Let](interfaces/Let.md)
+- [Set](interfaces/Set.md)
+- [Return](interfaces/Return.md)
+- [If](interfaces/If.md)
+- [Match](interfaces/Match.md)
+- [Case](interfaces/Case.md)
+- [PatNull](interfaces/PatNull.md)
+- [PatCtor](interfaces/PatCtor.md)
+- [PatName](interfaces/PatName.md)
+- [Name](interfaces/Name.md)
+- [Bool](interfaces/Bool.md)
+- [Int](interfaces/Int.md)
+- [String](interfaces/String.md)
+- [Null](interfaces/Null.md)
+- [Call](interfaces/Call.md)
+- [Construct](interfaces/Construct.md)
+- [ConstructField](interfaces/ConstructField.md)
+- [Ok](interfaces/Ok.md)
+- [Err](interfaces/Err.md)
+- [Some](interfaces/Some.md)
+- [None](interfaces/None.md)
+- [TypeName](interfaces/TypeName.md)
+- [Maybe](interfaces/Maybe.md)
+- [Option](interfaces/Option.md)
+- [Result](interfaces/Result.md)
+- [List](interfaces/List.md)
+- [Map](interfaces/Map.md)
+
+## Type Aliases
+
+- [Declaration](type-aliases/Declaration.md)
+- [Statement](type-aliases/Statement.md)
+- [Pattern](type-aliases/Pattern.md)
+- [Expression](type-aliases/Expression.md)
+- [Type](type-aliases/Type.md)

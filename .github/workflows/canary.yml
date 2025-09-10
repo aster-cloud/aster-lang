@@ -1,0 +1,61 @@
+name: Canary
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run ci
+
+      - name: Compute canary version
+        id: canary
+        run: |
+          BASE=$(node -p "require('./package.json').version")
+          SHA=${{ github.sha }}
+          SHORT=${SHA::7}
+          echo "version=${BASE}-canary.${SHORT}" >> $GITHUB_OUTPUT
+
+      - name: Update package version
+        run: |
+          node -e "const fs=require('fs'); const pkg=require('./package.json'); pkg.version='${{ steps.canary.outputs.version }}'; fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');"
+
+      - name: Publish canary to npm (next tag)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --tag next --access public || echo "Canary publish skipped (likely already exists)"
+
+      - name: Comment on PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: canary
+          message: |
+            Published canary: `aster-lang@${{ steps.canary.outputs.version }}` with `next` dist-tag.
+

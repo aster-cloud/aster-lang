@@ -1,0 +1,128 @@
+{
+  "name": "aster-lang",
+  "version": "0.1.0",
+  "description": "A pragmatic, safe, fast language with human-readable CNL syntax that compiles to JVM bytecode",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/scripts/cli.d.ts",
+      "import": "./dist/scripts/cli.js"
+    },
+    "./core": {
+      "types": "./dist/scripts/emit-core.d.ts",
+      "import": "./dist/scripts/emit-core.js"
+    },
+    "./jvm": {
+      "types": "./dist/scripts/emit-jvm.d.ts",
+      "import": "./dist/scripts/emit-jvm.js"
+    }
+  },
+  "bin": {
+    "aster": "./dist/scripts/cli.js",
+    "aster-core": "./dist/scripts/emit-core.js",
+    "aster-lsp": "./dist/src/lsp/server.js",
+    "aster-jvm": "./dist/scripts/emit-jvm.js"
+  },
+  "scripts": {
+    "build": "tsc && node --loader ts-node/esm scripts/build-peg.ts",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "dev": "npm run build:watch",
+    "test": "npm run test:golden && npm run test:property",
+    "test:golden": "node --loader ts-node/esm scripts/golden.ts",
+    "test:property": "node --loader ts-node/esm test/property.test.ts",
+    "emit:jvm": "node --loader ts-node/esm scripts/emit-jvm.ts",
+    "javac:jvm": "node --loader ts-node/esm scripts/javac-jvm.ts",
+    "test:fuzz": "node --loader ts-node/esm test/fuzz.test.ts",
+    "test:golden:update": "npm run build && node dist/scripts/cli.js cnl/examples/greet.cnl > cnl/examples/expected_greet.ast.json && node dist/scripts/cli.js cnl/examples/login.cnl > cnl/examples/expected_login.ast.json && node dist/scripts/emit-core.js cnl/examples/greet.cnl > cnl/examples/expected_greet_core.json && node dist/scripts/emit-core.js cnl/examples/login.cnl > cnl/examples/expected_login_core.json",
+    "lint": "eslint src scripts --ext .ts",
+    "lint:fix": "eslint src scripts --ext .ts --fix",
+    "format": "prettier --write src scripts docs",
+    "format:check": "prettier --check src scripts docs",
+    "typecheck": "tsc --noEmit",
+    "bench": "node --loader ts-node/esm test/benchmark.ts",
+    "lsp": "node dist/src/lsp/server.js",
+    "repl": "node dist/scripts/repl.js",
+    "typecheck:file": "node dist/scripts/typecheck-cli.js",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run build && node --loader ts-node/esm scripts/lsp-smoke.ts && npm run emit:class cnl/examples/greet.cnl && npm run javap:verify",
+    "javap:verify": "node --loader ts-node/esm scripts/javap-verify.ts",
+    "emit:class": "node dist/scripts/emit-classfiles.js",
+    "jar:jvm": "node --loader ts-node/esm scripts/jar-jvm.ts",
+    "native:hello": "./gradlew :examples:hello-native:nativeCompile",
+    "docs:dev": "vitepress dev docs",
+    "jar:jvm": "node --loader ts-node/esm scripts/jar-jvm.ts",
+    "login:jar": "npm run emit:class cnl/examples/login.cnl && npm run jar:jvm",
+    "login:run": "npm run login:jar && ./gradlew :examples:login-jvm:run",
+    "login:native": "npm run emit:class cnl/examples/login.cnl && npm run jar:jvm && ./gradlew :examples:login-native:nativeCompile",
+
+    "math:jar": "./gradlew :aster-asm-emitter:run --args=build/jvm-classes < cnl/examples/arith_compare_core.json && npm run jar:jvm",
+    "math:run": "npm run math:jar && ./gradlew :examples:math-jvm:run",
+
+
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "prepublishOnly": "npm run clean && npm run build && npm run ci",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish",
+    "docs:api": "typedoc --options typedoc.json",
+    "docs:all": "npm run docs:api && npm run docs:build"
+  },
+  "keywords": [
+    "programming-language",
+    "compiler",
+    "jvm",
+    "graalvm",
+    "controlled-natural-language",
+    "cnl",
+    "type-safe",
+    "functional"
+  ],
+  "author": "Aster Language Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aster-lang/aster.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aster-lang/aster/issues"
+  },
+  "homepage": "https://aster-lang.org",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "vscode-languageserver": "^9.0.0",
+    "vscode-languageserver-textdocument": "^1.0.0"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.6",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "audit-ci": "^7.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.0.0",
+    "fast-check": "^3.0.0",
+    "peggy": "^5.0.6",
+    "prettier": "^3.0.0",
+    "ts-node": "^10.0.0",
+    "typedoc": "^0.28.12",
+    "typedoc-plugin-markdown": "^4.8.1",
+    "typescript": "^5.0.0",
+    "vitepress": "^1.6.4"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ]
+}

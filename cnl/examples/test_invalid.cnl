@@ -1,0 +1,7 @@
+This module is test.
+
+Define User with name: Text.
+
+To greet, produce Text
+  Let x be 42.
+  Return "hello".
