@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 
-function send(server: any, msg: any) {
+function send(server: any, msg: any): void {
   const payload = JSON.stringify(msg);
   const header = `Content-Length: ${Buffer.byteLength(payload, 'utf8')}\r\n\r\n`;
   server.stdin.write(header + payload);
 }
 
-async function main() {
+async function main(): Promise<void> {
   const server = spawn('node', ['dist/src/lsp/server.js'], { stdio: ['pipe', 'pipe', 'inherit'] });
   let gotInitialize = false;
   server.stdout.setEncoding('utf8');
@@ -32,4 +32,3 @@ async function main() {
 }
 
 main().catch(e => { console.error('lsp-smoke failed:', e); process.exit(1); });
-

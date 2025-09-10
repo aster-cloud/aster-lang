@@ -8,9 +8,9 @@ import { parse } from '../src/parser.js';
 import { lowerModule } from '../src/lower_to_core.js';
 
 
-function sh(cmd: string, opts: cp.ExecSyncOptions = {}) { cp.execSync(cmd, { stdio: 'inherit', ...opts }); }
+function sh(cmd: string, opts: cp.ExecSyncOptions = {}): void { cp.execSync(cmd, { stdio: 'inherit', ...opts }); }
 
-async function main() {
+async function main(): Promise<void> {
   // Ensure emitter built (use gradle if no wrapper)
   const hasWrapper = fs.existsSync('./gradlew');
   const buildDir = 'aster-asm-emitter/build/libs';
@@ -20,7 +20,6 @@ async function main() {
   }
   const jars = fs.readdirSync(buildDir).filter(f => f.endsWith('.jar'));
   if (jars.length === 0) { console.error('Emitter jar not found in', buildDir); process.exit(2); }
-  const jar = path.join(buildDir, jars[0]!);
 
   const input = process.argv[2];
   if (!input) { console.error('Usage: emit-classfiles <file.cnl>'); process.exit(2); }
@@ -45,4 +44,3 @@ async function main() {
 }
 
 main().catch(e => { console.error('emit-classfiles failed:', e); process.exit(1); });
-
