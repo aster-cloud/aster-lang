@@ -8,7 +8,7 @@ function send(server: any, msg: any): void {
 }
 
 async function main(): Promise<void> {
-  const server = spawn('node', ['dist/src/lsp/server.js'], { stdio: ['pipe', 'pipe', 'inherit'] });
+  const server = spawn('node', ['dist/src/lsp/server.js', '--stdio'], { stdio: ['pipe', 'pipe', 'inherit'] });
   let gotInitialize = false;
   server.stdout.setEncoding('utf8');
   server.stdout.on('data', chunk => {
