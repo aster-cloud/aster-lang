@@ -13,13 +13,22 @@ async function main(): Promise<void> {
   }) as unknown as ChildProcessWithoutNullStreams;
   let gotInitialize = false;
   server.stdout.setEncoding('utf8');
+  let buffer = '';
   server.stdout.on('data', (chunk: string | Buffer) => {
-    const s = String(chunk);
-    if (s.includes('Content-Length')) {
-      const jsonStart = s.indexOf('{');
-      if (jsonStart >= 0) {
-        const obj = JSON.parse(s.slice(jsonStart));
+    buffer += String(chunk);
+    for (;;) {
+      const match = buffer.match(/^Content-Length: (\d+)\r\n\r\n/);
+      if (!match) break;
+      const len = Number(match[1]);
+      const start = match[0].length;
+      if (buffer.length < start + len) break;
+      const jsonText = buffer.slice(start, start + len);
+      buffer = buffer.slice(start + len);
+      try {
+        const obj = JSON.parse(jsonText);
         if (obj.id === 1) gotInitialize = true;
+      } catch {
+        // ignore malformed responses
       }
     }
   });
