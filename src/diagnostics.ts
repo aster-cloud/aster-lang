@@ -152,9 +152,14 @@ export class DiagnosticBuilder {
     }
 
     if (this.relatedInformation.length > 0) {
-      (diagnostic as {
-        relatedInformation?: ReadonlyArray<{ span: Span; message: string }>;
-      }).relatedInformation = this.relatedInformation as ReadonlyArray<{ span: Span; message: string }>;
+      (
+        diagnostic as {
+          relatedInformation?: ReadonlyArray<{ span: Span; message: string }>;
+        }
+      ).relatedInformation = this.relatedInformation as ReadonlyArray<{
+        span: Span;
+        message: string;
+      }>;
     }
 
     return diagnostic;
