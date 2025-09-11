@@ -98,7 +98,7 @@ jobs:
         run: npm ci
       
       - name: Security audit
-        run: npm audit --audit-level=moderate
+        run: npm audit --audit-level=high
       
       - name: Check for known vulnerabilities
         run: npx audit-ci --moderate
