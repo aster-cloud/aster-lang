@@ -8,14 +8,19 @@ export interface TypecheckDiagnostic {
 }
 
 // Internal representation for types during checking
-type T = (Core.Type & { __tag?: 'Type' }) | { kind: 'Unknown' };
+type UnknownT = { kind: 'Unknown' };
+type T = Core.Type | UnknownT;
 
-function tUnknown(): T {
-  return { kind: 'Unknown' } as any;
+function isUnknown(x: T): x is UnknownT {
+  return (x as { kind: string }).kind === 'Unknown';
 }
 
+function tUnknown(): T { return { kind: 'Unknown' }; }
+
+const UNKNOWN_TYPENAME: Core.TypeName = { kind: 'TypeName', name: 'Unknown' };
+
 function tEquals(a: T, b: T): boolean {
-  if ((a as any).kind === 'Unknown' || (b as any).kind === 'Unknown') return true;
+  if (isUnknown(a) || isUnknown(b)) return true;
   if (a.kind !== b.kind) return false;
   switch (a.kind) {
     case 'TypeName': {
@@ -41,11 +46,10 @@ function tEquals(a: T, b: T): boolean {
       return tEquals(aa.key as T, bb.key as T) && tEquals(aa.val as T, bb.val as T);
     }
   }
-  return false;
 }
 
 function tToString(t: T): string {
-  if ((t as any).kind === 'Unknown') return 'Unknown';
+  if (isUnknown(t)) return 'Unknown';
   switch (t.kind) {
     case 'TypeName':
       return t.name;
@@ -60,7 +64,6 @@ function tToString(t: T): string {
     case 'Map':
       return `Map<${tToString(t.key as T)}, ${tToString(t.val as T)}>`;
   }
-  return '<?>';
 }
 
 interface Env {
@@ -229,10 +232,8 @@ function typecheckStmt(
       void typeOfExpr(ctx, env, s.cond, diags);
       // Allow any condition; in future require Bool
       const tThen = typecheckBlock(ctx, cloneEnv(env), s.thenBlock, diags);
-      const tElse = s.elseBlock
-        ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags)
-        : ({} as any as T);
-      return tThen || tElse || tUnknown();
+      const tElse = s.elseBlock ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags) : tUnknown();
+      return tThen || tElse;
     }
     case 'Match': {
       const et = typeOfExpr(ctx, env, s.expr, diags);
@@ -253,12 +254,12 @@ function typecheckStmt(
         }
       }
       // Exhaustiveness
-      if ((et as any).kind === 'Maybe') {
+      if (!isUnknown(et) && et.kind === 'Maybe') {
         if (!(sawNull && sawCtor)) {
           warn(diags, `Non-exhaustive match on Maybe type; handle both null and value.`);
         }
-      } else if ((et as any).kind === 'TypeName') {
-        const enumDecl = ctx.enums.get((et as any).name);
+      } else if (!isUnknown(et) && et.kind === 'TypeName') {
+        const enumDecl = ctx.enums.get(et.name);
         if (enumDecl) {
           const seen = new Set<string>();
           for (const c of s.cases) {
@@ -311,7 +312,7 @@ function typecheckCase(
       for (const n of c.pattern.names) env2.vars.set(n, tUnknown());
     }
   } else if (c.pattern.kind === 'PatName') {
-    env2.vars.set(c.pattern.name, et as any as T);
+    env2.vars.set(c.pattern.name, et);
   }
   // Body
   if (c.body.kind === 'Return') return typeOfExpr(ctx, env2, c.body.expr, diags);
@@ -344,29 +345,21 @@ function typeOfExpr(
     case 'String':
       return { kind: 'TypeName', name: 'Text' } as Core.TypeName;
     case 'Null':
-      return { kind: 'Maybe', type: tUnknown() as any } as Core.Maybe;
+      return { kind: 'Maybe', type: UNKNOWN_TYPENAME } as T;
     case 'Ok': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return {
-        kind: 'Result',
-        ok: inner as any,
-        err: { kind: 'TypeName', name: 'Unknown' } as any,
-      } as Core.Result;
+      return { kind: 'Result', ok: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type), err: UNKNOWN_TYPENAME } as T;
     }
     case 'Err': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return {
-        kind: 'Result',
-        ok: { kind: 'TypeName', name: 'Unknown' } as any,
-        err: inner as any,
-      } as Core.Result;
+      return { kind: 'Result', ok: UNKNOWN_TYPENAME, err: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
     }
     case 'Some': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return { kind: 'Option', type: inner as any } as Core.Option;
+      return { kind: 'Option', type: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
     }
     case 'None':
-      return { kind: 'Option', type: tUnknown() as any } as Core.Option;
+      return { kind: 'Option', type: UNKNOWN_TYPENAME } as T;
     case 'Construct': {
       const d = ctx.datas.get(e.typeName);
       if (!d) return tUnknown();
@@ -381,7 +374,7 @@ function typeOfExpr(
         if (!tEquals(field.type as T, ft)) {
           diags.push({
             severity: 'error',
-            message: `Field '${f.name}' expects ${tToString(field.type as any)}, got ${tToString(ft)}`,
+            message: `Field '${f.name}' expects ${tToString(field.type as T)}, got ${tToString(ft)}`,
           });
         }
       }
@@ -405,13 +398,13 @@ function typeOfExpr(
       }
       // await(expr) typing: await Maybe<T> => T; await Result<T,E> => T; else Unknown
       if (e.target.kind === 'Name' && e.target.name === 'await' && e.args.length === 1) {
-        const at = typeOfExpr(ctx, env, e.args[0]!, diags) as any;
-        if (at && at.kind === 'Maybe') return at.type as any;
-        if (at && at.kind === 'Result') return at.ok as any;
+        const at = typeOfExpr(ctx, env, e.args[0]!, diags);
+        if (!isUnknown(at) && at.kind === 'Maybe') return at.type as T;
+        if (!isUnknown(at) && at.kind === 'Result') return at.ok as T;
         // Warn on unsafe await usage
         diags.push({
           severity: 'warning',
-          message: `await expects Maybe<T> or Result<T,E>, got ${tToString(at as any)}`,
+          message: `await expects Maybe<T> or Result<T,E>, got ${tToString(at)}`,
         });
       }
       return tUnknown();

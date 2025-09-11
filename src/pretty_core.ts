@@ -69,7 +69,7 @@ ${cases}
 ${indent(lvl - 1)}}`;
     }
     case 'Scope': {
-      const inner: Core.Block = { kind: 'Block', statements: s.statements } as any;
+      const inner: Core.Block = { kind: 'Block', statements: s.statements };
       return `scope ${formatBlock(inner, lvl)}`;
     }
     case 'Start':

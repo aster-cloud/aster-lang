@@ -21,20 +21,5 @@
   "env": {
     "node": true,
     "es2022": true
-  },
-  "overrides": [
-    {
-      "files": [
-        "src/ast.ts",
-        "src/core_ir.ts",
-        "src/diagnostics.ts",
-        "src/lower_to_core.ts",
-        "src/pretty_core.ts",
-        "src/typecheck.ts"
-      ],
-      "rules": {
-        "@typescript-eslint/no-explicit-any": "off"
-      }
-    }
-  ]
+  }
 }

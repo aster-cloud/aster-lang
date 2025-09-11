@@ -61,7 +61,7 @@
     "login:native": "npm run emit:class cnl/examples/login.cnl && npm run jar:jvm && ./gradlew :examples:login-native:nativeCompile",
     "math:jar": "./gradlew :aster-asm-emitter:run --args=build/jvm-classes < cnl/examples/arith_compare_core.json && npm run jar:jvm",
     "math:run": "npm run math:jar && ./gradlew :examples:math-jvm:run",
-    "docs:build": "mkdir -p node_modules/vitepress/lib/app/temp .vitepress/dist && vitepress build docs",
+    "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "prepublishOnly": "npm run clean && npm run build && npm run ci",
     "changeset": "changeset",

@@ -37,9 +37,8 @@ export const Node = {
     pattern,
     body,
   }),
-  Start: (name: string, expr: AST.Expression): AST.AstNode =>
-    ({ kind: 'Start', name, expr }) as any,
-  Wait: (names: readonly string[]): AST.AstNode => ({ kind: 'Wait', names }) as any,
+  Start: (name: string, expr: AST.Expression): AST.Start => ({ kind: 'Start', name, expr }),
+  Wait: (names: readonly string[]): AST.Wait => ({ kind: 'Wait', names }),
 
   // Expressions
   Name: (name: string): AST.Name => ({ kind: 'Name', name }),

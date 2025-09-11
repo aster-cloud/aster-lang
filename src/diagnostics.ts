@@ -148,11 +148,13 @@ export class DiagnosticBuilder {
     };
 
     if (this.fixIts.length > 0) {
-      (diagnostic as any).fixIts = this.fixIts;
+      (diagnostic as { fixIts?: readonly FixIt[] }).fixIts = this.fixIts as readonly FixIt[];
     }
 
     if (this.relatedInformation.length > 0) {
-      (diagnostic as any).relatedInformation = this.relatedInformation;
+      (diagnostic as {
+        relatedInformation?: ReadonlyArray<{ span: Span; message: string }>;
+      }).relatedInformation = this.relatedInformation as ReadonlyArray<{ span: Span; message: string }>;
     }
 
     return diagnostic;

@@ -105,7 +105,7 @@ export const Core = {
   PatNull: (): CoreTypes.PatNull => ({ kind: 'PatNull' }),
   Await: (expr: CoreTypes.Expression): CoreTypes.Expression => ({
     kind: 'Call',
-    target: { kind: 'Name', name: 'await' } as any,
+    target: { kind: 'Name', name: 'await' } as CoreTypes.Name,
     args: [expr],
   }),
   PatCtor: (typeName: string, names: readonly string[]): CoreTypes.PatCtor => ({
