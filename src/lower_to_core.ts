@@ -29,7 +29,7 @@ function lowerDecl(d: Declaration): import('./types.js').Core.Declaration {
     case 'Func':
       return lowerFunc(d);
     default:
-      throw new Error(`Unknown decl kind: ${(d as any).kind}`);
+      throw new Error(`Unknown decl kind: ${(d as { kind: string }).kind}`);
   }
 }
 
@@ -114,7 +114,7 @@ function lowerExpr(e: Expression): import('./types.js').Core.Expression {
     case 'None':
       return Core.None();
     default:
-      throw new Error(`Unknown expr kind: ${(e as any).kind}`);
+      throw new Error(`Unknown expr kind: ${(e as { kind: string }).kind}`);
   }
 }
 
@@ -127,7 +127,7 @@ function lowerPattern(p: Pattern): import('./types.js').Core.Pattern {
     case 'PatternName':
       return Core.PatName(p.name);
     default:
-      throw new Error(`Unknown pattern kind: ${(p as any).kind}`);
+      throw new Error(`Unknown pattern kind: ${(p as { kind: string }).kind}`);
   }
 }
 
@@ -146,6 +146,6 @@ function lowerType(t: Type): import('./types.js').Core.Type {
     case 'Map':
       return Core.Map(lowerType(t.key), lowerType(t.val));
     default:
-      throw new Error(`Unknown type kind: ${(t as any).kind}`);
+      throw new Error(`Unknown type kind: ${(t as { kind: string }).kind}`);
   }
 }
