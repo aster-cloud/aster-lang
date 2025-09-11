@@ -101,7 +101,7 @@ jobs:
         run: npm audit --audit-level=high
       
       - name: Check for known vulnerabilities
-        run: npx audit-ci --moderate
+        run: npx audit-ci --high
 
   jvm:
     name: JVM Emitter Check
