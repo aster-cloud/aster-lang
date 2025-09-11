@@ -15,7 +15,9 @@ function isUnknown(x: T): x is UnknownT {
   return (x as { kind: string }).kind === 'Unknown';
 }
 
-function tUnknown(): T { return { kind: 'Unknown' }; }
+function tUnknown(): T {
+  return { kind: 'Unknown' };
+}
 
 const UNKNOWN_TYPENAME: Core.TypeName = { kind: 'TypeName', name: 'Unknown' };
 
@@ -232,7 +234,9 @@ function typecheckStmt(
       void typeOfExpr(ctx, env, s.cond, diags);
       // Allow any condition; in future require Bool
       const tThen = typecheckBlock(ctx, cloneEnv(env), s.thenBlock, diags);
-      const tElse = s.elseBlock ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags) : tUnknown();
+      const tElse = s.elseBlock
+        ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags)
+        : tUnknown();
       return tThen || tElse;
     }
     case 'Match': {
@@ -348,15 +352,26 @@ function typeOfExpr(
       return { kind: 'Maybe', type: UNKNOWN_TYPENAME } as T;
     case 'Ok': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return { kind: 'Result', ok: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type), err: UNKNOWN_TYPENAME } as T;
+      return {
+        kind: 'Result',
+        ok: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type),
+        err: UNKNOWN_TYPENAME,
+      } as T;
     }
     case 'Err': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return { kind: 'Result', ok: UNKNOWN_TYPENAME, err: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
+      return {
+        kind: 'Result',
+        ok: UNKNOWN_TYPENAME,
+        err: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type),
+      } as T;
     }
     case 'Some': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return { kind: 'Option', type: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
+      return {
+        kind: 'Option',
+        type: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type),
+      } as T;
     }
     case 'None':
       return { kind: 'Option', type: UNKNOWN_TYPENAME } as T;

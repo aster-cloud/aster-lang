@@ -10,7 +10,7 @@ function send(server: ChildProcessWithoutNullStreams, msg: Record<string, unknow
 async function main(): Promise<void> {
   const server = spawn('node', ['dist/src/lsp/server.js', '--stdio'], {
     stdio: ['pipe', 'pipe', 'inherit'],
-  }) as ChildProcessWithoutNullStreams;
+  }) as unknown as ChildProcessWithoutNullStreams;
   let gotInitialize = false;
   server.stdout.setEncoding('utf8');
   server.stdout.on('data', (chunk: string | Buffer) => {
