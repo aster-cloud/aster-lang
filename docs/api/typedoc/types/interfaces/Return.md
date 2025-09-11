@@ -4,7 +4,7 @@
 
 # Interface: Return
 
-Defined in: types.ts:115
+Defined in: [types.ts:119](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L119)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:115
 
 > `readonly` **kind**: `"Return"`
 
-Defined in: types.ts:116
+Defined in: [types.ts:120](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L120)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: types.ts:116
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: types.ts:117
+Defined in: [types.ts:121](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L121)

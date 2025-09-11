@@ -4,7 +4,7 @@
 
 # Interface: Position
 
-Defined in: types.ts:3
+Defined in: [types.ts:3](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L3)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: types.ts:3
 
 > `readonly` **line**: `number`
 
-Defined in: types.ts:4
+Defined in: [types.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L4)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: types.ts:4
 
 > `readonly` **col**: `number`
 
-Defined in: types.ts:5
+Defined in: [types.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L5)

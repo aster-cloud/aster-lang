@@ -11,7 +11,7 @@ Status
 - CLI: parses a file and prints Core-like JSON AST (not yet lowering to Truffle/JVM core; this is surface AST).
 
 Usage
-- Run with Node.js 18+.
+- Run with Node.js 22+.
 
 Examples
 - Parse a file:
@@ -26,4 +26,3 @@ Design notes
 Future
 - Localized lexicons via pluggable keyword tables (en-US first).
 - LSP server, golden tests, lowering to core IR.
-

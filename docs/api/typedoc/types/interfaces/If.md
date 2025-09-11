@@ -4,7 +4,7 @@
 
 # Interface: If
 
-Defined in: types.ts:120
+Defined in: [types.ts:124](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L124)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:120
 
 > `readonly` **kind**: `"If"`
 
-Defined in: types.ts:121
+Defined in: [types.ts:125](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L125)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: types.ts:121
 
 > `readonly` **cond**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: types.ts:122
+Defined in: [types.ts:126](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L126)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: types.ts:122
 
 > `readonly` **thenBlock**: [`Block`](Block.md)
 
-Defined in: types.ts:123
+Defined in: [types.ts:127](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L127)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: types.ts:123
 
 > `readonly` **elseBlock**: `null` \| [`Block`](Block.md)
 
-Defined in: types.ts:124
+Defined in: [types.ts:128](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L128)

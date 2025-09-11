@@ -4,7 +4,7 @@
 
 # Interface: Some
 
-Defined in: types.ts:227
+Defined in: [types.ts:231](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L231)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:227
 
 > `readonly` **kind**: `"Some"`
 
-Defined in: types.ts:228
+Defined in: [types.ts:232](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L232)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: types.ts:228
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: types.ts:229
+Defined in: [types.ts:233](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L233)

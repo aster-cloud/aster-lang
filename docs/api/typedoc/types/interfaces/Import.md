@@ -4,7 +4,7 @@
 
 # Interface: Import
 
-Defined in: types.ts:56
+Defined in: [types.ts:60](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L60)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:56
 
 > `readonly` **kind**: `"Import"`
 
-Defined in: types.ts:57
+Defined in: [types.ts:61](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L61)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: types.ts:57
 
 > `readonly` **name**: `string`
 
-Defined in: types.ts:58
+Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L62)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: types.ts:58
 
 > `readonly` **asName**: `null` \| `string`
 
-Defined in: types.ts:59
+Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L63)

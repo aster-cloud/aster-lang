@@ -4,7 +4,7 @@
 
 # Interface: Err
 
-Defined in: types.ts:447
+Defined in: [types.ts:451](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L451)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:447
 
 > `readonly` **kind**: `"Err"`
 
-Defined in: types.ts:448
+Defined in: [types.ts:452](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L452)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: types.ts:448
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: types.ts:449
+Defined in: [types.ts:453](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L453)

@@ -4,7 +4,7 @@
 
 # Interface: Enum
 
-Defined in: types.ts:300
+Defined in: [types.ts:304](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L304)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:300
 
 > `readonly` **kind**: `"Enum"`
 
-Defined in: types.ts:301
+Defined in: [types.ts:305](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L305)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: types.ts:301
 
 > `readonly` **name**: `string`
 
-Defined in: types.ts:302
+Defined in: [types.ts:306](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L306)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: types.ts:302
 
 > `readonly` **variants**: readonly `string`[]
 
-Defined in: types.ts:303
+Defined in: [types.ts:307](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L307)

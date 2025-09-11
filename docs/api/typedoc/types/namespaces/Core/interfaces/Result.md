@@ -4,7 +4,7 @@
 
 # Interface: Result
 
-Defined in: types.ts:479
+Defined in: [types.ts:483](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L483)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:479
 
 > `readonly` **kind**: `"Result"`
 
-Defined in: types.ts:480
+Defined in: [types.ts:484](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L484)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: types.ts:480
 
 > `readonly` **ok**: [`Type`](../type-aliases/Type.md)
 
-Defined in: types.ts:481
+Defined in: [types.ts:485](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L485)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: types.ts:481
 
 > `readonly` **err**: [`Type`](../type-aliases/Type.md)
 
-Defined in: types.ts:482
+Defined in: [types.ts:486](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L486)

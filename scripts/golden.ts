@@ -62,11 +62,23 @@ async function main(): Promise<void> {
   await runOneCore('cnl/examples/greet.cnl', 'cnl/examples/expected_greet_core.json');
   await runOneCore('cnl/examples/login.cnl', 'cnl/examples/expected_login_core.json');
   runOneAst('cnl/examples/fetch_dashboard.cnl', 'cnl/examples/expected_fetch_dashboard.ast.json');
-  await runOneCore('cnl/examples/fetch_dashboard.cnl', 'cnl/examples/expected_fetch_dashboard_core.json');
-  runOneAst('cnl/examples/enum_exhaustiveness.cnl', 'cnl/examples/expected_enum_exhaustiveness.ast.json');
-  await runOneCore('cnl/examples/enum_exhaustiveness.cnl', 'cnl/examples/expected_enum_exhaustiveness_core.json');
+  await runOneCore(
+    'cnl/examples/fetch_dashboard.cnl',
+    'cnl/examples/expected_fetch_dashboard_core.json'
+  );
+  runOneAst(
+    'cnl/examples/enum_exhaustiveness.cnl',
+    'cnl/examples/expected_enum_exhaustiveness.ast.json'
+  );
+  await runOneCore(
+    'cnl/examples/enum_exhaustiveness.cnl',
+    'cnl/examples/expected_enum_exhaustiveness_core.json'
+  );
   runOneAst('cnl/examples/arith_compare.cnl', 'cnl/examples/expected_arith_compare.ast.json');
-  await runOneCore('cnl/examples/arith_compare.cnl', 'cnl/examples/expected_arith_compare_core.json');
+  await runOneCore(
+    'cnl/examples/arith_compare.cnl',
+    'cnl/examples/expected_arith_compare_core.json'
+  );
 }
 
 main().catch(e => {

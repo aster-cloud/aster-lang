@@ -4,7 +4,7 @@
 
 # Interface: Func
 
-Defined in: types.ts:79
+Defined in: [types.ts:83](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L83)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:79
 
 > `readonly` **kind**: `"Func"`
 
-Defined in: types.ts:80
+Defined in: [types.ts:84](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L84)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: types.ts:80
 
 > `readonly` **name**: `string`
 
-Defined in: types.ts:81
+Defined in: [types.ts:85](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L85)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: types.ts:81
 
 > `readonly` **params**: readonly [`Parameter`](Parameter.md)[]
 
-Defined in: types.ts:82
+Defined in: [types.ts:86](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L86)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: types.ts:82
 
 > `readonly` **retType**: [`Type`](../type-aliases/Type.md)
 
-Defined in: types.ts:83
+Defined in: [types.ts:87](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L87)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: types.ts:83
 
 > `readonly` **effects**: readonly `string`[]
 
-Defined in: types.ts:84
+Defined in: [types.ts:88](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L88)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: types.ts:84
 
 > `readonly` **body**: `null` \| [`Block`](Block.md)
 
-Defined in: types.ts:85
+Defined in: [types.ts:89](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L89)

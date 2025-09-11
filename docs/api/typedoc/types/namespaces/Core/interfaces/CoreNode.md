@@ -4,7 +4,7 @@
 
 # Interface: CoreNode
 
-Defined in: types.ts:273
+Defined in: [types.ts:277](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L277)
 
 ## Extended by
 
@@ -50,4 +50,4 @@ Defined in: types.ts:273
 
 > `readonly` **kind**: `string`
 
-Defined in: types.ts:274
+Defined in: [types.ts:278](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L278)

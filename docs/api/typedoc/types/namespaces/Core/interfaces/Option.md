@@ -4,7 +4,7 @@
 
 # Interface: Option
 
-Defined in: types.ts:474
+Defined in: [types.ts:478](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L478)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: types.ts:474
 
 > `readonly` **kind**: `"Option"`
 
-Defined in: types.ts:475
+Defined in: [types.ts:479](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L479)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: types.ts:475
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: types.ts:476
+Defined in: [types.ts:480](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L480)

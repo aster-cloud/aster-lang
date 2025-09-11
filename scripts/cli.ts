@@ -26,7 +26,9 @@ function main(): void {
         const ln = err.pos.line - 1;
         const context = lines[ln] || '';
         console.error(`> ${err.pos.line}| ${context}`);
-        console.error(`> ${' '.repeat(String(err.pos.line).length)}  ${' '.repeat(err.pos.col-1)}^`);
+        console.error(
+          `> ${' '.repeat(String(err.pos.line).length)}  ${' '.repeat(err.pos.col - 1)}^`
+        );
       }
     }
     process.exit(1);
