@@ -24,15 +24,10 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Install deps (no optional)
-        run: npm ci --no-optional
+      - name: Install deps
+        run: npm ci
 
       - name: Build docs
-        env:
-          ROLLUP_NO_NATIVE: '1'
-          ROLLUP_SKIP_NODEJS_NATIVE: '1'
-          ROLLUP_DISABLE_NATIVE: '1'
-          NPM_CONFIG_OPTIONAL: 'false'
         run: npm run docs:build
 
       - name: Deploy to GitHub Pages
