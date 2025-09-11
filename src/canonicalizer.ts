@@ -72,5 +72,20 @@ export function canonicalize(input: string): string {
   // Do not collapse newlines globally.
   marked = marked.replace(/^\s+$/gm, '');
 
+  // Final whitespace normalization to ensure idempotency after article/macro passes
+  marked = marked
+    .split('\n')
+    .map(line => {
+      const m = line.match(/^(\s*)(.*)$/);
+      if (!m) return line;
+      const indent = m[1] ?? '';
+      const rest = (m[2] ?? '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\s+([.,:!;?])/g, '$1')
+        .replace(/\s+$/g, '');
+      return indent + rest;
+    })
+    .join('\n');
+
   return marked;
 }
