@@ -1,18 +1,6 @@
 import { TokenKind, KW } from './tokens.js';
 import { Node } from './ast.js';
-import type {
-  Token,
-  Module,
-  Declaration,
-  Statement,
-  Expression,
-  Type,
-  Pattern,
-  Block,
-  Case,
-  Field,
-  Parameter,
-} from './types.js';
+import type { Token, Module, Declaration, Statement, Expression, Type, Pattern, Block, Case, Field, Parameter } from './types.js';
 import { Diagnostics } from './diagnostics.js';
 
 export function parse(tokens: readonly Token[]): Module {
@@ -57,10 +45,7 @@ export function parse(tokens: readonly Token[]): Module {
       nextWord();
       const name = parseDottedIdent();
       let asName: string | null = null;
-      if (isKeyword(KW.AS)) {
-        nextWord();
-        asName = parseIdent();
-      }
+      if (isKeyword(KW.AS)) { nextWord(); asName = parseIdent(); }
       expectDot();
       decls.push(Node.Import(name, asName));
     } else if (isKeyword(KW.DEFINE)) {
@@ -95,43 +80,23 @@ export function parse(tokens: readonly Token[]): Module {
       if (at(TokenKind.DOT)) {
         next();
         consumeNewlines();
-        if (
-          isKeywordSeq(KW.PERFORMS) ||
-          (tokLowerAt(i) === 'it' && tokLowerAt(i + 1) === 'performs')
-        ) {
+        if (isKeywordSeq(KW.PERFORMS) || (tokLowerAt(i)==='it' && tokLowerAt(i+1)==='performs')) {
           if (!isKeywordSeq(KW.PERFORMS)) nextWord();
           nextWords(kwParts(KW.PERFORMS));
           effects = parseEffectList();
-          if (at(TokenKind.DOT)) {
-            next();
-          } else if (at(TokenKind.COLON)) {
-            next();
-            expectNewline();
-            body = parseBlock();
-          } else {
-            error("Expected '.' or ':' after effect clause");
-          }
+          if (at(TokenKind.DOT)) { next(); }
+          else if (at(TokenKind.COLON)) { next(); expectNewline(); body = parseBlock(); }
+          else { error("Expected '.' or ':' after effect clause"); }
         }
-      } else if (
-        isKeywordSeq(KW.PERFORMS) ||
-        (tokLowerAt(i) === 'it' && tokLowerAt(i + 1) === 'performs')
-      ) {
+      } else if (isKeywordSeq(KW.PERFORMS) || (tokLowerAt(i)==='it' && tokLowerAt(i+1)==='performs')) {
         if (!isKeywordSeq(KW.PERFORMS)) nextWord();
         nextWords(kwParts(KW.PERFORMS));
         effects = parseEffectList();
-        if (at(TokenKind.DOT)) {
-          next();
-        } else if (at(TokenKind.COLON)) {
-          next();
-          expectNewline();
-          body = parseBlock();
-        } else {
-          error("Expected '.' or ':' after effect clause");
-        }
+        if (at(TokenKind.DOT)) { next(); }
+        else if (at(TokenKind.COLON)) { next(); expectNewline(); body = parseBlock(); }
+        else { error("Expected '.' or ':' after effect clause"); }
       } else if (at(TokenKind.COLON)) {
-        next();
-        expectNewline();
-        body = parseBlock();
+        next(); expectNewline(); body = parseBlock();
       } else {
         error("Expected '.' or ':' after return type");
       }
@@ -149,19 +114,14 @@ export function parse(tokens: readonly Token[]): Module {
   return Node.Module(moduleName, decls);
 
   // Helpers
-  function kwParts(phrase: string): string[] {
-    return phrase.split(' ');
+  function kwParts(phrase: string): string[] { return phrase.split(' '); }
+  function tokLowerAt(idx: number): string | null { 
+    const t = tokens[idx]; 
+    if (!t) return null; 
+    if (t.kind !== TokenKind.IDENT && t.kind !== TokenKind.TYPE_IDENT) return null; 
+    return (t.value as string || '').toLowerCase(); 
   }
-  function tokLowerAt(idx: number): string | null {
-    const t = tokens[idx];
-    if (!t) return null;
-    if (t.kind !== TokenKind.IDENT && t.kind !== TokenKind.TYPE_IDENT) return null;
-    return ((t.value as string) || '').toLowerCase();
-  }
-  function isKeyword(kw: string): boolean {
-    const v = tokLowerAt(i);
-    return v === kw;
-  }
+  function isKeyword(kw: string): boolean { const v = tokLowerAt(i); return v === kw; }
   function isKeywordSeq(words: string | string[]): boolean {
     const ws = Array.isArray(words) ? words : kwParts(words);
     for (let k = 0; k < ws.length; k++) {
@@ -170,13 +130,8 @@ export function parse(tokens: readonly Token[]): Module {
     }
     return true;
   }
-  function nextWord(): Token {
-    if (!(at(TokenKind.IDENT) || at(TokenKind.TYPE_IDENT))) error('Expected keyword/identifier');
-    return next();
-  }
-  function nextWords(ws: string[]): void {
-    ws.forEach(() => nextWord());
-  }
+  function nextWord(): Token { if (!(at(TokenKind.IDENT) || at(TokenKind.TYPE_IDENT))) error('Expected keyword/identifier'); return next(); }
+  function nextWords(ws: string[]): void { ws.forEach(() => nextWord()); }
   // function isWordSeq(ws: string[]): boolean { for (let k=0;k<ws.length;k++){ if (tokLowerAt(i+k)!==ws[k]) return false; } return true; }
   // function consumeWord(w: string): void { if (tokLowerAt(i)!==w) error(`Expected '${w}'`); next(); }
   // function consumeWords(ws: string[]): void { for (const w of ws) consumeWord(w); }
@@ -193,21 +148,16 @@ export function parse(tokens: readonly Token[]): Module {
     next();
   }
   function expectNewline(): void {
-    if (!at(TokenKind.NEWLINE))
-      Diagnostics.expectedToken('newline', peek().kind, peek().start).throw();
+    if (!at(TokenKind.NEWLINE)) Diagnostics.expectedToken('newline', peek().kind, peek().start).throw();
     next();
   }
 
   function parseDottedIdent(): string {
     const parts = [parseIdent()];
-    while (
-      at(TokenKind.DOT) &&
-      tokens[i + 1] &&
-      (tokens[i + 1]!.kind === TokenKind.IDENT || tokens[i + 1]!.kind === TokenKind.TYPE_IDENT)
-    ) {
-      next();
+    while (at(TokenKind.DOT) && tokens[i+1] && (tokens[i+1]!.kind === TokenKind.IDENT || tokens[i+1]!.kind === TokenKind.TYPE_IDENT)) { 
+      next(); 
       if (at(TokenKind.IDENT)) {
-        parts.push(parseIdent());
+        parts.push(parseIdent()); 
       } else if (at(TokenKind.TYPE_IDENT)) {
         parts.push(next().value as string);
       }
@@ -219,8 +169,7 @@ export function parse(tokens: readonly Token[]): Module {
     return next().value as string;
   }
   function parseTypeIdent(): string {
-    if (!at(TokenKind.TYPE_IDENT))
-      Diagnostics.expectedToken('Type identifier', peek().kind, peek().start).throw();
+    if (!at(TokenKind.TYPE_IDENT)) Diagnostics.expectedToken('Type identifier', peek().kind, peek().start).throw();
     return next().value as string;
   }
 
@@ -229,18 +178,11 @@ export function parse(tokens: readonly Token[]): Module {
     let hasMore = true;
     while (hasMore) {
       const name = parseIdent();
-      if (!at(TokenKind.COLON)) error("Expected ':' after field name");
-      next();
+      if (!at(TokenKind.COLON)) error("Expected ':' after field name"); next();
       const t = parseType();
       fields.push({ name, type: t });
-      if (at(TokenKind.COMMA)) {
-        next();
-        continue;
-      }
-      if (isKeyword(KW.AND)) {
-        nextWord();
-        continue;
-      }
+      if (at(TokenKind.COMMA)) { next(); continue; }
+      if (isKeyword(KW.AND)) { nextWord(); continue; }
       hasMore = false;
     }
     return fields;
@@ -251,14 +193,8 @@ export function parse(tokens: readonly Token[]): Module {
     while (hasMore) {
       const v = parseTypeIdent();
       vars.push(v);
-      if (at(TokenKind.IDENT) && ((peek().value as string) || '').toLowerCase() === KW.OR) {
-        nextWord();
-        continue;
-      }
-      if (at(TokenKind.COMMA)) {
-        next();
-        continue;
-      }
+      if (at(TokenKind.IDENT) && (peek().value as string || '').toLowerCase() === KW.OR) { nextWord(); continue; }
+      if (at(TokenKind.COMMA)) { next(); continue; }
       hasMore = false;
     }
     return vars;
@@ -267,36 +203,27 @@ export function parse(tokens: readonly Token[]): Module {
   function parseParamList(): Parameter[] {
     const params: Parameter[] = [];
     // 'with' params
-    if (isKeyword(KW.WITH)) {
-      nextWord();
+    if (isKeyword(KW.WITH)) { nextWord();
       let hasMore = true;
       while (hasMore) {
         const name = parseIdent();
-        if (!at(TokenKind.COLON)) error("Expected ':' after parameter name");
-        next();
+        if (!at(TokenKind.COLON)) error("Expected ':' after parameter name"); next();
         const type = parseType();
         params.push({ name, type });
-        if (at(TokenKind.IDENT) && ((peek().value as string) || '').toLowerCase() === KW.AND) {
-          nextWord();
-          continue;
-        }
+        if (at(TokenKind.IDENT) && (peek().value as string || '').toLowerCase() === KW.AND) { nextWord(); continue; }
         hasMore = false;
       }
       return params;
     }
     // Bare params: name: Type [and name: Type]*
-    if (at(TokenKind.IDENT) && tokens[i + 1] && tokens[i + 1]!.kind === TokenKind.COLON) {
+    if (at(TokenKind.IDENT) && tokens[i+1] && tokens[i+1]!.kind === TokenKind.COLON) {
       let hasMore = true;
       while (hasMore) {
         const name = parseIdent();
-        if (!at(TokenKind.COLON)) error("Expected ':' after parameter name");
-        next();
+        if (!at(TokenKind.COLON)) error("Expected ':' after parameter name"); next();
         const type = parseType();
         params.push({ name, type });
-        if (at(TokenKind.IDENT) && ((peek().value as string) || '').toLowerCase() === KW.AND) {
-          nextWord();
-          continue;
-        }
+        if (at(TokenKind.IDENT) && (peek().value as string || '').toLowerCase() === KW.AND) { nextWord(); continue; }
         hasMore = false;
       }
     }
@@ -305,95 +232,37 @@ export function parse(tokens: readonly Token[]): Module {
 
   function parseEffectList(): string[] {
     const effs: string[] = [];
-    if (isKeyword(KW.IO)) {
-      nextWord();
-      effs.push('io');
-    }
-    if (isKeyword(KW.CPU)) {
-      nextWord();
-      effs.push('cpu');
-    }
+    if (isKeyword(KW.IO)) { nextWord(); effs.push('io'); }
+    if (isKeyword(KW.CPU)) { nextWord(); effs.push('cpu'); }
     return effs;
   }
 
   function parseType(): Type {
     // maybe T | Option of T | Result of T or E | list of T | map Text to Int | Text/Int/Float/Bool | TypeIdent
-    if (isKeyword(KW.MAYBE)) {
-      nextWord();
-      return Node.Maybe(parseType());
-    }
-    if (isKeywordSeq(KW.OPTION_OF)) {
-      nextWords(kwParts(KW.OPTION_OF));
-      return Node.Option(parseType());
-    }
-    if (isKeywordSeq(KW.RESULT_OF)) {
-      nextWords(kwParts(KW.RESULT_OF));
-      const ok = parseType();
-      expectKeyword(KW.OR, "Expected 'or' in Result of");
-      const err = parseType();
-      return Node.Result(ok, err);
-    }
-    if (isKeywordSeq(KW.FOR_EACH)) {
-      /* not a type; handled elsewhere */
-    }
-    if (isKeywordSeq(KW.WITHIN)) {
-      /* not a type */
-    }
+    if (isKeyword(KW.MAYBE)) { nextWord(); return Node.Maybe(parseType()); }
+    if (isKeywordSeq(KW.OPTION_OF)) { nextWords(kwParts(KW.OPTION_OF)); return Node.Option(parseType()); }
+    if (isKeywordSeq(KW.RESULT_OF)) { nextWords(kwParts(KW.RESULT_OF)); const ok = parseType(); expectKeyword(KW.OR, "Expected 'or' in Result of"); const err = parseType(); return Node.Result(ok, err); }
+    if (isKeywordSeq(KW.FOR_EACH)) { /* not a type; handled elsewhere */ }
+    if (isKeywordSeq(KW.WITHIN)) { /* not a type */ }
 
-    if (isKeywordSeq(['list', 'of'])) {
-      nextWord();
-      nextWord();
-      return Node.List(parseType());
-    }
-    if (isKeyword('map')) {
-      nextWord();
-      const k = parseType();
-      expectKeyword(KW.TO_WORD, "Expected 'to' in map type");
-      const v = parseType();
-      return Node.Map(k, v);
-    }
+    if (isKeywordSeq(['list', 'of'])) { nextWord(); nextWord(); return Node.List(parseType()); }
+    if (isKeyword('map')) { nextWord(); const k = parseType(); expectKeyword(KW.TO_WORD, "Expected 'to' in map type"); const v = parseType(); return Node.Map(k, v); }
 
-    if (isKeyword(KW.TEXT)) {
-      nextWord();
-      return Node.TypeName('Text');
-    }
-    if (isKeyword(KW.INT)) {
-      nextWord();
-      return Node.TypeName('Int');
-    }
-    if (isKeyword(KW.FLOAT)) {
-      nextWord();
-      return Node.TypeName('Float');
-    }
-    if (isKeyword(KW.BOOL_TYPE)) {
-      nextWord();
-      return Node.TypeName('Bool');
-    }
+    if (isKeyword(KW.TEXT)) { nextWord(); return Node.TypeName('Text'); }
+    if (isKeyword(KW.INT)) { nextWord(); return Node.TypeName('Int'); }
+    if (isKeyword(KW.FLOAT)) { nextWord(); return Node.TypeName('Float'); }
+    if (isKeyword(KW.BOOL_TYPE)) { nextWord(); return Node.TypeName('Bool'); }
 
     // Handle capitalized type keywords (Int, Bool, etc.) that are tokenized as IDENT
     if (at(TokenKind.IDENT)) {
       const value = peek().value as string;
-      if (value === 'Int') {
-        nextWord();
-        return Node.TypeName('Int');
-      }
-      if (value === 'Bool') {
-        nextWord();
-        return Node.TypeName('Bool');
-      }
-      if (value === 'Text') {
-        nextWord();
-        return Node.TypeName('Text');
-      }
-      if (value === 'Float') {
-        nextWord();
-        return Node.TypeName('Float');
-      }
+      if (value === 'Int') { nextWord(); return Node.TypeName('Int'); }
+      if (value === 'Bool') { nextWord(); return Node.TypeName('Bool'); }
+      if (value === 'Text') { nextWord(); return Node.TypeName('Text'); }
+      if (value === 'Float') { nextWord(); return Node.TypeName('Float'); }
     }
 
-    if (at(TokenKind.TYPE_IDENT)) {
-      return Node.TypeName(next().value as string);
-    }
+    if (at(TokenKind.TYPE_IDENT)) { return Node.TypeName(next().value as string); }
 
     error('Expected type');
   }
@@ -414,89 +283,34 @@ export function parse(tokens: readonly Token[]): Module {
     return Node.Block(statements);
   }
 
-  function expectPeriodEnd(): void {
-    if (!at(TokenKind.DOT)) error("Expected '.' at end of statement");
-    next();
-  }
+  function expectPeriodEnd(): void { if (!at(TokenKind.DOT)) error("Expected '.' at end of statement"); next(); }
 
   function parseStatement(): Statement {
     if (isKeyword(KW.LET)) {
-      nextWord();
-      const name = parseIdent();
-      expectKeyword(KW.BE, "Use 'be' in bindings: 'Let x be ...'.");
-      const expr = parseExpr();
-      expectPeriodEnd();
-      return Node.Let(name, expr);
+      nextWord(); const name = parseIdent(); expectKeyword(KW.BE, "Use 'be' in bindings: 'Let x be ...'."); const expr = parseExpr(); expectPeriodEnd(); return Node.Let(name, expr);
     }
     if (isKeyword(KW.SET)) {
-      nextWord();
-      const name = parseIdent();
-      expectKeyword(KW.TO_WORD, "Use 'to' in assignments: 'Set x to ...'.");
-      const expr = parseExpr();
-      expectPeriodEnd();
-      return Node.Set(name, expr);
+      nextWord(); const name = parseIdent(); expectKeyword(KW.TO_WORD, "Use 'to' in assignments: 'Set x to ...'."); const expr = parseExpr(); expectPeriodEnd(); return Node.Set(name, expr);
     }
     if (isKeyword(KW.RETURN)) {
-      nextWord();
-      const expr = parseExpr();
-      expectPeriodEnd();
-      return Node.Return(expr);
+      nextWord(); const expr = parseExpr(); expectPeriodEnd(); return Node.Return(expr);
     }
     if (isKeyword(KW.AWAIT)) {
-      nextWord();
-      if (!at(TokenKind.LPAREN)) error("Expected '(' after await");
-      const args = parseArgList();
-      if (args.length !== 1) error('await(expr) takes exactly one argument');
-      const aw = Node.Call(Node.Name('await'), args);
-      expectPeriodEnd();
-      return aw as unknown as Statement;
+      nextWord(); if (!at(TokenKind.LPAREN)) error("Expected '(' after await"); const args = parseArgList(); if (args.length !== 1) error('await(expr) takes exactly one argument'); const aw = Node.Call(Node.Name('await'), args); expectPeriodEnd(); return aw as unknown as Statement;
     }
     if (isKeyword(KW.IF)) {
       nextWord();
       let negate = false;
-      if (isKeyword(KW.NOT)) {
-        nextWord();
-        negate = true;
-      }
+      if (isKeyword(KW.NOT)) { nextWord(); negate = true; }
       const cond = parseExpr();
       const condExpr = negate ? Node.Call(Node.Name('not'), [cond]) : cond;
-      if (!at(TokenKind.COMMA)) error("Expected ',' after condition");
-      next();
-      if (!at(TokenKind.COLON)) error("Expected ':' after ',' in If");
-      next();
-      expectNewline();
-      const thenBlock = parseBlock();
-      let elseBlock: Block | null = null;
-      if (isKeyword(KW.OTHERWISE)) {
-        nextWord();
-        if (!at(TokenKind.COMMA)) error("Expected ',' after 'Otherwise'");
-        next();
-        if (!at(TokenKind.COLON)) error("Expected ':' after ',' in Otherwise");
-        next();
-        expectNewline();
-        elseBlock = parseBlock();
-      }
-      return Node.If(condExpr, thenBlock, elseBlock);
+      if (!at(TokenKind.COMMA)) error("Expected ',' after condition"); next(); if (!at(TokenKind.COLON)) error("Expected ':' after ',' in If"); next(); expectNewline(); const thenBlock = parseBlock(); let elseBlock: Block | null = null; if (isKeyword(KW.OTHERWISE)) { nextWord(); if (!at(TokenKind.COMMA)) error("Expected ',' after 'Otherwise'"); next(); if (!at(TokenKind.COLON)) error("Expected ':' after ',' in Otherwise"); next(); expectNewline(); elseBlock = parseBlock(); } return Node.If(condExpr, thenBlock, elseBlock);
     }
     if (isKeyword(KW.MATCH)) {
-      nextWord();
-      const expr = parseExpr();
-      if (!at(TokenKind.COLON)) error("Expected ':' after match expression");
-      next();
-      expectNewline();
-      const cases = parseCases();
-      return Node.Match(expr, cases);
+      nextWord(); const expr = parseExpr(); if (!at(TokenKind.COLON)) error("Expected ':' after match expression"); next(); expectNewline(); const cases = parseCases(); return Node.Match(expr, cases);
     }
     // Plain bare expression as statement (allow method calls, constructions) ending with '.'
-    if (
-      at(TokenKind.IDENT) ||
-      at(TokenKind.TYPE_IDENT) ||
-      at(TokenKind.STRING) ||
-      at(TokenKind.INT) ||
-      at(TokenKind.BOOL) ||
-      at(TokenKind.NULL) ||
-      at(TokenKind.LPAREN)
-    ) {
+    if (at(TokenKind.IDENT) || at(TokenKind.TYPE_IDENT) || at(TokenKind.STRING) || at(TokenKind.INT) || at(TokenKind.BOOL) || at(TokenKind.NULL) || at(TokenKind.LPAREN)) {
       const exprStart = i;
       try {
         const e = parseExpr();
@@ -508,35 +322,18 @@ export function parse(tokens: readonly Token[]): Module {
       }
     }
     if (isKeyword(KW.WITHIN)) {
-      nextWord();
-      expectKeyword(KW.SCOPE, "Expected 'scope' after 'Within'");
-      if (!at(TokenKind.COLON)) error("Expected ':' after 'scope'");
-      next();
-      expectNewline();
-      const b = parseBlock();
-      return b; // Lowering later
+      nextWord(); expectKeyword(KW.SCOPE, "Expected 'scope' after 'Within'"); if (!at(TokenKind.COLON)) error("Expected ':' after 'scope'"); next(); expectNewline(); const b = parseBlock(); return b; // Lowering later
     }
     if (isKeyword(KW.START)) {
-      nextWord();
-      const name = parseIdent();
-      expectKeyword(KW.AS, "Expected 'as' after name");
-      expectKeyword(KW.ASYNC, "Expected 'async'");
-      const expr = parseExpr();
-      expectPeriodEnd();
-      return Node.Start(name, expr) as Statement;
+      nextWord(); const name = parseIdent(); expectKeyword(KW.AS, "Expected 'as' after name"); expectKeyword(KW.ASYNC, "Expected 'async'"); const expr = parseExpr(); expectPeriodEnd(); return Node.Start(name, expr) as Statement;
     }
     if (isKeywordSeq(KW.WAIT_FOR)) {
       nextWords(kwParts(KW.WAIT_FOR));
       const names: string[] = [];
       names.push(parseIdent());
       while (isKeyword(KW.AND) || at(TokenKind.COMMA)) {
-        if (isKeyword(KW.AND)) {
-          nextWord();
-          names.push(parseIdent());
-        } else {
-          next();
-          names.push(parseIdent());
-        }
+        if (isKeyword(KW.AND)) { nextWord(); names.push(parseIdent()); }
+        else { next(); names.push(parseIdent()); }
       }
       expectPeriodEnd();
       return Node.Wait(names) as Statement;
@@ -547,30 +344,17 @@ export function parse(tokens: readonly Token[]): Module {
 
   function parseCases(): Case[] {
     const cases: Case[] = [];
-    if (!at(TokenKind.INDENT)) error('Expected indent for cases');
-    next();
+    if (!at(TokenKind.INDENT)) error('Expected indent for cases'); next();
     while (!at(TokenKind.DEDENT)) {
-      if (!isKeyword(KW.WHEN)) error("Expected 'When'");
-      nextWord();
-      const pat = parsePattern();
-      if (!at(TokenKind.COMMA)) error("Expected ',' after pattern");
-      next();
-      const body = parseCaseBody();
-      cases.push(Node.Case(pat, body));
+      if (!isKeyword(KW.WHEN)) error("Expected 'When'"); nextWord(); const pat = parsePattern(); if (!at(TokenKind.COMMA)) error("Expected ',' after pattern"); next(); const body = parseCaseBody(); cases.push(Node.Case(pat, body));
       while (at(TokenKind.NEWLINE)) next();
     }
     next();
     return cases;
   }
   function parseCaseBody(): Block | import('./types.js').Return {
-    if (isKeyword(KW.RETURN)) {
-      nextWord();
-      const e = parseExpr();
-      expectPeriodEnd();
-      return Node.Return(e);
-    }
-    const b = parseBlock();
-    return b;
+    if (isKeyword(KW.RETURN)) { nextWord(); const e = parseExpr(); expectPeriodEnd(); return Node.Return(e); }
+    const b = parseBlock(); return b;
   }
 
   function parseExpr(): Expression {
@@ -639,32 +423,15 @@ export function parse(tokens: readonly Token[]): Module {
 
   function parsePrimary(): Expression {
     // Minimal: construction, literals, names, Ok/Err/Some/None, call with dotted names and parens args
-    if (isKeywordSeq(KW.OK_OF)) {
-      nextWords(kwParts(KW.OK_OF));
-      return Node.Ok(parseExpr());
-    }
-    if (isKeywordSeq(KW.ERR_OF)) {
-      nextWords(kwParts(KW.ERR_OF));
-      return Node.Err(parseExpr());
-    }
-    if (isKeywordSeq(KW.SOME_OF)) {
-      nextWords(kwParts(KW.SOME_OF));
-      return Node.Some(parseExpr());
-    }
-    if (isKeyword(KW.NONE)) {
-      nextWord();
-      return Node.None();
-    }
+    if (isKeywordSeq(KW.OK_OF)) { nextWords(kwParts(KW.OK_OF)); return Node.Ok(parseExpr()); }
+    if (isKeywordSeq(KW.ERR_OF)) { nextWords(kwParts(KW.ERR_OF)); return Node.Err(parseExpr()); }
+    if (isKeywordSeq(KW.SOME_OF)) { nextWords(kwParts(KW.SOME_OF)); return Node.Some(parseExpr()); }
+    if (isKeyword(KW.NONE)) { nextWord(); return Node.None(); }
     if (at(TokenKind.STRING)) return Node.String(next().value as string);
     if (at(TokenKind.BOOL)) return Node.Bool(next().value as boolean);
     if (at(TokenKind.NULL)) return Node.Null();
     if (at(TokenKind.INT)) return Node.Int(next().value as number);
-    if (isKeyword(KW.AWAIT)) {
-      nextWord();
-      const args = parseArgList();
-      if (args.length !== 1) error('await(expr) takes exactly one argument');
-      return Node.Call(Node.Name('await'), args);
-    }
+    if (isKeyword(KW.AWAIT)) { nextWord(); const args = parseArgList(); if (args.length !== 1) error('await(expr) takes exactly one argument'); return Node.Call(Node.Name('await'), args); }
 
     // Parenthesized expressions
     if (at(TokenKind.LPAREN)) {
@@ -683,29 +450,15 @@ export function parse(tokens: readonly Token[]): Module {
         const fields: import('./types.js').ConstructField[] = [];
         let hasMore = true;
         while (hasMore) {
-          const name = parseIdent();
-          if (!at(TokenKind.EQUALS)) error("Expected '=' in construction");
-          next();
-          const e = parseExpr();
-          fields.push({ name, expr: e });
-          if (isKeyword(KW.AND)) {
-            nextWord();
-            continue;
-          }
+          const name = parseIdent(); if (!at(TokenKind.EQUALS)) error("Expected '=' in construction"); next(); const e = parseExpr(); fields.push({ name, expr: e });
+          if (isKeyword(KW.AND)) { nextWord(); continue; }
           hasMore = false;
         }
         return Node.Construct(typeName, fields);
       }
       // Dotted chain after TypeIdent (e.g., AuthRepo.verify)
       let full = typeName;
-      while (
-        at(TokenKind.DOT) &&
-        tokens[i + 1] &&
-        (tokens[i + 1]!.kind === TokenKind.IDENT || tokens[i + 1]!.kind === TokenKind.TYPE_IDENT)
-      ) {
-        next();
-        full += '.' + parseIdent();
-      }
+      while (at(TokenKind.DOT) && tokens[i+1] && (tokens[i+1]!.kind === TokenKind.IDENT || tokens[i+1]!.kind === TokenKind.TYPE_IDENT)) { next(); full += '.' + parseIdent(); }
       if (at(TokenKind.LPAREN)) {
         const target = Node.Name(full);
         const args = parseArgList();
@@ -718,11 +471,7 @@ export function parse(tokens: readonly Token[]): Module {
       const name = parseIdent();
       // dotted chain
       let full = name;
-      while (
-        at(TokenKind.DOT) &&
-        tokens[i + 1] &&
-        (tokens[i + 1]!.kind === TokenKind.IDENT || tokens[i + 1]!.kind === TokenKind.TYPE_IDENT)
-      ) {
+      while (at(TokenKind.DOT) && tokens[i+1] && (tokens[i+1]!.kind === TokenKind.IDENT || tokens[i+1]!.kind === TokenKind.TYPE_IDENT)) {
         next();
         if (at(TokenKind.IDENT)) {
           full += '.' + parseIdent();
@@ -742,47 +491,31 @@ export function parse(tokens: readonly Token[]): Module {
   }
 
   function parseArgList(): Expression[] {
-    if (!at(TokenKind.LPAREN)) error("Expected '('");
-    next();
+    if (!at(TokenKind.LPAREN)) error("Expected '('"); next();
     const args: Expression[] = [];
     while (!at(TokenKind.RPAREN)) {
       args.push(parseExpr());
-      if (at(TokenKind.COMMA)) {
-        next();
-        continue;
-      } else break;
+      if (at(TokenKind.COMMA)) { next(); continue; }
+      else break;
     }
-    if (!at(TokenKind.RPAREN)) error("Expected ')'");
-    next();
+    if (!at(TokenKind.RPAREN)) error("Expected ')'"); next();
     return args;
   }
 
   function parsePattern(): Pattern {
-    if (isKeyword(KW.NULL) || at(TokenKind.NULL)) {
-      if (at(TokenKind.NULL)) next();
-      else nextWord();
-      return Node.PatternNull();
-    }
+    if (isKeyword(KW.NULL) || at(TokenKind.NULL)) { if (at(TokenKind.NULL)) next(); else nextWord(); return Node.PatternNull(); }
     if (at(TokenKind.TYPE_IDENT)) {
       const typeName = next().value as string;
       if (at(TokenKind.LPAREN)) {
         next();
         const names: string[] = [];
-        while (!at(TokenKind.RPAREN)) {
-          names.push(parseIdent());
-          if (at(TokenKind.COMMA)) {
-            next();
-            continue;
-          } else break;
-        }
-        if (!at(TokenKind.RPAREN)) error("Expected ')' in pattern");
-        next();
+        while (!at(TokenKind.RPAREN)) { names.push(parseIdent()); if (at(TokenKind.COMMA)) { next(); continue; } else break; }
+        if (!at(TokenKind.RPAREN)) error("Expected ')' in pattern"); next();
         return Node.PatternCtor(typeName, names);
       }
       // No LPAREN: treat bare TypeIdent as a variant name pattern (enum member)
       return Node.PatternName(typeName);
     }
-    const name = parseIdent();
-    return Node.PatternName(name);
+    const name = parseIdent(); return Node.PatternName(name);
   }
 }

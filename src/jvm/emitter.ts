@@ -32,14 +32,10 @@ function javaType(t: Core.Type): string {
       // Represent Maybe<T> as nullable T
       return javaType(t.type);
     }
-    case 'Option':
-      return javaType(t.type);
-    case 'List':
-      return `java.util.List<${javaType(t.type)}>`;
-    case 'Map':
-      return `java.util.Map<${javaType(t.key)}, ${javaType(t.val)}>`;
-    default:
-      return 'Object';
+    case 'Option': return javaType(t.type);
+    case 'List': return `java.util.List<${javaType(t.type)}>`;
+    case 'Map': return `java.util.Map<${javaType(t.key)}, ${javaType(t.val)}>`;
+    default: return 'Object';
   }
 }
 
@@ -63,22 +59,14 @@ function emitExpr(e: Core.Expression, helpers: EmitHelpers): string {
       if (e.name === 'UUID.randomUUID') return 'java.util.UUID.randomUUID().toString()';
       return e.name;
     }
-    case 'Bool':
-      return e.value ? 'true' : 'false';
-    case 'Int':
-      return String(e.value);
-    case 'String':
-      return JSON.stringify(e.value);
-    case 'Null':
-      return 'null';
-    case 'Ok':
-      return `new aster.runtime.Ok<>(${emitExpr(e.expr, helpers)})`;
-    case 'Err':
-      return `new aster.runtime.Err<>(${emitExpr(e.expr, helpers)})`;
-    case 'Some':
-      return emitExpr(e.expr, helpers);
-    case 'None':
-      return 'null';
+    case 'Bool': return e.value ? 'true' : 'false';
+    case 'Int': return String(e.value);
+    case 'String': return JSON.stringify(e.value);
+    case 'Null': return 'null';
+    case 'Ok': return `new aster.runtime.Ok<>(${emitExpr(e.expr, helpers)})`;
+    case 'Err': return `new aster.runtime.Err<>(${emitExpr(e.expr, helpers)})`;
+    case 'Some': return emitExpr(e.expr, helpers);
+    case 'None': return 'null';
     case 'Construct': {
       const args = e.fields.map(f => emitExpr(f.expr, helpers)).join(', ');
       return `new ${e.typeName}(${args})`;
@@ -91,8 +79,7 @@ function emitExpr(e: Core.Expression, helpers: EmitHelpers): string {
       const args = e.args.map(a => emitExpr(a, helpers)).join(', ');
       return `${tgt}(${args})`;
     }
-    default:
-      return 'null';
+    default: return 'null';
   }
 }
 
@@ -101,25 +88,17 @@ interface EmitHelpers {
   enumVariantToEnum: Map<string, string>;
 }
 
-function emitStatement(
-  s: Core.Statement,
-  locals: string[],
-  helpers: EmitHelpers,
-  indent = '    '
-): string {
+
+
+function emitStatement(s: Core.Statement, locals: string[], helpers: EmitHelpers, indent = '    '): string {
   switch (s.kind) {
-    case 'Let':
-      return `${indent}${javaLocalDecl(s.name)} = ${emitExpr(s.expr, helpers)};\n`;
-    case 'Set':
-      return `${indent}${s.name} = ${emitExpr(s.expr, helpers)};\n`;
-    case 'Return':
-      return `${indent}return ${emitExpr(s.expr, helpers)};\n`;
+    case 'Let': return `${indent}${javaLocalDecl(s.name)} = ${emitExpr(s.expr, helpers)};\n`;
+    case 'Set': return `${indent}${s.name} = ${emitExpr(s.expr, helpers)};\n`;
+    case 'Return': return `${indent}return ${emitExpr(s.expr, helpers)};\n`;
     case 'If': {
       const cond = emitExpr(s.cond, helpers);
       const thenB = emitBlock(s.thenBlock, locals, helpers, indent + '  ');
-      const elseB = s.elseBlock
-        ? ` else {\n${emitBlock(s.elseBlock, locals, helpers, indent + '  ')}${indent}}\n`
-        : '\n';
+      const elseB = s.elseBlock ? ` else {\n${emitBlock(s.elseBlock, locals, helpers, indent + '  ')}${indent}}\n` : '\n';
       return `${indent}if (${cond}) {\n${thenB}${indent}}${elseB}`;
     }
     case 'Match': {
@@ -139,9 +118,7 @@ function emitStatement(
           lines.push(`${indent}    var __tmp = (${p.typeName})__scrut;`);
           // bind names in order to fields with same order
           p.names.forEach((n, idx) => {
-            lines.push(
-              `${indent}    var ${n} = __tmp.${fieldNameByIndex(p.typeName, helpers, idx)};`
-            );
+            lines.push(`${indent}    var ${n} = __tmp.${fieldNameByIndex(p.typeName, helpers, idx)};`);
           });
           lines.push(emitCaseBody(c.body, locals, helpers, indent + '    '));
           lines.push(`${indent}  }`);
@@ -166,12 +143,7 @@ function emitStatement(
   }
 }
 
-function emitCaseBody(
-  b: Core.Return | Core.Block,
-  locals: string[],
-  helpers: EmitHelpers,
-  indent: string
-): string {
+function emitCaseBody(b: Core.Return | Core.Block, locals: string[], helpers: EmitHelpers, indent: string): string {
   if (b.kind === 'Return') return `${indent}return ${emitExpr(b.expr, helpers)};\n`;
   return emitBlock(b, locals, helpers, indent);
 }
@@ -180,9 +152,7 @@ function emitBlock(b: Core.Block, locals: string[], helpers: EmitHelpers, indent
   return b.statements.map(s => emitStatement(s, locals, helpers, indent)).join('');
 }
 
-function javaLocalDecl(name: string): string {
-  return `var ${name}`;
-}
+function javaLocalDecl(name: string): string { return `var ${name}`; }
 
 function fieldByIndexName(index: number): string {
   // Fallback field name f0,f1,... for MVP; will refine with schema later
@@ -200,7 +170,7 @@ function emitFunc(pkgDecl: string, f: Core.Func, helpers: EmitHelpers): string {
   const ret = javaType(f.ret);
   const params = f.params.map(p => `${javaType(p.type)} ${p.name}`).join(', ');
   const body = emitBlock(f.body, [], helpers, '    ');
-  const fallback = ret === 'int' ? '0' : ret === 'boolean' ? 'false' : 'null';
+  const fallback = ret === 'int' ? '0' : (ret === 'boolean' ? 'false' : 'null');
   return `${pkgDecl}public final class ${f.name}_fn {\n  private ${f.name}_fn(){}\n  public static ${ret} ${f.name}(${params}) {\n${body}    return ${fallback};\n  }\n}\n`;
 }
 
@@ -230,8 +200,8 @@ export async function emitJava(core: Core.Module, outRoot = 'build/jvm-src'): Pr
   }
 }
 
-function collectEnums(core: Core.Module): Map<string, string> {
-  const map = new Map<string, string>();
+function collectEnums(core: Core.Module): Map<string,string> {
+  const map = new Map<string,string>();
   for (const d of core.decls) {
     if (d.kind === 'Enum') {
       for (const v of d.variants) map.set(v, d.name);
@@ -239,3 +209,4 @@ function collectEnums(core: Core.Module): Map<string, string> {
   }
   return map;
 }
+

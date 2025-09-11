@@ -4,7 +4,7 @@
 
 # Interface: Data
 
-Defined in: [types.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L66)
+Defined in: types.ts:62
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/b53f24
 
 > `readonly` **kind**: `"Data"`
 
-Defined in: [types.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L67)
+Defined in: types.ts:63
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/b53f24
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:68](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L68)
+Defined in: types.ts:64
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:68](https://github.com/wontlost-ltd/aster-lang/blob/b53f24
 
 > `readonly` **fields**: readonly [`Field`](Field.md)[]
 
-Defined in: [types.ts:69](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L69)
+Defined in: types.ts:65

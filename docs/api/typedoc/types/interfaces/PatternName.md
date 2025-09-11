@@ -4,7 +4,7 @@
 
 # Interface: PatternName
 
-Defined in: [types.ts:166](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L166)
+Defined in: types.ts:162
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:166](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"PatternName"`
 
-Defined in: [types.ts:167](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L167)
+Defined in: types.ts:163
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:167](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:168](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L168)
+Defined in: types.ts:164

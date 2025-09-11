@@ -4,7 +4,7 @@
 
 # Interface: Null
 
-Defined in: [types.ts:200](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L200)
+Defined in: types.ts:196
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:200](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"Null"`
 
-Defined in: [types.ts:201](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L201)
+Defined in: types.ts:197
 
 #### Overrides
 

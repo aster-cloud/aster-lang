@@ -4,7 +4,7 @@
 
 # Interface: Name
 
-Defined in: [types.ts:180](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L180)
+Defined in: types.ts:176
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:180](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"Name"`
 
-Defined in: [types.ts:181](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L181)
+Defined in: types.ts:177
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:181](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:182](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L182)
+Defined in: types.ts:178

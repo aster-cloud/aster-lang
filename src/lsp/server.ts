@@ -43,7 +43,9 @@ connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
 
   // Does the client support the `workspace/configuration` request?
-  hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
+  hasConfigurationCapability = !!(
+    capabilities.workspace && !!capabilities.workspace.configuration
+  );
   hasWorkspaceFolderCapability = !!(
     capabilities.workspace && !!capabilities.workspace.workspaceFolders
   );
@@ -108,7 +110,9 @@ connection.onDidChangeConfiguration(change => {
     // Reset all cached document settings
     documentSettings.clear();
   } else {
-    globalSettings = <AsterSettings>(change.settings.asterLanguageServer || defaultSettings);
+    globalSettings = <AsterSettings>(
+      (change.settings.asterLanguageServer || defaultSettings)
+    );
   }
 
   // Revalidate all open text documents
@@ -155,14 +159,10 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     if (error instanceof DiagnosticError) {
       const diag = error.diagnostic;
       const diagnostic: Diagnostic = {
-        severity:
-          diag.severity === 'error'
-            ? DiagnosticSeverity.Error
-            : diag.severity === 'warning'
-              ? DiagnosticSeverity.Warning
-              : diag.severity === 'info'
-                ? DiagnosticSeverity.Information
-                : DiagnosticSeverity.Hint,
+        severity: diag.severity === 'error' ? DiagnosticSeverity.Error :
+                 diag.severity === 'warning' ? DiagnosticSeverity.Warning :
+                 diag.severity === 'info' ? DiagnosticSeverity.Information :
+                 DiagnosticSeverity.Hint,
         range: {
           start: { line: diag.span.start.line - 1, character: diag.span.start.col - 1 },
           end: { line: diag.span.end.line - 1, character: diag.span.end.col - 1 },
@@ -231,6 +231,8 @@ connection.onCompletion((): CompletionItem[] => {
 
   return completions;
 });
+
+
 
 // This handler resolves additional information for the item selected in
 // the completion list.

@@ -4,7 +4,7 @@
 
 # Interface: If
 
-Defined in: [types.ts:365](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L365)
+Defined in: types.ts:361
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:365](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"If"`
 
-Defined in: [types.ts:366](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L366)
+Defined in: types.ts:362
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:366](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **cond**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:367](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L367)
+Defined in: types.ts:363
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:367](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **thenBlock**: [`Block`](Block.md)
 
-Defined in: [types.ts:368](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L368)
+Defined in: types.ts:364
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:368](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **elseBlock**: `null` \| [`Block`](Block.md)
 
-Defined in: [types.ts:369](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L369)
+Defined in: types.ts:365

@@ -7,7 +7,10 @@ function copy(src, dst) {
   fs.copyFileSync(src, dst);
 }
 
-const map = [['scripts/emit-classfiles.ts', 'dist/scripts/emit-classfiles.js']];
+const map = [
+  ['scripts/emit-classfiles.ts', 'dist/scripts/emit-classfiles.js'],
+];
 for (const [src, dst] of map) {
   if (fs.existsSync(src)) copy(src, dst);
 }
+

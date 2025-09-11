@@ -3,7 +3,7 @@
 Welcome to Aster! This guide will help you try Aster locally.
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 18+
 
 ## Install and build
 
@@ -34,3 +34,4 @@ npm test
 - Read the [Language Overview](/guide/language-overview)
 - Explore the [Syntax Reference](/reference/syntax)
 - Check out the [API](/api/overview)
+

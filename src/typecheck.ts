@@ -8,19 +8,12 @@ export interface TypecheckDiagnostic {
 }
 
 // Internal representation for types during checking
-type UnknownT = { kind: 'Unknown' };
-type T = Core.Type | UnknownT;
+type T = Core.Type & { __tag?: 'Type' } | { kind: 'Unknown' };
 
-function isUnknown(x: T): x is UnknownT {
-  return (x as { kind: string }).kind === 'Unknown';
-}
-
-function tUnknown(): T { return { kind: 'Unknown' }; }
-
-const UNKNOWN_TYPENAME: Core.TypeName = { kind: 'TypeName', name: 'Unknown' };
+function tUnknown(): T { return { kind: 'Unknown' } as any; }
 
 function tEquals(a: T, b: T): boolean {
-  if (isUnknown(a) || isUnknown(b)) return true;
+  if ((a as any).kind === 'Unknown' || (b as any).kind === 'Unknown') return true;
   if (a.kind !== b.kind) return false;
   switch (a.kind) {
     case 'TypeName': {
@@ -29,41 +22,32 @@ function tEquals(a: T, b: T): boolean {
       if (an === 'Unknown' || bn === 'Unknown') return true;
       return an === bn;
     }
-    case 'Maybe':
-      return tEquals((a as Core.Maybe).type as T, (b as Core.Maybe).type as T);
-    case 'Option':
-      return tEquals((a as Core.Option).type as T, (b as Core.Option).type as T);
+    case 'Maybe': return tEquals((a as Core.Maybe).type as T, (b as Core.Maybe).type as T);
+    case 'Option': return tEquals((a as Core.Option).type as T, (b as Core.Option).type as T);
     case 'Result': {
-      const aa = a as Core.Result,
-        bb = b as Core.Result;
+      const aa = a as Core.Result, bb = b as Core.Result;
       return tEquals(aa.ok as T, bb.ok as T) && tEquals(aa.err as T, bb.err as T);
     }
-    case 'List':
-      return tEquals((a as Core.List).type as T, (b as Core.List).type as T);
+    case 'List': return tEquals((a as Core.List).type as T, (b as Core.List).type as T);
     case 'Map': {
-      const aa = a as Core.Map,
-        bb = b as Core.Map;
+      const aa = a as Core.Map, bb = b as Core.Map;
       return tEquals(aa.key as T, bb.key as T) && tEquals(aa.val as T, bb.val as T);
     }
   }
+  return false;
 }
 
 function tToString(t: T): string {
-  if (isUnknown(t)) return 'Unknown';
+  if ((t as any).kind === 'Unknown') return 'Unknown';
   switch (t.kind) {
-    case 'TypeName':
-      return t.name;
-    case 'Maybe':
-      return `${tToString(t.type as T)}?`;
-    case 'Option':
-      return `Option<${tToString(t.type as T)}>`;
-    case 'Result':
-      return `Result<${tToString(t.ok as T)}, ${tToString(t.err as T)}>`;
-    case 'List':
-      return `List<${tToString(t.type as T)}>`;
-    case 'Map':
-      return `Map<${tToString(t.key as T)}, ${tToString(t.val as T)}>`;
+    case 'TypeName': return t.name;
+    case 'Maybe': return `${tToString(t.type as T)}?`;
+    case 'Option': return `Option<${tToString(t.type as T)}>`;
+    case 'Result': return `Result<${tToString(t.ok as T)}, ${tToString(t.err as T)}>`;
+    case 'List': return `List<${tToString(t.type as T)}>`;
+    case 'Map': return `Map<${tToString(t.key as T)}, ${tToString(t.val as T)}>`;
   }
+  return '<?>';
 }
 
 interface Env {
@@ -101,36 +85,17 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
   const retT = f.ret as T;
   const bodyRet = typecheckBlock(ctx, env, f.body, diags);
   if (!tEquals(bodyRet, retT)) {
-    diags.push({
-      severity: 'error',
-      message: `Return type mismatch: expected ${tToString(retT)}, got ${tToString(bodyRet)}`,
-    });
+    diags.push({ severity: 'error', message: `Return type mismatch: expected ${tToString(retT)}, got ${tToString(bodyRet)}` });
   }
 
   // Effect lints with small registry
   const effs = collectEffects(f.body);
   const hasIO = f.effects.some(e => String(e).toLowerCase() === 'io');
   const hasCPU = f.effects.some(e => String(e).toLowerCase() === 'cpu');
-  if (effs.has('io') && !hasIO)
-    diags.push({
-      severity: 'warning',
-      message: `Function '${f.name}' may perform I/O but is missing @io effect.`,
-    });
-  if (!effs.has('io') && hasIO)
-    diags.push({
-      severity: 'warning',
-      message: `Function '${f.name}' declares @io but no obvious I/O found.`,
-    });
-  if (effs.has('cpu') && !hasCPU)
-    diags.push({
-      severity: 'warning',
-      message: `Function '${f.name}' may perform CPU-bound work but is missing @cpu effect.`,
-    });
-  if (!effs.has('cpu') && hasCPU)
-    diags.push({
-      severity: 'warning',
-      message: `Function '${f.name}' declares @cpu but no obvious CPU-bound work found.`,
-    });
+  if (effs.has('io') && !hasIO) diags.push({ severity: 'warning', message: `Function '${f.name}' may perform I/O but is missing @io effect.` });
+  if (!effs.has('io') && hasIO) diags.push({ severity: 'warning', message: `Function '${f.name}' declares @io but no obvious I/O found.` });
+  if (effs.has('cpu') && !hasCPU) diags.push({ severity: 'warning', message: `Function '${f.name}' may perform CPU-bound work but is missing @cpu effect.` });
+  if (!effs.has('cpu') && hasCPU) diags.push({ severity: 'warning', message: `Function '${f.name}' declares @cpu but no obvious CPU-bound work found.` });
   return diags;
 }
 function warn(diags: TypecheckDiagnostic[], message: string): void {
@@ -158,29 +123,12 @@ function collectEffects(b: Core.Block): Set<'io' | 'cpu'> {
   };
   for (const s of b.statements) {
     switch (s.kind) {
-      case 'Let':
-        markFromExpr(s.expr);
-        break;
-      case 'Set':
-        markFromExpr(s.expr);
-        break;
-      case 'Return':
-        markFromExpr(s.expr);
-        break;
-      case 'If':
-        markFromExpr(s.cond);
-        collectEffects(s.thenBlock).forEach(e => effs.add(e));
-        if (s.elseBlock) collectEffects(s.elseBlock).forEach(e => effs.add(e));
-        break;
-      case 'Match':
-        markFromExpr(s.expr);
-        for (const c of s.cases) {
-          if (c.body.kind === 'Return') markFromExpr(c.body.expr);
-          else collectEffects(c.body).forEach(e => effs.add(e));
-        }
-        break;
-      default:
-        break;
+      case 'Let': markFromExpr(s.expr); break;
+      case 'Set': markFromExpr(s.expr); break;
+      case 'Return': markFromExpr(s.expr); break;
+      case 'If': markFromExpr(s.cond); collectEffects(s.thenBlock).forEach(e => effs.add(e)); if (s.elseBlock) collectEffects(s.elseBlock).forEach(e => effs.add(e)); break;
+      case 'Match': markFromExpr(s.expr); for (const c of s.cases) { if (c.body.kind === 'Return') markFromExpr(c.body.expr); else collectEffects(c.body).forEach(e => effs.add(e)); } break;
+      default: break;
     }
   }
   return effs;
@@ -188,12 +136,7 @@ function collectEffects(b: Core.Block): Set<'io' | 'cpu'> {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-function typecheckBlock(
-  ctx: ModuleContext,
-  env: Env,
-  b: Core.Block,
-  diags: TypecheckDiagnostic[]
-): T {
+function typecheckBlock(ctx: ModuleContext, env: Env, b: Core.Block, diags: TypecheckDiagnostic[]): T {
   let last: T = tUnknown();
   for (const s of b.statements) {
     last = typecheckStmt(ctx, env, s, diags);
@@ -201,12 +144,7 @@ function typecheckBlock(
   return last;
 }
 
-function typecheckStmt(
-  ctx: ModuleContext,
-  env: Env,
-  s: Core.Statement,
-  diags: TypecheckDiagnostic[]
-): T {
+function typecheckStmt(ctx: ModuleContext, env: Env, s: Core.Statement, diags: TypecheckDiagnostic[]): T {
   switch (s.kind) {
     case 'Let': {
       const t = typeOfExpr(ctx, env, s.expr, diags);
@@ -217,10 +155,7 @@ function typecheckStmt(
       const t = typeOfExpr(ctx, env, s.expr, diags);
       const prev = env.vars.get(s.name) || tUnknown();
       if (!tEquals(prev, t)) {
-        diags.push({
-          severity: 'error',
-          message: `Type mismatch assigning to '${s.name}': ${tToString(prev)} vs ${tToString(t)}`,
-        });
+        diags.push({ severity: 'error', message: `Type mismatch assigning to '${s.name}': ${tToString(prev)} vs ${tToString(t)}` });
       }
       return prev;
     }
@@ -232,8 +167,8 @@ function typecheckStmt(
       void typeOfExpr(ctx, env, s.cond, diags);
       // Allow any condition; in future require Bool
       const tThen = typecheckBlock(ctx, cloneEnv(env), s.thenBlock, diags);
-      const tElse = s.elseBlock ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags) : tUnknown();
-      return tThen || tElse;
+      const tElse = s.elseBlock ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags) : ({} as any as T);
+      return tThen || tElse || tUnknown();
     }
     case 'Match': {
       const et = typeOfExpr(ctx, env, s.expr, diags);
@@ -247,19 +182,16 @@ function typecheckStmt(
         const t = typecheckCase(ctx, env, c, et, diags);
         if (!out) out = t;
         else if (!tEquals(out, t)) {
-          diags.push({
-            severity: 'error',
-            message: `Match case return types differ: ${tToString(out)} vs ${tToString(t)}`,
-          });
+          diags.push({ severity: 'error', message: `Match case return types differ: ${tToString(out)} vs ${tToString(t)}` });
         }
       }
       // Exhaustiveness
-      if (!isUnknown(et) && et.kind === 'Maybe') {
+      if ((et as any).kind === 'Maybe') {
         if (!(sawNull && sawCtor)) {
           warn(diags, `Non-exhaustive match on Maybe type; handle both null and value.`);
         }
-      } else if (!isUnknown(et) && et.kind === 'TypeName') {
-        const enumDecl = ctx.enums.get(et.name);
+      } else if ((et as any).kind === 'TypeName') {
+        const enumDecl = ctx.enums.get((et as any).name);
         if (enumDecl) {
           const seen = new Set<string>();
           for (const c of s.cases) {
@@ -268,10 +200,7 @@ function typecheckStmt(
           }
           const missing = enumDecl.variants.filter(v => !seen.has(v));
           if (missing.length > 0) {
-            warn(
-              diags,
-              `Non-exhaustive match on ${enumDecl.name}; missing cases: ${missing.join(', ')}`
-            );
+            warn(diags, `Non-exhaustive match on ${enumDecl.name}; missing cases: ${missing.join(', ')}`);
           }
         }
       }
@@ -282,13 +211,7 @@ function typecheckStmt(
   }
 }
 
-function typecheckCase(
-  ctx: ModuleContext,
-  env: Env,
-  c: Core.Case,
-  et: T,
-  diags: TypecheckDiagnostic[]
-): T {
+function typecheckCase(ctx: ModuleContext, env: Env, c: Core.Case, et: T, diags: TypecheckDiagnostic[]): T {
   const env2 = cloneEnv(env);
   // Bind pattern
   if (c.pattern.kind === 'PatNull') {
@@ -297,10 +220,7 @@ function typecheckCase(
     const d = ctx.datas.get(c.pattern.typeName);
     if (d) {
       if (d.fields.length !== c.pattern.names.length) {
-        diags.push({
-          severity: 'error',
-          message: `Constructor ${d.name} arity ${d.fields.length} does not match pattern (${c.pattern.names.length}).`,
-        });
+        diags.push({ severity: 'error', message: `Constructor ${d.name} arity ${d.fields.length} does not match pattern (${c.pattern.names.length}).` });
       }
       for (let i = 0; i < Math.min(d.fields.length, c.pattern.names.length); i++) {
         const nm = c.pattern.names[i]!;
@@ -312,19 +232,14 @@ function typecheckCase(
       for (const n of c.pattern.names) env2.vars.set(n, tUnknown());
     }
   } else if (c.pattern.kind === 'PatName') {
-    env2.vars.set(c.pattern.name, et);
+    env2.vars.set(c.pattern.name, (et as any) as T);
   }
   // Body
   if (c.body.kind === 'Return') return typeOfExpr(ctx, env2, c.body.expr, diags);
   return typecheckBlock(ctx, env2, c.body, diags);
 }
 
-function typeOfExpr(
-  ctx: ModuleContext,
-  env: Env,
-  e: Core.Expression,
-  diags: TypecheckDiagnostic[]
-): T {
+function typeOfExpr(ctx: ModuleContext, env: Env, e: Core.Expression, diags: TypecheckDiagnostic[]): T {
   switch (e.kind) {
     case 'Name': {
       // Variable, or enum member reference -> its enum type
@@ -338,28 +253,23 @@ function typeOfExpr(
       }
       return tUnknown();
     }
-    case 'Bool':
-      return { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
-    case 'Int':
-      return { kind: 'TypeName', name: 'Int' } as Core.TypeName;
-    case 'String':
-      return { kind: 'TypeName', name: 'Text' } as Core.TypeName;
-    case 'Null':
-      return { kind: 'Maybe', type: UNKNOWN_TYPENAME } as T;
+    case 'Bool': return { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
+    case 'Int': return { kind: 'TypeName', name: 'Int' } as Core.TypeName;
+    case 'String': return { kind: 'TypeName', name: 'Text' } as Core.TypeName;
+    case 'Null': return { kind: 'Maybe', type: tUnknown() as any } as Core.Maybe;
     case 'Ok': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return { kind: 'Result', ok: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type), err: UNKNOWN_TYPENAME } as T;
+      return { kind: 'Result', ok: inner as any, err: { kind: 'TypeName', name: 'Unknown' } as any } as Core.Result;
     }
     case 'Err': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return { kind: 'Result', ok: UNKNOWN_TYPENAME, err: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
+      return { kind: 'Result', ok: { kind: 'TypeName', name: 'Unknown' } as any, err: inner as any } as Core.Result;
     }
     case 'Some': {
       const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return { kind: 'Option', type: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
+      return { kind: 'Option', type: inner as any } as Core.Option;
     }
-    case 'None':
-      return { kind: 'Option', type: UNKNOWN_TYPENAME } as T;
+    case 'None': return { kind: 'Option', type: tUnknown() as any } as Core.Option;
     case 'Construct': {
       const d = ctx.datas.get(e.typeName);
       if (!d) return tUnknown();
@@ -372,10 +282,7 @@ function typeOfExpr(
         }
         const ft = typeOfExpr(ctx, env, f.expr, diags);
         if (!tEquals(field.type as T, ft)) {
-          diags.push({
-            severity: 'error',
-            message: `Field '${f.name}' expects ${tToString(field.type as T)}, got ${tToString(ft)}`,
-          });
+          diags.push({ severity: 'error', message: `Field '${f.name}' expects ${tToString(field.type as any)}, got ${tToString(ft)}` });
         }
       }
       return { kind: 'TypeName', name: e.typeName } as Core.TypeName;
@@ -393,25 +300,19 @@ function typeOfExpr(
         return { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
       }
       // Otherwise, infer from usage minimally: for now return Unknown
-      for (const a of e.args) {
-        void typeOfExpr(ctx, env, a, diags);
-      }
+      for (const a of e.args) { void typeOfExpr(ctx, env, a, diags); }
       // await(expr) typing: await Maybe<T> => T; await Result<T,E> => T; else Unknown
       if (e.target.kind === 'Name' && e.target.name === 'await' && e.args.length === 1) {
-        const at = typeOfExpr(ctx, env, e.args[0]!, diags);
-        if (!isUnknown(at) && at.kind === 'Maybe') return at.type as T;
-        if (!isUnknown(at) && at.kind === 'Result') return at.ok as T;
+        const at = typeOfExpr(ctx, env, e.args[0]!, diags) as any;
+        if (at && at.kind === 'Maybe') return (at.type as any);
+        if (at && at.kind === 'Result') return (at.ok as any);
         // Warn on unsafe await usage
-        diags.push({
-          severity: 'warning',
-          message: `await expects Maybe<T> or Result<T,E>, got ${tToString(at)}`,
-        });
+        diags.push({ severity: 'warning', message: `await expects Maybe<T> or Result<T,E>, got ${tToString(at as any)}` });
       }
       return tUnknown();
     }
   }
 }
 
-function cloneEnv(env: Env): Env {
-  return { vars: new Map(env.vars) };
-}
+function cloneEnv(env: Env): Env { return { vars: new Map(env.vars) }; }
+

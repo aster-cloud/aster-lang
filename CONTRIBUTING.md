@@ -25,10 +25,9 @@ Aster is a pragmatic, safe, fast programming language with human-readable CNL (C
 
 ### Prerequisites
 
-- Node.js 22+
-- npm
+- Node.js 18+ (we test on 18, 20, 22)
+- npm or yarn
 - Git
-- JDK 21+ (for JVM modules and examples)
 
 ### Setup
 
@@ -73,7 +72,7 @@ npm run test:property    # Property-based tests
 npm run test:fuzz        # Fuzz tests
 npm run bench           # Performance benchmarks
 
-# Full CI pipeline (Node 22+, JDK 21+ for JVM checks)
+# Full CI pipeline
 npm run ci
 ```
 

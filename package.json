@@ -37,7 +37,7 @@
     "test": "npm run test:golden && npm run test:property",
     "test:golden": "node --loader ts-node/esm scripts/golden.ts",
     "test:property": "node --loader ts-node/esm test/property.test.ts",
-    "emit:jvm": "node --loader ts-node/esm scripts/emit-jvm.ts cnl/examples/greet.cnl",
+    "emit:jvm": "node --loader ts-node/esm scripts/emit-jvm.ts",
     "javac:jvm": "node --loader ts-node/esm scripts/javac-jvm.ts",
     "test:fuzz": "node --loader ts-node/esm test/fuzz.test.ts",
     "test:golden:update": "npm run build && node dist/scripts/cli.js cnl/examples/greet.cnl > cnl/examples/expected_greet.ast.json && node dist/scripts/cli.js cnl/examples/login.cnl > cnl/examples/expected_login.ast.json && node dist/scripts/emit-core.js cnl/examples/greet.cnl > cnl/examples/expected_greet_core.json && node dist/scripts/emit-core.js cnl/examples/login.cnl > cnl/examples/expected_login_core.json",
@@ -49,18 +49,22 @@
     "bench": "node --loader ts-node/esm test/benchmark.ts",
     "lsp": "node dist/src/lsp/server.js",
     "repl": "node dist/scripts/repl.js",
-    "typecheck:file": "node dist/scripts/typecheck-cli.js cnl/examples/greet.cnl",
+    "typecheck:file": "node dist/scripts/typecheck-cli.js",
     "ci": "npm run typecheck && npm run lint && npm run test && npm run build && node --loader ts-node/esm scripts/lsp-smoke.ts && npm run emit:class cnl/examples/greet.cnl && npm run javap:verify",
     "javap:verify": "node --loader ts-node/esm scripts/javap-verify.ts",
     "emit:class": "node dist/scripts/emit-classfiles.js",
     "jar:jvm": "node --loader ts-node/esm scripts/jar-jvm.ts",
     "native:hello": "./gradlew :examples:hello-native:nativeCompile",
     "docs:dev": "vitepress dev docs",
+    "jar:jvm": "node --loader ts-node/esm scripts/jar-jvm.ts",
     "login:jar": "npm run emit:class cnl/examples/login.cnl && npm run jar:jvm",
     "login:run": "npm run login:jar && ./gradlew :examples:login-jvm:run",
     "login:native": "npm run emit:class cnl/examples/login.cnl && npm run jar:jvm && ./gradlew :examples:login-native:nativeCompile",
+
     "math:jar": "./gradlew :aster-asm-emitter:run --args=build/jvm-classes < cnl/examples/arith_compare_core.json && npm run jar:jvm",
     "math:run": "npm run math:jar && ./gradlew :examples:math-jvm:run",
+
+
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "prepublishOnly": "npm run clean && npm run build && npm run ci",
@@ -68,7 +72,8 @@
     "version-packages": "changeset version",
     "release": "changeset publish",
     "docs:api": "typedoc --options typedoc.json",
-    "docs:all": "npm run docs:api && npm run docs:build",
+    "docs:all": "npm run docs:api && npm run docs:build"
+    ,
     "pr:create": "node scripts/create-pr.js"
   },
   "keywords": [
@@ -92,7 +97,7 @@
   },
   "homepage": "https://aster-lang.org",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "vscode-languageserver": "^9.0.0",

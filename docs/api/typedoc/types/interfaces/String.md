@@ -4,7 +4,7 @@
 
 # Interface: String
 
-Defined in: [types.ts:195](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L195)
+Defined in: types.ts:191
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:195](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"String"`
 
-Defined in: [types.ts:196](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L196)
+Defined in: types.ts:192
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:196](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **value**: `string`
 
-Defined in: [types.ts:197](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L197)
+Defined in: types.ts:193

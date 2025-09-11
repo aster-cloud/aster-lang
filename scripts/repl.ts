@@ -21,11 +21,7 @@ function help(): void {
 
 async function repl(): Promise<void> {
   console.log(BANNER);
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: '> ',
-  });
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, prompt: '> ' });
   let buffer: string[] = [];
   let pretty = true;
 
@@ -33,30 +29,15 @@ async function repl(): Promise<void> {
 
   rl.on('line', (line: string) => {
     const trimmed = line.trim();
-    if (trimmed === ':q') {
-      rl.close();
-      return;
-    }
-    if (trimmed === ':h') {
-      help();
-      rl.prompt();
-      return;
-    }
-    if (trimmed === ':f') {
-      pretty = !pretty;
-      console.log(`Formatter: ${pretty ? 'on' : 'off'}`);
-      rl.prompt();
-      return;
-    }
+    if (trimmed === ':q') { rl.close(); return; }
+    if (trimmed === ':h') { help(); rl.prompt(); return; }
+    if (trimmed === ':f') { pretty = !pretty; console.log(`Formatter: ${pretty ? 'on' : 'off'}`); rl.prompt(); return; }
 
     if (trimmed === '') {
       // evaluate
       const src = buffer.join('\n');
       buffer = [];
-      if (!src.trim()) {
-        rl.prompt();
-        return;
-      }
+      if (!src.trim()) { rl.prompt(); return; }
       try {
         const can = canonicalize(src);
         const tokens = lex(can);
@@ -89,3 +70,4 @@ async function repl(): Promise<void> {
 }
 
 repl();
+

@@ -18,22 +18,18 @@ export function lex(input: string): Token[] {
   let line = 1;
   let col = 1;
 
-  const push = (
-    kind: TokenKind,
-    value: string | number | boolean | null = null,
-    start: Position = { line, col }
-  ): void => {
+  const push = (kind: TokenKind, value: string | number | boolean | null = null, start: Position = { line, col }): void => {
     tokens.push({ kind, value, start, end: { line, col } });
   };
 
   const peek = (): string => input[i] || '';
   const next = (): string => {
     const ch = input[i++] || '';
-    if (ch === '\n') {
-      line++;
-      col = 1;
-    } else {
-      col++;
+    if (ch === '\n') { 
+      line++; 
+      col = 1; 
+    } else { 
+      col++; 
     }
     return ch;
   };
@@ -70,78 +66,38 @@ export function lex(input: string): Token[] {
       // Measure indentation
       let spaces = 0;
       let k = i;
-      while (input[k] === ' ') {
-        spaces++;
-        k++;
+      while (input[k] === ' ') { 
+        spaces++; 
+        k++; 
       }
-      if (input[k] === '\n' || k >= input.length) {
-        i = k;
-        continue;
+      if (input[k] === '\n' || k >= input.length) { 
+        i = k; 
+        continue; 
       }
       // Only treat indentation if next token is not comment; (no comments yet)
       emitIndentDedent(spaces);
-      i = k;
+      i = k; 
       col += spaces;
       continue;
     }
 
     // Whitespace
-    if (ch === ' ' || ch === '\t') {
-      next();
-      continue;
+    if (ch === ' ' || ch === '\t') { 
+      next(); 
+      continue; 
     }
 
     // Punctuation
-    if (ch === '.') {
-      next();
-      push(TokenKind.DOT, '.');
-      continue;
-    }
-    if (ch === ':') {
-      next();
-      push(TokenKind.COLON, ':');
-      continue;
-    }
-    if (ch === ',') {
-      next();
-      push(TokenKind.COMMA, ',');
-      continue;
-    }
-    if (ch === '(') {
-      next();
-      push(TokenKind.LPAREN, '(');
-      continue;
-    }
-    if (ch === ')') {
-      next();
-      push(TokenKind.RPAREN, ')');
-      continue;
-    }
-    if (ch === '=') {
-      next();
-      push(TokenKind.EQUALS, '=');
-      continue;
-    }
-    if (ch === '+') {
-      next();
-      push(TokenKind.PLUS, '+');
-      continue;
-    }
-    if (ch === '-') {
-      next();
-      push(TokenKind.MINUS, '-');
-      continue;
-    }
-    if (ch === '<') {
-      next();
-      push(TokenKind.LT, '<');
-      continue;
-    }
-    if (ch === '>') {
-      next();
-      push(TokenKind.GT, '>');
-      continue;
-    }
+    if (ch === '.') { next(); push(TokenKind.DOT, '.'); continue; }
+    if (ch === ':') { next(); push(TokenKind.COLON, ':'); continue; }
+    if (ch === ',') { next(); push(TokenKind.COMMA, ','); continue; }
+    if (ch === '(') { next(); push(TokenKind.LPAREN, '('); continue; }
+    if (ch === ')') { next(); push(TokenKind.RPAREN, ')'); continue; }
+    if (ch === '=') { next(); push(TokenKind.EQUALS, '='); continue; }
+    if (ch === '+') { next(); push(TokenKind.PLUS, '+'); continue; }
+    if (ch === '-') { next(); push(TokenKind.MINUS, '-'); continue; }
+    if (ch === '<') { next(); push(TokenKind.LT, '<'); continue; }
+    if (ch === '>') { next(); push(TokenKind.GT, '>'); continue; }
 
     // String literal
     if (ch === '"') {
@@ -149,11 +105,11 @@ export function lex(input: string): Token[] {
       next();
       let val = '';
       while (i < input.length && peek() !== '"') {
-        if (peek() === '\\') {
-          next();
-          val += next();
-        } else {
-          val += next();
+        if (peek() === '\\') { 
+          next(); 
+          val += next(); 
+        } else { 
+          val += next(); 
         }
       }
       if (peek() !== '"') Diagnostics.unterminatedString(start).throw();
@@ -171,28 +127,16 @@ export function lex(input: string): Token[] {
       }
       const lower = word.toLowerCase();
       // Handle booleans/null specially
-      if (lower === KW.TRUE) {
-        push(TokenKind.BOOL, true, start);
-        continue;
-      }
-      if (lower === KW.FALSE) {
-        push(TokenKind.BOOL, false, start);
-        continue;
-      }
-      if (lower === KW.NULL) {
-        push(TokenKind.NULL, null, start);
-        continue;
-      }
+      if (lower === KW.TRUE) { push(TokenKind.BOOL, true, start); continue; }
+      if (lower === KW.FALSE) { push(TokenKind.BOOL, false, start); continue; }
+      if (lower === KW.NULL) { push(TokenKind.NULL, null, start); continue; }
       // Keywords (case-insensitive) are emitted as IDENT with their source casing preserved
-      if (KW_VALUES.has(lower)) {
-        push(TokenKind.IDENT, word, start);
-        continue;
-      }
+      if (KW_VALUES.has(lower)) { push(TokenKind.IDENT, word, start); continue; }
       // Types by capitalized first letter considered TYPE_IDENT
-      if (/^[A-Z]/.test(word)) {
-        push(TokenKind.TYPE_IDENT, word, start);
-      } else {
-        push(TokenKind.IDENT, word, start);
+      if (/^[A-Z]/.test(word)) { 
+        push(TokenKind.TYPE_IDENT, word, start); 
+      } else { 
+        push(TokenKind.IDENT, word, start); 
       }
       continue;
     }
@@ -209,9 +153,9 @@ export function lex(input: string): Token[] {
   }
 
   // Close indentation stack
-  while (INDENT_STACK.length > 1) {
-    INDENT_STACK.pop();
-    push(TokenKind.DEDENT);
+  while (INDENT_STACK.length > 1) { 
+    INDENT_STACK.pop(); 
+    push(TokenKind.DEDENT); 
   }
   push(TokenKind.EOF);
   return tokens;

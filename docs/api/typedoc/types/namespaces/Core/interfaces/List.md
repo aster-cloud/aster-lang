@@ -4,7 +4,7 @@
 
 # Interface: List
 
-Defined in: [types.ts:489](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L489)
+Defined in: types.ts:485
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:489](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"List"`
 
-Defined in: [types.ts:490](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L490)
+Defined in: types.ts:486
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:490](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:491](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L491)
+Defined in: types.ts:487

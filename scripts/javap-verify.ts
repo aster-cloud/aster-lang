@@ -10,10 +10,7 @@ function sh(cmd: string): void {
 
 function main(): void {
   const classesDir = 'build/jvm-classes';
-  if (!fs.existsSync(classesDir)) {
-    console.error('classes not found');
-    process.exit(2);
-  }
+  if (!fs.existsSync(classesDir)) { console.error('classes not found'); process.exit(2); }
   const files: string[] = [];
   function collect(d: string): void {
     for (const e of fs.readdirSync(d)) {

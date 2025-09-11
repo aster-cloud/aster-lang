@@ -71,20 +71,18 @@ async function main() {
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github+json',
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payload)
   });
 
   if (res.status === 422) {
     // PR may already exist; try to find it
     const qs = new URLSearchParams({ head: `${owner}:${head}`, state: 'open' }).toString();
     const listUrl = `https://api.github.com/repos/${owner}/${repo}/pulls?${qs}`;
-    const listRes = await fetch(listUrl, {
-      headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` },
-    });
+    const listRes = await fetch(listUrl, { headers: { 'Accept': 'application/vnd.github+json', 'Authorization': `Bearer ${token}` } });
     const prs = await listRes.json();
     if (Array.isArray(prs) && prs.length > 0) {
       console.log(`PR already exists: ${prs[0].html_url}`);
@@ -102,7 +100,5 @@ async function main() {
   console.log(`PR created: ${pr.html_url}`);
 }
 
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+main().catch(err => { console.error(err); process.exit(1); });
+

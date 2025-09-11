@@ -6,7 +6,7 @@
 
 > `const` **KW**: `object`
 
-Defined in: [tokens.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/tokens.ts#L5)
+Defined in: tokens.ts:5
 
 ## Type Declaration
 
@@ -189,35 +189,3 @@ Defined in: [tokens.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/b53f24
 ### NOT
 
 > `readonly` **NOT**: `"not"` = `'not'`
-
-### PLUS
-
-> `readonly` **PLUS**: `"plus"` = `'plus'`
-
-### MINUS
-
-> `readonly` **MINUS**: `"minus"` = `'minus'`
-
-### TIMES
-
-> `readonly` **TIMES**: `"times"` = `'times'`
-
-### DIVIDED\_BY
-
-> `readonly` **DIVIDED\_BY**: `"divided by"` = `'divided by'`
-
-### LESS\_THAN
-
-> `readonly` **LESS\_THAN**: `"less than"` = `'less than'`
-
-### GREATER\_THAN
-
-> `readonly` **GREATER\_THAN**: `"greater than"` = `'greater than'`
-
-### EQUALS\_TO
-
-> `readonly` **EQUALS\_TO**: `"equals to"` = `'equals to'`
-
-### IS
-
-> `readonly` **IS**: `"is"` = `'is'`

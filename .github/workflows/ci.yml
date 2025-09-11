@@ -82,7 +82,6 @@ jobs:
   security:
     name: Security Audit
     runs-on: ubuntu-latest
-    continue-on-error: true
     
     steps:
       - name: Checkout code
@@ -129,9 +128,6 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Ensure gradlew is executable
-        run: chmod +x ./gradlew
 
       - name: Emit classfiles from example
         run: npm run emit:class cnl/examples/greet.cnl
