@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   release:
-    name: Version & Publish
+    name: Version & PR
     runs-on: ubuntu-latest
 
     permissions:
@@ -48,25 +48,10 @@ jobs:
       - name: Run CI checks
         run: npm run ci
 
-      - name: Create Release Pull Request or Publish to npm
+      - name: Create Version PR (no publish)
         id: changesets
         uses: changesets/action@v1
         with:
           version: npm run version-packages
-          publish: npm run release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Create GitHub Release
-        if: steps.changesets.outputs.published == 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.changesets.outputs.publishedPackages[0].version }}
-          name: Release v${{ steps.changesets.outputs.publishedPackages[0].version }}
-          body: |
-            Automated release via Changesets.
-            Packages published:
-            ${{ steps.changesets.outputs.publishedPackages }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
