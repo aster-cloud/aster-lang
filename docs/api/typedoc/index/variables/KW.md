@@ -1,4 +1,4 @@
-[**aster-lang**](../../README.md)
+[**@wontlost-ltd/aster-lang**](../../README.md)
 
 ***
 
@@ -6,7 +6,7 @@
 
 > `const` **KW**: `object`
 
-Defined in: [tokens.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/tokens.ts#L5)
+Defined in: [tokens.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/tokens.ts#L5)
 
 ## Type Declaration
 

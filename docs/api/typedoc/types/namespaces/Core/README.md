@@ -1,4 +1,4 @@
-[**aster-lang**](../../../README.md)
+[**@wontlost-ltd/aster-lang**](../../../README.md)
 
 ***
 

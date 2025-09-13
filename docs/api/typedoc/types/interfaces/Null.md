@@ -1,10 +1,10 @@
-[**aster-lang**](../../README.md)
+[**@wontlost-ltd/aster-lang**](../../README.md)
 
 ***
 
 # Interface: Null
 
-Defined in: [types.ts:200](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L200)
+Defined in: [types.ts:208](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L208)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:200](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"Null"`
 
-Defined in: [types.ts:201](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L201)
+Defined in: [types.ts:209](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L209)
 
 #### Overrides
 

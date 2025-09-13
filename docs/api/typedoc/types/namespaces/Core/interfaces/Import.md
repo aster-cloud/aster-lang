@@ -1,10 +1,10 @@
-[**aster-lang**](../../../../README.md)
+[**@wontlost-ltd/aster-lang**](../../../../README.md)
 
 ***
 
 # Interface: Import
 
-Defined in: [types.ts:287](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L287)
+Defined in: [types.ts:294](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L294)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:287](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"Import"`
 
-Defined in: [types.ts:288](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L288)
+Defined in: [types.ts:295](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L295)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:288](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:289](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L289)
+Defined in: [types.ts:296](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L296)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:289](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **asName**: `null` \| `string`
 
-Defined in: [types.ts:290](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L290)
+Defined in: [types.ts:297](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L297)

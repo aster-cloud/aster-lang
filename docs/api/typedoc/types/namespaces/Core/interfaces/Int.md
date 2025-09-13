@@ -1,10 +1,10 @@
-[**aster-lang**](../../../../README.md)
+[**@wontlost-ltd/aster-lang**](../../../../README.md)
 
 ***
 
 # Interface: Int
 
-Defined in: [types.ts:415](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L415)
+Defined in: [types.ts:430](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L430)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:415](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"Int"`
 
-Defined in: [types.ts:416](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L416)
+Defined in: [types.ts:431](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L431)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:416](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **value**: `number`
 
-Defined in: [types.ts:417](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L417)
+Defined in: [types.ts:432](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L432)

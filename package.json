@@ -85,10 +85,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aster-lang/aster.git"
+    "url": "https://github.com/wontlost-ltd/aster-lang.git"
   },
   "bugs": {
-    "url": "https://github.com/aster-lang/aster/issues"
+    "url": "https://github.com/wontlost-ltd/aster-lang/issues"
   },
   "homepage": "https://aster-lang.org",
   "engines": {

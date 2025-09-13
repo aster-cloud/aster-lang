@@ -1,10 +1,10 @@
-[**aster-lang**](../../../../README.md)
+[**@wontlost-ltd/aster-lang**](../../../../README.md)
 
 ***
 
 # Interface: Module
 
-Defined in: [types.ts:281](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L281)
+Defined in: [types.ts:288](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L288)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:281](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"Module"`
 
-Defined in: [types.ts:282](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L282)
+Defined in: [types.ts:289](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L289)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:282](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **name**: `null` \| `string`
 
-Defined in: [types.ts:283](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L283)
+Defined in: [types.ts:290](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L290)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:283](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **decls**: readonly [`Declaration`](../type-aliases/Declaration.md)[]
 
-Defined in: [types.ts:284](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L284)
+Defined in: [types.ts:291](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L291)

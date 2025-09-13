@@ -11,10 +11,13 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: GitHub
-      link: https://github.com/aster-lang/aster
+      link: https://github.com/wontlost-ltd/aster-lang
 ---
 
 Aster is a programming language designed with a human-friendly Controlled Natural Language (CNL) that compiles to a strict, safe core IR, targeting the JVM (with GraalVM/Truffle planned).
+
+- [![Latest Release](https://img.shields.io/github/v/release/wontlost-ltd/aster-lang?display_name=tag)](https://github.com/wontlost-ltd/aster-lang/releases)
+- [![GitHub Stars](https://img.shields.io/github/stars/wontlost-ltd/aster-lang?style=social)](https://github.com/wontlost-ltd/aster-lang)
 
 - Human-feeling syntax with deterministic semantics
 - Non-null by default, Maybe/Option distinction

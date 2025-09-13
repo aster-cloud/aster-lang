@@ -1,4 +1,4 @@
-[**aster-lang**](../../README.md)
+[**@wontlost-ltd/aster-lang**](../../README.md)
 
 ***
 
@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/ast.ts#L4)
+Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/ast.ts#L4)
 
 ## Type Declaration
 
@@ -236,7 +236,7 @@ readonly [`Case`](../../types/interfaces/Case.md)[]
 
 ### Start()
 
-> **Start**: (`name`, `expr`) => [`AstNode`](../../types/interfaces/AstNode.md)
+> **Start**: (`name`, `expr`) => [`Start`](../../types/interfaces/Start.md)
 
 #### Parameters
 
@@ -250,11 +250,11 @@ readonly [`Case`](../../types/interfaces/Case.md)[]
 
 #### Returns
 
-[`AstNode`](../../types/interfaces/AstNode.md)
+[`Start`](../../types/interfaces/Start.md)
 
 ### Wait()
 
-> **Wait**: (`names`) => [`AstNode`](../../types/interfaces/AstNode.md)
+> **Wait**: (`names`) => [`Wait`](../../types/interfaces/Wait.md)
 
 #### Parameters
 
@@ -264,7 +264,7 @@ readonly `string`[]
 
 #### Returns
 
-[`AstNode`](../../types/interfaces/AstNode.md)
+[`Wait`](../../types/interfaces/Wait.md)
 
 ### Name()
 

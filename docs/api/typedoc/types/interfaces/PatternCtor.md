@@ -1,10 +1,10 @@
-[**aster-lang**](../../README.md)
+[**@wontlost-ltd/aster-lang**](../../README.md)
 
 ***
 
 # Interface: PatternCtor
 
-Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L160)
+Defined in: [types.ts:158](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L158)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **kind**: `"PatternCtor"`
 
-Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L161)
+Defined in: [types.ts:159](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L159)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L162)
+Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L160)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/b53f2
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:163](https://github.com/wontlost-ltd/aster-lang/blob/b53f24492721cfed9e6a591422966205af1dad8e/src/types.ts#L163)
+Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L161)

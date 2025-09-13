@@ -1,8 +1,8 @@
-**aster-lang**
+**@wontlost-ltd/aster-lang**
 
 ***
 
-# aster-lang
+# @wontlost-ltd/aster-lang
 
 ## Modules
 

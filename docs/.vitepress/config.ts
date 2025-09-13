@@ -10,7 +10,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Reference', link: '/reference/syntax' },
       { text: 'API', link: '/api/overview' },
-      { text: 'GitHub', link: 'https://github.com/aster-lang/aster' },
+      { text: 'GitHub', link: 'https://github.com/wontlost-ltd/aster-lang' },
     ],
     sidebar: {
       '/guide/': [
@@ -63,7 +63,7 @@ export default defineConfig({
         : {
             provider: 'local',
           },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/aster-lang/aster' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/wontlost-ltd/aster-lang' }],
     footer: {
       message: 'Released under the MIT License.',
       copyright: 'Copyright © 2025 Aster Language Team',

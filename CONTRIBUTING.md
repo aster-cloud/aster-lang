@@ -34,7 +34,7 @@ Aster is a pragmatic, safe, fast programming language with human-readable CNL (C
 
 ```bash
 # Clone the repository
-git clone https://github.com/aster-lang/aster.git
+git clone https://github.com/wontlost-ltd/aster-lang.git
 cd aster
 
 # Install dependencies
