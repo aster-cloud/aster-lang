@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import { canonicalize, lex, parse, lowerModule } from '../src';
+import { canonicalize, lex, parse, lowerModule } from '../src/index.js';
 import { DiagnosticError, formatDiagnostic } from '../src/diagnostics.js';
 
 function main(): void {

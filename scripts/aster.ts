@@ -2,10 +2,8 @@
 import fs from 'node:fs';
 import * as cp from 'node:child_process';
 import * as path from 'node:path';
-import { canonicalize } from '../src';
-import { lex } from '../src';
+import { canonicalize, lex, lowerModule } from '../src/index.js';
 import { parse as parseAst } from '../src/parser.js';
-import { lowerModule } from '../src';
 import { emitJava } from '../src/jvm/emitter.js';
 import { DiagnosticError, formatDiagnostic } from '../src/diagnostics.js';
 
