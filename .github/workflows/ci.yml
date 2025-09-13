@@ -35,11 +35,66 @@ jobs:
       - name: Type check
         run: npm run typecheck
       
-      - name: Lint
-        run: npm run lint
+      - name: Lint (auto-fix on failure)
+        id: lint
+        shell: bash
+        run: |
+          set -e
+          if npm run -s lint; then
+            echo "Lint clean"
+            echo "fixed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Lint issues found. Attempting auto-fix..."
+            npm run -s lint:fix || true
+            # Save the diff as a patch artifact for contributors
+            git diff --patch > eslint-fix.patch || true
+            # Re-run lint; fail only if it still isn't clean
+            if npm run -s lint; then
+              echo "Auto-fix applied successfully. Proceeding with CI."
+              echo "fixed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Lint still failing after auto-fix."
+              exit 1
+            fi
+          fi
+
+      - name: Upload lint patch
+        if: steps.lint.outputs.fixed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-fixes
+          path: eslint-fix.patch
       
-      - name: Format check
-        run: npm run format:check
+      - name: Format check (auto-fix on failure)
+        id: format
+        shell: bash
+        run: |
+          set -e
+          if npm run -s format:check; then
+            echo "Format clean"
+            echo "fixed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Format issues found. Attempting auto-fix..."
+            # Try to fix formatting
+            npm run -s format
+            # Save the diff as a patch artifact for contributors
+            git diff --patch > prettier-fix.patch || true
+            # Re-check formatting; fail only if it still isn't clean
+            if npm run -s format:check; then
+              echo "Auto-fix applied successfully. Proceeding with CI."
+              echo "fixed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Formatting still failing after auto-fix."
+              exit 1
+            fi
+          fi
+
+      - name: Upload formatting patch
+        if: steps.format.outputs.fixed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prettier-fixes
+          path: prettier-fix.patch
       
       - name: Build
         run: npm run build

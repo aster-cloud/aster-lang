@@ -2,12 +2,21 @@
   <div class="star-callout">
     <p>
       Like Aster? Star us on
-      <a href="https://github.com/wontlost-ltd/aster-lang" target="_blank" rel="noreferrer noopener">GitHub</a>
+      <a href="https://github.com/wontlost-ltd/aster-lang" target="_blank" rel="noreferrer noopener"
+        >GitHub</a
+      >
       to support the project.
     </p>
     <p>
-      <a href="https://github.com/wontlost-ltd/aster-lang" target="_blank" rel="noreferrer noopener">
-        <img alt="GitHub Stars" src="https://img.shields.io/github/stars/wontlost-ltd/aster-lang?style=social" />
+      <a
+        href="https://github.com/wontlost-ltd/aster-lang"
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        <img
+          alt="GitHub Stars"
+          src="https://img.shields.io/github/stars/wontlost-ltd/aster-lang?style=social"
+        />
       </a>
     </p>
   </div>
@@ -28,4 +37,3 @@
   font-weight: 600;
 }
 </style>
-

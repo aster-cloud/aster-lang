@@ -12,7 +12,7 @@ export default {
           'div',
           {
             class: 'vp-docs-badges',
-            style: 'padding: 8px 12px;'
+            style: 'padding: 8px 12px;',
           },
           [
             h(
@@ -21,7 +21,7 @@ export default {
                 href: 'https://github.com/wontlost-ltd/aster-lang/releases',
                 target: '_blank',
                 rel: 'noreferrer noopener',
-                style: 'display:inline-block;margin-right:8px;'
+                style: 'display:inline-block;margin-right:8px;',
               },
               [
                 h('img', {
@@ -36,7 +36,7 @@ export default {
                 href: 'https://github.com/wontlost-ltd/aster-lang',
                 target: '_blank',
                 rel: 'noreferrer noopener',
-                style: 'display:inline-block;'
+                style: 'display:inline-block;',
               },
               [
                 h('img', {
