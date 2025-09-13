@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import { canonicalize, lex, parse } from '../src';
+import { canonicalize, lex, parse } from '../src/index.js';
 
 function runOneAst(inputPath: string, expectPath: string): void {
   try {

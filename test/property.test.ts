@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as fc from 'fast-check';
-import { canonicalize, lex, parse, lowerModule, TokenKind } from '../src';
+import { canonicalize, lex, parse, lowerModule, TokenKind } from '../src/index.js';
 
 // Property: Canonicalizer should be idempotent
 const testCanonicalizerIdempotent = (): void => {

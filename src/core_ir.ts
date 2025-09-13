@@ -1,6 +1,6 @@
 // Core IR for Aster (distinct from CNL AST)
 
-import { Effect } from './types';
+import { Effect } from './types.js';
 import type { Core as CoreTypes } from './types.js';
 
 export { Effect };
