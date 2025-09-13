@@ -6,6 +6,10 @@ plugins {
 repositories { mavenCentral() }
 
 java { toolchain { languageVersion.set(JavaLanguageVersion.of(21)) } }
+tasks.withType<JavaCompile>().configureEach {
+  options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
+  options.isDeprecation = true
+}
 
 dependencies {
   implementation(project(":aster-runtime"))
@@ -31,7 +35,13 @@ graalvmNative {
   }
 }
 
-// Skip compilation if the generated Aster jar is not present to avoid build failures
+// Ensure generated Aster jar exists before compiling
+val generateAsterJar by tasks.registering(Exec::class) {
+  workingDir = rootProject.projectDir
+  commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
+    listOf("cmd", "/c", "npm", "run", "emit:class", "cnl/examples/greet.cnl", "&&", "npm", "run", "jar:jvm")
+  else listOf("sh", "-c", "npm run emit:class cnl/examples/greet.cnl && npm run jar:jvm")
+}
 tasks.withType<JavaCompile>().configureEach {
-  onlyIf { file("${rootProject.projectDir}/build/aster-out/aster.jar").exists() }
+  dependsOn(generateAsterJar)
 }
