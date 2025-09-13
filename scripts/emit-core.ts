@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import { canonicalize } from '../src/canonicalizer.js';
-import { lex } from '../src/lexer.js';
-import { parse } from '../src/parser.js';
-import { lowerModule } from '../src/lower_to_core.js';
+import { canonicalize, lex, parse, lowerModule } from '../src';
 import { DiagnosticError, formatDiagnostic } from '../src/diagnostics.js';
 
 function main(): void {
@@ -18,7 +15,7 @@ function main(): void {
     const toks = lex(can);
     const ast = parse(toks);
     const core = lowerModule(ast);
-    console.log(JSON.stringify(core, null, 2));
+    console.log(JSON.stringify(prune(core), null, 2));
   } catch (e: unknown) {
     if (e instanceof DiagnosticError) {
       console.error(formatDiagnostic(e.diagnostic, input));
@@ -34,3 +31,16 @@ function main(): void {
 }
 
 main();
+
+function prune(obj: unknown): unknown {
+  if (Array.isArray(obj)) return obj.map(prune);
+  if (obj && typeof obj === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      if (k === 'typeParams' && Array.isArray(v) && v.length === 0) continue;
+      out[k] = prune(v as unknown);
+    }
+    return out;
+  }
+  return obj;
+}

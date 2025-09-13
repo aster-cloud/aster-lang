@@ -30,3 +30,8 @@ graalvmNative {
     }
   }
 }
+
+// Skip compilation if the generated Aster jar is not present to avoid build failures
+tasks.withType<JavaCompile>().configureEach {
+  onlyIf { file("${rootProject.projectDir}/build/aster-out/aster.jar").exists() }
+}

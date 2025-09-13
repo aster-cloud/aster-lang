@@ -1,0 +1,7 @@
+Define an AuthErr as one of InvalidCreds or Locked.
+
+To show2 with e: AuthErr, produce Text:
+  Match e:
+    When InvalidCreds, Return "bad".
+    When x, Return "other".
+

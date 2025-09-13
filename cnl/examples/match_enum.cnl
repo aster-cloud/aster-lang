@@ -1,0 +1,9 @@
+This module is demo.matchenum.
+
+Define an Err as one of NotFound or Invalid.
+
+To explain e: Err, produce Text:
+  Match e:
+    When NotFound, Return "missing".
+    When Invalid, Return "invalid".
+

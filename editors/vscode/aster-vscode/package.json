@@ -1,0 +1,50 @@
+{
+  "name": "aster-vscode",
+  "displayName": "Aster Language",
+  "description": "VS Code support for Aster CNL (connects to bundled LSP server).",
+  "version": "0.0.1",
+  "publisher": "wontlost",
+  "engines": { "vscode": ">=1.85.0" },
+  "categories": ["Programming Languages"],
+  "activationEvents": [
+    "onLanguage:aster",
+    "onCommand:aster.startLanguageServer"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "aster",
+        "aliases": ["Aster"],
+        "extensions": [".cnl"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "aster.startLanguageServer",
+        "title": "Aster: Start Language Server"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Aster",
+      "properties": {
+        "aster.langServer.path": {
+          "type": "string",
+          "default": "dist/src/lsp/server.js",
+          "description": "Path to Aster LSP entry (relative to workspace root)."
+        }
+      }
+    }
+  },
+  "main": "./out/extension.js",
+  "scripts": {
+    "lint": "echo 'no-op'",
+    "build": "echo 'prebuilt js'",
+    "package": "vsce package || echo 'install vsce to package'"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.0"
+  }
+}
+

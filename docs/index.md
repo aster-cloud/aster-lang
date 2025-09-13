@@ -37,3 +37,8 @@ npm run build
 node dist/scripts/cli.js cnl/examples/greet.cnl
 node dist/scripts/emit-core.js cnl/examples/greet.cnl
 ```
+
+## Quickstart & Commands
+
+- See the [Quickstart](./guide/quickstart.md) for build/run instructions, CLI usage, and Truffle/ASM examples.
+- See the [Commands](./guide/commands.md) reference for npm scripts and `aster` CLI subcommands.

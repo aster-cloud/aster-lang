@@ -4,7 +4,7 @@
 
 # Interface: Wait
 
-Defined in: [types.ts:343](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L343)
+Defined in: [types.ts:371](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L371)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:343](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **kind**: `"Wait"`
 
-Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L344)
+Defined in: [types.ts:372](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L372)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:345](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L345)
+Defined in: [types.ts:373](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L373)

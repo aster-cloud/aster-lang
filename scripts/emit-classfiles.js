@@ -8,7 +8,14 @@ import { parse } from '../dist/src/parser.js';
 import { lowerModule } from '../dist/src/lower_to_core.js';
 
 function sh(cmd, opts = {}) {
-  cp.execSync(cmd, { stdio: 'inherit', ...opts });
+  const env = {
+    GRADLE_USER_HOME: path.resolve('build/.gradle'),
+    GRADLE_OPTS: `${process.env.GRADLE_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
+    JAVA_OPTS: `${process.env.JAVA_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
+    ...process.env,
+    ...(opts.env || {}),
+  };
+  cp.execSync(cmd, { stdio: 'inherit', env, ...opts });
 }
 
 async function main() {
@@ -46,8 +53,15 @@ async function main() {
 
   const runCmd = hasWrapper ? './gradlew' : 'gradle';
   await new Promise((resolve, reject) => {
+    const env = {
+      GRADLE_USER_HOME: path.resolve('build/.gradle'),
+      GRADLE_OPTS: `${process.env.GRADLE_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
+      JAVA_OPTS: `${process.env.JAVA_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
+      ...process.env,
+    };
     const proc = cp.spawn(runCmd, [':aster-asm-emitter:run', '--args=build/jvm-classes'], {
       stdio: ['pipe', 'inherit', 'inherit'],
+      env,
     });
     proc.on('error', reject);
     proc.on('close', code =>

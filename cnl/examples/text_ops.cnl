@@ -1,0 +1,16 @@
+This module is demo.text.
+
+To join left: Text and right: Text, produce Text:
+  Return Text.concat(left, right).
+
+To shout s: Text, produce Text:
+  Return Text.toUpper(s).
+
+To hasPrefix s: Text and p: Text, produce Bool:
+  Return Text.startsWith(s, p).
+
+To find s: Text and n: Text, produce Int:
+  Return Text.indexOf(s, n).
+
+To words s: Text, produce list of Text:
+  Return Text.split(s, " ").

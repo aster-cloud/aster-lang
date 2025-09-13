@@ -4,7 +4,7 @@
 
 # Interface: PatName
 
-Defined in: [types.ts:402](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L402)
+Defined in: [types.ts:431](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L431)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:402](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **kind**: `"PatName"`
 
-Defined in: [types.ts:403](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L403)
+Defined in: [types.ts:432](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L432)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:403](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:404](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L404)
+Defined in: [types.ts:433](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L433)

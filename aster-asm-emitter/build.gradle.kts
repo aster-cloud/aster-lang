@@ -15,10 +15,16 @@ dependencies {
   implementation("org.ow2.asm:asm:9.6")
   implementation("org.ow2.asm:asm-commons:9.6")
   implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
+  implementation(project(":aster-runtime"))
 }
 
 application {
   mainClass.set("aster.emitter.Main")
+}
+
+tasks.withType<JavaCompile>().configureEach {
+  options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
+  options.isDeprecation = true
 }
 
 tasks.withType<JavaExec>().configureEach {

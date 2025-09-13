@@ -12,11 +12,12 @@ export const Node = {
   Enum: (name: string, variants: readonly string[]): AST.Enum => ({ kind: 'Enum', name, variants }),
   Func: (
     name: string,
+    typeParams: readonly string[],
     params: readonly AST.Parameter[],
     retType: AST.Type,
     effects: readonly string[],
     body: AST.Block | null
-  ): AST.Func => ({ kind: 'Func', name, params, retType, effects, body }),
+  ): AST.Func => ({ kind: 'Func', name, typeParams, params, retType, effects, body }),
   Block: (statements: readonly AST.Statement[]): AST.Block => ({ kind: 'Block', statements }),
   Let: (name: string, expr: AST.Expression): AST.Let => ({ kind: 'Let', name, expr }),
   Set: (name: string, expr: AST.Expression): AST.Set => ({ kind: 'Set', name, expr }),
@@ -60,6 +61,12 @@ export const Node = {
   Err: (expr: AST.Expression): AST.Err => ({ kind: 'Err', expr }),
   Some: (expr: AST.Expression): AST.Some => ({ kind: 'Some', expr }),
   None: (): AST.None => ({ kind: 'None' }),
+  Lambda: (params: readonly AST.Parameter[], retType: AST.Type, body: AST.Block): AST.Lambda => ({
+    kind: 'Lambda',
+    params,
+    retType,
+    body,
+  }),
 
   // Types
   TypeName: (name: string): AST.TypeName => ({ kind: 'TypeName', name }),
@@ -68,12 +75,23 @@ export const Node = {
   Result: (ok: AST.Type, err: AST.Type): AST.Result => ({ kind: 'Result', ok, err }),
   List: (type: AST.Type): AST.List => ({ kind: 'List', type }),
   Map: (key: AST.Type, val: AST.Type): AST.Map => ({ kind: 'Map', key, val }),
+  TypeApp: (base: string, args: readonly AST.Type[]): AST.TypeApp => ({
+    kind: 'TypeApp',
+    base,
+    args,
+  }),
+  TypeVar: (name: string): AST.TypeVar => ({ kind: 'TypeVar', name }),
 
   PatternNull: (): AST.PatternNull => ({ kind: 'PatternNull' }),
-  PatternCtor: (typeName: string, names: readonly string[]): AST.PatternCtor => ({
+  PatternCtor: (
+    typeName: string,
+    names: readonly string[],
+    args?: readonly AST.Pattern[]
+  ): AST.PatternCtor => ({
     kind: 'PatternCtor',
     typeName,
     names,
+    ...(args && args.length > 0 ? { args } : {}),
   }),
   PatternName: (name: string): AST.PatternName => ({ kind: 'PatternName', name }),
 };

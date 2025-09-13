@@ -83,6 +83,7 @@ export interface Enum extends AstNode {
 export interface Func extends AstNode {
   readonly kind: 'Func';
   readonly name: string;
+  readonly typeParams: readonly string[];
   readonly params: readonly Parameter[];
   readonly retType: Type;
   readonly effects: readonly string[];
@@ -159,6 +160,7 @@ export interface PatternCtor extends AstNode {
   readonly kind: 'PatternCtor';
   readonly typeName: string;
   readonly names: readonly string[];
+  readonly args?: readonly Pattern[];
 }
 
 export interface PatternName extends AstNode {
@@ -178,6 +180,7 @@ export type Expression =
   | Err
   | Some
   | None
+  | Lambda
   | Await;
 
 export interface Await extends AstNode {
@@ -215,6 +218,13 @@ export interface Call extends AstNode {
   readonly args: readonly Expression[];
 }
 
+export interface Lambda extends AstNode {
+  readonly kind: 'Lambda';
+  readonly params: readonly Parameter[];
+  readonly retType: Type;
+  readonly body: Block;
+}
+
 export interface Construct extends AstNode {
   readonly kind: 'Construct';
   readonly typeName: string;
@@ -245,11 +255,22 @@ export interface None extends AstNode {
   readonly kind: 'None';
 }
 
-export type Type = TypeName | Maybe | Option | Result | List | Map;
+export type Type = TypeName | Maybe | Option | Result | List | Map | TypeApp | TypeVar | FuncType;
 
 export interface TypeName extends AstNode {
   readonly kind: 'TypeName';
   readonly name: string;
+}
+
+export interface TypeVar extends AstNode {
+  readonly kind: 'TypeVar';
+  readonly name: string;
+}
+
+export interface TypeApp extends AstNode {
+  readonly kind: 'TypeApp';
+  readonly base: string; // base type name
+  readonly args: readonly Type[];
 }
 
 export interface Maybe extends AstNode {
@@ -277,6 +298,12 @@ export interface Map extends AstNode {
   readonly kind: 'Map';
   readonly key: Type;
   readonly val: Type;
+}
+
+export interface FuncType extends AstNode {
+  readonly kind: 'FuncType';
+  readonly params: readonly Type[];
+  readonly ret: Type;
 }
 
 // Core IR types (distinct from CNL AST)
@@ -317,6 +344,7 @@ export namespace Core {
   export interface Func extends CoreNode {
     readonly kind: 'Func';
     readonly name: string;
+    readonly typeParams: readonly string[];
     readonly params: readonly Parameter[];
     readonly ret: Type;
     readonly effects: readonly Effect[];
@@ -397,6 +425,7 @@ export namespace Core {
     readonly kind: 'PatCtor';
     readonly typeName: string;
     readonly names: readonly string[];
+    readonly args?: readonly Pattern[];
   }
 
   export interface PatName extends CoreNode {
@@ -415,7 +444,8 @@ export namespace Core {
     | Ok
     | Err
     | Some
-    | None;
+    | None
+    | Lambda;
 
   export interface Name extends CoreNode {
     readonly kind: 'Name';
@@ -445,6 +475,14 @@ export namespace Core {
     readonly kind: 'Call';
     readonly target: Expression;
     readonly args: readonly Expression[];
+  }
+
+  export interface Lambda extends CoreNode {
+    readonly kind: 'Lambda';
+    readonly params: readonly Parameter[];
+    readonly ret: Type;
+    readonly body: Block;
+    readonly captures?: readonly string[];
   }
 
   export interface Construct extends CoreNode {
@@ -477,11 +515,23 @@ export namespace Core {
     readonly kind: 'None';
   }
 
-  export type Type = TypeName | Maybe | Option | Result | List | Map;
+  // Extended with generics (preview)
+  export type Type = TypeName | Maybe | Option | Result | List | Map | TypeApp | TypeVar | FuncType;
 
   export interface TypeName extends CoreNode {
     readonly kind: 'TypeName';
     readonly name: string;
+  }
+
+  export interface TypeVar extends CoreNode {
+    readonly kind: 'TypeVar';
+    readonly name: string;
+  }
+
+  export interface TypeApp extends CoreNode {
+    readonly kind: 'TypeApp';
+    readonly base: string;
+    readonly args: readonly Type[];
   }
 
   export interface Maybe extends CoreNode {
@@ -509,5 +559,11 @@ export namespace Core {
     readonly kind: 'Map';
     readonly key: Type;
     readonly val: Type;
+  }
+
+  export interface FuncType extends CoreNode {
+    readonly kind: 'FuncType';
+    readonly params: readonly Type[];
+    readonly ret: Type;
   }
 }

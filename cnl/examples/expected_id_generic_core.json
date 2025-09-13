@@ -1,0 +1,16 @@
+{
+  "kind": "Module",
+  "name": "demo.generic",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "identity",
+      "typeParams": ["T"],
+      "params": [ { "name": "x", "type": { "kind": "TypeVar", "name": "T" } } ],
+      "ret": { "kind": "TypeVar", "name": "T" },
+      "effects": [],
+      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Name", "name": "x" } } ] }
+    }
+  ]
+}
+

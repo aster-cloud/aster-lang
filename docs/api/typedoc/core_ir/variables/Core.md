@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -84,13 +84,17 @@ readonly `string`[]
 
 ### Func()
 
-> **Func**: (`name`, `params`, `ret`, `effects`, `body`) => [`Func`](../../types/namespaces/Core/interfaces/Func.md)
+> **Func**: (`name`, `typeParams`, `params`, `ret`, `effects`, `body`) => [`Func`](../../types/namespaces/Core/interfaces/Func.md)
 
 #### Parameters
 
 ##### name
 
 `string`
+
+##### typeParams
+
+`undefined` | readonly `string`[]
 
 ##### params
 
@@ -522,6 +526,38 @@ readonly [`ConstructField`](../../types/namespaces/Core/interfaces/ConstructFiel
 
 [`Map`](../../types/namespaces/Core/interfaces/Map.md)
 
+### TypeApp()
+
+> **TypeApp**: (`base`, `args`) => [`TypeApp`](../../types/namespaces/Core/interfaces/TypeApp.md)
+
+#### Parameters
+
+##### base
+
+`string`
+
+##### args
+
+readonly [`Type`](../../types/namespaces/Core/type-aliases/Type.md)[]
+
+#### Returns
+
+[`TypeApp`](../../types/namespaces/Core/interfaces/TypeApp.md)
+
+### TypeVar()
+
+> **TypeVar**: (`name`) => [`TypeVar`](../../types/namespaces/Core/interfaces/TypeVar.md)
+
+#### Parameters
+
+##### name
+
+`string`
+
+#### Returns
+
+[`TypeVar`](../../types/namespaces/Core/interfaces/TypeVar.md)
+
 ### PatNull()
 
 > **PatNull**: () => [`PatNull`](../../types/namespaces/Core/interfaces/PatNull.md)
@@ -546,7 +582,7 @@ readonly [`ConstructField`](../../types/namespaces/Core/interfaces/ConstructFiel
 
 ### PatCtor()
 
-> **PatCtor**: (`typeName`, `names`) => [`PatCtor`](../../types/namespaces/Core/interfaces/PatCtor.md)
+> **PatCtor**: (`typeName`, `names`, `args?`) => [`PatCtor`](../../types/namespaces/Core/interfaces/PatCtor.md)
 
 #### Parameters
 
@@ -556,7 +592,11 @@ readonly [`ConstructField`](../../types/namespaces/Core/interfaces/ConstructFiel
 
 ##### names
 
-readonly `string`[]
+readonly `string`[] = `[]`
+
+##### args?
+
+readonly [`Pattern`](../../types/namespaces/Core/type-aliases/Pattern.md)[]
 
 #### Returns
 

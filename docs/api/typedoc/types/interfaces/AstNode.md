@@ -4,7 +4,7 @@
 
 # Interface: AstNode
 
-Defined in: [types.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L50)
+Defined in: [types.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L50)
 
 ## Extended by
 
@@ -32,17 +32,21 @@ Defined in: [types.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/feafe9
 - [`String`](String.md)
 - [`Null`](Null.md)
 - [`Call`](Call.md)
+- [`Lambda`](Lambda.md)
 - [`Construct`](Construct.md)
 - [`Ok`](Ok.md)
 - [`Err`](Err.md)
 - [`Some`](Some.md)
 - [`None`](None.md)
 - [`TypeName`](TypeName.md)
+- [`TypeVar`](TypeVar.md)
+- [`TypeApp`](TypeApp.md)
 - [`Maybe`](Maybe.md)
 - [`Option`](Option.md)
 - [`Result`](Result.md)
 - [`List`](List.md)
 - [`Map`](Map.md)
+- [`FuncType`](FuncType.md)
 
 ## Properties
 
@@ -50,4 +54,4 @@ Defined in: [types.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/feafe9
 
 > `readonly` **kind**: `string`
 
-Defined in: [types.ts:51](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L51)
+Defined in: [types.ts:51](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L51)

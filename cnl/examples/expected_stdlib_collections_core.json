@@ -1,0 +1,38 @@
+{
+  "kind": "Module",
+  "name": "std.collections",
+  "decls": [
+    { "kind": "Func", "name": "length",
+      "params": [ { "name": "xs", "type": { "kind": "List", "type": { "kind": "TypeName", "name": "Int" } } } ],
+      "ret": { "kind": "TypeName", "name": "Int" },
+      "effects": [],
+      "body": { "kind": "Block", "statements": [
+        { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "List.length" }, "args": [ { "kind": "Name", "name": "xs" } ] } }
+      ] }
+    },
+    { "kind": "Func", "name": "head",
+      "params": [ { "name": "xs", "type": { "kind": "List", "type": { "kind": "TypeName", "name": "Int" } } } ],
+      "ret": { "kind": "Maybe", "type": { "kind": "TypeName", "name": "Int" } },
+      "effects": [],
+      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "None" } } ] }
+    },
+    { "kind": "Func", "name": "id",
+      "params": [ { "name": "x", "type": { "kind": "TypeName", "name": "Int" } } ],
+      "ret": { "kind": "TypeName", "name": "Int" },
+      "effects": [],
+      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Name", "name": "x" } } ] }
+    },
+    { "kind": "Func", "name": "mapId",
+      "params": [ { "name": "xs", "type": { "kind": "List", "type": { "kind": "TypeName", "name": "Int" } } } ],
+      "ret": { "kind": "List", "type": { "kind": "TypeName", "name": "Int" } },
+      "effects": [],
+      "body": { "kind": "Block", "statements": [
+        { "kind": "Return", "expr": { "kind": "Call",
+          "target": { "kind": "Name", "name": "List.map" },
+          "args": [ { "kind": "Name", "name": "xs" }, { "kind": "Name", "name": "id" } ]
+        } }
+      ] }
+    }
+  ]
+}
+

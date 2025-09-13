@@ -1,0 +1,18 @@
+This module is demo.lambdamatchbind.
+
+Define a User with id: Text and name: Text.
+
+To greetUser with u: User and pfx: Text, produce Text:
+  Let f be function with x: User, produce Text:
+    Match x:
+      When User(id, name), Return Text.concat(pfx, name).
+  Return f(u).
+
+To posOrZero with n: Int, produce Int:
+  Let sel be function with x: Int, produce Int:
+    If x < 0, :
+      Return 0.
+    Otherwise, :
+      Return x.
+  Return sel(n).
+

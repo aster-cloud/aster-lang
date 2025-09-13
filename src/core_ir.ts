@@ -1,6 +1,6 @@
 // Core IR for Aster (distinct from CNL AST)
 
-import { Effect } from './tokens.js';
+import { Effect } from './types';
 import type { Core as CoreTypes } from './types.js';
 
 export { Effect };
@@ -29,11 +29,20 @@ export const Core = {
   }),
   Func: (
     name: string,
+    typeParams: readonly string[] | undefined,
     params: readonly CoreTypes.Parameter[],
     ret: CoreTypes.Type,
     effects: readonly Effect[],
     body: CoreTypes.Block
-  ): CoreTypes.Func => ({ kind: 'Func', name, params, ret, effects, body }),
+  ): CoreTypes.Func => ({
+    kind: 'Func',
+    name,
+    typeParams: (typeParams as readonly string[]) ?? [],
+    params,
+    ret,
+    effects,
+    body,
+  }),
   Block: (statements: readonly CoreTypes.Statement[]): CoreTypes.Block => ({
     kind: 'Block',
     statements,
@@ -100,6 +109,12 @@ export const Core = {
   }),
   List: (type: CoreTypes.Type): CoreTypes.List => ({ kind: 'List', type }),
   Map: (key: CoreTypes.Type, val: CoreTypes.Type): CoreTypes.Map => ({ kind: 'Map', key, val }),
+  TypeApp: (base: string, args: readonly CoreTypes.Type[]): CoreTypes.TypeApp => ({
+    kind: 'TypeApp',
+    base,
+    args,
+  }),
+  TypeVar: (name: string): CoreTypes.TypeVar => ({ kind: 'TypeVar', name }),
 
   // Patterns
   PatNull: (): CoreTypes.PatNull => ({ kind: 'PatNull' }),
@@ -108,10 +123,15 @@ export const Core = {
     target: { kind: 'Name', name: 'await' } as CoreTypes.Name,
     args: [expr],
   }),
-  PatCtor: (typeName: string, names: readonly string[]): CoreTypes.PatCtor => ({
+  PatCtor: (
+    typeName: string,
+    names: readonly string[] = [],
+    args?: readonly CoreTypes.Pattern[]
+  ): CoreTypes.PatCtor => ({
     kind: 'PatCtor',
     typeName,
     names,
+    ...(args && args.length > 0 ? { args } : {}),
   }),
   PatName: (name: string): CoreTypes.PatName => ({ kind: 'PatName', name }),
 };

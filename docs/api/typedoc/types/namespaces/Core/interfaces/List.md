@@ -4,7 +4,7 @@
 
 # Interface: List
 
-Defined in: [types.ts:503](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L503)
+Defined in: [types.ts:553](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L553)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:503](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **kind**: `"List"`
 
-Defined in: [types.ts:504](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L504)
+Defined in: [types.ts:554](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L554)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:504](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:505](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L505)
+Defined in: [types.ts:555](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L555)

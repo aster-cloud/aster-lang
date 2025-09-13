@@ -4,7 +4,7 @@
 
 # Interface: Field
 
-Defined in: [types.ts:72](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L72)
+Defined in: [types.ts:72](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L72)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:72](https://github.com/wontlost-ltd/aster-lang/blob/feafe9
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L73)
+Defined in: [types.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L73)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/feafe9
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L74)
+Defined in: [types.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L74)

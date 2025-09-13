@@ -1,0 +1,6 @@
+This module is demo.lambdalengthcmp.
+
+To isLongerThan with s: Text and n: Int, produce Bool:
+  Let pred be (t: Text, k: Int) => Text.length(t) > k.
+  Return pred(s, n).
+

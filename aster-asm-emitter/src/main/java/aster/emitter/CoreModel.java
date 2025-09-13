@@ -48,9 +48,10 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = Maybe.class, name = "Maybe"),
     @JsonSubTypes.Type(value = Option.class, name = "Option"),
     @JsonSubTypes.Type(value = ListT.class, name = "List"),
-    @JsonSubTypes.Type(value = MapT.class, name = "Map")
+    @JsonSubTypes.Type(value = MapT.class, name = "Map"),
+    @JsonSubTypes.Type(value = FuncType.class, name = "FuncType")
   })
-  public sealed interface Type permits TypeName, Result, Maybe, Option, ListT, MapT {}
+  public sealed interface Type permits TypeName, Result, Maybe, Option, ListT, MapT, FuncType {}
 
   @JsonTypeName("TypeName")
   public static final class TypeName implements Type { public String name; }
@@ -64,6 +65,8 @@ public final class CoreModel {
   public static final class ListT implements Type { public Type type; }
   @JsonTypeName("Map")
   public static final class MapT implements Type { public Type key; public Type val; }
+  @JsonTypeName("FuncType")
+  public static final class FuncType implements Type { public java.util.List<Type> params; public Type ret; }
 
   public static final class Block { public List<Stmt> statements; }
 
@@ -105,7 +108,13 @@ public final class CoreModel {
   @JsonTypeName("PatNull")
   public static final class PatNull implements Pattern {}
   @JsonTypeName("PatCtor")
-  public static final class PatCtor implements Pattern { public String typeName; public List<String> names; }
+  public static final class PatCtor implements Pattern {
+    public String typeName;
+    // Legacy positional bindings by name (kept for back-compat)
+    public List<String> names;
+    // New: nested patterns for positional fields
+    public List<Pattern> args;
+  }
   @JsonTypeName("PatName")
   public static final class PatName implements Pattern { public String name; }
 
@@ -121,9 +130,10 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = Some.class, name = "Some"),
     @JsonSubTypes.Type(value = NoneE.class, name = "None"),
     @JsonSubTypes.Type(value = Construct.class, name = "Construct"),
-    @JsonSubTypes.Type(value = Call.class, name = "Call")
+    @JsonSubTypes.Type(value = Call.class, name = "Call"),
+    @JsonSubTypes.Type(value = Lambda.class, name = "Lambda")
   })
-  public sealed interface Expr permits Name, Bool, IntE, StringE, NullE, Ok, Err, Some, NoneE, Construct, Call {}
+  public sealed interface Expr permits Name, Bool, IntE, StringE, NullE, Ok, Err, Some, NoneE, Construct, Call, Lambda {}
 
   @JsonTypeName("Name")
   public static final class Name implements Expr { public String name; }
@@ -148,5 +158,6 @@ public final class CoreModel {
   public static final class FieldInit { public String name; public Expr expr; }
   @JsonTypeName("Call")
   public static final class Call implements Expr { public Expr target; public List<Expr> args; }
+  @JsonTypeName("Lambda")
+  public static final class Lambda implements Expr { public List<Param> params; public Type ret; public Block body; public List<String> captures; }
 }
-

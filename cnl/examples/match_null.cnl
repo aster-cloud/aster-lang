@@ -1,0 +1,7 @@
+This module is demo.match.
+
+To classify v: maybe Text, produce Text:
+  Match v:
+    When null, Return "none".
+    When value, Return "some".
+

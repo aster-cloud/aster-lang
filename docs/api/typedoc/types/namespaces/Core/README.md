@@ -33,6 +33,7 @@
 - [String](interfaces/String.md)
 - [Null](interfaces/Null.md)
 - [Call](interfaces/Call.md)
+- [Lambda](interfaces/Lambda.md)
 - [Construct](interfaces/Construct.md)
 - [ConstructField](interfaces/ConstructField.md)
 - [Ok](interfaces/Ok.md)
@@ -40,11 +41,14 @@
 - [Some](interfaces/Some.md)
 - [None](interfaces/None.md)
 - [TypeName](interfaces/TypeName.md)
+- [TypeVar](interfaces/TypeVar.md)
+- [TypeApp](interfaces/TypeApp.md)
 - [Maybe](interfaces/Maybe.md)
 - [Option](interfaces/Option.md)
 - [Result](interfaces/Result.md)
 - [List](interfaces/List.md)
 - [Map](interfaces/Map.md)
+- [FuncType](interfaces/FuncType.md)
 
 ## Type Aliases
 

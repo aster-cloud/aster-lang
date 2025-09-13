@@ -11,16 +11,10 @@ public final class IfNode extends Node {
     this.cond = cond; this.thenNode = thenNode; this.elseNode = elseNode;
   }
   public Object execute(VirtualFrame frame) {
+    Profiler.inc("if");
     Object c = executeChild(cond, frame);
-    boolean b = (c instanceof Boolean) ? (Boolean)c : c != null;
+    boolean b = Exec.toBool(c);
     return b ? executeChild(thenNode, frame) : executeChild(elseNode, frame);
   }
-  private static Object executeChild(Node n, VirtualFrame f) {
-    if (n instanceof ReturnNode rn) return rn.execute(f);
-    if (n instanceof LetNode ln) return ln.execute(f);
-    if (n instanceof IfNode in) return in.execute(f);
-    if (n instanceof LiteralNode lit) return lit.execute(f);
-    return null;
-  }
+  private static Object executeChild(Node n, VirtualFrame f) { return Exec.exec(n, f); }
 }
-

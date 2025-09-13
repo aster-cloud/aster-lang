@@ -1,10 +1,6 @@
 #!/usr/bin/env node
 import * as fc from 'fast-check';
-import { canonicalize } from '../src/canonicalizer.js';
-import { lex } from '../src/lexer.js';
-import { parse } from '../src/parser.js';
-import { lowerModule } from '../src/lower_to_core.js';
-import { TokenKind } from '../src/tokens.js';
+import { canonicalize, lex, parse, lowerModule, TokenKind } from '../src';
 
 // Property: Canonicalizer should be idempotent
 const testCanonicalizerIdempotent = (): void => {
@@ -171,6 +167,8 @@ function main(): void {
     testValidIntegers();
     testStringLiterals();
     testRoundTrip();
+    // Generics sanity check
+    testGenericsBasic();
     testParserErrorHandling();
     
     console.log('\n✅ All property tests passed!');
@@ -181,3 +179,28 @@ function main(): void {
 }
 
 main();
+
+// Generics: basic sanity
+function testGenericsBasic(): void {
+  const src = [
+    'This module is demo.generic.',
+    '',
+    'To identity of T, with x: T, produce T:',
+    '  Return x.',
+    '',
+  ].join('\n');
+  const can = canonicalize(src);
+  const toks = lex(can);
+  const ast = parse(toks);
+  const core = lowerModule(ast);
+  if (core.kind !== 'Module') throw new Error('Expected Module');
+  const fn = core.decls.find(d => (d as any).kind === 'Func') as any;
+  if (!fn) throw new Error('Expected a function decl');
+  const tp = (fn.typeParams ?? []) as string[];
+  if (!(tp.length === 1 && tp[0] === 'T')) throw new Error('Expected type param T');
+  const paramType = fn.params[0]?.type;
+  const retType = fn.ret;
+  if (!paramType || paramType.kind !== 'TypeVar' || paramType.name !== 'T') throw new Error('Param type should be TypeVar T');
+  if (!retType || retType.kind !== 'TypeVar' || (retType as any).name !== 'T') throw new Error('Return type should be TypeVar T');
+  console.log('✓ Generics basic parse/lower');
+}

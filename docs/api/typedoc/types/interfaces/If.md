@@ -4,7 +4,7 @@
 
 # Interface: If
 
-Defined in: [types.ts:123](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L123)
+Defined in: [types.ts:124](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L124)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:123](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **kind**: `"If"`
 
-Defined in: [types.ts:124](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L124)
+Defined in: [types.ts:125](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L125)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:124](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **cond**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:125](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L125)
+Defined in: [types.ts:126](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L126)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:125](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **thenBlock**: [`Block`](Block.md)
 
-Defined in: [types.ts:126](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L126)
+Defined in: [types.ts:127](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L127)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:126](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **elseBlock**: `null` \| [`Block`](Block.md)
 
-Defined in: [types.ts:127](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L127)
+Defined in: [types.ts:128](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L128)

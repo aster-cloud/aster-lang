@@ -1,0 +1,7 @@
+This module is demo.lambdacnl.
+
+To greet with pfx: Text, produce Text:
+  Let f be a function with x: Text, produce Text:
+    Return Text.concat(pfx, x).
+  Return f("there").
+

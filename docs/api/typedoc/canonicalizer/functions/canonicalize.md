@@ -6,7 +6,7 @@
 
 > **canonicalize**(`input`): `string`
 
-Defined in: [canonicalizer.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/canonicalizer.ts#L23)
+Defined in: [canonicalizer.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/canonicalizer.ts#L23)
 
 ## Parameters
 

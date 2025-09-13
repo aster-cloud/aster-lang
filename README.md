@@ -78,6 +78,15 @@ node dist/scripts/emit-core.js cnl/examples/greet.cnl
 
 # Emit Java sources to build/jvm-src
 node dist/scripts/emit-jvm.js cnl/examples/greet.cnl
+
+# Run Core IR on Truffle (auto-lower .cnl)
+node dist/scripts/aster.js truffle cnl/examples/if_param.cnl -- true
+```
+
+Truffle can also run an existing Core IR JSON:
+
+```
+node dist/scripts/aster.js truffle build/if_param_core.json -- false
 ```
 
 ## JVM Targets
@@ -103,7 +112,54 @@ npm run login:run   # run Java example using generated classes
 
 For native demos (GraalVM native-image), see `examples/*-native` and the `native:hello` script. Ensure `JAVA_HOME` points to a JDK 21 toolchain.
 
+ASM validation (classfiles):
+
+```
+npm run verify:asm
+```
+
+This emits classes for a couple of examples and runs `javap -v` to inspect the bytecode.
+
+### Lambda Syntax & Verification
+
+Lambda functions are supported in two CNL forms:
+
+- Block form:
+  - `Let f be function with x: Text, produce Text:` then an indented block.
+- Short form:
+  - `Let g be (y: Text) => Text.concat("2", y).`
+
+See the Lambdas reference for details: docs/reference/lambdas.md
+
+To verify ASM output for lambda examples:
+
+```
+# From Core JSON lambda fixtures
+npm run verify:asm:lambda
+
+# From CNL lambda examples (parse → lower → emit ASM → javap)
+npm run verify:asm:lambda:cnl
+```
+
 ## Language Server (LSP)
+
+## Truffle Runner
+
+- Use the unified CLI to run Core IR on the Truffle interpreter.
+
+Examples:
+
+```
+# Auto-lower CNL to Core and run with arg(s)
+node dist/scripts/aster.js truffle cnl/examples/if_param.cnl -- true
+
+# Run an existing Core JSON with arg(s)
+node dist/scripts/aster.js truffle build/if_param_core.json -- false
+```
+
+Notes:
+- Extra values after `--` bind to function parameters as strings.
+- Current Truffle coverage is a small subset (literals, names, let, if, return, and a few calls).
 
 A minimal LSP server is included for experimentation:
 
@@ -171,6 +227,15 @@ Example CNL programs live in `cnl/examples`. JVM demo projects live under `examp
 # Arithmetic example end-to-end
 ./gradlew :aster-asm-emitter:run --args=build/jvm-classes < cnl/examples/arith_compare_core.json
 npm run math:jar && ./gradlew :examples:math-jvm:run
+
+# Text demo (interop mappings)
+npm run text:run
+
+# List demo (ASM interop for length/get/isEmpty)
+npm run list:run
+
+# Map demo (ASM interop for get)
+npm run map:run
 ```
 
 ## Release & Versioning

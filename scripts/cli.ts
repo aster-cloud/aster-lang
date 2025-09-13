@@ -12,7 +12,7 @@ function main(): void {
     const can = canonicalize(input);
     const toks = lex(can);
     const ast = parse(toks);
-    console.log(JSON.stringify(ast, null, 2));
+    console.log(JSON.stringify(prune(ast), null, 2));
   } catch (e: unknown) {
     if (e instanceof DiagnosticError) {
       console.error(formatDiagnostic(e.diagnostic, input));
@@ -36,3 +36,16 @@ function main(): void {
 }
 
 main();
+
+function prune(obj: unknown): unknown {
+  if (Array.isArray(obj)) return obj.map(prune);
+  if (obj && typeof obj === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      if (k === 'typeParams' && Array.isArray(v) && v.length === 0) continue;
+      out[k] = prune(v as unknown);
+    }
+    return out;
+  }
+  return obj;
+}

@@ -257,6 +257,12 @@ Re-exports [Call](../types/interfaces/Call.md)
 
 ***
 
+### Lambda
+
+Re-exports [Lambda](../types/interfaces/Lambda.md)
+
+***
+
 ### Construct
 
 Re-exports [Construct](../types/interfaces/Construct.md)
@@ -305,6 +311,18 @@ Re-exports [TypeName](../types/interfaces/TypeName.md)
 
 ***
 
+### TypeVar
+
+Re-exports [TypeVar](../types/interfaces/TypeVar.md)
+
+***
+
+### TypeApp
+
+Re-exports [TypeApp](../types/interfaces/TypeApp.md)
+
+***
+
 ### Maybe
 
 Re-exports [Maybe](../types/interfaces/Maybe.md)
@@ -332,3 +350,9 @@ Re-exports [List](../types/interfaces/List.md)
 ### Map
 
 Re-exports [Map](../types/interfaces/Map.md)
+
+***
+
+### FuncType
+
+Re-exports [FuncType](../types/interfaces/FuncType.md)

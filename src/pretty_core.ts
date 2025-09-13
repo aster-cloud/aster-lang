@@ -83,8 +83,14 @@ function formatPattern(p: Core.Pattern): string {
   switch (p.kind) {
     case 'PatNull':
       return 'null';
-    case 'PatCtor':
-      return `${p.typeName}(${p.names.join(', ')})`;
+    case 'PatCtor': {
+      const pat = p as Core.PatCtor & { args?: readonly Core.Pattern[] };
+      if (pat.args && pat.args.length > 0) {
+        const parts = pat.args.map(pp => formatPattern(pp));
+        return `${pat.typeName}(${parts.join(', ')})`;
+      }
+      return `${pat.typeName}(${pat.names.join(', ')})`;
+    }
     case 'PatName':
       return p.name;
   }
@@ -125,6 +131,11 @@ function formatExpr(e: Core.Expression): string {
       return `Some(${formatExpr(e.expr)})`;
     case 'None':
       return 'None';
+    case 'Lambda': {
+      const ps = e.params.map(p => `${p.name}: ${formatType(p.type)}`).join(', ');
+      const body = formatBlock(e.body, 0);
+      return `(${ps}) => ${body}`;
+    }
   }
 }
 
@@ -132,6 +143,10 @@ function formatType(t: Core.Type): string {
   switch (t.kind) {
     case 'TypeName':
       return t.name;
+    case 'TypeVar':
+      return t.name;
+    case 'TypeApp':
+      return `${t.base}<${t.args.map(formatType).join(', ')}>`;
     case 'Maybe':
       return `${formatType(t.type)}?`;
     case 'Option':
@@ -142,5 +157,9 @@ function formatType(t: Core.Type): string {
       return `List<${formatType(t.type)}>`;
     case 'Map':
       return `Map<${formatType(t.key)}, ${formatType(t.val)}>`;
+    case 'FuncType': {
+      const ps = t.params.map(formatType).join(', ');
+      return `(${ps}) -> ${formatType(t.ret)}`;
+    }
   }
 }

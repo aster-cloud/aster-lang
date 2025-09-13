@@ -11,3 +11,9 @@ include ':truffle'
 project(':truffle').projectDir = file('truffle')
 include ':examples:login-jvm'
 project(':examples:login-jvm').projectDir = file('examples/login-jvm')
+include ':examples:text-jvm'
+project(':examples:text-jvm').projectDir = file('examples/text-jvm')
+include ':examples:list-jvm'
+project(':examples:list-jvm').projectDir = file('examples/list-jvm')
+include ':examples:map-jvm'
+project(':examples:map-jvm').projectDir = file('examples/map-jvm')

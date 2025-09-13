@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/ast.ts#L4)
+Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/ast.ts#L4)
 
 ## Type Declaration
 
@@ -84,13 +84,17 @@ readonly `string`[]
 
 ### Func()
 
-> **Func**: (`name`, `params`, `retType`, `effects`, `body`) => [`Func`](../../types/interfaces/Func.md)
+> **Func**: (`name`, `typeParams`, `params`, `retType`, `effects`, `body`) => [`Func`](../../types/interfaces/Func.md)
 
 #### Parameters
 
 ##### name
 
 `string`
+
+##### typeParams
+
+readonly `string`[]
 
 ##### params
 
@@ -416,6 +420,28 @@ readonly [`ConstructField`](../../types/interfaces/ConstructField.md)[]
 
 [`None`](../../types/interfaces/None.md)
 
+### Lambda()
+
+> **Lambda**: (`params`, `retType`, `body`) => [`Lambda`](../../types/interfaces/Lambda.md)
+
+#### Parameters
+
+##### params
+
+readonly [`Parameter`](../../types/interfaces/Parameter.md)[]
+
+##### retType
+
+[`Type`](../../types/type-aliases/Type.md)
+
+##### body
+
+[`Block`](../../types/interfaces/Block.md)
+
+#### Returns
+
+[`Lambda`](../../types/interfaces/Lambda.md)
+
 ### TypeName()
 
 > **TypeName**: (`name`) => [`TypeName`](../../types/interfaces/TypeName.md)
@@ -508,6 +534,38 @@ readonly [`ConstructField`](../../types/interfaces/ConstructField.md)[]
 
 [`Map`](../../types/interfaces/Map.md)
 
+### TypeApp()
+
+> **TypeApp**: (`base`, `args`) => [`TypeApp`](../../types/interfaces/TypeApp.md)
+
+#### Parameters
+
+##### base
+
+`string`
+
+##### args
+
+readonly [`Type`](../../types/type-aliases/Type.md)[]
+
+#### Returns
+
+[`TypeApp`](../../types/interfaces/TypeApp.md)
+
+### TypeVar()
+
+> **TypeVar**: (`name`) => [`TypeVar`](../../types/interfaces/TypeVar.md)
+
+#### Parameters
+
+##### name
+
+`string`
+
+#### Returns
+
+[`TypeVar`](../../types/interfaces/TypeVar.md)
+
 ### PatternNull()
 
 > **PatternNull**: () => [`PatternNull`](../../types/interfaces/PatternNull.md)
@@ -518,7 +576,7 @@ readonly [`ConstructField`](../../types/interfaces/ConstructField.md)[]
 
 ### PatternCtor()
 
-> **PatternCtor**: (`typeName`, `names`) => [`PatternCtor`](../../types/interfaces/PatternCtor.md)
+> **PatternCtor**: (`typeName`, `names`, `args?`) => [`PatternCtor`](../../types/interfaces/PatternCtor.md)
 
 #### Parameters
 
@@ -529,6 +587,10 @@ readonly [`ConstructField`](../../types/interfaces/ConstructField.md)[]
 ##### names
 
 readonly `string`[]
+
+##### args?
+
+readonly [`Pattern`](../../types/type-aliases/Pattern.md)[]
 
 #### Returns
 

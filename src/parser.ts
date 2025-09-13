@@ -1,19 +1,19 @@
-import { TokenKind, KW } from './tokens.js';
-import { Node } from './ast.js';
+import {KW, TokenKind} from './tokens.js';
+import {Node} from './ast.js';
 import type {
-  Token,
-  Module,
-  Declaration,
-  Statement,
-  Expression,
-  Type,
-  Pattern,
-  Block,
-  Case,
-  Field,
-  Parameter,
+    Block,
+    Case,
+    Declaration,
+    Expression,
+    Field,
+    Module,
+    Parameter,
+    Pattern,
+    Statement,
+    Token,
+    Type,
 } from './types.js';
-import { Diagnostics } from './diagnostics.js';
+import {Diagnostics} from './diagnostics.js';
 
 export function parse(tokens: readonly Token[]): Module {
   let i = 0;
@@ -83,6 +83,33 @@ export function parse(tokens: readonly Token[]): Module {
       // Function
       nextWord();
       const name = parseIdent();
+      // Optional type parameters: 'of' TypeId ('and' TypeId)*
+      const typeParams: string[] = [];
+      if (isKeyword('of')) {
+        nextWord();
+        let more = true;
+        while (more) {
+          // Stop if we ran into parameter list or produce clause
+          if (isKeyword(KW.WITH) || isKeyword(KW.PRODUCE) || at(TokenKind.COLON)) break;
+          // Parse a type variable name (prefer TYPE_IDENT; fall back to IDENT)
+          const tv = at(TokenKind.TYPE_IDENT) ? (next().value as string) : parseIdent();
+          typeParams.push(tv);
+          if (isKeyword(KW.AND)) {
+            nextWord();
+            continue;
+          }
+          if (at(TokenKind.COMMA)) {
+            next();
+            // If comma is followed by 'with' or produce, stop
+            if (isKeyword(KW.WITH) || isKeyword(KW.PRODUCE)) {
+              more = false;
+              break;
+            }
+            continue;
+          }
+          more = false;
+        }
+      }
       const params = parseParamList();
       expectCommaOr();
       expectKeyword(KW.PRODUCE, "Expected 'produce' and return type");
@@ -136,7 +163,7 @@ export function parse(tokens: readonly Token[]): Module {
         error("Expected '.' or ':' after return type");
       }
 
-      decls.push(Node.Func(name, params, retType, effects, body));
+      decls.push(Node.Func(name, typeParams, params, retType, effects, body));
     } else if (at(TokenKind.NEWLINE) || at(TokenKind.DEDENT) || at(TokenKind.INDENT)) {
       // Tolerate stray whitespace/dedent/indent at top-level
       next();
@@ -392,7 +419,27 @@ export function parse(tokens: readonly Token[]): Module {
     }
 
     if (at(TokenKind.TYPE_IDENT)) {
-      return Node.TypeName(next().value as string);
+      const name = next().value as string;
+      // Generic application: TypeName of T [and U]*
+      if (isKeyword('of')) {
+        nextWord();
+        const args: Type[] = [];
+        let more = true;
+        while (more) {
+          args.push(parseType());
+          if (isKeyword(KW.AND)) {
+            nextWord();
+            continue;
+          }
+          if (at(TokenKind.COMMA)) {
+            next();
+            continue;
+          }
+          more = false;
+        }
+        return Node.TypeApp(name, args);
+      }
+      return Node.TypeName(name);
     }
 
     error('Expected type');
@@ -418,12 +465,35 @@ export function parse(tokens: readonly Token[]): Module {
     if (!at(TokenKind.DOT)) error("Expected '.' at end of statement");
     next();
   }
+  function expectPeriodEndOrLine(): void {
+    if (at(TokenKind.DOT)) {
+      next();
+      return;
+    }
+    // Tolerate newline/dedent/EOF terminators inside blocks for certain statements (e.g., Return)
+    if (at(TokenKind.NEWLINE) || at(TokenKind.DEDENT) || at(TokenKind.EOF)) return;
+    error("Expected '.' at end of statement");
+  }
 
   function parseStatement(): Statement {
     if (isKeyword(KW.LET)) {
       nextWord();
       const name = parseIdent();
       expectKeyword(KW.BE, "Use 'be' in bindings: 'Let x be ...'.");
+      // Special-case lambda block form to avoid trailing '.'
+      if ((isKeyword('a') && tokLowerAt(i + 1) === 'function') || isKeyword('function')) {
+        if (isKeyword('a')) nextWord(); // optional 'a'
+        nextWord(); // 'function'
+        const params = parseParamList();
+        expectCommaOr();
+        expectKeyword(KW.PRODUCE, "Expected 'produce' and return type");
+        const retType = parseType();
+        if (!at(TokenKind.COLON)) error("Expected ':' after return type in lambda");
+        next();
+        expectNewline();
+        const body = parseBlock();
+        return Node.Let(name, Node.Lambda(params, retType, body));
+      }
       const expr = parseExpr();
       expectPeriodEnd();
       return Node.Let(name, expr);
@@ -439,7 +509,7 @@ export function parse(tokens: readonly Token[]): Module {
     if (isKeyword(KW.RETURN)) {
       nextWord();
       const expr = parseExpr();
-      expectPeriodEnd();
+      expectPeriodEndOrLine();
       return Node.Return(expr);
     }
     if (isKeyword(KW.AWAIT)) {
@@ -513,8 +583,7 @@ export function parse(tokens: readonly Token[]): Module {
       if (!at(TokenKind.COLON)) error("Expected ':' after 'scope'");
       next();
       expectNewline();
-      const b = parseBlock();
-      return b; // Lowering later
+      return parseBlock(); // Lowering later
     }
     if (isKeyword(KW.START)) {
       nextWord();
@@ -569,8 +638,7 @@ export function parse(tokens: readonly Token[]): Module {
       expectPeriodEnd();
       return Node.Return(e);
     }
-    const b = parseBlock();
-    return b;
+    return parseBlock();
   }
 
   function parseExpr(): Expression {
@@ -639,6 +707,58 @@ export function parse(tokens: readonly Token[]): Module {
 
   function parsePrimary(): Expression {
     // Minimal: construction, literals, names, Ok/Err/Some/None, call with dotted names and parens args
+    // Lambda (block form): 'a function' (or 'function') ... 'produce' Type ':' \n Block
+    if ((isKeyword('a') && tokLowerAt(i + 1) === 'function') || isKeyword('function')) {
+      if (isKeyword('a')) nextWord(); // optional 'a'
+      nextWord(); // 'function'
+      const params = parseParamList();
+      expectCommaOr();
+      expectKeyword(KW.PRODUCE, "Expected 'produce' and return type");
+      const retType = parseType();
+      if (!at(TokenKind.COLON)) error("Expected ':' after return type in lambda");
+      next();
+      expectNewline();
+      const body = parseBlock();
+      return Node.Lambda(params, retType, body);
+    }
+    // Lambda (short form): (x: Text, y: Int) => expr
+    if (at(TokenKind.LPAREN)) {
+      const save = i;
+      try {
+        next();
+        const params: Parameter[] = [];
+        let first = true;
+        while (!at(TokenKind.RPAREN)) {
+          if (!first) {
+            if (at(TokenKind.COMMA)) {
+              next();
+            } else {
+              throw new Error('comma');
+            }
+          }
+          const pname = parseIdent();
+          if (!at(TokenKind.COLON)) throw new Error('colon');
+          next();
+          const ptype = parseType();
+          params.push({ name: pname, type: ptype });
+          first = false;
+        }
+        next(); // consume ')'
+        if (!(at(TokenKind.EQUALS) && tokens[i + 1] && tokens[i + 1]!.kind === TokenKind.GT)) {
+          throw new Error('arrow');
+        }
+        next(); // '='
+        next(); // '>'
+        // Expression body; infer return type when possible
+        const bodyExpr = parseExpr();
+        const body = Node.Block([Node.Return(bodyExpr)]);
+        const retType = inferLambdaReturnType(bodyExpr);
+        return Node.Lambda(params, retType, body);
+      } catch {
+        // rewind and treat as parenthesized expression
+        i = save;
+      }
+    }
     if (isKeywordSeq(KW.OK_OF)) {
       nextWords(kwParts(KW.OK_OF));
       return Node.Ok(parseExpr());
@@ -784,5 +904,28 @@ export function parse(tokens: readonly Token[]): Module {
     }
     const name = parseIdent();
     return Node.PatternName(name);
+  }
+}
+function inferLambdaReturnType(e: Expression): Type {
+  switch (e.kind) {
+    case 'String':
+      return Node.TypeName('Text');
+    case 'Int':
+      return Node.TypeName('Int');
+    case 'Bool':
+      return Node.TypeName('Bool');
+    case 'Call': {
+      if (e.target.kind === 'Name') {
+        const n = e.target.name;
+        if (n === 'Text.concat') return Node.TypeName('Text');
+        if (n === 'Text.length') return Node.TypeName('Int');
+        if (n === '+') return Node.TypeName('Int');
+        if (n === 'not') return Node.TypeName('Bool');
+        if (n === '<' || n === '>' || n === '==') return Node.TypeName('Bool');
+      }
+      return Node.TypeName('Unknown');
+    }
+    default:
+      return Node.TypeName('Unknown');
   }
 }

@@ -4,7 +4,7 @@
 
 # Interface: If
 
-Defined in: [types.ts:371](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L371)
+Defined in: [types.ts:399](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L399)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:371](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **kind**: `"If"`
 
-Defined in: [types.ts:372](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L372)
+Defined in: [types.ts:400](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L400)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:372](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **cond**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:373](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L373)
+Defined in: [types.ts:401](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L401)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:373](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **thenBlock**: [`Block`](Block.md)
 
-Defined in: [types.ts:374](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L374)
+Defined in: [types.ts:402](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L402)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:374](https://github.com/wontlost-ltd/aster-lang/blob/feafe
 
 > `readonly` **elseBlock**: `null` \| [`Block`](Block.md)
 
-Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/feafe98162fff6418df5dcac7e36eb9617e507f1/src/types.ts#L375)
+Defined in: [types.ts:403](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L403)

@@ -34,11 +34,12 @@ function lowerDecl(d: Declaration): import('./types.js').Core.Declaration {
 }
 
 function lowerFunc(f: Func): import('./types.js').Core.Func {
-  const params = f.params.map(p => ({ name: p.name, type: lowerType(p.type) }));
-  const ret = lowerType(f.retType);
+  const tvars = new Set<string>(f.typeParams ?? []);
+  const params = f.params.map(p => ({ name: p.name, type: lowerTypeWithVars(p.type, tvars) }));
+  const ret = lowerTypeWithVars(f.retType, tvars);
   const effects = (f.effects || []).map(e => (e === 'io' ? Effect.IO : Effect.CPU));
   const body = f.body ? lowerBlock(f.body) : Core.Block([]);
-  return Core.Func(f.name, params, ret, effects, body);
+  return Core.Func(f.name, f.typeParams ?? [], params, ret, effects, body);
 }
 
 function lowerBlock(b: Block): import('./types.js').Core.Block {
@@ -113,6 +114,64 @@ function lowerExpr(e: Expression): import('./types.js').Core.Expression {
       return Core.Some(lowerExpr(e.expr));
     case 'None':
       return Core.None();
+    case 'Lambda': {
+      // Naive capture analysis: collect Name identifiers in body that are not params and not dotted
+      const paramNames = new Set(e.params.map(p => p.name));
+      const names = new Set<string>();
+      const visitExpr = (ex: Expression): void => {
+        switch (ex.kind) {
+          case 'Name':
+            if (!paramNames.has(ex.name) && !ex.name.includes('.')) names.add(ex.name);
+            break;
+          case 'Call':
+            visitExpr(ex.target);
+            ex.args.forEach(visitExpr);
+            break;
+          case 'Construct':
+            ex.fields.forEach(f => visitExpr(f.expr));
+            break;
+          case 'Ok':
+          case 'Err':
+          case 'Some':
+            visitExpr((ex as any).expr);
+            break;
+          default:
+            break;
+        }
+      };
+      const visitStmt = (s: Statement): void => {
+        switch (s.kind) {
+          case 'Let':
+            visitExpr(s.expr);
+            break;
+          case 'Set':
+            visitExpr(s.expr);
+            break;
+          case 'Return':
+            visitExpr(s.expr);
+            break;
+          case 'If':
+            visitExpr(s.cond);
+            (s.thenBlock.statements || []).forEach(visitStmt);
+            if (s.elseBlock) (s.elseBlock.statements || []).forEach(visitStmt);
+            break;
+          case 'Match':
+            visitExpr(s.expr);
+            s.cases.forEach(c => {
+              if (c.body.kind === 'Return') visitExpr(c.body.expr);
+              else (c.body.statements || []).forEach(visitStmt);
+            });
+            break;
+          default:
+            break;
+        }
+      };
+      (e.body.statements || []).forEach(visitStmt);
+      const captures = Array.from(names);
+      const coreParams = e.params.map(p => ({ name: p.name, type: lowerType(p.type) }));
+      const ret = lowerType(e.retType);
+      return { kind: 'Lambda', params: coreParams, ret, body: lowerBlock(e.body), captures } as any;
+    }
     default:
       throw new Error(`Unknown expr kind: ${(e as { kind: string }).kind}`);
   }
@@ -122,8 +181,11 @@ function lowerPattern(p: Pattern): import('./types.js').Core.Pattern {
   switch (p.kind) {
     case 'PatternNull':
       return Core.PatNull();
-    case 'PatternCtor':
-      return Core.PatCtor(p.typeName, [...p.names]);
+    case 'PatternCtor': {
+      const ctor = p as Pattern & { args?: readonly Pattern[] };
+      const args = ctor.args ? ctor.args.map(pp => lowerPattern(pp)) : undefined;
+      return Core.PatCtor(p.typeName, [...(p.names ?? [])], args);
+    }
     case 'PatternName':
       return Core.PatName(p.name);
     default:
@@ -135,6 +197,10 @@ function lowerType(t: Type): import('./types.js').Core.Type {
   switch (t.kind) {
     case 'TypeName':
       return Core.TypeName(t.name);
+    case 'TypeVar':
+      return Core.TypeVar(t.name);
+    case 'TypeApp':
+      return Core.TypeApp(t.base, t.args.map(lowerType));
     case 'Maybe':
       return Core.Maybe(lowerType(t.type));
     case 'Option':
@@ -147,5 +213,34 @@ function lowerType(t: Type): import('./types.js').Core.Type {
       return Core.Map(lowerType(t.key), lowerType(t.val));
     default:
       throw new Error(`Unknown type kind: ${(t as { kind: string }).kind}`);
+  }
+}
+
+function lowerTypeWithVars(t: Type, vars: Set<string>): import('./types.js').Core.Type {
+  switch (t.kind) {
+    case 'TypeName':
+      return vars.has(t.name)
+        ? ({ kind: 'TypeVar', name: t.name } as import('./types.js').Core.TypeVar)
+        : Core.TypeName(t.name);
+    case 'Maybe':
+      return Core.Maybe(lowerTypeWithVars(t.type, vars));
+    case 'Option':
+      return Core.Option(lowerTypeWithVars(t.type, vars));
+    case 'Result':
+      return Core.Result(lowerTypeWithVars(t.ok, vars), lowerTypeWithVars(t.err, vars));
+    case 'List':
+      return Core.List(lowerTypeWithVars(t.type, vars));
+    case 'Map':
+      return Core.Map(lowerTypeWithVars(t.key, vars), lowerTypeWithVars(t.val, vars));
+    case 'TypeApp':
+      return {
+        kind: 'TypeApp',
+        base: t.base,
+        args: t.args.map(tt => lowerTypeWithVars(tt, vars)),
+      } as import('./types.js').Core.Type;
+    case 'TypeVar':
+      return { kind: 'TypeVar', name: t.name } as import('./types.js').Core.TypeVar;
+    default:
+      return lowerType(t);
   }
 }

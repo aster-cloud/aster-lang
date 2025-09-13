@@ -25,7 +25,8 @@ function main(): void {
   }
   collect(classesDir);
   for (const f of files) {
-    sh(`javap -v ${f}`);
+    const quoted = `'${f.replace(/'/g, "'\\''")}'`;
+    sh(`javap -v ${quoted}`);
   }
   console.log('javap verification completed');
 }

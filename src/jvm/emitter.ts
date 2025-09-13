@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Core } from '../types.js';
+import type {Core} from '../types.js';
 
 function ensureDir(p: string): void {
   fs.mkdirSync(p, { recursive: true });
@@ -28,6 +28,13 @@ function javaType(t: Core.Type): string {
       const err = javaType(t.err);
       return `aster.runtime.Result<${ok}, ${err}>`;
     }
+    case 'TypeVar':
+      return 'Object';
+    case 'TypeApp': {
+      // Basic mapping for unknown generic types: treat as raw type 'Object'
+      // Future: map known generic bridges
+      return 'Object';
+    }
     case 'Maybe': {
       // Represent Maybe<T> as nullable T
       return javaType(t.type);
@@ -38,6 +45,12 @@ function javaType(t: Core.Type): string {
       return `java.util.List<${javaType(t.type)}>`;
     case 'Map':
       return `java.util.Map<${javaType(t.key)}, ${javaType(t.val)}>`;
+    case 'FuncType': {
+      const ar = t.params.length;
+      if (ar === 1) return 'aster.runtime.Fn1';
+      if (ar === 2) return 'aster.runtime.Fn2';
+      return 'java.lang.Object';
+    }
     default:
       return 'Object';
   }
@@ -87,6 +100,101 @@ function emitExpr(e: Core.Expression, helpers: EmitHelpers): string {
       if (e.target.kind === 'Name' && e.target.name === 'not' && e.args.length === 1) {
         return `!(${emitExpr(e.args[0]!, helpers)})`;
       }
+      // JVM interop shims (MVP): recognize a few stdlib-style names
+      if (e.target.kind === 'Name') {
+        const nm = e.target.name;
+        // Text.concat(a,b) -> a + b
+        if (nm === 'Text.concat' && e.args.length === 2) {
+          const a = emitExpr(e.args[0]!, helpers);
+          const b = emitExpr(e.args[1]!, helpers);
+          return `(${a} + ${b})`;
+        }
+        // Text.contains(h, n) -> h.contains(n)
+        if (nm === 'Text.contains' && e.args.length === 2) {
+          const h = emitExpr(e.args[0]!, helpers);
+          const n = emitExpr(e.args[1]!, helpers);
+          return `${h}.contains(${n})`;
+        }
+        // Text.equals(a, b) -> Objects.equals(a, b)
+        if (nm === 'Text.equals' && e.args.length === 2) {
+          const a = emitExpr(e.args[0]!, helpers);
+          const b = emitExpr(e.args[1]!, helpers);
+          return `java.util.Objects.equals(${a}, ${b})`;
+        }
+        // Text.replace(h, t, r) -> h.replace(t, r)
+        if (nm === 'Text.replace' && e.args.length === 3) {
+          const h = emitExpr(e.args[0]!, helpers);
+          const t = emitExpr(e.args[1]!, helpers);
+          const r = emitExpr(e.args[2]!, helpers);
+          return `${h}.replace(${t}, ${r})`;
+        }
+        // Text.split(h, sep) -> Arrays.asList(h.split(sep))
+        if (nm === 'Text.split' && e.args.length === 2) {
+          const h = emitExpr(e.args[0]!, helpers);
+          const s = emitExpr(e.args[1]!, helpers);
+          return `java.util.Arrays.asList(${h}.split(${s}))`;
+        }
+        // Text.indexOf(h, n) -> h.indexOf(n)
+        if (nm === 'Text.indexOf' && e.args.length === 2) {
+          const h = emitExpr(e.args[0]!, helpers);
+          const n = emitExpr(e.args[1]!, helpers);
+          return `${h}.indexOf(${n})`;
+        }
+        // Text.startsWith(h, p) -> h.startsWith(p)
+        if (nm === 'Text.startsWith' && e.args.length === 2) {
+          const h = emitExpr(e.args[0]!, helpers);
+          const p = emitExpr(e.args[1]!, helpers);
+          return `${h}.startsWith(${p})`;
+        }
+        // Text.endsWith(h, s) -> h.endsWith(s)
+        if (nm === 'Text.endsWith' && e.args.length === 2) {
+          const h = emitExpr(e.args[0]!, helpers);
+          const s = emitExpr(e.args[1]!, helpers);
+          return `${h}.endsWith(${s})`;
+        }
+        // Text.toUpper(h) -> h.toUpperCase()
+        if (nm === 'Text.toUpper' && e.args.length === 1) {
+          const h = emitExpr(e.args[0]!, helpers);
+          return `${h}.toUpperCase()`;
+        }
+        // Text.toLower(h) -> h.toLowerCase()
+        if (nm === 'Text.toLower' && e.args.length === 1) {
+          const h = emitExpr(e.args[0]!, helpers);
+          return `${h}.toLowerCase()`;
+        }
+        // Text.length(h) -> h.length()
+        if (nm === 'Text.length' && e.args.length === 1) {
+          const h = emitExpr(e.args[0]!, helpers);
+          return `${h}.length()`;
+        }
+        // List.length(xs) -> xs.size()
+        if (nm === 'List.length' && e.args.length === 1) {
+          const xs = emitExpr(e.args[0]!, helpers);
+          return `${xs}.size()`;
+        }
+        // List.get(xs, i) -> xs.get(i)
+        if (nm === 'List.get' && e.args.length === 2) {
+          const xs = emitExpr(e.args[0]!, helpers);
+          const i = emitExpr(e.args[1]!, helpers);
+          return `${xs}.get(${i})`;
+        }
+        // List.isEmpty(xs) -> xs.isEmpty()
+        if (nm === 'List.isEmpty' && e.args.length === 1) {
+          const xs = emitExpr(e.args[0]!, helpers);
+          return `${xs}.isEmpty()`;
+        }
+        // List.head(xs) -> xs.isEmpty()? null : xs.get(0)
+        if (nm === 'List.head' && e.args.length === 1) {
+          const xs = emitExpr(e.args[0]!, helpers);
+          return `(${xs}.isEmpty() ? null : ${xs}.get(0))`;
+        }
+        // Map.get(m, k) -> m.get(k)
+        if (nm === 'Map.get' && e.args.length === 2) {
+          const m = emitExpr(e.args[0]!, helpers);
+          const k = emitExpr(e.args[1]!, helpers);
+          return `${m}.get(${k})`;
+        }
+      }
       const tgt = emitExpr(e.target, helpers);
       const args = e.args.map(a => emitExpr(a, helpers)).join(', ');
       return `${tgt}(${args})`;
@@ -123,7 +231,40 @@ function emitStatement(
       return `${indent}if (${cond}) {\n${thenB}${indent}}${elseB}`;
     }
     case 'Match': {
-      // MVP: handle match on nullable and on data ctor name pattern
+      // Try optimized enum switch when all cases are enum variants from the same enum
+      const allPatName = s.cases.every(c => c.pattern.kind === 'PatName');
+      if (allPatName && s.cases.length > 0) {
+        const enums = new Set<string>();
+        for (const c of s.cases) {
+          const variant = (c.pattern as Core.PatName).name;
+          const en = helpers.enumVariantToEnum.get(variant);
+          if (!en) {
+            enums.clear();
+            break;
+          }
+          enums.add(en);
+        }
+        if (enums.size === 1) {
+          const enName = [...enums][0]!;
+          const scrut = emitExpr(s.expr, helpers);
+          const lines: string[] = [];
+          lines.push(`${indent}{`);
+          lines.push(`${indent}  var __scrut = ${scrut};`);
+          lines.push(`${indent}  switch((${enName})__scrut) {`);
+          for (const c of s.cases) {
+            const variant = (c.pattern as Core.PatName).name;
+            lines.push(`${indent}    case ${enName}.${variant}: {`);
+            const bodyStr = emitCaseBody(c.body, locals, helpers, indent + '      ');
+            lines.push(bodyStr);
+            if (c.body.kind !== 'Return') lines.push(`${indent}      break;`);
+            lines.push(`${indent}    }`);
+          }
+          lines.push(`${indent}  }`);
+          lines.push(`${indent}}\n`);
+          return lines.join('\n');
+        }
+      }
+      // Fallback: handle nullable, data ctor name pattern, and basic PatName
       const scrut = emitExpr(s.expr, helpers);
       const lines: string[] = [];
       lines.push(`${indent}{`);
@@ -137,16 +278,12 @@ function emitStatement(
           const p = c.pattern as Core.PatCtor;
           lines.push(`${indent}  if (__scrut instanceof ${p.typeName}) {`);
           lines.push(`${indent}    var __tmp = (${p.typeName})__scrut;`);
-          // bind names in order to fields with same order
-          p.names.forEach((n, idx) => {
-            lines.push(
-              `${indent}    var ${n} = __tmp.${fieldNameByIndex(p.typeName, helpers, idx)};`
-            );
-          });
+          const nb = emitNestedPatBinds(p, '__tmp', helpers, indent + '    ');
+          lines.push(...nb.prefix);
           lines.push(emitCaseBody(c.body, locals, helpers, indent + '    '));
+          lines.push(...nb.suffix);
           lines.push(`${indent}  }`);
         } else if (c.pattern.kind === 'PatName') {
-          // enum variant name or catch-all: treat as else if not null
           lines.push(`${indent}  if (__scrut != null) {`);
           lines.push(emitCaseBody(c.body, locals, helpers, indent + '    '));
           lines.push(`${indent}  }`);
@@ -156,8 +293,7 @@ function emitStatement(
       return lines.join('\n');
     }
     case 'Scope': {
-      const body = s.statements.map(st => emitStatement(st, locals, helpers, indent)).join('');
-      return body;
+        return s.statements.map(st => emitStatement(st, locals, helpers, indent)).join('');
     }
     case 'Start':
     case 'Wait':
@@ -196,12 +332,52 @@ function fieldNameByIndex(typeName: string, helpers: EmitHelpers, idx: number): 
   return d.fields[idx]!.name;
 }
 
+function emitNestedPatBinds(
+  p: Core.PatCtor,
+  baseVar: string,
+  helpers: EmitHelpers,
+  indent = '    '
+): { prefix: string[]; suffix: string[] } {
+  const prefix: string[] = [];
+  const suffix: string[] = [];
+  const patWithArgs = p as Core.PatCtor & { args?: readonly Core.Pattern[] };
+  const args = patWithArgs.args as undefined | Core.Pattern[];
+  if (args && args.length > 0) {
+    args.forEach((child, idx) => {
+      const field = fieldNameByIndex(p.typeName, helpers, idx);
+      if (child.kind === 'PatName') {
+        prefix.push(`${indent}var ${child.name} = ${baseVar}.${field};`);
+      } else if (child.kind === 'PatCtor') {
+        // open guard and bind child object
+        const tmpVar = `${baseVar}_${idx}`;
+        prefix.push(
+          `${indent}if (${baseVar}.${field} instanceof ${(child as Core.PatCtor).typeName}) {`
+        );
+        prefix.push(
+          `${indent}  var ${tmpVar} = ( ${(child as Core.PatCtor).typeName} )${baseVar}.${field};`
+        );
+        const rec = emitNestedPatBinds(child as Core.PatCtor, tmpVar, helpers, indent + '  ');
+        prefix.push(...rec.prefix);
+        // close nested guards after body
+        suffix.unshift(...rec.suffix);
+        suffix.unshift(`${indent}}`);
+      }
+    });
+  } else {
+    // Legacy names support
+    (p.names || []).forEach((n, idx) => {
+      prefix.push(`${indent}var ${n} = ${baseVar}.${fieldNameByIndex(p.typeName, helpers, idx)};`);
+    });
+  }
+  return { prefix, suffix };
+}
+
 function emitFunc(pkgDecl: string, f: Core.Func, helpers: EmitHelpers): string {
   const ret = javaType(f.ret);
   const params = f.params.map(p => `${javaType(p.type)} ${p.name}`).join(', ');
   const body = emitBlock(f.body, [], helpers, '    ');
-  const fallback = ret === 'int' ? '0' : ret === 'boolean' ? 'false' : 'null';
-  return `${pkgDecl}public final class ${f.name}_fn {\n  private ${f.name}_fn(){}\n  public static ${ret} ${f.name}(${params}) {\n${body}    return ${fallback};\n  }\n}\n`;
+  const fallback = `    return ${ret === 'int' ? '0' : ret === 'boolean' ? 'false' : 'null'};\n`;
+  return `${pkgDecl}public final class ${f.name}_fn {\n  private ${f.name}_fn(){}\n  public static ${ret} ${f.name}(${params}) {\n${body}${fallback}  }\n}\n`;
 }
 
 export async function emitJava(core: Core.Module, outRoot = 'build/jvm-src'): Promise<void> {

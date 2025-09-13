@@ -1,0 +1,5 @@
+This module is demo.generic.
+
+To identity of T, with x: T, produce T:
+  Return x.
+
