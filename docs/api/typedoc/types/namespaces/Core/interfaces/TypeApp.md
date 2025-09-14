@@ -4,7 +4,7 @@
 
 # Interface: TypeApp
 
-Defined in: [types.ts:531](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L531)
+Defined in: [types.ts:531](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L531)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:531](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"TypeApp"`
 
-Defined in: [types.ts:532](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L532)
+Defined in: [types.ts:532](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L532)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:532](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **base**: `string`
 
-Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L533)
+Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L533)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **args**: readonly [`Type`](../type-aliases/Type.md)[]
 
-Defined in: [types.ts:534](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L534)
+Defined in: [types.ts:534](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L534)

@@ -132,7 +132,7 @@ jobs:
         run: npm run build
       
       - name: Run benchmarks
-        run: npm run bench || echo "Benchmarks not yet implemented"
+        run: npm run bench
 
   security:
     name: Security Audit

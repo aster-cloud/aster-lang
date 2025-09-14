@@ -1,0 +1,11 @@
+This module is demo.rest.
+
+To greet name: Text, produce Text:
+  Return Text.concat("Hello, ", name).
+
+To exclaim s: Text, produce Text:
+  Return Text.concat(s, "!").
+
+To length s: Text, produce Int:
+  Return Text.length(s).
+

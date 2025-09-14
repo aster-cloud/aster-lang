@@ -1,0 +1,15 @@
+This module is demo.policy.
+
+Define an Action as one of Read or Write or Delete.
+
+To canAccess with role: Text and action: Action and ownerId: Text and userId: Text, produce Bool:
+  If Text.equals(role, "admin"),:
+    Return true.
+  Match action:
+    When Read,
+      Return Text.equals(ownerId, userId).
+    When Write,
+      Return Text.equals(ownerId, userId).
+    When Delete,
+      Return false.
+

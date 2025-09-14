@@ -4,7 +4,7 @@
 
 # Interface: Set
 
-Defined in: [types.ts:113](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L113)
+Defined in: [types.ts:113](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L113)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:113](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"Set"`
 
-Defined in: [types.ts:114](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L114)
+Defined in: [types.ts:114](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L114)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:114](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:115](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L115)
+Defined in: [types.ts:115](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L115)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:115](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:116](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L116)
+Defined in: [types.ts:116](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L116)

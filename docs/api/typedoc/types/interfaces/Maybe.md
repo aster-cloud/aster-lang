@@ -4,7 +4,7 @@
 
 # Interface: Maybe
 
-Defined in: [types.ts:276](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L276)
+Defined in: [types.ts:276](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L276)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:276](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"Maybe"`
 
-Defined in: [types.ts:277](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L277)
+Defined in: [types.ts:277](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L277)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:277](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:278](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L278)
+Defined in: [types.ts:278](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L278)

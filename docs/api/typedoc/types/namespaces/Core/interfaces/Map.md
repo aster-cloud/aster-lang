@@ -4,7 +4,7 @@
 
 # Interface: Map
 
-Defined in: [types.ts:558](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L558)
+Defined in: [types.ts:558](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L558)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:558](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"Map"`
 
-Defined in: [types.ts:559](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L559)
+Defined in: [types.ts:559](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L559)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:559](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **key**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:560](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L560)
+Defined in: [types.ts:560](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L560)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:560](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **val**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:561](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L561)
+Defined in: [types.ts:561](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L561)

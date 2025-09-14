@@ -4,7 +4,7 @@
 
 # Interface: Start
 
-Defined in: [types.ts:366](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L366)
+Defined in: [types.ts:366](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L366)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:366](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"Start"`
 
-Defined in: [types.ts:367](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L367)
+Defined in: [types.ts:367](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L367)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:367](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:368](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L368)
+Defined in: [types.ts:368](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L368)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:368](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:369](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L369)
+Defined in: [types.ts:369](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L369)

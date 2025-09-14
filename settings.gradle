@@ -17,3 +17,9 @@ include ':examples:list-jvm'
 project(':examples:list-jvm').projectDir = file('examples/list-jvm')
 include ':examples:map-jvm'
 project(':examples:map-jvm').projectDir = file('examples/map-jvm')
+include ':examples:cli-jvm'
+project(':examples:cli-jvm').projectDir = file('examples/cli-jvm')
+include ':examples:rest-jvm'
+project(':examples:rest-jvm').projectDir = file('examples/rest-jvm')
+include ':examples:rest-jvm'
+project(':examples:rest-jvm').projectDir = file('examples/rest-jvm')

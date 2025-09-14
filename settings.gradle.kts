@@ -18,5 +18,9 @@ include(":examples:math-jvm")
 project(":examples:math-jvm").projectDir = file("examples/math-jvm")
 include(":examples:text-jvm")
 project(":examples:text-jvm").projectDir = file("examples/text-jvm")
-
-
+include(":examples:cli-jvm")
+project(":examples:cli-jvm").projectDir = file("examples/cli-jvm")
+include(":examples:rest-jvm")
+project(":examples:rest-jvm").projectDir = file("examples/rest-jvm")
+include(":examples:policy-jvm")
+project(":examples:policy-jvm").projectDir = file("examples/policy-jvm")

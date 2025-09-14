@@ -4,7 +4,7 @@
 
 # Interface: FuncType
 
-Defined in: [types.ts:303](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L303)
+Defined in: [types.ts:303](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L303)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:303](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"FuncType"`
 
-Defined in: [types.ts:304](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L304)
+Defined in: [types.ts:304](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L304)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:304](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **params**: readonly [`Type`](../type-aliases/Type.md)[]
 
-Defined in: [types.ts:305](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L305)
+Defined in: [types.ts:305](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L305)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:305](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **ret**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:306](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L306)
+Defined in: [types.ts:306](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L306)

@@ -4,7 +4,7 @@
 
 # Interface: Construct
 
-Defined in: [types.ts:488](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L488)
+Defined in: [types.ts:488](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L488)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:488](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"Construct"`
 
-Defined in: [types.ts:489](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L489)
+Defined in: [types.ts:489](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L489)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:489](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:490](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L490)
+Defined in: [types.ts:490](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L490)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:490](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **fields**: readonly [`ConstructField`](ConstructField.md)[]
 
-Defined in: [types.ts:491](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L491)
+Defined in: [types.ts:491](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L491)

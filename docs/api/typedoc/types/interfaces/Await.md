@@ -4,7 +4,7 @@
 
 # Interface: Await
 
-Defined in: [types.ts:186](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L186)
+Defined in: [types.ts:186](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L186)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:186](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"Await"`
 
-Defined in: [types.ts:187](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L187)
+Defined in: [types.ts:187](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L187)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:187](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:188](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L188)
+Defined in: [types.ts:188](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L188)

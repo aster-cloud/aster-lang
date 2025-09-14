@@ -572,6 +572,11 @@ public final class Main {
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "startsWith", "(Ljava/lang/String;)Z", false);
         return;
       }
+      if (Objects.equals(name, "Text.length") && c.args.size() == 1) {
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
+        return;
+      }
       // List/Map interop
       if (Objects.equals(name, "List.length") && c.args.size() == 1) {
         emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);

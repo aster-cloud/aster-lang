@@ -22,6 +22,7 @@ tasks.register("examplesCompileAll") {
     ":examples:math-jvm:compileJava",
     ":examples:text-jvm:compileJava",
     ":examples:hello-native:compileJava",
+    ":examples:rest-jvm:compileJava",
     ":examples:login-native:compileJava"
   )
 }

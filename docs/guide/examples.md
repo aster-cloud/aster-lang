@@ -1,5 +1,23 @@
 # Examples
 
+## CLI Tool (end-to-end)
+
+- Build and run:
+  - `npm run cli:run`
+- Usage:
+  - `cli greet Alice` → prints `Hello, Alice`
+  - `cli exclaim wow` → prints `wow!`
+  - `cli length hello` → prints `5`
+
+## REST Service (end-to-end)
+
+- Build and run:
+  - `npm run rest:run`
+- Endpoints:
+  - `GET http://localhost:8080/greet?name=Alice` → `Hello, Alice\n`
+  - `GET http://localhost:8080/exclaim?text=wow` → `wow!\n`
+  - `GET http://localhost:8080/length?text=hello` → `5\n`
+
 ## Greet
 
 ```text

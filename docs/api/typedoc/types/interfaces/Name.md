@@ -4,7 +4,7 @@
 
 # Interface: Name
 
-Defined in: [types.ts:191](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L191)
+Defined in: [types.ts:191](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L191)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:191](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **kind**: `"Name"`
 
-Defined in: [types.ts:192](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L192)
+Defined in: [types.ts:192](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L192)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:192](https://github.com/wontlost-ltd/aster-lang/blob/5be1f
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:193](https://github.com/wontlost-ltd/aster-lang/blob/5be1f4ff28879f0dc1c32f364689abbfa13bc28f/src/types.ts#L193)
+Defined in: [types.ts:193](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L193)
