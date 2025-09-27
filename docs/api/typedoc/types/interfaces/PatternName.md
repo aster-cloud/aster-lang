@@ -4,7 +4,7 @@
 
 # Interface: PatternName
 
-Defined in: [types.ts:166](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L166)
+Defined in: [types.ts:166](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L166)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:166](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **kind**: `"PatternName"`
 
-Defined in: [types.ts:167](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L167)
+Defined in: [types.ts:167](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L167)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:167](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:168](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L168)
+Defined in: [types.ts:168](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L168)

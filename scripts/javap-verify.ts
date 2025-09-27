@@ -3,9 +3,8 @@ import * as cp from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-function sh(cmd: string): void {
-  console.log(`$ ${cmd}`);
-  cp.execSync(cmd, { stdio: 'inherit' });
+function shCapture(cmd: string): string {
+  return cp.execSync(cmd, { stdio: ['ignore', 'pipe', 'pipe'] }).toString('utf8');
 }
 
 function main(): void {
@@ -24,11 +23,25 @@ function main(): void {
     }
   }
   collect(classesDir);
+  const problems: string[] = [];
+  const outputs: string[] = [];
   for (const f of files) {
     const quoted = `'${f.replace(/'/g, "'\\''")}'`;
-    sh(`javap -v ${quoted}`);
+    const out = shCapture(`javap -v ${quoted}`);
+    outputs.push(out);
+    // Rule: flag unqualified object descriptors like LAction; (no package slash), excluding JDK/internal and our runtime/aster
+    const badDesc = /L(?!java\/|javax\/|jdk\/|org\/|com\/|aster\/)[A-Za-z0-9_\\$]+;/g;
+    let m: RegExpExecArray | null;
+    while ((m = badDesc.exec(out)) !== null) {
+      problems.push(`${f}: unqualified descriptor ${m[0]}`);
+    }
   }
-  console.log('javap verification completed');
+  if (problems.length > 0) {
+    console.error('javap verification failed:');
+    for (const p of problems) console.error(' - ' + p);
+    process.exit(1);
+  }
+  console.log('javap verification completed: no unqualified descriptors found');
 }
 
 main();

@@ -50,6 +50,10 @@ async function main(): Promise<void> {
   // Prefer running via Gradle run to get classpath deps available
   const runCmd = hasWrapper ? './gradlew' : 'gradle';
   const outDir = path.resolve('build/jvm-classes');
+  // Clean output dir to avoid stale classes triggering javap checks
+  if (fs.existsSync(outDir)) {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  }
   await new Promise<void>((resolve, reject) => {
     const proc = cp.spawn(runCmd, [':aster-asm-emitter:run', `--args=${outDir}`], {
       stdio: ['pipe', 'inherit', 'inherit'],

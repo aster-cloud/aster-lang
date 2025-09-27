@@ -1,15 +1,32 @@
 This module is demo.policy.
 
-Define an Action as one of Read or Write or Delete.
+Define an Action as one of Read or Write or Delete or Admin.
+
+Define a Resource as one of Document or User or System.
+
+Define a PolicyContext with userId: Text and userRole: Text and resourceOwner: Text and resourceType: Resource and timeOfDay: Number and location: Text.
 
 To canAccess with role: Text and action: Action and ownerId: Text and userId: Text, produce Bool:
   If Text.equals(role, "admin"),:
     Return true.
-  Match action:
-    When Read,
-      Return Text.equals(ownerId, userId).
-    When Write,
-      Return Text.equals(ownerId, userId).
-    When Delete,
-      Return false.
+  If Action.equals(action, Read),:
+    Return Text.equals(ownerId, userId).
+  If Action.equals(action, Write),:
+    Return Text.equals(ownerId, userId).
+  If Action.equals(action, Delete),:
+    Return false.
+  If Action.equals(action, Admin),:
+    Return Text.equals(role, "admin").
+  Return false.
 
+To evaluateOwnerBasedRule with role: Text and action: Action and resource: Resource and context: PolicyContext, produce Bool:
+  If not Text.equals(role, context.userRole),:
+    Return false.
+  If not Action.equals(action, Read),:
+    Return false.
+  If not Resource.equals(resource, context.resourceType),:
+    Return false.
+  Return Text.equals(context.userId, context.resourceOwner).
+
+To evaluateUserReadRule with context: PolicyContext, produce Bool:
+  Return evaluateOwnerBasedRule("user", Read, Document, context).

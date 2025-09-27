@@ -1,0 +1,113 @@
+This module is demo.rules.
+
+Define a RuleType as one of Access or Validation or Transformation or Notification.
+
+Define a RulePriority as one of Low or Medium or High or Critical.
+
+Define a RuleCondition with field: Text and operator: Text and value: Text.
+
+Define a BusinessRule with id: Text and name: Text and type: RuleType and priority: RulePriority and conditions: list of RuleCondition and action: Text and enabled: Bool.
+
+Define a RuleContext with userId: Text and userRole: Text and resourceId: Text and resourceType: Text and metadata: Text and timestamp: Number.
+
+To createAccessRule with id: Text and name: Text and conditions: list of RuleCondition, produce BusinessRule:
+  Return BusinessRule(id, name, Access, High, conditions, "ALLOW", true).
+
+To createValidationRule with id: Text and name: Text and conditions: list of RuleCondition, produce BusinessRule:
+  Return BusinessRule(id, name, Validation, Medium, conditions, "VALIDATE", true).
+
+To createTransformationRule with id: Text and name: Text and conditions: list of RuleCondition, produce BusinessRule:
+  Return BusinessRule(id, name, Transformation, Low, conditions, "TRANSFORM", true).
+
+To evaluateCondition with condition: RuleCondition and context: RuleContext, produce Bool:
+  Define fieldValue as getFieldValue(condition.field, context).
+  If Text.equals(condition.operator, "equals"),:
+    Return Text.equals(fieldValue, condition.value).
+  If Text.equals(condition.operator, "not_equals"),:
+    Return not Text.equals(fieldValue, condition.value).
+  If Text.equals(condition.operator, "contains"),:
+    Return Text.contains(fieldValue, condition.value).
+  If Text.equals(condition.operator, "starts_with"),:
+    Return Text.startsWith(fieldValue, condition.value).
+  If Text.equals(condition.operator, "ends_with"),:
+    Return Text.endsWith(fieldValue, condition.value).
+  If Text.equals(condition.operator, "greater_than"),:
+    Return Number.greaterThan(Number.parse(fieldValue), Number.parse(condition.value)).
+  If Text.equals(condition.operator, "less_than"),:
+    Return Number.lessThan(Number.parse(fieldValue), Number.parse(condition.value)).
+  If Text.equals(condition.operator, "in"),:
+    Return Text.contains(condition.value, fieldValue).
+  If Text.equals(condition.operator, "not_in"),:
+    Return not Text.contains(condition.value, fieldValue).
+  Return false.
+
+To getFieldValue with field: Text and context: RuleContext, produce Text:
+  If Text.equals(field, "userId"),:
+    Return context.userId.
+  If Text.equals(field, "userRole"),:
+    Return context.userRole.
+  If Text.equals(field, "resourceId"),:
+    Return context.resourceId.
+  If Text.equals(field, "resourceType"),:
+    Return context.resourceType.
+  If Text.equals(field, "metadata"),:
+    Return context.metadata.
+  If Text.equals(field, "timestamp"),:
+    Return Number.toString(context.timestamp).
+  Return "".
+
+To evaluateRule with rule: BusinessRule and context: RuleContext, produce Bool:
+  If not rule.enabled,:
+    Return false.
+  Return evaluateAllConditions(rule.conditions, context).
+
+To evaluateAllConditions with conditions: list of RuleCondition and context: RuleContext, produce Bool:
+  If List.isEmpty(conditions),:
+    Return true.
+  Define firstCondition as List.head(conditions).
+  Define restConditions as List.tail(conditions).
+  If not evaluateCondition(firstCondition, context),:
+    Return false.
+  Return evaluateAllConditions(restConditions, context).
+
+To evaluateRulesWithList with rules: list of BusinessRule and context: RuleContext, produce list of Text:
+  If List.isEmpty(rules),:
+    Return [].
+  Define firstRule as List.head(rules).
+  Define restRules as List.tail(rules).
+  Define results as evaluateRulesWithList(restRules, context).
+  If evaluateRule(firstRule, context),:
+    Return List.cons(firstRule.action, results).
+  Return results.
+
+To createAdminAccessRule, produce BusinessRule:
+  Define conditions as [RuleCondition("userRole", "equals", "admin")].
+  Return createAccessRule("admin_access", "Admin Full Access", conditions).
+
+To createUserReadOwnRule, produce BusinessRule:
+  Define conditions as [RuleCondition("userRole", "equals", "user"), RuleCondition("resourceId", "starts_with", "user_")].
+  Return createAccessRule("user_read_own", "User Read Own Resources", conditions).
+
+To createValidateEmailRule, produce BusinessRule:
+  Define conditions as [RuleCondition("metadata", "contains", "@")].
+  Return createValidationRule("validate_email", "Email Validation", conditions).
+
+To createTransformDataRule, produce BusinessRule:
+  Define conditions as [RuleCondition("resourceType", "equals", "document")].
+  Return createTransformationRule("transform_data", "Data Transformation", conditions).
+
+To createSampleRules, produce list of BusinessRule:
+  Define adminRule as createAdminAccessRule().
+  Define userRule as createUserReadOwnRule().
+  Define emailRule as createValidateEmailRule().
+  Define transformRule as createTransformDataRule().
+  Return [adminRule, userRule, emailRule, transformRule].
+
+To createSampleContext with userId: Text and userRole: Text and resourceId: Text and resourceType: Text, produce RuleContext:
+  Return RuleContext(userId, userRole, resourceId, resourceType, "", 0.0).
+
+To runRulesEngine with rules: list of BusinessRule and context: RuleContext, produce Text:
+  Define results as evaluateRulesWithList(rules, context).
+  If List.isEmpty(results),:
+    Return "NO_ACTIONS".
+  Return Text.join(";", results).

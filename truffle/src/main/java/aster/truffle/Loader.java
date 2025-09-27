@@ -9,30 +9,123 @@ import java.util.List;
 
 public final class Loader {
   public static final class Program {
-    public final Node root; public final Env env; public final List<CoreModel.Param> params;
-    public Program(Node root, Env env, List<CoreModel.Param> params) { this.root = root; this.env = env; this.params = params; }
+    public final Node root; public final Env env; public final List<CoreModel.Param> params; public final String entry;
+    public Program(Node root, Env env, List<CoreModel.Param> params, String entry) { this.root = root; this.env = env; this.params = params; this.entry = entry; }
   }
 
   private final ObjectMapper mapper = new ObjectMapper().configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-  public Node buildFromJson(File f) throws IOException { return buildProgram(f).root; }
+  public Node buildFromJson(File f) throws IOException { return buildProgram(f, null, null).root; }
 
-  public Program buildProgram(File f) throws IOException {
+  public Program buildProgram(File f, String funcName) throws IOException { return buildProgram(f, funcName, null); }
+
+  public Program buildProgram(File f, String funcName, java.util.List<String> rawArgs) throws IOException {
     var mod = mapper.readValue(f, CoreModel.Module.class);
     // collect enum variants mapping
     this.enumVariantToEnum = new java.util.HashMap<>();
     if (mod.decls != null) for (var d : mod.decls) if (d instanceof CoreModel.Enum en) for (var v : en.variants) enumVariantToEnum.put(v, en.name);
-    for (var d : mod.decls) if (d instanceof CoreModel.Func fn) return buildFunc(fn);
-    throw new IOException("No function in module");
+    // Group functions by name for possible overloading
+    java.util.Map<String, java.util.List<CoreModel.Func>> funcGroups = new java.util.LinkedHashMap<>();
+    if (mod.decls != null) for (var d : mod.decls) if (d instanceof CoreModel.Func fn) funcGroups.computeIfAbsent(fn.name, k -> new java.util.ArrayList<>()).add(fn);
+    // Resolve entry function with simple overload selection if needed
+    CoreModel.Func entry = null;
+    if (funcName != null && !funcName.isEmpty()) {
+      var list = funcGroups.get(funcName);
+      if (list != null && !list.isEmpty()) entry = selectOverload(list, rawArgs);
+    }
+    if (entry == null && funcGroups.containsKey("main")) entry = selectOverload(funcGroups.get("main"), rawArgs);
+    if (entry == null) {
+      // fallback to first available function
+      for (var e : funcGroups.entrySet()) { if (!e.getValue().isEmpty()) { entry = selectOverload(e.getValue(), rawArgs); break; } }
+    }
+    if (entry == null) throw new IOException("No function in module");
+
+    // Build env and predefine all functions as lambdas to enable cross-calls
+    this.env = new Env();
+    java.util.Map<String, CoreModel.Func> funcs = new java.util.LinkedHashMap<>();
+    for (var e : funcGroups.entrySet()) {
+      // if overloaded, the last selected takes that name, but we still store one by that name; others are not directly addressable by name
+      // Basic approach: choose the first overload per name for env publishing; entry chosen above controls the root call target
+      funcs.put(e.getKey(), e.getValue().get(0));
+    }
+    // First pass: reserve names
+    for (var name : funcs.keySet()) env.set(name, null);
+    // Second pass: build lambda values and set into env
+    for (var e : funcs.entrySet()) {
+      var fn = e.getValue();
+      java.util.List<String> params = new java.util.ArrayList<>();
+      if (fn.params != null) for (var p : fn.params) params.add(p.name);
+      java.util.Map<String,Object> captured = java.util.Map.of();
+      Node body = buildBlock(fn.body);
+      env.set(e.getKey(), new aster.truffle.nodes.LambdaValue(env, params, captured, body));
+    }
+    // Ensure params exist in env for binding (they shadow any function names)
+    if (entry.params != null) for (var p : entry.params) env.set(p.name, null);
+    // Build entry invocation as a call to the function lambda with param names as arguments
+    Node target = new NameNode(env, entry.name);
+    java.util.ArrayList<Node> argNodes = new java.util.ArrayList<>();
+    if (entry.params != null) for (var p : entry.params) argNodes.add(new NameNode(env, p.name));
+    Node root = new CallNode(target, argNodes);
+    return new Program(root, env, entry.params, entry.name);
   }
 
-  private Program buildFunc(CoreModel.Func fn) {
-    this.env = new Env();
-    if (fn.params != null) {
-      for (var p : fn.params) env.set(p.name, null);
+  private CoreModel.Func selectOverload(java.util.List<CoreModel.Func> funcs, java.util.List<String> rawArgs) {
+    if (funcs == null || funcs.isEmpty()) return null;
+    if (rawArgs == null || rawArgs.isEmpty()) return funcs.get(0);
+    int bestScore = Integer.MIN_VALUE;
+    CoreModel.Func best = null;
+    for (var fn : funcs) {
+      int arity = fn.params == null ? 0 : fn.params.size();
+      if (arity != rawArgs.size()) continue;
+      int s = 0;
+      for (int i = 0; i < arity; i++) {
+        String raw = rawArgs.get(i);
+        CoreModel.Type ty = fn.params.get(i).type;
+        s += score(raw, ty);
+      }
+      if (s > bestScore) { bestScore = s; best = fn; }
     }
-    return new Program(buildBlock(fn.body), env, fn.params);
+    return best != null ? best : funcs.get(0);
   }
+
+  private static int score(String raw, CoreModel.Type ty) {
+    if (raw == null) return 0;
+    String t = raw.trim();
+    if (ty instanceof CoreModel.TypeName tn) {
+      String n = tn.name;
+      if ("Int".equals(n)) return looksInt(t) ? 3 : 0;
+      if ("Bool".equals(n) || "Boolean".equals(n)) return looksBool(t) ? 3 : 0;
+      return 1; // Text/String or others
+    }
+    if (ty instanceof CoreModel.Option opt || ty instanceof CoreModel.Maybe mb) {
+      if ("null".equalsIgnoreCase(t) || "none".equalsIgnoreCase(t)) return 2;
+      CoreModel.Type inner = (ty instanceof CoreModel.Option) ? ((CoreModel.Option)ty).type : ((CoreModel.Maybe)ty).type;
+      return 1 + score(t, inner);
+    }
+    if (ty instanceof CoreModel.ListT) {
+      if (t.startsWith("[") && t.endsWith("]")) return 3;
+      if (t.contains(",") || t.contains(";") || t.contains("|")) return 2;
+      return 1;
+    }
+    if (ty instanceof CoreModel.MapT) {
+      if (t.startsWith("{") && t.endsWith("}")) return 3;
+      if (t.contains(":")) return 2;
+      return 0;
+    }
+    if (ty instanceof CoreModel.Result) {
+      if (t.startsWith("{") || t.startsWith("Ok(") || t.startsWith("Err(")) return 2;
+      return 0;
+    }
+    return 0;
+  }
+
+  private static boolean looksInt(String s) {
+    int i = (s.startsWith("+") || s.startsWith("-")) ? 1 : 0;
+    if (i >= s.length()) return false;
+    for (; i < s.length(); i++) if (!Character.isDigit(s.charAt(i))) return false;
+    return true;
+  }
+  private static boolean looksBool(String s) { return "true".equalsIgnoreCase(s) || "false".equalsIgnoreCase(s); }
 
   private Env env;
   private java.util.Map<String,String> enumVariantToEnum;

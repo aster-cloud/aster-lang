@@ -4,7 +4,7 @@
 
 # Interface: PatternCtor
 
-Defined in: [types.ts:159](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L159)
+Defined in: [types.ts:159](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L159)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:159](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **kind**: `"PatternCtor"`
 
-Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L160)
+Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L160)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L161)
+Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L161)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L162)
+Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L162)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` `optional` **args**: readonly [`Pattern`](../type-aliases/Pattern.md)[]
 
-Defined in: [types.ts:163](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L163)
+Defined in: [types.ts:163](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L163)

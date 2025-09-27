@@ -51,6 +51,10 @@ async function main(): Promise<void> {
 
   const runCmd = fs.existsSync('./gradlew') ? './gradlew' : 'gradle';
   const outDir = path.resolve('build/jvm-classes');
+  // Clean output dir to avoid stale classes triggering javap checks
+  if (fs.existsSync(outDir)) {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  }
   await new Promise<void>((resolve, reject) => {
     const env = {
       GRADLE_USER_HOME: path.resolve('build/.gradle'),

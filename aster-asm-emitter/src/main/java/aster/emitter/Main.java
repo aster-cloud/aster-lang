@@ -37,10 +37,23 @@ public final class Main {
     var enumVariants = new HashMap<String, java.util.List<String>>();
     for (var d0 : module.decls) if (d0 instanceof CoreModel.Enum en0) enumVariants.put(en0.name, en0.variants);
     var ctx = new Ctx(out, enumMap, dataSchema, enumVariants, new java.util.concurrent.atomic.AtomicInteger(0));
+    String pkgName = (module.name == null || module.name.isEmpty()) ? "app" : module.name;
     for (var d : module.decls) {
-      if (d instanceof CoreModel.Data data) emitData(ctx, module.name, data);
-      else if (d instanceof CoreModel.Enum en) emitEnum(ctx, module.name, en);
-      else if (d instanceof CoreModel.Func fn) emitFunc(ctx, module.name, module, fn);
+      if (d instanceof CoreModel.Data data) emitData(ctx, pkgName, data);
+      else if (d instanceof CoreModel.Enum en) emitEnum(ctx, pkgName, en);
+      else if (d instanceof CoreModel.Func fn) emitFunc(ctx, pkgName, module, fn);
+    }
+    // Emit package map artifact for tooling
+    try {
+      var outRoot = Paths.get("build/aster-out");
+      Files.createDirectories(outRoot);
+      var mapPath = outRoot.resolve("package-map.json");
+      String pkg = pkgName;
+      String json = "{\n  \"modules\": [{ \"cnl\": \"" + pkg + "\", \"jvm\": \"" + pkg + "\" }]\n}";
+      Files.writeString(mapPath, json, java.nio.charset.StandardCharsets.UTF_8);
+      System.out.println("WROTE package-map.json to " + mapPath.toAbsolutePath());
+    } catch (Exception ex) {
+      System.err.println("WARN: failed to write package-map.json: " + ex.getMessage());
     }
   }
 
@@ -48,22 +61,35 @@ public final class Main {
     var cw = cwFrames();
     var internal = toInternal(pkg, d.name);
     cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
+    cw.visitSource((d.name == null ? "Data" : d.name) + ".java", null);
     // fields
     for (var f : d.fields) {
-      cw.visitField(ACC_PUBLIC | ACC_FINAL, f.name, jDesc(f.type), null, null).visitEnd();
+      cw.visitField(ACC_PUBLIC | ACC_FINAL, f.name, jDesc(pkg, f.type), null, null).visitEnd();
     }
     // ctor
-    var mv = cw.visitMethod(ACC_PUBLIC, "<init>", ctorDesc(d.fields), null, null);
+    var mv = cw.visitMethod(ACC_PUBLIC, "<init>", ctorDesc(pkg, d.fields), null, null);
     mv.visitCode();
+    var lCtorStart = new Label();
+    mv.visitLabel(lCtorStart);
+    mv.visitLineNumber(1, lCtorStart);
     mv.visitVarInsn(ALOAD, 0);
     mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
     for (int i=0;i<d.fields.size();i++){
       var f = d.fields.get(i);
       mv.visitVarInsn(ALOAD, 0);
       emitLoad(mv, i+1, f.type);
-      mv.visitFieldInsn(PUTFIELD, internal, f.name, jDesc(f.type));
+      mv.visitFieldInsn(PUTFIELD, internal, f.name, jDesc(pkg, f.type));
     }
     mv.visitInsn(RETURN);
+    var lCtorEnd = new Label();
+    mv.visitLabel(lCtorEnd);
+    // Local variables: this + params
+    mv.visitLocalVariable("this", internalDesc(internal), null, lCtorStart, lCtorEnd, 0);
+    int slotLV = 1;
+    for (var f : d.fields) {
+      mv.visitLocalVariable(f.name, jDesc(pkg, f.type), null, lCtorStart, lCtorEnd, slotLV);
+      slotLV += 1; // primitives and refs advance by 1 here (we only use I/Z/Object)
+    }
     mv.visitMaxs(0,0);
     mv.visitEnd();
     writeClass(ctx, internal, cw.toByteArray());
@@ -73,6 +99,7 @@ public final class Main {
     var cw = new ClassWriter(0);
     var internal = toInternal(pkg, en.name);
     cw.visit(V17, ACC_PUBLIC | ACC_FINAL | ACC_ENUM, internal, null, "java/lang/Enum", null);
+    cw.visitSource((en.name == null ? "Enum" : en.name) + ".java", null);
     for (var v : en.variants) {
       cw.visitField(ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_ENUM, v, internalDesc(internal), null, null).visitEnd();
     }
@@ -84,15 +111,25 @@ public final class Main {
     var internal = toInternal(pkg, className);
     var cw = cwFrames();
     cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
+    cw.visitSource((fn.name == null ? "Function" : fn.name) + ".java", null);
 
-    var retDesc = jDesc(fn.ret);
+    var retDesc = jDesc(pkg, fn.ret);
     var paramsDesc = new StringBuilder("(");
-    for (var p : fn.params) paramsDesc.append(jDesc(p.type));
+    for (var p : fn.params) paramsDesc.append(jDesc(pkg, p.type));
     paramsDesc.append(")").append(retDesc);
 
     var mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, fn.name, paramsDesc.toString(), null, null);
     mv.visitCode();
+    var lStart = new Label();
+    mv.visitLabel(lStart);
+    mv.visitLineNumber(1, lStart);
     System.out.println("EMIT FUNC: " + pkg + "." + fn.name);
+    // Track LocalVariableTable entries
+    record LV(String name, String desc, int slot) {}
+    java.util.List<LV> lvars = new java.util.ArrayList<>();
+    for (int i=0;i<fn.params.size();i++) lvars.add(new LV(fn.params.get(i).name, jDesc(pkg, fn.params.get(i).type), i));
+    // Simple line numbering per statement (start from 2)
+    java.util.concurrent.atomic.AtomicInteger lineNo = new java.util.concurrent.atomic.AtomicInteger(2);
 
     // Special-case fast-path for demo math functions to ensure correct bytecode
     if ((Objects.equals(pkg, "app.math") || Objects.equals(pkg, "app.debug")) && fn.params.size()==2) {
@@ -145,6 +182,7 @@ public final class Main {
     if (fn.body != null && fn.body.statements != null && !fn.body.statements.isEmpty()) {
       // slot plan: params in [0..N-1], temp locals start at N
       for (var st : fn.body.statements) {
+        var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
         if (st instanceof CoreModel.Let let) {
           // MVP: recognize boolean let ok = AuthRepo.verify(user, pass)
           if (Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
@@ -152,10 +190,12 @@ public final class Main {
             mv.visitVarInsn(ISTORE, nextSlot);
             env.put(let.name, nextSlot);
             intLocals.add(let.name);
+            lvars.add(new LV(let.name, "Z", nextSlot));
           } else {
             emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals);
             mv.visitVarInsn(ASTORE, nextSlot);
             env.put(let.name, nextSlot);
+            lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
           }
           nextSlot++;
           continue;
@@ -177,6 +217,7 @@ public final class Main {
             mv.visitJumpInsn(IFEQ, lElse);
           }
           // then
+          { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
           if (iff.thenBlock != null && iff.thenBlock.statements != null && !iff.thenBlock.statements.isEmpty()) {
             var last = iff.thenBlock.statements.get(iff.thenBlock.statements.size()-1);
             if (last instanceof CoreModel.Return r) {
@@ -187,6 +228,7 @@ public final class Main {
           mv.visitJumpInsn(GOTO, lEnd);
           // else
           mv.visitLabel(lElse);
+          { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
           if (iff.elseBlock != null && iff.elseBlock.statements != null && !iff.elseBlock.statements.isEmpty()) {
             var last2 = iff.elseBlock.statements.get(iff.elseBlock.statements.size()-1);
             if (last2 instanceof CoreModel.Return r2) {
@@ -202,6 +244,7 @@ public final class Main {
           int scrSlot = nextSlot++;
           emitExpr(ctx, mv, mm.expr, null, pkg, 0, env, intLocals);
           mv.visitVarInsn(ASTORE, scrSlot);
+          lvars.add(new LV("_scr", "Ljava/lang/Object;", scrSlot));
 
           var endLabel = new Label();
           if (mm.cases != null) {
@@ -223,6 +266,7 @@ public final class Main {
                 mv.visitMethodInsn(INVOKEVIRTUAL, enumInternal, "ordinal", "()I", false);
                 int ord = nextSlot++;
                 mv.visitVarInsn(ISTORE, ord);
+                lvars.add(new LV("_ord", "I", ord));
                 var variants = ctx.enumVariants.get(en);
                 var defaultL = new Label();
                 var labels = new Label[variants.size()];
@@ -237,7 +281,9 @@ public final class Main {
                   var v = ((CoreModel.PatName)c.pattern).name;
                   int idx = variants.indexOf(v);
                   if (idx < 0) continue;
-                  mv.visitLabel(labels[idx]);
+                  var _caseLbl = labels[idx];
+                  mv.visitLabel(_caseLbl);
+                  mv.visitLineNumber(lineNo.getAndIncrement(), _caseLbl);
                   seen[idx] = true;
                   boolean returned = emitCaseStmt(ctx, mv, c.body, retDesc, pkg, 0, env, intLocals);
                   if (!returned) mv.visitJumpInsn(GOTO, endLabel);
@@ -261,6 +307,7 @@ public final class Main {
               if (c.pattern instanceof CoreModel.PatNull) {
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitJumpInsn(IFNONNULL, nextCase);
+                { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                 if (c.body instanceof CoreModel.Return rr) {
                   emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals);
                   if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
@@ -272,6 +319,7 @@ public final class Main {
                 mv.visitTypeInsn(INSTANCEOF, targetInternal);
                 mv.visitJumpInsn(IFEQ, nextCase);
                 // Bind fields to env
+                { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(CHECKCAST, targetInternal);
                 int objSlot = nextSlot++;
@@ -283,7 +331,7 @@ public final class Main {
                     if (bindName == null || bindName.isEmpty() || "_".equals(bindName)) continue;
                     mv.visitVarInsn(ALOAD, objSlot);
                     var f = data.fields.get(i2);
-                    mv.visitFieldInsn(GETFIELD, targetInternal, f.name, jDesc(f.type));
+                    mv.visitFieldInsn(GETFIELD, targetInternal, f.name, jDesc(pkg, f.type));
                     int slot = nextSlot++;
                     if (f.type instanceof CoreModel.TypeName tn && (Objects.equals(tn.name, "Int") || Objects.equals(tn.name, "Bool"))) {
                       mv.visitVarInsn(ISTORE, slot);
@@ -308,6 +356,7 @@ public final class Main {
                   mv.visitVarInsn(ALOAD, scrSlot);
                   mv.visitFieldInsn(GETSTATIC, enumInternal, variant, internalDesc(enumInternal));
                   mv.visitJumpInsn(IF_ACMPNE, nextCase);
+                  { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                   if (c.body instanceof CoreModel.Return rr) {
                     emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals);
                     if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
@@ -321,6 +370,7 @@ public final class Main {
                     mv.visitVarInsn(ALOAD, scrSlot);
                     mv.visitVarInsn(ASTORE, bind);
                     env.put(variant, bind);
+                    lvars.add(new LV(variant, "Ljava/lang/Object;", bind));
                   }
                   if (c.body instanceof CoreModel.Return rr) {
                     emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals);
@@ -364,11 +414,11 @@ public final class Main {
           }
           // If returning Result, wrap unknown calls in try/catch -> Ok/Err
           if (retDesc.equals("Laster/runtime/Result;") && r.expr instanceof CoreModel.Call) {
-            var lStart = new Label(); var lEnd = new Label(); var lCatch = new Label(); var lRet = new Label();
-            mv.visitTryCatchBlock(lStart, lEnd, lCatch, "java/lang/Throwable");
+            var lTryStart = new Label(); var lTryEnd = new Label(); var lCatch = new Label(); var lRet = new Label();
+            mv.visitTryCatchBlock(lTryStart, lTryEnd, lCatch, "java/lang/Throwable");
             // Reserve a local for the final Result to return
             int res = nextSlot++;
-            mv.visitLabel(lStart);
+            mv.visitLabel(lTryStart);
             emitExpr(ctx, mv, r.expr, null, pkg, 0, env, intLocals); // leave object on stack
             // store in temp then construct Ok(temp)
             int tmp = nextSlot++;
@@ -378,7 +428,7 @@ public final class Main {
             mv.visitVarInsn(ALOAD, tmp);
             mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Ok", "<init>", "(Ljava/lang/Object;)V", false);
             mv.visitVarInsn(ASTORE, res);
-            mv.visitLabel(lEnd);
+            mv.visitLabel(lTryEnd);
             mv.visitJumpInsn(GOTO, lRet);
             // catch(Throwable ex)
             mv.visitLabel(lCatch);
@@ -395,10 +445,16 @@ public final class Main {
             mv.visitLabel(lRet);
             mv.visitVarInsn(ALOAD, res);
             mv.visitInsn(ARETURN);
+            // LocalVariableTable for try/catch temps
+            mv.visitLocalVariable("_res", "Laster/runtime/Result;", null, lTryStart, lRet, res);
+            mv.visitLocalVariable("_tmp", "Ljava/lang/Object;", null, lTryStart, lRet, tmp);
+            mv.visitLocalVariable("_ex", "Ljava/lang/Throwable;", null, lCatch, lRet, ex);
             continue;
           }
           emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals);
           if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+          var lEnd2 = new Label(); mv.visitLabel(lEnd2);
+          for (var lv : lvars) mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEnd2, lv.slot);
           mv.visitMaxs(0,0);
           mv.visitEnd();
           writeClass(ctx, internal, cw.toByteArray());
@@ -411,6 +467,8 @@ public final class Main {
       emitDefaultReturn(mv, fn.ret);
     }
 
+    var lEnd = new Label(); mv.visitLabel(lEnd);
+    for (var lv : lvars) mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEnd, lv.slot);
     mv.visitMaxs(0,0);
     mv.visitEnd();
     writeClass(ctx, internal, cw.toByteArray());
@@ -943,7 +1001,10 @@ public final class Main {
 
   static boolean emitApplyBlock(Ctx ctx, MethodVisitor mv, CoreModel.Block b, String ownerInternal, java.util.Map<String,Integer> env, java.util.Map<String,Character> primTypes, boolean retIsResult) {
     if (b == null || b.statements == null) return false;
+    // Local line counter for apply-path blocks
+    java.util.concurrent.atomic.AtomicInteger lineNo = new java.util.concurrent.atomic.AtomicInteger(1);
     for (var s : b.statements) {
+      var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
       if (emitApplyStmt(ctx, mv, s, ownerInternal, env, primTypes, retIsResult)) return true;
     }
     return false;
@@ -952,9 +1013,9 @@ public final class Main {
   static boolean emitApplyStmt(Ctx ctx, MethodVisitor mv, CoreModel.Stmt s, String ownerInternal, java.util.Map<String,Integer> env, java.util.Map<String,Character> primTypes, boolean retIsResult) {
     if (s instanceof CoreModel.Return r) {
       if (retIsResult && r.expr instanceof CoreModel.Call) {
-        var lStart = new Label(); var lEnd = new Label(); var lCatch = new Label();
-        mv.visitTryCatchBlock(lStart, lEnd, lCatch, "java/lang/Throwable");
-        mv.visitLabel(lStart);
+        var lTryStart = new Label(); var lTryEnd = new Label(); var lCatch = new Label(); var lRet = new Label();
+        mv.visitTryCatchBlock(lTryStart, lTryEnd, lCatch, "java/lang/Throwable");
+        mv.visitLabel(lTryStart);
         emitApplySimpleExpr(mv, r.expr, env, primTypes);
         int tmp = nextLocal(env);
         mv.visitVarInsn(ASTORE, tmp);
@@ -962,8 +1023,8 @@ public final class Main {
         mv.visitInsn(DUP);
         mv.visitVarInsn(ALOAD, tmp);
         mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Ok", "<init>", "(Ljava/lang/Object;)V", false);
-        mv.visitLabel(lEnd);
-        mv.visitInsn(ARETURN);
+        mv.visitLabel(lTryEnd);
+        mv.visitJumpInsn(GOTO, lRet);
         mv.visitLabel(lCatch);
         int ex = nextLocal(env) + 1;
         mv.visitVarInsn(ASTORE, ex);
@@ -972,6 +1033,10 @@ public final class Main {
         mv.visitVarInsn(ALOAD, ex);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "toString", "()Ljava/lang/String;", false);
         mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Err", "<init>", "(Ljava/lang/Object;)V", false);
+        mv.visitLabel(lRet);
+        // LVT for tmp/ex across try/catch
+        mv.visitLocalVariable("_tmp", "Ljava/lang/Object;", null, lTryStart, lRet, tmp);
+        mv.visitLocalVariable("_ex", "Ljava/lang/Throwable;", null, lCatch, lRet, ex);
         mv.visitInsn(ARETURN);
         return true;
       } else {
@@ -994,9 +1059,11 @@ public final class Main {
       mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
       mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
       mv.visitJumpInsn(IFEQ, lElse);
+      { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(1, lThen); }
       boolean thenRet = emitApplyBlock(ctx, mv, iff.thenBlock, ownerInternal, env, primTypes, retIsResult);
       if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
       mv.visitLabel(lElse);
+      { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(1, lElseLn); }
       boolean elseRet = false;
       if (iff.elseBlock != null) elseRet = emitApplyBlock(ctx, mv, iff.elseBlock, ownerInternal, env, primTypes, retIsResult);
       if (!elseRet) mv.visitLabel(lEnd);
@@ -1014,6 +1081,7 @@ public final class Main {
           if (c.pattern instanceof CoreModel.PatNull) {
             mv.visitVarInsn(ALOAD, scr);
             mv.visitJumpInsn(IFNONNULL, nextCase);
+            { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(1, lCase); }
             boolean _ret0 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult);
             mv.visitLabel(nextCase);
             // Do not early-return to ensure all labels are visited for ASM frame computation
@@ -1026,12 +1094,14 @@ public final class Main {
               mv.visitVarInsn(ALOAD, scr);
               mv.visitFieldInsn(GETSTATIC, enumInternal, pn.name, internalDesc(enumInternal));
               mv.visitJumpInsn(IF_ACMPNE, nextCase);
+              { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(1, lCase); }
               boolean _ret1 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult);
               mv.visitLabel(nextCase);
             }
           } else if (c.pattern instanceof CoreModel.PatCtor) {
             // Nested pattern support: recursively match and bind; jump to nextCase if any check fails
             emitApplyPatMatchAndBind(ctx, mv, c.pattern, scr, ownerInternal, env, primTypes, nextCase);
+            { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(1, lCase); }
             boolean _ret2 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult);
             mv.visitLabel(nextCase);
           }
@@ -1136,7 +1206,7 @@ public final class Main {
         if (data != null && data.fields != null && i < data.fields.size()) {
           var f = data.fields.get(i);
           fieldName = f.name;
-          fDesc = jDesc(f.type);
+          fDesc = jDesc(internalToPkg(ownerInternal), f.type);
         }
         if (child instanceof CoreModel.PatName pn) {
           String bind = pn.name;
@@ -1184,9 +1254,9 @@ public final class Main {
   }
 
 
-  static String ctorDesc(List<CoreModel.Field> fields) {
+  static String ctorDesc(String pkg, List<CoreModel.Field> fields) {
     var sb = new StringBuilder("(");
-    for (var f : fields) sb.append(jDesc(f.type));
+    for (var f : fields) sb.append(jDesc(pkg, f.type));
     return sb.append(")V").toString();
   }
 
@@ -1236,13 +1306,22 @@ public final class Main {
     return pkg.replace('.', '/') + "/" + cls;
   }
   static String internalDesc(String internal) { return "L" + internal + ';'; }
-  static String jDesc(CoreModel.Type t) {
+  static String internalToPkg(String internal) {
+    if (internal == null) return "";
+    int i = internal.lastIndexOf('/');
+    if (i <= 0) return "";
+    return internal.substring(0, i).replace('/', '.');
+  }
+  static String jDesc(String pkg, CoreModel.Type t) {
     if (t instanceof CoreModel.TypeName tn) {
       return switch (tn.name) {
         case "Text" -> "Ljava/lang/String;";
         case "Int" -> "I";
         case "Bool" -> "Z";
-        default -> "L" + tn.name.replace('.', '/') + ';';
+        default -> {
+          String internal = (tn.name.contains(".")) ? tn.name.replace('.', '/') : toInternal(pkg, tn.name);
+          yield "L" + internal + ';';
+        }
       };
     }
     if (t instanceof CoreModel.ListT) return "Ljava/util/List;";
@@ -1271,6 +1350,7 @@ public final class Main {
       boolean anyReturn = false;
       if (sc.statements != null) {
         for (var st : sc.statements) {
+          { var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(1, _lbl); }
           if (st instanceof CoreModel.Return r2) {
             emitExpr(ctx, mv, r2.expr, retDesc, pkg, paramBase, env, intLocals);
             if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
@@ -1280,9 +1360,11 @@ public final class Main {
             var lEnd = new Label();
             emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, intLocals);
             mv.visitJumpInsn(IFEQ, lElse);
+            { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(1, lThen); }
             boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals);
             if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
             mv.visitLabel(lElse);
+            { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(1, lElseLn); }
             boolean elseRet = false;
             if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals);
             if (!elseRet) mv.visitLabel(lEnd);
@@ -1297,9 +1379,11 @@ public final class Main {
       var lEnd = new Label();
       emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, intLocals);
       mv.visitJumpInsn(IFEQ, lElse);
+      { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(1, lThen); }
       boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals);
       if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
       mv.visitLabel(lElse);
+      { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(1, lElseLn); }
       boolean elseRet = false;
       if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals);
       if (!elseRet) mv.visitLabel(lEnd);

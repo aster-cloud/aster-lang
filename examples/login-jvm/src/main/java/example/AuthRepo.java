@@ -1,4 +1,4 @@
-package app.service;
+package example;
 
 public final class AuthRepo {
   private AuthRepo(){}

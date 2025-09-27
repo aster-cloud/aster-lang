@@ -8,14 +8,24 @@ public final class CoreModel {
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
+    @JsonSubTypes.Type(value = Import.class, name = "Import"),
     @JsonSubTypes.Type(value = Func.class, name = "Func"),
     @JsonSubTypes.Type(value = Enum.class, name = "Enum"),
     @JsonSubTypes.Type(value = Data.class, name = "Data")
   })
-  public sealed interface Decl permits Func, Enum, Data {}
+  public sealed interface Decl permits Import, Func, Enum, Data {}
 
+  @JsonTypeName("Import")
+  public static final class Import implements Decl { public String name; public String asName; }
   @JsonTypeName("Func")
-  public static final class Func implements Decl { public String name; public List<Param> params; public Type ret; public Block body; }
+  public static final class Func implements Decl {
+    public String name;
+    public java.util.List<String> typeParams;
+    public List<Param> params;
+    public Type ret;
+    public java.util.List<String> effects; // Effect enum serialized as strings
+    public Block body;
+  }
   @JsonTypeName("Enum")
   public static final class Enum implements Decl { public String name; public java.util.List<String> variants; }
   @JsonTypeName("Data")
@@ -79,10 +89,27 @@ public final class CoreModel {
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
-    @JsonSubTypes.Type(value = TypeName.class, name = "TypeName")
+    @JsonSubTypes.Type(value = TypeName.class, name = "TypeName"),
+    @JsonSubTypes.Type(value = TypeVar.class, name = "TypeVar"),
+    @JsonSubTypes.Type(value = TypeApp.class, name = "TypeApp"),
+    @JsonSubTypes.Type(value = Maybe.class, name = "Maybe"),
+    @JsonSubTypes.Type(value = Option.class, name = "Option"),
+    @JsonSubTypes.Type(value = Result.class, name = "Result"),
+    @JsonSubTypes.Type(value = ListT.class, name = "List"),
+    @JsonSubTypes.Type(value = MapT.class, name = "Map"),
+    @JsonSubTypes.Type(value = FuncType.class, name = "FuncType")
   })
-  public sealed interface Type permits TypeName {}
+  public sealed interface Type permits TypeName, TypeVar, TypeApp, Maybe, Option, Result, ListT, MapT, FuncType {}
   @JsonTypeName("TypeName") public static final class TypeName implements Type { public String name; }
+  @JsonTypeName("TypeVar") public static final class TypeVar implements Type { public String name; }
+  @JsonTypeName("TypeApp") public static final class TypeApp implements Type { public String base; public java.util.List<Type> args; }
+  @JsonTypeName("Maybe") public static final class Maybe implements Type { public Type type; }
+  @JsonTypeName("Option") public static final class Option implements Type { public Type type; }
+  @JsonTypeName("Result") public static final class Result implements Type { public Type ok; public Type err; }
+  // Name ListT/MapT to avoid clashing with java.util.List/Map in annotations
+  @JsonTypeName("List") public static final class ListT implements Type { public Type type; }
+  @JsonTypeName("Map") public static final class MapT implements Type { public Type key; public Type val; }
+  @JsonTypeName("FuncType") public static final class FuncType implements Type { public java.util.List<Type> params; public Type ret; }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({

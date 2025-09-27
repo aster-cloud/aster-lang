@@ -4,7 +4,7 @@
 
 # Interface: Result
 
-Defined in: [types.ts:547](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L547)
+Defined in: [types.ts:547](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L547)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:547](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **kind**: `"Result"`
 
-Defined in: [types.ts:548](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L548)
+Defined in: [types.ts:548](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L548)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:548](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **ok**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:549](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L549)
+Defined in: [types.ts:549](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L549)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:549](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **err**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:550](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L550)
+Defined in: [types.ts:550](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L550)

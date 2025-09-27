@@ -4,7 +4,7 @@
 
 # Interface: Err
 
-Defined in: [types.ts:504](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L504)
+Defined in: [types.ts:504](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L504)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:504](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **kind**: `"Err"`
 
-Defined in: [types.ts:505](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L505)
+Defined in: [types.ts:505](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L505)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:505](https://github.com/wontlost-ltd/aster-lang/blob/b8b30
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:506](https://github.com/wontlost-ltd/aster-lang/blob/b8b3030dbc051016ef5a85ec49b8873f9ac928cf/src/types.ts#L506)
+Defined in: [types.ts:506](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L506)
