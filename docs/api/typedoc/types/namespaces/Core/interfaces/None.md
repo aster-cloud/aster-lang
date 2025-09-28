@@ -4,7 +4,7 @@
 
 # Interface: None
 
-Defined in: [types.ts:514](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L514)
+Defined in: [types.ts:514](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L514)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:514](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **kind**: `"None"`
 
-Defined in: [types.ts:515](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L515)
+Defined in: [types.ts:515](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L515)
 
 #### Overrides
 

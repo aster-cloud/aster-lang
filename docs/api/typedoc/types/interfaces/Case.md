@@ -4,7 +4,7 @@
 
 # Interface: Case
 
-Defined in: [types.ts:137](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L137)
+Defined in: [types.ts:137](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L137)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:137](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **kind**: `"Case"`
 
-Defined in: [types.ts:138](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L138)
+Defined in: [types.ts:138](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L138)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:138](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **pattern**: [`Pattern`](../type-aliases/Pattern.md)
 
-Defined in: [types.ts:139](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L139)
+Defined in: [types.ts:139](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L139)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:139](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **body**: [`Block`](Block.md) \| [`Return`](Return.md)
 
-Defined in: [types.ts:140](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L140)
+Defined in: [types.ts:140](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L140)

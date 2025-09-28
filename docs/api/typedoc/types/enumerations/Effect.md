@@ -4,7 +4,7 @@
 
 # Enumeration: Effect
 
-Defined in: [types.ts:44](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L44)
+Defined in: [types.ts:44](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L44)
 
 ## Enumeration Members
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:44](https://github.com/wontlost-ltd/aster-lang/blob/86413e
 
 > **IO**: `"IO"`
 
-Defined in: [types.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L45)
+Defined in: [types.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L45)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/86413e
 
 > **CPU**: `"CPU"`
 
-Defined in: [types.ts:46](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L46)
+Defined in: [types.ts:46](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L46)

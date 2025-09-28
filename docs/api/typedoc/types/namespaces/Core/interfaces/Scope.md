@@ -4,7 +4,7 @@
 
 # Interface: Scope
 
-Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L375)
+Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L375)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **kind**: `"Scope"`
 
-Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L376)
+Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L376)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **statements**: readonly [`Statement`](../type-aliases/Statement.md)[]
 
-Defined in: [types.ts:377](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L377)
+Defined in: [types.ts:377](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L377)

@@ -4,7 +4,7 @@
 
 # Interface: Token
 
-Defined in: [types.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L13)
+Defined in: [types.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L13)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/86413e
 
 > `readonly` **kind**: [`TokenKind`](../enumerations/TokenKind.md)
 
-Defined in: [types.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L14)
+Defined in: [types.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L14)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/86413e
 
 > `readonly` **value**: `null` \| `string` \| `number` \| `boolean`
 
-Defined in: [types.ts:15](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L15)
+Defined in: [types.ts:15](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L15)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:15](https://github.com/wontlost-ltd/aster-lang/blob/86413e
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:16](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L16)
+Defined in: [types.ts:16](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L16)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:16](https://github.com/wontlost-ltd/aster-lang/blob/86413e
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:17](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L17)
+Defined in: [types.ts:17](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L17)

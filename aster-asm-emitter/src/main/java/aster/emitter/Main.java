@@ -111,7 +111,8 @@ public final class Main {
     var internal = toInternal(pkg, className);
     var cw = cwFrames();
     cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
-    cw.visitSource((fn.name == null ? "Function" : fn.name) + ".java", null);
+    // Use the actual class file name to avoid javac auxiliary-class warnings in downstream builds
+    cw.visitSource(className + ".java", null);
 
     var retDesc = jDesc(pkg, fn.ret);
     var paramsDesc = new StringBuilder("(");
@@ -285,7 +286,7 @@ public final class Main {
                   mv.visitLabel(_caseLbl);
                   mv.visitLineNumber(lineNo.getAndIncrement(), _caseLbl);
                   seen[idx] = true;
-                  boolean returned = emitCaseStmt(ctx, mv, c.body, retDesc, pkg, 0, env, intLocals);
+                  boolean returned = emitCaseStmt(ctx, mv, c.body, retDesc, pkg, 0, env, intLocals, lineNo);
                   if (!returned) mv.visitJumpInsn(GOTO, endLabel);
                 }
                 // Visit any labels not covered by cases to ensure valid control flow targets
@@ -613,6 +614,12 @@ public final class Main {
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "contains", "(Ljava/lang/CharSequence;)Z", false);
         return;
       }
+      if (Objects.equals(name, "Text.equals") && c.args.size() == 2) {
+        emitExpr(ctx, mv, c.args.get(0), null, currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(1), null, currentPkg, paramBase, env, intLocals);
+        mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
+        return;
+      }
       if (Objects.equals(name, "Text.toUpper") && c.args.size() == 1) {
         emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "toUpperCase", "()Ljava/lang/String;", false);
@@ -666,18 +673,33 @@ public final class Main {
         return;
       }
 
-      // Static method in same package (very narrow shim for AuthRepo.verify in examples)
+      // Static method interop (dotted name)
       var dot = name.lastIndexOf('.');
       if (dot > 0 && currentPkg != null) {
+        String cls = name.substring(0, dot);
+        String m = name.substring(dot+1);
+        String ownerInternal = cls.contains(".") ? cls.replace('.', '/') : toInternal(currentPkg, cls);
+        // Very narrow special-case kept for AuthRepo.verify
         if (Objects.equals(name, "AuthRepo.verify") && c.args.size() == 2) {
-          var cls = name.substring(0, dot);
-          var m = name.substring(dot+1);
-          var internal = toInternal(currentPkg, cls);
           for (var arg : c.args) emitExpr(ctx, mv, arg, null, currentPkg, paramBase, env, intLocals);
-          mv.visitMethodInsn(INVOKESTATIC, internal, m, "(Ljava/lang/String;Ljava/lang/String;)Z", false);
+          mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
           return;
         }
-        // Unknown static call: do not emit; handled by higher-level Ok/Err wrapper or fallback
+        // Basic overload selection heuristic: prefer int for known-int locals/literals; otherwise Object
+        StringBuilder mdesc = new StringBuilder("(");
+        for (var a : c.args) {
+          String ad = "Ljava/lang/Object;";
+          if (a instanceof CoreModel.IntE) ad = "I";
+          else if (a instanceof CoreModel.Bool) ad = "Z";
+          else if (a instanceof CoreModel.StringE) ad = "Ljava/lang/String;";
+          else if (a instanceof CoreModel.Name nn2 && env != null && intLocals != null && intLocals.contains(nn2.name)) ad = "I";
+          mdesc.append(ad);
+        }
+        String rdesc = ("I".equals(expectedDesc) || "Z".equals(expectedDesc) || "Ljava/lang/String;".equals(expectedDesc)) ? expectedDesc : "Ljava/lang/String;";
+        mdesc.append(")").append(rdesc);
+        for (var a : c.args) emitExpr(ctx, mv, a, null, currentPkg, paramBase, env, intLocals);
+        mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, mdesc.toString(), false);
+        return;
       }
     }
     if (e instanceof CoreModel.Call cgen) {
@@ -807,7 +829,8 @@ public final class Main {
     boolean didReturn = false;
     if (lam.body != null && lam.body.statements != null) {
       boolean retIsResult = (lam.ret instanceof CoreModel.Result);
-      didReturn = emitApplyBlock(ctx, mv2, lam.body, internal, env, primTypes, retIsResult);
+      java.util.concurrent.atomic.AtomicInteger lineNo = new java.util.concurrent.atomic.AtomicInteger(1);
+      didReturn = emitApplyBlock(ctx, mv2, lam.body, internal, env, primTypes, retIsResult, lineNo);
     }
     if (!didReturn) { mv2.visitInsn(ACONST_NULL); mv2.visitInsn(ARETURN); }
     mv2.visitMaxs(0, 0);
@@ -999,18 +1022,16 @@ public final class Main {
     mv.visitInsn(ACONST_NULL);
   }
 
-  static boolean emitApplyBlock(Ctx ctx, MethodVisitor mv, CoreModel.Block b, String ownerInternal, java.util.Map<String,Integer> env, java.util.Map<String,Character> primTypes, boolean retIsResult) {
-    if (b == null || b.statements == null) return false;
-    // Local line counter for apply-path blocks
-    java.util.concurrent.atomic.AtomicInteger lineNo = new java.util.concurrent.atomic.AtomicInteger(1);
-    for (var s : b.statements) {
-      var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
-      if (emitApplyStmt(ctx, mv, s, ownerInternal, env, primTypes, retIsResult)) return true;
-    }
-    return false;
+static boolean emitApplyBlock(Ctx ctx, MethodVisitor mv, CoreModel.Block b, String ownerInternal, java.util.Map<String,Integer> env, java.util.Map<String,Character> primTypes, boolean retIsResult, java.util.concurrent.atomic.AtomicInteger lineNo) {
+  if (b == null || b.statements == null) return false;
+  for (var s : b.statements) {
+    var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
+    if (emitApplyStmt(ctx, mv, s, ownerInternal, env, primTypes, retIsResult, lineNo)) return true;
   }
+  return false;
+}
 
-  static boolean emitApplyStmt(Ctx ctx, MethodVisitor mv, CoreModel.Stmt s, String ownerInternal, java.util.Map<String,Integer> env, java.util.Map<String,Character> primTypes, boolean retIsResult) {
+static boolean emitApplyStmt(Ctx ctx, MethodVisitor mv, CoreModel.Stmt s, String ownerInternal, java.util.Map<String,Integer> env, java.util.Map<String,Character> primTypes, boolean retIsResult, java.util.concurrent.atomic.AtomicInteger lineNo) {
     if (s instanceof CoreModel.Return r) {
       if (retIsResult && r.expr instanceof CoreModel.Call) {
         var lTryStart = new Label(); var lTryEnd = new Label(); var lCatch = new Label(); var lRet = new Label();
@@ -1045,31 +1066,31 @@ public final class Main {
         return true;
       }
     }
-    if (s instanceof CoreModel.Let let) {
+  if (s instanceof CoreModel.Let let) {
       emitApplySimpleExpr(mv, let.expr, env, primTypes);
       int slot = nextLocal(env);
       mv.visitVarInsn(ASTORE, slot);
       env.put(let.name, slot);
       return false;
     }
-    if (s instanceof CoreModel.If iff) {
+  if (s instanceof CoreModel.If iff) {
       var lElse = new Label();
       var lEnd = new Label();
       emitApplySimpleExpr(mv, iff.cond, env, primTypes);
       mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
       mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
       mv.visitJumpInsn(IFEQ, lElse);
-      { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(1, lThen); }
-      boolean thenRet = emitApplyBlock(ctx, mv, iff.thenBlock, ownerInternal, env, primTypes, retIsResult);
-      if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
-      mv.visitLabel(lElse);
-      { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(1, lElseLn); }
-      boolean elseRet = false;
-      if (iff.elseBlock != null) elseRet = emitApplyBlock(ctx, mv, iff.elseBlock, ownerInternal, env, primTypes, retIsResult);
-      if (!elseRet) mv.visitLabel(lEnd);
-      return thenRet && elseRet;
-    }
-    if (s instanceof CoreModel.Match mm) {
+    { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
+    boolean thenRet = emitApplyBlock(ctx, mv, iff.thenBlock, ownerInternal, env, primTypes, retIsResult, lineNo);
+    if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
+    mv.visitLabel(lElse);
+    { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
+    boolean elseRet = false;
+    if (iff.elseBlock != null) elseRet = emitApplyBlock(ctx, mv, iff.elseBlock, ownerInternal, env, primTypes, retIsResult, lineNo);
+    if (!elseRet) mv.visitLabel(lEnd);
+    return thenRet && elseRet;
+  }
+  if (s instanceof CoreModel.Match mm) {
       // Fallback linear match: evaluate scrutinee and test cases in order
       int scr = nextLocal(env);
       emitApplySimpleExpr(mv, mm.expr, env, primTypes);
@@ -1081,8 +1102,8 @@ public final class Main {
           if (c.pattern instanceof CoreModel.PatNull) {
             mv.visitVarInsn(ALOAD, scr);
             mv.visitJumpInsn(IFNONNULL, nextCase);
-            { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(1, lCase); }
-            boolean _ret0 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult);
+            { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+            boolean _ret0 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult, lineNo);
             mv.visitLabel(nextCase);
             // Do not early-return to ensure all labels are visited for ASM frame computation
           } else if (c.pattern instanceof CoreModel.PatName pn) {
@@ -1094,38 +1115,38 @@ public final class Main {
               mv.visitVarInsn(ALOAD, scr);
               mv.visitFieldInsn(GETSTATIC, enumInternal, pn.name, internalDesc(enumInternal));
               mv.visitJumpInsn(IF_ACMPNE, nextCase);
-              { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(1, lCase); }
-              boolean _ret1 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult);
+              { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+              boolean _ret1 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult, lineNo);
               mv.visitLabel(nextCase);
             }
           } else if (c.pattern instanceof CoreModel.PatCtor) {
             // Nested pattern support: recursively match and bind; jump to nextCase if any check fails
             emitApplyPatMatchAndBind(ctx, mv, c.pattern, scr, ownerInternal, env, primTypes, nextCase);
-            { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(1, lCase); }
-            boolean _ret2 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult);
+            { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+            boolean _ret2 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult, lineNo);
             mv.visitLabel(nextCase);
           }
         }
       }
       mv.visitLabel(endLabel);
       return false;
-    }
-    return false;
   }
+  return false;
+}
 
-  static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body, String ownerInternal, java.util.Map<String,Integer> env, java.util.Map<String,Character> primTypes, boolean retIsResult) {
-    if (body instanceof CoreModel.Return r) {
-      emitApplySimpleExpr(mv, r.expr, env, primTypes);
-      mv.visitInsn(ARETURN);
-      return true;
-    } else if (body instanceof CoreModel.If iff) {
-      return emitApplyStmt(ctx, mv, body, ownerInternal, env, primTypes, retIsResult);
-    } else if (body instanceof CoreModel.Scope sc) {
-      CoreModel.Block b = new CoreModel.Block(); b.statements = sc.statements;
-      return emitApplyBlock(ctx, mv, b, ownerInternal, env, primTypes, retIsResult);
-    }
-    return false;
+static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body, String ownerInternal, java.util.Map<String,Integer> env, java.util.Map<String,Character> primTypes, boolean retIsResult, java.util.concurrent.atomic.AtomicInteger lineNo) {
+  if (body instanceof CoreModel.Return r) {
+    emitApplySimpleExpr(mv, r.expr, env, primTypes);
+    mv.visitInsn(ARETURN);
+    return true;
+  } else if (body instanceof CoreModel.If iff) {
+    return emitApplyStmt(ctx, mv, body, ownerInternal, env, primTypes, retIsResult, lineNo);
+  } else if (body instanceof CoreModel.Scope sc) {
+    CoreModel.Block b = new CoreModel.Block(); b.statements = sc.statements;
+    return emitApplyBlock(ctx, mv, b, ownerInternal, env, primTypes, retIsResult, lineNo);
   }
+  return false;
+}
 
   static int nextLocal(java.util.Map<String,Integer> env) {
     int max = 0;
@@ -1339,7 +1360,8 @@ public final class Main {
     String pkg,
     int paramBase,
     java.util.Map<String,Integer> env,
-    java.util.Set<String> intLocals
+    java.util.Set<String> intLocals,
+    java.util.concurrent.atomic.AtomicInteger lineNo
   ) {
     if (stmt instanceof CoreModel.Return r) {
       emitExpr(ctx, mv, r.expr, retDesc, pkg, paramBase, env, intLocals);
@@ -1350,7 +1372,7 @@ public final class Main {
       boolean anyReturn = false;
       if (sc.statements != null) {
         for (var st : sc.statements) {
-          { var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(1, _lbl); }
+          { var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl); }
           if (st instanceof CoreModel.Return r2) {
             emitExpr(ctx, mv, r2.expr, retDesc, pkg, paramBase, env, intLocals);
             if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
@@ -1360,13 +1382,13 @@ public final class Main {
             var lEnd = new Label();
             emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, intLocals);
             mv.visitJumpInsn(IFEQ, lElse);
-            { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(1, lThen); }
-            boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals);
+            { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
+            boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
             if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
             mv.visitLabel(lElse);
-            { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(1, lElseLn); }
+            { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
             boolean elseRet = false;
-            if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals);
+            if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
             if (!elseRet) mv.visitLabel(lEnd);
             anyReturn = anyReturn || (thenRet && elseRet);
           }
@@ -1379,13 +1401,13 @@ public final class Main {
       var lEnd = new Label();
       emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, intLocals);
       mv.visitJumpInsn(IFEQ, lElse);
-      { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(1, lThen); }
-      boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals);
+      { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
+      boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
       if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
       mv.visitLabel(lElse);
-      { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(1, lElseLn); }
+      { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
       boolean elseRet = false;
-      if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals);
+      if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
       if (!elseRet) mv.visitLabel(lEnd);
       return thenRet && elseRet;
     }

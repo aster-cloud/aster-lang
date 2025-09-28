@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 - `src/` — TypeScript compiler pipeline (canonicalizer, lexer, parser, Core IR, JVM emitter, LSP).
-- `scripts/` — build/test utilities run via `ts-node` (PEG build, golden, emit/jar, REPL).
+- `scripts/` — build/test utilities (PEG build, golden, emit/jar, REPL), compiled to `dist/scripts`.
 - `test/` — property, fuzz, and benchmark tests.
 - `cnl/examples/` — sample programs and golden fixtures.
 - `docs/` — VitePress site; `dist/` — build output.

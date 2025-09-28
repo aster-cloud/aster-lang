@@ -103,7 +103,7 @@ Typical flow to produce a runnable JAR for examples:
 node dist/scripts/emit-classfiles.js cnl/examples/greet.cnl
 
 # Create a jar from emitted classes
-node --loader ts-node/esm scripts/jar-jvm.ts
+node dist/scripts/jar-jvm.js
 
 # Or run the end-to-end example workflows
 npm run login:jar   # emit classes for login.cnl and jar them
@@ -168,6 +168,17 @@ npm run build
 node dist/src/lsp/server.js --stdio
 ```
 
+## Native Image (GraalVM)
+
+The project targets a reflection‑free design. A small native sample exists under `examples/hello-native`.
+
+- Local native build (requires GraalVM + Xcode toolchain on macOS):
+  - `npm run native:hello`
+- Lenient CI/native check (won’t fail if toolchain is missing):
+  - `npm run native:hello:lenient`
+
+See `docs/reference/native.md` for details and the reflection‑free policy.
+
 A smoke test exists in `scripts/lsp-smoke.ts`. Editor integration is in progress; capabilities will expand over time.
 
 ## Using as a Library (ESM)
@@ -188,7 +199,7 @@ Note: The npm package is not intended for public distribution during early devel
 ## Project Layout
 
 - `src/` — TypeScript compiler pipeline (canonicalizer, lexer, parser, Core IR, JVM emitter, LSP)
-- `scripts/` — build/test utilities via `ts-node` (PEG build, golden, emit/jar, REPL, LSP smoke)
+- `scripts/` — build/test utilities (PEG build, golden, emit/jar, REPL, LSP smoke) compiled to `dist/scripts`
 - `test/` — property, fuzz, and benchmark tests
 - `cnl/examples/` — sample programs and golden fixtures
 - `docs/` — VitePress site (API docs via TypeDoc); `dist/` — build output

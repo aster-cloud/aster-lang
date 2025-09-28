@@ -4,7 +4,7 @@
 
 # Interface: Call
 
-Defined in: [types.ts:215](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L215)
+Defined in: [types.ts:215](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L215)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:215](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **kind**: `"Call"`
 
-Defined in: [types.ts:216](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L216)
+Defined in: [types.ts:216](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L216)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:216](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **target**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:217](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L217)
+Defined in: [types.ts:217](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L217)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:217](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **args**: readonly [`Expression`](../type-aliases/Expression.md)[]
 
-Defined in: [types.ts:218](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L218)
+Defined in: [types.ts:218](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L218)

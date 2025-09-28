@@ -4,7 +4,7 @@
 
 # Interface: CoreNode
 
-Defined in: [types.ts:311](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L311)
+Defined in: [types.ts:311](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L311)
 
 ## Extended by
 
@@ -54,4 +54,4 @@ Defined in: [types.ts:311](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **kind**: `string`
 
-Defined in: [types.ts:312](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L312)
+Defined in: [types.ts:312](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L312)

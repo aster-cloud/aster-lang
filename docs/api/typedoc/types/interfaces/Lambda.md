@@ -4,7 +4,7 @@
 
 # Interface: Lambda
 
-Defined in: [types.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L221)
+Defined in: [types.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L221)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **kind**: `"Lambda"`
 
-Defined in: [types.ts:222](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L222)
+Defined in: [types.ts:222](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L222)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:222](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **params**: readonly [`Parameter`](Parameter.md)[]
 
-Defined in: [types.ts:223](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L223)
+Defined in: [types.ts:223](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L223)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:223](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **retType**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:224](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L224)
+Defined in: [types.ts:224](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L224)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:224](https://github.com/wontlost-ltd/aster-lang/blob/86413
 
 > `readonly` **body**: [`Block`](Block.md)
 
-Defined in: [types.ts:225](https://github.com/wontlost-ltd/aster-lang/blob/86413e9ea8f1137d326faff27f52785fcc703f39/src/types.ts#L225)
+Defined in: [types.ts:225](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L225)
