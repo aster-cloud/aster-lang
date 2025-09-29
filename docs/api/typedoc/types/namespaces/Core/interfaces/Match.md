@@ -4,7 +4,7 @@
 
 # Interface: Match
 
-Defined in: [types.ts:435](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L435)
+Defined in: [types.ts:435](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L435)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:435](https://github.com/wontlost-ltd/aster-lang/blob/4267a
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/4267a
 
 > `readonly` **kind**: `"Match"`
 
-Defined in: [types.ts:436](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L436)
+Defined in: [types.ts:436](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L436)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:436](https://github.com/wontlost-ltd/aster-lang/blob/4267a
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:437](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L437)
+Defined in: [types.ts:437](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L437)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [types.ts:437](https://github.com/wontlost-ltd/aster-lang/blob/4267a
 
 > `readonly` **cases**: readonly [`Case`](Case.md)[]
 
-Defined in: [types.ts:438](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L438)
+Defined in: [types.ts:438](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L438)

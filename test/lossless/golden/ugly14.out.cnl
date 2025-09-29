@@ -1,0 +1,9 @@
+This module is demo.types.
+
+Define Box with items: List of
+  Map Text to
+    List of Int.
+
+To headMap with b: Box, produce Map Text to List of Int:
+  Return items ( b ):
+

@@ -1,0 +1,8 @@
+This module is demo.match.
+
+Define User with id: Text , name: Text .
+
+To greet with u: User , produce Text :
+  Match u :
+    When User ( id , name ) , Return Text.concat ( "Hi, " , name )  . :
+

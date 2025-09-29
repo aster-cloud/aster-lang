@@ -4,7 +4,7 @@
 
 # Interface: Import
 
-Defined in: [types.ts:350](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L350)
+Defined in: [types.ts:350](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L350)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:350](https://github.com/wontlost-ltd/aster-lang/blob/4267a
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/4267a
 
 > `readonly` **kind**: `"Import"`
 
-Defined in: [types.ts:351](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L351)
+Defined in: [types.ts:351](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L351)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:351](https://github.com/wontlost-ltd/aster-lang/blob/4267a
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:352](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L352)
+Defined in: [types.ts:352](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L352)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [types.ts:352](https://github.com/wontlost-ltd/aster-lang/blob/4267a
 
 > `readonly` **asName**: `null` \| `string`
 
-Defined in: [types.ts:353](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L353)
+Defined in: [types.ts:353](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L353)

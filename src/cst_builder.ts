@@ -40,3 +40,27 @@ export function buildCst(text: string, prelexed?: readonly Token[]): CstModule {
     : { text: '' };
   return { kind: 'Module', tokens: cstTokens, children: [], span, leading, trailing } as CstModule;
 }
+
+// Lossless CST builder: lex the original text (no canonicalization) so token
+// offsets/positions align with the source. Preserve the full text on the CST
+// for printers to reconstruct inter-token trivia exactly.
+export function buildCstLossless(text: string): CstModule {
+  const toks = lex(text);
+  const cstTokens = tokensToCstTokens(text, toks);
+  const span = cstTokens.length
+    ? { start: cstTokens[0]!.start, end: cstTokens[cstTokens.length - 1]!.end }
+    : { start: { line: 1, col: 1 }, end: { line: 1, col: 1 } };
+  const leading = cstTokens.length > 0 ? { text: text.slice(0, cstTokens[0]!.startOffset) } : { text: text };
+  const trailing = cstTokens.length > 0
+    ? { text: text.slice(cstTokens[cstTokens.length - 1]!.endOffset) }
+    : { text: '' };
+  return {
+    kind: 'Module',
+    tokens: cstTokens,
+    children: [],
+    span,
+    leading,
+    trailing,
+    fullText: text,
+  } as CstModule;
+}

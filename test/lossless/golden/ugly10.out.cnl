@@ -1,0 +1,5 @@
+﻿This module is demo.bom.
+
+To greet with name: Text, produce Text:
+  Return Text.concat("Hi, ", name):
+

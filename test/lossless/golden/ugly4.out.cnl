@@ -1,0 +1,7 @@
+This module is demo.async.
+
+To fetch, produce Text. It performs io:
+  Start a as async IO.readLine ( ).
+  Start b as async IO.readLine ( ).
+  Wait for a, b.
+  Return Text.concat(a, b):

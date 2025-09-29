@@ -1,0 +1,5 @@
+This module is demo.punct.
+
+To cmp with x: Int  ,  y: Int  ,  produce Bool  :
+  Return < ( x , y )  . :   
+

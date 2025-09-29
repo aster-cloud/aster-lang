@@ -1,0 +1,4 @@
+This module is demo.
+
+To greet with name: Text,  produce Text:
+  Return Text.concat("Hello, ", name):

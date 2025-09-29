@@ -1,7 +1,8 @@
 import { canonicalize } from './canonicalizer.js';
 import { lex } from './lexer.js';
 import { parse } from './parser.js';
-import { buildCst } from './cst_builder.js';
+import { buildCst, buildCstLossless } from './cst_builder.js';
+import { printCNLFromCst } from './cst_printer.js';
 import type {
   Module,
   Declaration,
@@ -16,7 +17,18 @@ import type {
   ConstructField,
 } from './types.js';
 
-export function formatCNL(text: string): string {
+export function formatCNL(
+  text: string,
+  opts?: { mode?: 'lossless' | 'normalize'; reflow?: boolean }
+): string {
+  if (opts?.mode === 'lossless') {
+    try {
+      const cst = buildCstLossless(text);
+      return printCNLFromCst(cst, { reflow: !!opts?.reflow });
+    } catch {
+      // fall through to normalize path
+    }
+  }
   // Pre-sanitize common broken patterns (e.g., accidental '.:' before earlier formatter fix)
   const input = text
     .replace(/produce([^\n]*?)\.\s*:/g, (_m, p1) => `produce${p1}:`)

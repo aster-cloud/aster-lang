@@ -8,6 +8,7 @@ export default defineConfig({
     logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
+      { text: 'Formatting', link: '/guide/formatting' },
       { text: 'Reference', link: '/reference/syntax' },
       { text: 'API', link: '/api/overview' },
       { text: 'GitHub', link: 'https://github.com/wontlost-ltd/aster-lang' },
@@ -20,6 +21,7 @@ export default defineConfig({
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Language Overview', link: '/guide/language-overview' },
             { text: 'Examples', link: '/guide/examples' },
+            { text: 'Formatting, LSP & CLI', link: '/guide/formatting' },
             { text: 'JVM Interop Overloads', link: '/guide/interop-overloads' },
             { text: 'Contributing', link: '/guide/contributing' },
           ],

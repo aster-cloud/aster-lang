@@ -1,0 +1,4 @@
+This module is demo.
+
+To print with msg: Text, produce Text:
+  Return IO.print(msg).

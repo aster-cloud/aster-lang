@@ -1,0 +1,5 @@
+This module is demo.cm.
+
+To val with m: Map Text to Text, k: Text, produce Text?:
+  Return Map.get ( m, k ):
+

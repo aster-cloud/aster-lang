@@ -24,6 +24,8 @@ export interface CstModule extends CstNodeBase {
   readonly tokens: readonly CstToken[];
   readonly leading?: Trivia;
   readonly trailing?: Trivia;
+  // When built in lossless mode, retain the original full text so printers
+  // can reconstruct inter-token trivia exactly.
+  readonly fullText?: string;
   readonly children: readonly CstNodeBase[];
 }
-

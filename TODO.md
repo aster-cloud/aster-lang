@@ -99,47 +99,50 @@ Deliverables
 Plan (Executable Steps)
 
 Phase 1 — CST Byte‑Preserving Printer
-- [ ] Ensure CST captures full trivia
-  - [ ] Extend `src/cst_builder.ts` to attach leading/trailing trivia to every token (whitespace and comments) and keep exact token text/spans.
-  - [ ] Verify lexer exposes enough information (token boundaries) to slice trivia precisely.
-- [ ] Implement printer
-  - [ ] Add `src/cst_printer.ts` with `printCNLFromCst(cst: CstModule, opts?): string` that emits:
-    - token.leadingTrivia + token.text + token.trailingTrivia for all tokens in order
-    - preserves BOM and trailing newline as in original
-  - [ ] Unit tests for identity on valid inputs (no changes expected).
-- [ ] Wire into formatter (non‑breaking)
-  - [ ] Update `formatCNL` to try CST print first when `mode === 'lossless'`; fallback to current AST path when parse fails.
-  - [ ] Keep existing behavior when `mode` is omitted (defaults to normalize).
+- [x] Ensure CST captures full trivia
+  - [x] Extend `src/cst_builder.ts` to preserve fullText and token offsets/spans for exact slicing.
+  - [x] Verify lexer exposes enough information (token boundaries) to slice trivia precisely.
+- [x] Implement printer
+  - [x] Add `src/cst_printer.ts` with `printCNLFromCst(cst: CstModule, opts?)` (lossless) and `printRangeFromCst`.
+  - [x] Preserve BOM and trailing newline as in original.
+- [x] Wire into formatter (non‑breaking)
+  - [x] Update `formatCNL` to try CST print first when `mode === 'lossless'`; fallback to current AST path when parse fails.
+  - [x] Keep existing behavior when `mode` is omitted (defaults to normalize).
 
 Phase 2 — Minimal Reflow Rules (Lossless Mode Only)
-- [ ] Add tiny seam fixes guarded by options:
-  - [ ] Collapse `. :` → `:`, ` .` → `.`, and remove spaces before `.,:!?;`.
-  - [ ] Ensure at most one trailing newline; preserve if present.
-  - [ ] Never change indentation width or tabs; preserve as found.
-- [ ] Tests:
-  - [ ] Golden cases for each seam fix; ensure no other bytes change.
+- [x] Add tiny seam fixes guarded by options:
+  - [x] Collapse `. :` → `:`, ` .` → `.`, and remove spaces before `.,:!?;`.
+  - [x] Ensure at most one trailing newline; preserve if present.
+  - [x] Never change indentation width or tabs; preserve as found.
+- [x] Tests:
+  - [x] Lossless idempotency check across examples (`npm run test:lossless`).
 
 Phase 3 — Configuration & CLI
-- [ ] `formatCNL` options
-  - [ ] Support `{ mode: 'lossless' | 'normalize' }` and plumb through callers.
-- [ ] CLI support
-  - [ ] Update `dist/scripts/format-examples.js` to parse `--lossless` and pass mode.
-  - [ ] Add `npm` scripts: `fmt:examples:lossless`, `fmt:examples:check:lossless`.
-  - [ ] README: document lossless vs normalize modes and when to use each.
+- [x] `formatCNL` options
+  - [x] Support `{ mode: 'lossless' | 'normalize', reflow?: boolean }` and plumb through callers.
+- [x] CLI support
+  - [x] Update `dist/scripts/format-examples.js` to parse `--lossless` and `--lossless-reflow`.
+  - [x] Add `npm` scripts: `fmt:examples:lossless`, `fmt:examples:check:lossless`, `fmt:examples:lossless:reflow`, `fmt:examples:check:lossless:reflow`.
+  - [x] README: document lossless vs normalize modes and when to use each.
 
 Phase 4 — Tests & CI
-- [ ] Idempotency fuzz
-  - [ ] Add a fuzz that injects random trivia/comments around tokens, builds CST, prints, and asserts identity.
-- [ ] Golden pairs
-  - [ ] Add a few “ugly but valid” inputs under `test/golden-lossless` and assert byte‑for‑byte equality.
-- [ ] CI
-  - [ ] Add a non‑blocking job to run lossless tests; promote to blocking after green runs.
+- [x] Idempotency fuzz
+  - [x] Add a fuzz that injects random trivia/comments around tokens, builds CST, prints, and asserts identity (`test/lossless.fuzz.test.ts`).
+- [x] Golden pairs
+  - [x] Added multiple “ugly but valid” inputs under `test/lossless/golden` and assert:
+        (a) lossless preserves input, (b) lossless+reflow equals expected output.
+- [x] CI
+  - [x] Add a non‑blocking job to run lossless tests; promote to blocking after green runs.
 
 Phase 5 — LSP Integration (Optional)
-- [ ] Add LSP range formatting that reprints only the requested slice from CST.
-- [ ] Expose a server setting to choose lossless vs normalize.
+- [x] Add LSP range formatting that reprints only the requested slice from CST (with seam reflow).
+- [x] Expose a server setting to choose lossless vs normalize and a `reflow` toggle.
+- [x] Add full-document formatting using the same settings.
+
+Docs
+- [x] Add Formatting, LSP & CLI guide page and wire it into VitePress nav/sidebar.
 
 Acceptance Criteria
-- [ ] For valid inputs, `mode: 'lossless'` emits identical bytes (modulo optional seam fixes when explicitly enabled).
-- [ ] For invalid inputs, `formatCNL` gracefully falls back to current normalize path without crashing.
-- [ ] `fmt:examples` remains deterministic (normalize mode) and `--lossless` is available for user edits.
+- [x] For valid inputs, `mode: 'lossless'` emits identical bytes (modulo optional seam fixes when explicitly enabled).
+- [x] For invalid inputs, `formatCNL` gracefully falls back to current normalize path without crashing.
+- [x] `fmt:examples` remains deterministic (normalize mode) and `--lossless` is available for user edits.

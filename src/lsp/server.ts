@@ -61,6 +61,8 @@ import type {
 } from '../types.js';
 import { DiagnosticError } from '../diagnostics.js';
 import { KW } from '../tokens.js';
+import { buildCstLossless } from '../cst_builder.js';
+import { printRangeFromCst } from '../cst_printer.js';
 import { buildIdIndex, exprTypeText } from './utils.js';
 // import { lowerModule } from "../lower_to_core";
 
@@ -162,6 +164,8 @@ connection.onInitialize((params: InitializeParams) => {
         full: true,
       },
       workspaceSymbolProvider: true,
+      documentFormattingProvider: true,
+      documentRangeFormattingProvider: true,
     },
   };
   if (hasWorkspaceFolderCapability) {
@@ -189,10 +193,11 @@ connection.onInitialized(() => {
 // The example settings
 interface AsterSettings {
   maxNumberOfProblems: number;
+  format?: { mode?: 'lossless' | 'normalize'; reflow?: boolean };
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
-const defaultSettings: AsterSettings = { maxNumberOfProblems: 1000 };
+const defaultSettings: AsterSettings = { maxNumberOfProblems: 1000, format: { mode: 'lossless', reflow: true } };
 let globalSettings: AsterSettings = defaultSettings;
 
 // Cache the settings of all open documents
@@ -241,6 +246,64 @@ documents.onDidChangeContent(change => {
     void validateTextDocument(change.document);
   }, 150);
   pendingValidate.set(uri, handle);
+});
+
+// Range formatting provider (lossless with minimal seam reflow)
+connection.onDocumentRangeFormatting(async (params) => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return [];
+  try {
+    const settings = await getDocumentSettings(doc.uri);
+    const mode = settings.format?.mode ?? 'lossless';
+    const reflow = !!settings.format?.reflow;
+    const text = doc.getText();
+    const start = doc.offsetAt(params.range.start);
+    const end = doc.offsetAt(params.range.end);
+    let out: string;
+    if (mode === 'lossless') {
+      const cst = buildCstLossless(text);
+      out = printRangeFromCst(cst, start, end, { reflow });
+    } else {
+      // Normalize mode: format the slice via strict formatter
+      const { formatCNL } = await import('../formatter.js');
+      const slice = text.slice(start, end);
+      out = formatCNL(slice, { mode: 'normalize' });
+    }
+    const edit: TextEdit = { range: params.range, newText: out };
+    return [edit];
+  } catch {
+    return [];
+  }
+});
+
+// Full document formatting provider
+connection.onDocumentFormatting(async (params) => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return [];
+  try {
+    const settings = await getDocumentSettings(doc.uri);
+    const mode = settings.format?.mode ?? 'lossless';
+    const reflow = !!settings.format?.reflow;
+    const text = doc.getText();
+    let out: string;
+    if (mode === 'lossless') {
+      const { buildCstLossless } = await import('../cst_builder.js');
+      const { printCNLFromCst } = await import('../cst_printer.js');
+      const cst = buildCstLossless(text);
+      out = printCNLFromCst(cst, { reflow });
+    } else {
+      const { formatCNL } = await import('../formatter.js');
+      out = formatCNL(text, { mode: 'normalize' });
+    }
+    const fullRange: Range = {
+      start: { line: 0, character: 0 },
+      end: doc.positionAt(text.length),
+    };
+    const edit: TextEdit = { range: fullRange, newText: out };
+    return [edit];
+  } catch {
+    return [];
+  }
 });
 documents.onDidClose(e => {
   docCache.delete(e.document.uri);

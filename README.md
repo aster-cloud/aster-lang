@@ -239,8 +239,50 @@ Coding style:
 - Benchmarks: `npm run bench`
 - Golden tests: `npm run test:golden`
 - Update goldens: `npm run test:golden:update` (review diffs before committing)
- - Example formatting: `npm run fmt:examples` rewrites examples to strict CNL
-   (effects in headers, comma‑separated params) and sanitizes legacy placeholders.
+- Example formatting:
+  - Strict normalize (CI default): `npm run fmt:examples` rewrites examples to strict CNL
+    (effects in headers, comma‑separated params) and sanitizes legacy placeholders.
+  - Lossless (preserve trivia): `npm run fmt:examples:lossless` prints byte‑for‑byte
+    using the CST (use `:check` variants to verify without writing). Add `--lossless-reflow`
+    via `fmt:examples:lossless:reflow` for minimal seam fixes (e.g., `. :` → `:`).
+
+## Editor Integration
+
+VS Code (formatOnSave via LSP):
+
+1. Ensure the Aster LSP server is configured in your VS Code (via an extension or `settings.json`).
+2. Add these settings to enable formatting on save and control the formatter mode:
+
+```json
+{
+  "editor.formatOnSave": true,
+  // LSP server settings
+  "asterLanguageServer.format.mode": "lossless", // or "normalize"
+  "asterLanguageServer.format.reflow": true
+}
+```
+
+- Lossless preserves all existing trivia and applies only minimal seam fixes when `reflow` is true.
+- Normalize enforces strict canonical output (same rules used by CI example formatting).
+
+## CLI: Format Arbitrary Files
+
+You can format any `.cnl` file from the command line:
+
+```bash
+# Overwrite files in place (normalize)
+npm run format:file -- --write path/to/file.cnl
+
+# Lossless print to stdout
+npm run format:file -- --lossless path/to/file.cnl
+
+# Lossless with minimal seam reflow (to stdout)
+npm run format:file -- --lossless --lossless-reflow path/to/file.cnl
+
+# Overwrite with lossless reflow
+npm run format:file -- --write --lossless --lossless-reflow path/to/file.cnl
+```
+
 
 ## Examples
 

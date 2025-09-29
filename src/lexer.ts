@@ -60,6 +60,12 @@ export function lex(input: string): Token[] {
     }
   }
 
+  // Skip UTF-8 BOM if present
+  if (input.charCodeAt(0) === 0xfeff) {
+    i++;
+    col++;
+  }
+
   while (i < input.length) {
     const ch = peek();
 
@@ -77,9 +83,14 @@ export function lex(input: string): Token[] {
       continue;
     }
 
-    // Newline + indentation
-    if (ch === '\n') {
-      next();
+    // Newline + indentation (support \r\n and \r)
+    if (ch === '\n' || ch === '\r') {
+      if (ch === '\r') {
+        next();
+        if (peek() === '\n') next();
+      } else {
+        next();
+      }
       push(TokenKind.NEWLINE);
       // Measure indentation
       let spaces = 0;
