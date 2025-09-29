@@ -21,6 +21,8 @@ function main(): void {
   assertContains('build/jvm-classes/demo/interop/pickObj_fn.class', 'Interop.pick:(Ljava/lang/Object;)Ljava/lang/String;');
   assertContains('build/jvm-classes/demo/interop/pickBool_fn.class', 'Interop.pick:(Z)Ljava/lang/String;');
   assertContains('build/jvm-classes/demo/interop/pickStr_fn.class', 'Interop.pick:(Ljava/lang/String;)Ljava/lang/String;');
+  assertContains('build/jvm-classes/demo/interop/pickLong_fn.class', 'Interop.pick:(J)Ljava/lang/String;');
+  assertContains('build/jvm-classes/demo/interop/pickDouble_fn.class', 'Interop.pick:(D)Ljava/lang/String;');
   console.log('javap interop assertion passed');
 }
 

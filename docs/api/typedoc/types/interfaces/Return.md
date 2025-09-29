@@ -4,7 +4,7 @@
 
 # Interface: Return
 
-Defined in: [types.ts:119](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L119)
+Defined in: [types.ts:121](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L121)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:119](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"Return"`
 
-Defined in: [types.ts:120](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L120)
+Defined in: [types.ts:122](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L122)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:120](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:121](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L121)
+Defined in: [types.ts:123](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L123)

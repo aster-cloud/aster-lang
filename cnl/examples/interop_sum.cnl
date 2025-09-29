@@ -1,0 +1,16 @@
+This module is demo.interop.sumdemo.
+
+To sumInt, produce Text:
+  Return Interop.sum(1, 2).
+
+To sumLong, produce Text:
+  Return Interop.sum(1L, 2L).
+
+To sumDouble, produce Text:
+  Return Interop.sum(1.0, 2.0).
+
+To sumIntLong, produce Text:
+  Return Interop.sum(1, 2L).
+
+To sumIntDouble, produce Text:
+  Return Interop.sum(1, 2.0).

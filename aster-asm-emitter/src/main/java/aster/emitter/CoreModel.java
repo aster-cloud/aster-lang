@@ -68,7 +68,8 @@ public final class CoreModel {
   @JsonTypeName("FuncType")
   public static final class FuncType implements Type { public java.util.List<Type> params; public Type ret; }
 
-  public static final class Block { public List<Stmt> statements; }
+  @JsonTypeName("Block")
+  public static final class Block implements Stmt { public List<Stmt> statements; }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
@@ -77,9 +78,10 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = Return.class, name = "Return"),
     @JsonSubTypes.Type(value = If.class, name = "If"),
     @JsonSubTypes.Type(value = Match.class, name = "Match"),
-    @JsonSubTypes.Type(value = Scope.class, name = "Scope")
+    @JsonSubTypes.Type(value = Scope.class, name = "Scope"),
+    @JsonSubTypes.Type(value = Block.class, name = "Block")
   })
-  public sealed interface Stmt permits Let, Set, Return, If, Match, Scope {}
+  public sealed interface Stmt permits Let, Set, Return, If, Match, Scope, Block {}
 
   @JsonTypeName("Let")
   public static final class Let implements Stmt { public String name; public Expr expr; }
@@ -101,9 +103,10 @@ public final class CoreModel {
   @JsonSubTypes({
     @JsonSubTypes.Type(value = PatNull.class, name = "PatNull"),
     @JsonSubTypes.Type(value = PatCtor.class, name = "PatCtor"),
-    @JsonSubTypes.Type(value = PatName.class, name = "PatName")
+    @JsonSubTypes.Type(value = PatName.class, name = "PatName"),
+    @JsonSubTypes.Type(value = PatInt.class, name = "PatInt")
   })
-  public sealed interface Pattern permits PatNull, PatCtor, PatName {}
+  public sealed interface Pattern permits PatNull, PatCtor, PatName, PatInt {}
 
   @JsonTypeName("PatNull")
   public static final class PatNull implements Pattern {}
@@ -117,12 +120,16 @@ public final class CoreModel {
   }
   @JsonTypeName("PatName")
   public static final class PatName implements Pattern { public String name; }
+  @JsonTypeName("PatInt")
+  public static final class PatInt implements Pattern { public int value; }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
     @JsonSubTypes.Type(value = Name.class, name = "Name"),
     @JsonSubTypes.Type(value = Bool.class, name = "Bool"),
     @JsonSubTypes.Type(value = IntE.class, name = "Int"),
+    @JsonSubTypes.Type(value = LongE.class, name = "Long"),
+    @JsonSubTypes.Type(value = DoubleE.class, name = "Double"),
     @JsonSubTypes.Type(value = StringE.class, name = "String"),
     @JsonSubTypes.Type(value = NullE.class, name = "Null"),
     @JsonSubTypes.Type(value = Ok.class, name = "Ok"),
@@ -133,7 +140,7 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = Call.class, name = "Call"),
     @JsonSubTypes.Type(value = Lambda.class, name = "Lambda")
   })
-  public sealed interface Expr permits Name, Bool, IntE, StringE, NullE, Ok, Err, Some, NoneE, Construct, Call, Lambda {}
+  public sealed interface Expr permits Name, Bool, IntE, LongE, DoubleE, StringE, NullE, Ok, Err, Some, NoneE, Construct, Call, Lambda {}
 
   @JsonTypeName("Name")
   public static final class Name implements Expr { public String name; }
@@ -141,6 +148,10 @@ public final class CoreModel {
   public static final class Bool implements Expr { public boolean value; }
   @JsonTypeName("Int")
   public static final class IntE implements Expr { public int value; }
+  @JsonTypeName("Long")
+  public static final class LongE implements Expr { public long value; }
+  @JsonTypeName("Double")
+  public static final class DoubleE implements Expr { public double value; }
   @JsonTypeName("String")
   public static final class StringE implements Expr { public String value; }
   @JsonTypeName("Null")

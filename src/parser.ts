@@ -390,7 +390,7 @@ export function parse(tokens: readonly Token[]): Module {
     }
     if (isKeyword(KW.FLOAT)) {
       nextWord();
-      return Node.TypeName('Float');
+      return Node.TypeName('Double');
     }
     if (isKeyword(KW.BOOL_TYPE)) {
       nextWord();
@@ -779,6 +779,8 @@ export function parse(tokens: readonly Token[]): Module {
     if (at(TokenKind.BOOL)) return Node.Bool(next().value as boolean);
     if (at(TokenKind.NULL)) return Node.Null();
     if (at(TokenKind.INT)) return Node.Int(next().value as number);
+    if (at(TokenKind.LONG)) return Node.Long(next().value as number);
+    if (at(TokenKind.FLOAT)) return Node.Double(next().value as number);
     if (isKeyword(KW.AWAIT)) {
       nextWord();
       const args = parseArgList();
@@ -882,6 +884,10 @@ export function parse(tokens: readonly Token[]): Module {
       if (at(TokenKind.NULL)) next();
       else nextWord();
       return Node.PatternNull();
+    }
+    if (at(TokenKind.INT)) {
+      const v = next().value as number;
+      return Node.PatternInt(v);
     }
     if (at(TokenKind.TYPE_IDENT)) {
       const typeName = next().value as string;

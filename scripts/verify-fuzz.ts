@@ -13,13 +13,27 @@ function randExpr(i: number): any {
   if (k === 1) return { kind: 'Bool', value: randInt(2) === 0 };
   // 50% chance of static interop call to exercise INVOKESTATIC lowering
   if (randInt(2) === 0) {
-    const choice = randInt(4);
-    let arg: any;
-    if (choice === 0) arg = { kind: 'Int', value: randInt(100) };
-    else if (choice === 1) arg = { kind: 'Bool', value: randInt(2) === 0 };
-    else if (choice === 2) arg = { kind: 'String', value: 's' + i };
-    else arg = { kind: 'Null' };
-    return { kind: 'Call', target: { kind: 'Name', name: 'aster.runtime.Interop.pick' }, args: [arg] };
+    const which = randInt(2);
+    if (which === 0) {
+      // pick overload fuzz
+      const choice = randInt(4);
+      let arg: any;
+      if (choice === 0) arg = { kind: 'Int', value: randInt(100) };
+      else if (choice === 1) arg = { kind: 'Bool', value: randInt(2) === 0 };
+      else if (choice === 2) arg = { kind: 'String', value: 's' + i };
+      else arg = { kind: 'Null' };
+      return { kind: 'Call', target: { kind: 'Name', name: 'aster.runtime.Interop.pick' }, args: [arg] };
+    } else {
+      // sum overload fuzz with mixed numeric kinds
+      const aKinds = [
+        { kind: 'Int', value: randInt(50) },
+        { kind: 'Long', value: randInt(50) },
+        { kind: 'Double', value: Math.floor(Math.random() * 50) + 0.5 },
+      ];
+      const a = aKinds[randInt(aKinds.length)];
+      const b = aKinds[randInt(aKinds.length)];
+      return { kind: 'Call', target: { kind: 'Name', name: 'aster.runtime.Interop.sum' }, args: [a, b] };
+    }
   }
   return { kind: 'String', value: 's' + i };
 }

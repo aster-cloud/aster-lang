@@ -20,12 +20,12 @@ public final class PolicyTest {
       
       // Test PolicyContext and evaluateUserReadRule
       demo.policy.PolicyContext context1 = new demo.policy.PolicyContext(
-          "user123", "user", "user123", demo.policy.Resource.Document, 14.5, "office");
+          "user123", "user", "user123", demo.policy.Resource.Document, aster.runtime.Primitives.number(14.5), "office");
       boolean result1 = demo.policy.evaluateUserReadRule_fn.evaluateUserReadRule(context1);
       System.out.println("User reads own document: " + (result1 ? "GRANTED" : "DENIED"));
       
       demo.policy.PolicyContext context2 = new demo.policy.PolicyContext(
-          "user456", "user", "user123", demo.policy.Resource.Document, 14.5, "office");
+          "user456", "user", "user123", demo.policy.Resource.Document, aster.runtime.Primitives.number(14.5), "office");
       boolean result2 = demo.policy.evaluateUserReadRule_fn.evaluateUserReadRule(context2);
       System.out.println("User reads other's document: " + (result2 ? "GRANTED" : "DENIED"));
       

@@ -20,6 +20,7 @@ export default defineConfig({
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Language Overview', link: '/guide/language-overview' },
             { text: 'Examples', link: '/guide/examples' },
+            { text: 'JVM Interop Overloads', link: '/guide/interop-overloads' },
             { text: 'Contributing', link: '/guide/contributing' },
           ],
         },

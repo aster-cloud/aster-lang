@@ -209,6 +209,12 @@ Re-exports [PatternName](../types/interfaces/PatternName.md)
 
 ***
 
+### PatternInt
+
+Re-exports [PatternInt](../types/interfaces/PatternInt.md)
+
+***
+
 ### Expression
 
 Re-exports [Expression](../types/type-aliases/Expression.md)
@@ -236,6 +242,18 @@ Re-exports [Bool](../types/interfaces/Bool.md)
 ### Int
 
 Re-exports [Int](../types/interfaces/Int.md)
+
+***
+
+### Long
+
+Re-exports [Long](../types/interfaces/Long.md)
+
+***
+
+### Double
+
+Re-exports [Double](../types/interfaces/Double.md)
 
 ***
 

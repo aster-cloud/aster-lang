@@ -4,7 +4,7 @@
 
 # Interface: Ok
 
-Defined in: [types.ts:499](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L499)
+Defined in: [types.ts:532](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L532)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:499](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"Ok"`
 
-Defined in: [types.ts:500](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L500)
+Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L533)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:500](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:501](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L501)
+Defined in: [types.ts:534](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L534)

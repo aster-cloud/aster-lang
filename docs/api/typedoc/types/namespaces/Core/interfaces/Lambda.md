@@ -4,7 +4,7 @@
 
 # Interface: Lambda
 
-Defined in: [types.ts:480](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L480)
+Defined in: [types.ts:513](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L513)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:480](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"Lambda"`
 
-Defined in: [types.ts:481](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L481)
+Defined in: [types.ts:514](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L514)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:481](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **params**: readonly [`Parameter`](Parameter.md)[]
 
-Defined in: [types.ts:482](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L482)
+Defined in: [types.ts:515](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L515)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:482](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **ret**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:483](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L483)
+Defined in: [types.ts:516](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L516)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [types.ts:483](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **body**: [`Block`](Block.md)
 
-Defined in: [types.ts:484](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L484)
+Defined in: [types.ts:517](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L517)
 
 ***
 
@@ -52,4 +52,4 @@ Defined in: [types.ts:484](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` `optional` **captures**: readonly `string`[]
 
-Defined in: [types.ts:485](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L485)
+Defined in: [types.ts:518](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L518)

@@ -97,10 +97,9 @@ public final class PolicyMain {
     demo.policy.PolicyContext context = new demo.policy.PolicyContext(
         userId, userRole, resourceOwner, 
         demo.policy.Resource.valueOf(resourceType), 
-        timeOfDay, "office");
+        aster.runtime.Primitives.number(timeOfDay), "office");
     
     boolean result = demo.policy.evaluateUserReadRule_fn.evaluateUserReadRule(context);
     System.out.println(result ? "Access granted" : "Access denied");
   }
 }
-

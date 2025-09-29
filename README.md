@@ -11,6 +11,7 @@
 [![TypeScript 5.x](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](#development)
 [![Changesets](https://img.shields.io/badge/changesets-enabled-000000.svg?logo=changesets)](#release--versioning)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Null Strict Smoke](https://img.shields.io/badge/strict%20null-smoke-blue)](#interop-nullability-strict-mode--overrides)
 
 Aster is a pragmatic, safe, and fast programming language with a human‑readable Controlled Natural Language (CNL) surface that lowers to a small, strict Core IR and targets the JVM. The repository contains the full TypeScript frontend (canonicalizer → lexer → parser → Core IR → typechecking) plus JVM emission paths, an LSP server, and Gradle‑based demos (ASM emitter, Truffle skeleton, runnable examples).
 
@@ -24,6 +25,8 @@ Aster is a pragmatic, safe, and fast programming language with a human‑readabl
 - Clean pipeline: canonicalize → lex → parse → lower to Core IR → emit
 - JVM backends: Java source emission and direct bytecode via ASM
 - LSP foundation for editor integration
+- JVM interop overloads with primitive widening/boxing and reflective tie‑breaks. See Guide: JVM Interop Overloads (docs/guide/interop-overloads.md) for policy and disambiguation tips (use `1L` or `1.0`).
+ - Interop nullability policy with LSP warnings and strict mode. See guide for defaults and overrides.
 
 ## Quick Demo
 
@@ -119,6 +122,13 @@ npm run verify:asm
 ```
 
 This emits classes for a couple of examples and runs `javap -v` to inspect the bytecode.
+
+Interop strict nullability (non-blocking CI smoke):
+
+```
+# Demonstrates strict failure when passing null to a non-null interop param
+npm run verify:asm:nullstrict   # see cnl/examples/null_strict_core.json
+```
 
 ### Lambda Syntax & Verification
 
@@ -306,3 +316,18 @@ MIT © Aster Language Team
 - ASM (OW2) for bytecode generation
 - VitePress and TypeDoc for docs
 - GraalVM/Truffle APIs for runtime experimentation
+## Interop Nullability (Strict Mode & Overrides)
+
+- Enable strict emission failure on null passed to a non‑null interop parameter:
+
+```
+INTEROP_NULL_STRICT=true npm run verify:asm:nullstrict
+```
+
+- Provide a custom policy file to override defaults:
+
+```
+INTEROP_NULL_POLICY=$PWD/docs/examples/interop-null-policy.json npm run verify:asm:interop
+```
+
+See docs/guide/interop-overloads.md for details.

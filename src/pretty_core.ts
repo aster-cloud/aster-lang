@@ -83,6 +83,8 @@ function formatPattern(p: Core.Pattern): string {
   switch (p.kind) {
     case 'PatNull':
       return 'null';
+    case 'PatInt':
+      return String(p.value);
     case 'PatCtor': {
       const pat = p as Core.PatCtor & { args?: readonly Core.Pattern[] };
       if (pat.args && pat.args.length > 0) {
@@ -108,6 +110,10 @@ function formatExpr(e: Core.Expression): string {
     case 'Bool':
       return String(e.value);
     case 'Int':
+      return String(e.value);
+    case 'Long':
+      return String(e.value) + 'L';
+    case 'Double':
       return String(e.value);
     case 'String':
       return JSON.stringify(e.value);

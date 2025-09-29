@@ -236,6 +236,8 @@ async function main(): Promise<void> {
     'cnl/examples/enum_wildcard.cnl',
     'cnl/examples/expected_enum_wildcard_core.json'
   );
+  // Interop numeric literal kinds (CNL → Core)
+  await runOneCore('cnl/examples/interop_sum.cnl', 'cnl/examples/interop_sum_core.json');
 }
 
 main().catch(e => {

@@ -7,8 +7,13 @@ import { lex } from '../src/lexer.js';
 import { parse } from '../src/parser.js';
 import { lowerModule } from '../src/lower_to_core.js';
 
-function sh(cmd: string, opts: cp.ExecSyncOptions = {}): void {
-  cp.execSync(cmd, { stdio: 'inherit', ...opts });
+function envWithGradle(): Record<string, string | undefined> {
+  return {
+    GRADLE_USER_HOME: path.resolve('build/.gradle'),
+    GRADLE_OPTS: `${process.env.GRADLE_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
+    JAVA_OPTS: `${process.env.JAVA_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
+    ...process.env,
+  };
 }
 
 async function main(): Promise<void> {
@@ -20,10 +25,10 @@ async function main(): Promise<void> {
     fs.readdirSync(buildDir).filter(f => f.endsWith('.jar')).length === 0
   ) {
     const buildCmd = hasWrapper
-      ? './gradlew :aster-asm-emitter:build'
-      : 'gradle :aster-asm-emitter:build';
+      ? ['./gradlew', '-g', 'build/.gradle', ':aster-asm-emitter:build']
+      : ['gradle', '-g', 'build/.gradle', ':aster-asm-emitter:build'];
     try {
-      sh(buildCmd);
+      cp.execFileSync(buildCmd[0]!, buildCmd.slice(1), { stdio: 'inherit', env: envWithGradle() });
     } catch (e) {
       console.error('Failed to build ASM emitter:', e);
       process.exit(1);
@@ -35,36 +40,45 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  const input = process.argv[2];
-  if (!input) {
-    console.error('Usage: emit-classfiles <file.cnl>');
+  const inputs = process.argv.slice(2);
+  if (inputs.length === 0) {
+    console.error('Usage: emit-classfiles <file.cnl> [more.cnl ...]');
     process.exit(2);
   }
-  const src = fs.readFileSync(input, 'utf8');
-  const core = lowerModule(parse(lex(canonicalize(src))));
-  const payload = JSON.stringify(core);
-
-  fs.mkdirSync('build', { recursive: true });
-  fs.writeFileSync('build/last-core.json', payload);
 
   // Prefer running via Gradle run to get classpath deps available
   const runCmd = hasWrapper ? './gradlew' : 'gradle';
   const outDir = path.resolve('build/jvm-classes');
-  // Clean output dir to avoid stale classes triggering javap checks
+
+  fs.mkdirSync('build', { recursive: true });
+  // Clean output dir once to avoid stale classes
   if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true, force: true });
   }
-  await new Promise<void>((resolve, reject) => {
-    const proc = cp.spawn(runCmd, [':aster-asm-emitter:run', `--args=${outDir}`], {
-      stdio: ['pipe', 'inherit', 'inherit'],
+
+  for (const input of inputs) {
+    const src = fs.readFileSync(input, 'utf8');
+    const core = lowerModule(parse(lex(canonicalize(src))));
+    const payload = JSON.stringify(core);
+    fs.writeFileSync('build/last-core.json', payload);
+
+    await new Promise<void>((resolve, reject) => {
+      const proc = cp.spawn(
+        runCmd,
+        ['-g', 'build/.gradle', ':aster-asm-emitter:run', `--args=${outDir}`],
+        {
+          stdio: ['pipe', 'inherit', 'inherit'],
+          env: { ...envWithGradle(), ASTER_ROOT: process.cwd() },
+        }
+      );
+      proc.on('error', reject);
+      proc.on('close', code =>
+        code === 0 ? resolve() : reject(new Error(`emitter exited ${code}`))
+      );
+      proc.stdin.write(payload);
+      proc.stdin.end();
     });
-    proc.on('error', reject);
-    proc.on('close', code =>
-      code === 0 ? resolve() : reject(new Error(`emitter exited ${code}`))
-    );
-    proc.stdin.write(payload);
-    proc.stdin.end();
-  });
+  }
   console.log('Emitted classes to build/jvm-classes');
 }
 

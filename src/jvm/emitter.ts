@@ -233,6 +233,7 @@ function emitStatement(
     case 'Match': {
       // Try optimized enum switch when all cases are enum variants from the same enum
       const allPatName = s.cases.every(c => c.pattern.kind === 'PatName');
+      const allPatInt = s.cases.every(c => c.pattern.kind === 'PatInt');
       if (allPatName && s.cases.length > 0) {
         const enums = new Set<string>();
         for (const c of s.cases) {
@@ -263,6 +264,25 @@ function emitStatement(
           lines.push(`${indent}}\n`);
           return lines.join('\n');
         }
+      }
+      // Integers: emit a simple switch (string-emitter only)
+      if (allPatInt && s.cases.length > 0) {
+        const scrut = emitExpr(s.expr, helpers);
+        const lines: string[] = [];
+        lines.push(`${indent}{`);
+        lines.push(`${indent}  switch (${scrut}) {`);
+        for (const c of s.cases) {
+          const v = (c.pattern as any).value as number;
+          lines.push(`${indent}    case ${v}: {`);
+          const bodyStr = emitCaseBody(c.body, locals, helpers, indent + '      ');
+          lines.push(bodyStr);
+          if (c.body.kind !== 'Return') lines.push(`${indent}      break;`);
+          lines.push(`${indent}    }`);
+        }
+        lines.push(`${indent}    default: break;`);
+        lines.push(`${indent}  }`);
+        lines.push(`${indent}}\n`);
+        return lines.join('\n');
       }
       // Fallback: handle nullable, data ctor name pattern, and basic PatName
       const scrut = emitExpr(s.expr, helpers);

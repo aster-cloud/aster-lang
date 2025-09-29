@@ -201,6 +201,21 @@ export function lex(input: string): Token[] {
       const start = { line, col };
       let num = '';
       while (isDigit(peek())) num += next();
+      // Look for decimal part
+      if (peek() === '.' && /\d/.test(input[i + 1] || '')) {
+        num += next(); // '.'
+        while (isDigit(peek())) num += next();
+        const val = parseFloat(num);
+        push(TokenKind.FLOAT, val, start);
+        continue;
+      }
+      // Look for long suffix 'L' or 'l'
+      if (peek().toLowerCase() === 'l') {
+        next();
+        const val = parseInt(num, 10);
+        push(TokenKind.LONG, val, start);
+        continue;
+      }
       push(TokenKind.INT, parseInt(num, 10), start);
       continue;
     }

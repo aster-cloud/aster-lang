@@ -4,7 +4,7 @@
 
 # Interface: Match
 
-Defined in: [types.ts:406](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L406)
+Defined in: [types.ts:424](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L424)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:406](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"Match"`
 
-Defined in: [types.ts:407](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L407)
+Defined in: [types.ts:425](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L425)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:407](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:408](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L408)
+Defined in: [types.ts:426](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L426)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:408](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **cases**: readonly [`Case`](Case.md)[]
 
-Defined in: [types.ts:409](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L409)
+Defined in: [types.ts:427](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L427)

@@ -4,6 +4,6 @@
 
 # Type Alias: Pattern
 
-> **Pattern** = [`PatNull`](../interfaces/PatNull.md) \| [`PatCtor`](../interfaces/PatCtor.md) \| [`PatName`](../interfaces/PatName.md)
+> **Pattern** = [`PatNull`](../interfaces/PatNull.md) \| [`PatCtor`](../interfaces/PatCtor.md) \| [`PatName`](../interfaces/PatName.md) \| [`PatInt`](../interfaces/PatInt.md)
 
-Defined in: [types.ts:418](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L418)
+Defined in: [types.ts:436](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L436)

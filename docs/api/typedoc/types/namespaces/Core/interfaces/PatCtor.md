@@ -4,7 +4,7 @@
 
 # Interface: PatCtor
 
-Defined in: [types.ts:424](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L424)
+Defined in: [types.ts:442](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L442)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:424](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"PatCtor"`
 
-Defined in: [types.ts:425](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L425)
+Defined in: [types.ts:443](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L443)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:425](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:426](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L426)
+Defined in: [types.ts:444](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L444)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:426](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:427](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L427)
+Defined in: [types.ts:445](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L445)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:427](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` `optional` **args**: readonly [`Pattern`](../type-aliases/Pattern.md)[]
 
-Defined in: [types.ts:428](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L428)
+Defined in: [types.ts:446](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L446)

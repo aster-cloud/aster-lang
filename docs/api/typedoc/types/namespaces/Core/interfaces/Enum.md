@@ -4,7 +4,7 @@
 
 # Interface: Enum
 
-Defined in: [types.ts:338](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L338)
+Defined in: [types.ts:356](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L356)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:338](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"Enum"`
 
-Defined in: [types.ts:339](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L339)
+Defined in: [types.ts:357](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L357)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:339](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L340)
+Defined in: [types.ts:358](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L358)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **variants**: readonly `string`[]
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L341)
+Defined in: [types.ts:359](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L359)

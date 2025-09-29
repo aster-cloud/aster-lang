@@ -46,6 +46,8 @@ export const Node = {
   Bool: (value: boolean): AST.Bool => ({ kind: 'Bool', value }),
   Null: (): AST.Null => ({ kind: 'Null' }),
   Int: (value: number): AST.Int => ({ kind: 'Int', value }),
+  Long: (value: number): AST.Long => ({ kind: 'Long', value }),
+  Double: (value: number): AST.Double => ({ kind: 'Double', value }),
   String: (value: string): AST.String => ({ kind: 'String', value }),
   Call: (target: AST.Expression, args: readonly AST.Expression[]): AST.Call => ({
     kind: 'Call',
@@ -94,4 +96,5 @@ export const Node = {
     ...(args && args.length > 0 ? { args } : {}),
   }),
   PatternName: (name: string): AST.PatternName => ({ kind: 'PatternName', name }),
+  PatternInt: (value: number): AST.PatternInt => ({ kind: 'PatternInt', value }),
 };

@@ -4,7 +4,7 @@
 
 # Interface: AstNode
 
-Defined in: [types.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L50)
+Defined in: [types.ts:52](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L52)
 
 ## Extended by
 
@@ -25,10 +25,13 @@ Defined in: [types.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/c2afec
 - [`PatternNull`](PatternNull.md)
 - [`PatternCtor`](PatternCtor.md)
 - [`PatternName`](PatternName.md)
+- [`PatternInt`](PatternInt.md)
 - [`Await`](Await.md)
 - [`Name`](Name.md)
 - [`Bool`](Bool.md)
 - [`Int`](Int.md)
+- [`Long`](Long.md)
+- [`Double`](Double.md)
 - [`String`](String.md)
 - [`Null`](Null.md)
 - [`Call`](Call.md)
@@ -54,4 +57,4 @@ Defined in: [types.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/c2afec
 
 > `readonly` **kind**: `string`
 
-Defined in: [types.ts:51](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L51)
+Defined in: [types.ts:53](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L53)

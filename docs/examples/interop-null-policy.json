@@ -1,0 +1,7 @@
+{
+  "Text.equals": [true, true],
+  "Text.concat": [false, false],
+  "Map.get": [false, true],
+  "Set.contains": [false, true]
+}
+

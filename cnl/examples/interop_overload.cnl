@@ -11,3 +11,9 @@ To pickBool, produce Text:
 
 To pickStr, produce Text:
   Return Interop.pick("hello").
+
+To pickLong, produce Text:
+  Return Interop.pick(1L).
+
+To pickDouble, produce Text:
+  Return Interop.pick(1.0).

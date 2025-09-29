@@ -4,7 +4,7 @@
 
 # Interface: PatNull
 
-Defined in: [types.ts:420](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L420)
+Defined in: [types.ts:438](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L438)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:420](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"PatNull"`
 
-Defined in: [types.ts:421](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L421)
+Defined in: [types.ts:439](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L439)
 
 #### Overrides
 

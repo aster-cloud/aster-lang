@@ -4,7 +4,7 @@
 
 # Interface: Bool
 
-Defined in: [types.ts:455](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L455)
+Defined in: [types.ts:480](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L480)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:455](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"Bool"`
 
-Defined in: [types.ts:456](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L456)
+Defined in: [types.ts:481](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L481)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:456](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **value**: `boolean`
 
-Defined in: [types.ts:457](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L457)
+Defined in: [types.ts:482](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L482)

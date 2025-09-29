@@ -95,6 +95,10 @@ function lowerExpr(e: Expression): import('./types.js').Core.Expression {
       return Core.Bool(e.value);
     case 'Int':
       return Core.Int(e.value);
+    case 'Long':
+      return Core.Long(e.value);
+    case 'Double':
+      return Core.Double(e.value);
     case 'String':
       return Core.String(e.value);
     case 'Null':
@@ -181,6 +185,8 @@ function lowerPattern(p: Pattern): import('./types.js').Core.Pattern {
   switch (p.kind) {
     case 'PatternNull':
       return Core.PatNull();
+    case 'PatternInt':
+      return Core.PatInt(p.value);
     case 'PatternCtor': {
       const ctor = p as Pattern & { args?: readonly Pattern[] };
       const args = ctor.args ? ctor.args.map(pp => lowerPattern(pp)) : undefined;

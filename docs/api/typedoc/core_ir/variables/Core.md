@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -326,6 +326,34 @@ readonly `string`[]
 
 [`Int`](../../types/namespaces/Core/interfaces/Int.md)
 
+### Long()
+
+> **Long**: (`value`) => [`Long`](../../types/namespaces/Core/interfaces/Long.md)
+
+#### Parameters
+
+##### value
+
+`number`
+
+#### Returns
+
+[`Long`](../../types/namespaces/Core/interfaces/Long.md)
+
+### Double()
+
+> **Double**: (`value`) => [`Double`](../../types/namespaces/Core/interfaces/Double.md)
+
+#### Parameters
+
+##### value
+
+`number`
+
+#### Returns
+
+[`Double`](../../types/namespaces/Core/interfaces/Double.md)
+
 ### String()
 
 > **String**: (`value`) => [`String`](../../types/namespaces/Core/interfaces/String.md)
@@ -615,3 +643,17 @@ readonly [`Pattern`](../../types/namespaces/Core/type-aliases/Pattern.md)[]
 #### Returns
 
 [`PatName`](../../types/namespaces/Core/interfaces/PatName.md)
+
+### PatInt()
+
+> **PatInt**: (`value`) => [`PatInt`](../../types/namespaces/Core/interfaces/PatInt.md)
+
+#### Parameters
+
+##### value
+
+`number`
+
+#### Returns
+
+[`PatInt`](../../types/namespaces/Core/interfaces/PatInt.md)

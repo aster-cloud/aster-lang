@@ -6,7 +6,7 @@ import path from 'node:path';
 function sh(cmd: string, opts: cp.ExecSyncOptions = {}): void {
   const extraEnv = (opts.env ?? {}) as Record<string, string | undefined>;
   const env: Record<string, string | undefined> = {
-    GRADLE_USER_HOME: require('node:path').resolve('build/.gradle'),
+    GRADLE_USER_HOME: path.resolve('build/.gradle'),
     GRADLE_OPTS: `${process.env.GRADLE_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
     JAVA_OPTS: `${process.env.JAVA_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
     ...process.env,
@@ -40,6 +40,14 @@ async function main(): Promise<void> {
     process.exit(2);
   }
   const src = fs.readFileSync(input, 'utf8');
+  // Generate primitive hints sidecar
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const r = spawnSync(process.execPath, ['dist/scripts/emit-hints.js', input], { stdio: 'inherit' });
+    if (r.status !== 0) console.error('WARN: hints generation failed');
+  } catch (e) {
+    console.error('WARN: hints generation error:', (e as Error).message);
+  }
   // Basic sanity check: expect a Module JSON
   if (!src.trim().startsWith('{')) {
     console.error('Input does not look like JSON:', input);
@@ -60,6 +68,8 @@ async function main(): Promise<void> {
       GRADLE_USER_HOME: path.resolve('build/.gradle'),
       GRADLE_OPTS: `${process.env.GRADLE_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
       JAVA_OPTS: `${process.env.JAVA_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
+      HINTS_PATH: path.resolve('build/hints.json'),
+      ASTER_ROOT: process.cwd(),
       ...process.env,
     };
     const proc = cp.spawn(runCmd, [':aster-asm-emitter:run', `--args=${outDir}`], {

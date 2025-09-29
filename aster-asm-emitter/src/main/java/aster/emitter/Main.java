@@ -12,12 +12,19 @@ import java.util.*;
 import static org.objectweb.asm.Opcodes.*;
 
 public final class Main {
+  static boolean DIAG_OVERLOAD = true;
+  static boolean NULL_STRICT = false;
+  static final java.util.Map<String, boolean[]> NULL_POLICY_OVERRIDE = new java.util.LinkedHashMap<>();
   record Ctx(
     Path outDir,
     Map<String,String> enumVarToEnum,
     Map<String, CoreModel.Data> dataSchema,
     Map<String, java.util.List<String>> enumVariants,
-    java.util.concurrent.atomic.AtomicInteger lambdaSeq
+    java.util.concurrent.atomic.AtomicInteger lambdaSeq,
+    Map<String, Map<String, Character>> funcHints,
+    java.util.Map<String, java.util.List<String>> methodCache,
+    Path cachePath,
+    java.util.Map<String, String> stringPool
   ) {}
 
   public static void main(String[] args) throws Exception {
@@ -28,15 +35,93 @@ public final class Main {
     var out = Paths.get(args.length > 0 ? args[0] : "build/jvm-classes");
     Files.createDirectories(out);
 
-    var enumMap = new HashMap<String,String>();
-    var dataSchema = new HashMap<String, CoreModel.Data>();
+    var enumMap = new java.util.LinkedHashMap<String,String>();
+    var dataSchema = new java.util.LinkedHashMap<String, CoreModel.Data>();
     for (var d0 : module.decls) {
       if (d0 instanceof CoreModel.Enum en0) for (var v : en0.variants) enumMap.put(v, en0.name);
       if (d0 instanceof CoreModel.Data da0) dataSchema.put(da0.name, da0);
     }
-    var enumVariants = new HashMap<String, java.util.List<String>>();
+    var enumVariants = new java.util.LinkedHashMap<String, java.util.List<String>>();
     for (var d0 : module.decls) if (d0 instanceof CoreModel.Enum en0) enumVariants.put(en0.name, en0.variants);
-    var ctx = new Ctx(out, enumMap, dataSchema, enumVariants, new java.util.concurrent.atomic.AtomicInteger(0));
+    // Load optional hints
+    Map<String, Map<String, Character>> hints = new java.util.LinkedHashMap<>();
+    String hintsPath = System.getenv("HINTS_PATH");
+    if (hintsPath != null && !hintsPath.isEmpty()) {
+      try {
+        var txt = Files.readString(Paths.get(hintsPath));
+        var node = mapper.readTree(txt);
+        var fns = node.get("functions");
+        if (fns != null && fns.isObject()) {
+          var it = fns.fields();
+          while (it.hasNext()) {
+            var e = it.next();
+            var fnName = e.getKey();
+            var obj = e.getValue();
+            if (obj != null && obj.isObject()) {
+              Map<String, Character> m = new java.util.LinkedHashMap<>();
+              var it2 = obj.fields();
+              while (it2.hasNext()) {
+                var e2 = it2.next();
+                String kind = e2.getValue().asText("");
+                if ("I".equals(kind) || "J".equals(kind) || "D".equals(kind)) m.put(e2.getKey(), kind.charAt(0));
+              }
+              hints.put(fnName, m);
+            }
+          }
+        }
+        System.out.println("Loaded hints from " + hintsPath + ": " + hints.size() + " functions");
+      } catch (Exception ex) {
+        System.err.println("WARN: failed to load hints: " + ex.getMessage());
+      }
+    }
+    // Diagnostics + nullability strict toggle
+    try {
+      String d = System.getenv("DIAG_OVERLOAD");
+      if (d != null && !d.isEmpty()) DIAG_OVERLOAD = Boolean.parseBoolean(d);
+      String ns = System.getenv("INTEROP_NULL_STRICT");
+      if (ns != null && !ns.isEmpty()) NULL_STRICT = Boolean.parseBoolean(ns);
+      String np = System.getenv("INTEROP_NULL_POLICY");
+      if (np != null && !np.isEmpty()) {
+        try {
+          var node = mapper.readTree(java.nio.file.Files.readString(java.nio.file.Paths.get(np)));
+          var f = node.fields();
+          while (f.hasNext()) {
+            var e = f.next();
+            var arr = e.getValue();
+            if (arr != null && arr.isArray()) {
+              boolean[] vals = new boolean[arr.size()];
+              for (int i = 0; i < arr.size(); i++) vals[i] = arr.get(i).asBoolean(false);
+              NULL_POLICY_OVERRIDE.put(e.getKey(), vals);
+            }
+          }
+        } catch (Exception ex) {
+          System.err.println("WARN: failed to load INTEROP_NULL_POLICY: " + ex.getMessage());
+        }
+      }
+    } catch (Throwable __) { /* ignore */ }
+    // Load lightweight method cache
+    java.util.Map<String, java.util.List<String>> methodCache = METHOD_CACHE;
+    String root = System.getenv("ASTER_ROOT");
+    Path base = (root != null && !root.isEmpty()) ? Paths.get(root) : Paths.get("");
+    Path cacheRoot = base.resolve("build/.asteri");
+    Files.createDirectories(cacheRoot);
+    Path cachePath = cacheRoot.resolve("method-cache.json");
+    try {
+      if (Files.exists(cachePath)) {
+        var node = mapper.readTree(Files.readString(cachePath));
+        var it = node.fields();
+        while (it.hasNext()) {
+          var e = it.next();
+          var arr = e.getValue();
+          java.util.List<String> list = new java.util.ArrayList<>();
+          if (arr != null && arr.isArray()) for (var el : arr) list.add(el.asText());
+          METHOD_CACHE.put(e.getKey(), list);
+        }
+      }
+    } catch (Exception ex) {
+      System.err.println("WARN: failed to load method-cache.json: " + ex.getMessage());
+    }
+    var ctx = new Ctx(out, enumMap, dataSchema, enumVariants, new java.util.concurrent.atomic.AtomicInteger(0), hints, methodCache, cachePath, new java.util.LinkedHashMap<>());
     String pkgName = (module.name == null || module.name.isEmpty()) ? "app" : module.name;
     for (var d : module.decls) {
       if (d instanceof CoreModel.Data data) emitData(ctx, pkgName, data);
@@ -52,6 +137,18 @@ public final class Main {
       String json = "{\n  \"modules\": [{ \"cnl\": \"" + pkg + "\", \"jvm\": \"" + pkg + "\" }]\n}";
       Files.writeString(mapPath, json, java.nio.charset.StandardCharsets.UTF_8);
       System.out.println("WROTE package-map.json to " + mapPath.toAbsolutePath());
+      // Persist method cache
+      try {
+        var obj = new com.fasterxml.jackson.databind.node.ObjectNode(mapper.getNodeFactory());
+        for (var e : METHOD_CACHE.entrySet()) {
+          var arr = new com.fasterxml.jackson.databind.node.ArrayNode(mapper.getNodeFactory());
+          for (var s : e.getValue()) arr.add(s);
+          obj.set(e.getKey(), arr);
+        }
+        Files.writeString(ctx.cachePath, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj));
+      } catch (Exception ex) {
+        System.err.println("WARN: failed to write method-cache.json: " + ex.getMessage());
+      }
     } catch (Exception ex) {
       System.err.println("WARN: failed to write package-map.json: " + ex.getMessage());
     }
@@ -170,30 +267,120 @@ public final class Main {
     }
 
     int nextSlot = fn.params.size();
-    var env = new java.util.HashMap<String,Integer>();
-    var intLocals = new java.util.HashSet<String>();
+    var env = new java.util.LinkedHashMap<String,Integer>();
+    var intLocals = new java.util.LinkedHashSet<String>();
+    var longLocals = new java.util.LinkedHashSet<String>();
+    var doubleLocals = new java.util.LinkedHashSet<String>();
     for (int i=0;i<fn.params.size();i++) {
       var p = fn.params.get(i);
       env.put(p.name, i);
-      if (p.type instanceof CoreModel.TypeName tn && ("Int".equals(tn.name) || "Bool".equals(tn.name))) intLocals.add(p.name);
+      if (p.type instanceof CoreModel.TypeName tn) {
+        if ("Int".equals(tn.name) || "Bool".equals(tn.name)) intLocals.add(p.name);
+        else if ("Long".equals(tn.name)) longLocals.add(p.name);
+        else if ("Double".equals(tn.name)) doubleLocals.add(p.name);
+      }
     }
 
 
     // Handle a small subset: sequence of statements with Let/If/Match/Return
     if (fn.body != null && fn.body.statements != null && !fn.body.statements.isEmpty()) {
       // slot plan: params in [0..N-1], temp locals start at N
-      for (var st : fn.body.statements) {
+    Map<String, Character> fnHints = ctx.funcHints.getOrDefault(pkg + "." + fn.name, java.util.Collections.emptyMap());
+    java.util.function.Function<CoreModel.Expr, Character> classify = (expr) -> classifyNumeric(expr, intLocals, longLocals, doubleLocals);
+    for (var st : fn.body.statements) {
         var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
         if (st instanceof CoreModel.Let let) {
           // MVP: recognize boolean let ok = AuthRepo.verify(user, pass)
           if (Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
-            emitExpr(ctx, mv, let.expr, "Z", pkg, 0, env, intLocals);
+            emitExpr(ctx, mv, let.expr, "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
             mv.visitVarInsn(ISTORE, nextSlot);
             env.put(let.name, nextSlot);
             intLocals.add(let.name);
             lvars.add(new LV(let.name, "Z", nextSlot));
+          } else if (let.expr instanceof CoreModel.LongE) {
+            emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
+            mv.visitVarInsn(LSTORE, nextSlot);
+            env.put(let.name, nextSlot);
+            longLocals.add(let.name);
+            lvars.add(new LV(let.name, "J", nextSlot));
+          } else if (let.expr instanceof CoreModel.DoubleE) {
+            emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
+            mv.visitVarInsn(DSTORE, nextSlot);
+            env.put(let.name, nextSlot);
+            doubleLocals.add(let.name);
+            lvars.add(new LV(let.name, "D", nextSlot));
+          } else if (let.expr instanceof CoreModel.IntE) {
+            emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
+            mv.visitVarInsn(ISTORE, nextSlot);
+            env.put(let.name, nextSlot);
+            intLocals.add(let.name);
+            lvars.add(new LV(let.name, "I", nextSlot));
+          } else if (let.expr instanceof CoreModel.Name nn) {
+            // Propagate primitive kind from source local
+            if (doubleLocals.contains(nn.name)) {
+              emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
+              mv.visitVarInsn(DSTORE, nextSlot);
+              env.put(let.name, nextSlot);
+              doubleLocals.add(let.name);
+              lvars.add(new LV(let.name, "D", nextSlot));
+            } else if (longLocals.contains(nn.name)) {
+              emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
+              mv.visitVarInsn(LSTORE, nextSlot);
+              env.put(let.name, nextSlot);
+              longLocals.add(let.name);
+              lvars.add(new LV(let.name, "J", nextSlot));
+            } else if (intLocals.contains(nn.name)) {
+              emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
+              mv.visitVarInsn(ISTORE, nextSlot);
+              env.put(let.name, nextSlot);
+              intLocals.add(let.name);
+              lvars.add(new LV(let.name, "I", nextSlot));
+            } else {
+              emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
+              mv.visitVarInsn(ASTORE, nextSlot);
+              env.put(let.name, nextSlot);
+              lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
+            }
+          } else if (let.expr instanceof CoreModel.Call c2) {
+            // Attempt to classify arbitrary numeric expression recursively
+            Character k = classify.apply(let.expr);
+            if (k != null) {
+              if (k == 'D') {
+                emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
+                mv.visitVarInsn(DSTORE, nextSlot);
+                env.put(let.name, nextSlot);
+                doubleLocals.add(let.name);
+                lvars.add(new LV(let.name, "D", nextSlot));
+              } else if (k == 'J') {
+                emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
+                mv.visitVarInsn(LSTORE, nextSlot);
+                env.put(let.name, nextSlot);
+                longLocals.add(let.name);
+                lvars.add(new LV(let.name, "J", nextSlot));
+              } else {
+                emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
+                mv.visitVarInsn(ISTORE, nextSlot);
+                env.put(let.name, nextSlot);
+                intLocals.add(let.name);
+                lvars.add(new LV(let.name, "I", nextSlot));
+              }
+            } else {
+              // Unknown call — consider hints
+              Character h = fnHints.get(let.name);
+              if (h != null) {
+                if (h == 'D') { emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(DSTORE, nextSlot); doubleLocals.add(let.name); lvars.add(new LV(let.name, "D", nextSlot)); }
+                else if (h == 'J') { emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(LSTORE, nextSlot); longLocals.add(let.name); lvars.add(new LV(let.name, "J", nextSlot)); }
+                else { emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(ISTORE, nextSlot); intLocals.add(let.name); lvars.add(new LV(let.name, "I", nextSlot)); }
+                env.put(let.name, nextSlot);
+              } else {
+                emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                mv.visitVarInsn(ASTORE, nextSlot);
+                env.put(let.name, nextSlot);
+                lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
+              }
+            }
           } else {
-            emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals);
+            emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
             mv.visitVarInsn(ASTORE, nextSlot);
             env.put(let.name, nextSlot);
             lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
@@ -207,14 +394,14 @@ public final class Main {
           // cond
           if (iff.cond instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn && Objects.equals(nn.name, "not")) {
             // not(x): if x is true, go to else; if x is false, go to then
-            emitExpr(ctx, mv, c.args.get(0), "Z", pkg, 0, env, intLocals);
+            emitExpr(ctx, mv, c.args.get(0), "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
             mv.visitJumpInsn(IFNE, lElse);
           } else if (iff.cond instanceof CoreModel.Name n && env.containsKey(n.name)) {
             var slot = env.get(n.name);
             mv.visitVarInsn(ILOAD, slot);
             mv.visitJumpInsn(IFEQ, lElse);
           } else {
-            emitExpr(ctx, mv, iff.cond, "Z", pkg, 0, env, intLocals);
+            emitExpr(ctx, mv, iff.cond, "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
             mv.visitJumpInsn(IFEQ, lElse);
           }
           // then
@@ -222,7 +409,7 @@ public final class Main {
           if (iff.thenBlock != null && iff.thenBlock.statements != null && !iff.thenBlock.statements.isEmpty()) {
             var last = iff.thenBlock.statements.get(iff.thenBlock.statements.size()-1);
             if (last instanceof CoreModel.Return r) {
-              emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals);
+              emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
               if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
             }
           }
@@ -233,7 +420,7 @@ public final class Main {
           if (iff.elseBlock != null && iff.elseBlock.statements != null && !iff.elseBlock.statements.isEmpty()) {
             var last2 = iff.elseBlock.statements.get(iff.elseBlock.statements.size()-1);
             if (last2 instanceof CoreModel.Return r2) {
-              emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals);
+              emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
               if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
             }
           }
@@ -243,7 +430,7 @@ public final class Main {
         if (st instanceof CoreModel.Match mm) {
           // Evaluate scrutinee once into a temp local
           int scrSlot = nextSlot++;
-          emitExpr(ctx, mv, mm.expr, null, pkg, 0, env, intLocals);
+          emitExpr(ctx, mv, mm.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
           mv.visitVarInsn(ASTORE, scrSlot);
           lvars.add(new LV("_scr", "Ljava/lang/Object;", scrSlot));
 
@@ -303,6 +490,160 @@ public final class Main {
                 continue;
               }
             }
+            boolean allInt = mm.cases != null && mm.cases.stream().allMatch(c -> c.pattern instanceof CoreModel.PatInt);
+            boolean anyInt = mm.cases != null && mm.cases.stream().anyMatch(c -> c.pattern instanceof CoreModel.PatInt);
+            if (anyInt && mm.cases != null) {
+              java.util.List<CoreModel.Case> nonInt = new java.util.ArrayList<>();
+              for (var c : mm.cases) if (!(c.pattern instanceof CoreModel.PatInt)) nonInt.add(c);
+              // Mixed int + single catch-all PatName -> switch with default to that body
+              if (!nonInt.isEmpty() && nonInt.size() == 1 && nonInt.get(0).pattern instanceof CoreModel.PatName) {
+                mv.visitVarInsn(ALOAD, scrSlot);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+                int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
+                int countInt = 0;
+                for (var c : mm.cases) if (c.pattern instanceof CoreModel.PatInt pi) { int v = pi.value; if (v < min) min = v; if (v > max) max = v; countInt++; }
+                if (countInt > 0) {
+                  int span = max - min + 1;
+                  var defaultLInt = new Label();
+                  var endLabelInt = new Label();
+                  boolean usedEndInt = false;
+                  if (span > 0 && span <= 6 * countInt) {
+                    var labels = new Label[span];
+                    for (int i2 = 0; i2 < span; i2++) labels[i2] = new Label();
+                    mv.visitTableSwitchInsn(min, max, defaultLInt, labels);
+                    for (var c : mm.cases) if (c.pattern instanceof CoreModel.PatInt) {
+                      int idx = ((CoreModel.PatInt)c.pattern).value - min;
+                      mv.visitLabel(labels[idx]);
+                      { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+                      if (c.body instanceof CoreModel.Return rr) {
+                        emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                      } else if (c.body instanceof CoreModel.Block bb) {
+                        for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
+                          emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                          if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                        }
+                        mv.visitJumpInsn(GOTO, endLabelInt);
+                        usedEndInt = true;
+                      }
+                    }
+                  } else {
+                    int n = countInt;
+                    int[] keys = new int[n];
+                    Label[] labels = new Label[n];
+                    int k = 0;
+                    for (var c : mm.cases) if (c.pattern instanceof CoreModel.PatInt) { keys[k] = ((CoreModel.PatInt)c.pattern).value; labels[k] = new Label(); k++; }
+                    mv.visitLookupSwitchInsn(defaultLInt, keys, labels);
+                    k = 0;
+                    for (var c : mm.cases) if (c.pattern instanceof CoreModel.PatInt) {
+                      mv.visitLabel(labels[k++]);
+                      { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+                      if (c.body instanceof CoreModel.Return rr) {
+                        emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                      } else if (c.body instanceof CoreModel.Block bb) {
+                        for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
+                          emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                          if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                        }
+                        mv.visitJumpInsn(GOTO, endLabelInt);
+                        usedEndInt = true;
+                      }
+                    }
+                  }
+                  // Default: emit the non-int case body
+                  mv.visitLabel(defaultLInt);
+                  { var lCaseD = new Label(); mv.visitLabel(lCaseD); mv.visitLineNumber(lineNo.getAndIncrement(), lCaseD); }
+                  var cdef = nonInt.get(0);
+                  if (cdef.body instanceof CoreModel.Return rr) {
+                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                  } else if (cdef.body instanceof CoreModel.Block bb) {
+                    for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
+                      emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                      if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                    }
+                    // unify fall-through to end
+                    mv.visitJumpInsn(GOTO, endLabelInt);
+                  }
+                  if (usedEndInt) mv.visitLabel(endLabelInt);
+                  continue;
+                }
+              }
+            }
+            if (allInt && mm.cases != null && !mm.cases.isEmpty()) {
+              // Build switch over int scrutinee value
+              mv.visitVarInsn(ALOAD, scrSlot);
+              mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+              mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+              int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
+              for (var c : mm.cases) { int v = ((CoreModel.PatInt)c.pattern).value; if (v < min) min = v; if (v > max) max = v; }
+              int span = max - min + 1;
+              if (span > 0 && span <= 6 * mm.cases.size()) {
+                // Dense enough → tableswitch
+                var defaultLInt = new Label();
+                var endLabelInt = new Label();
+                boolean usedEndInt = false;
+                var labels = new Label[span];
+                for (int i2 = 0; i2 < span; i2++) labels[i2] = new Label();
+                mv.visitTableSwitchInsn(min, max, defaultLInt, labels);
+                // Emit bodies
+                for (var c : mm.cases) {
+                  int idx = ((CoreModel.PatInt)c.pattern).value - min;
+                  mv.visitLabel(labels[idx]);
+                  { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+                  if (c.body instanceof CoreModel.Return rr) {
+                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                  } else if (c.body instanceof CoreModel.Block bb) {
+                    // Minimal: evaluate last statement if Return; otherwise fall-through to end
+                    for (var st2 : bb.statements) {
+                      if (st2 instanceof CoreModel.Return r2) {
+                        emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                      }
+                    }
+                    mv.visitJumpInsn(GOTO, endLabelInt);
+                    usedEndInt = true;
+                  }
+                }
+                mv.visitLabel(defaultLInt);
+                if (usedEndInt) mv.visitLabel(endLabelInt);
+                continue;
+              } else {
+                // Sparse → lookupswitch
+                var defaultLInt = new Label();
+                var endLabelInt = new Label();
+                boolean usedEndInt = false;
+                int n = mm.cases.size();
+                int[] keys = new int[n];
+                Label[] labels = new Label[n];
+                for (int i2=0;i2<n;i2++){ keys[i2]=((CoreModel.PatInt)mm.cases.get(i2).pattern).value; labels[i2]=new Label(); }
+                mv.visitLookupSwitchInsn(defaultLInt, keys, labels);
+                for (int i2=0;i2<n;i2++) {
+                  var c = mm.cases.get(i2);
+                  mv.visitLabel(labels[i2]);
+                  { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+                  if (c.body instanceof CoreModel.Return rr) {
+                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                  } else if (c.body instanceof CoreModel.Block bb) {
+                    for (var st2 : bb.statements) {
+                      if (st2 instanceof CoreModel.Return r2) {
+                        emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                      }
+                    }
+                    mv.visitJumpInsn(GOTO, endLabelInt);
+                    usedEndInt = true;
+                  }
+                }
+                mv.visitLabel(defaultLInt);
+                if (usedEndInt) mv.visitLabel(endLabelInt);
+                continue;
+              }
+            }
             for (var c : mm.cases) {
               var nextCase = new Label();
               if (c.pattern instanceof CoreModel.PatNull) {
@@ -310,7 +651,7 @@ public final class Main {
                 mv.visitJumpInsn(IFNONNULL, nextCase);
                 { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                 if (c.body instanceof CoreModel.Return rr) {
-                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals);
+                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
                   if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                 }
                 mv.visitLabel(nextCase);
@@ -344,7 +685,7 @@ public final class Main {
                   }
                 }
                 if (c.body instanceof CoreModel.Return rr) {
-                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals);
+                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
                   if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                 }
                 mv.visitLabel(nextCase);
@@ -359,7 +700,7 @@ public final class Main {
                   mv.visitJumpInsn(IF_ACMPNE, nextCase);
                   { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                   if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals);
+                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
                     if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                   }
                   mv.visitLabel(nextCase);
@@ -374,11 +715,24 @@ public final class Main {
                     lvars.add(new LV(variant, "Ljava/lang/Object;", bind));
                   }
                   if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals);
+                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
                     if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                   }
                   mv.visitLabel(nextCase);
                 }
+              } else if (c.pattern instanceof CoreModel.PatInt pi) {
+                // Compare Integer scrutinee value with literal
+                mv.visitVarInsn(ALOAD, scrSlot);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+                emitConstInt(mv, pi.value);
+                mv.visitJumpInsn(IF_ICMPNE, nextCase);
+                { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+                if (c.body instanceof CoreModel.Return rr) {
+                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                  if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                }
+                mv.visitLabel(nextCase);
               }
             }
           }
@@ -420,7 +774,7 @@ public final class Main {
             // Reserve a local for the final Result to return
             int res = nextSlot++;
             mv.visitLabel(lTryStart);
-            emitExpr(ctx, mv, r.expr, null, pkg, 0, env, intLocals); // leave object on stack
+            emitExpr(ctx, mv, r.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals); // leave object on stack
             // store in temp then construct Ok(temp)
             int tmp = nextSlot++;
             mv.visitVarInsn(ASTORE, tmp);
@@ -452,7 +806,7 @@ public final class Main {
             mv.visitLocalVariable("_ex", "Ljava/lang/Throwable;", null, lCatch, lRet, ex);
             continue;
           }
-          emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals);
+          emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
           if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
           var lEnd2 = new Label(); mv.visitLabel(lEnd2);
           for (var lv : lvars) mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEnd2, lv.slot);
@@ -477,12 +831,14 @@ public final class Main {
 
   static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e) { emitExpr(ctx, mv, e, null, null, 0); }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, null, null); }
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, null, null, null, null); }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, java.util.Set<String> intLocals) {
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, java.util.Set<String> intLocals) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, env, intLocals, null, null); }
+
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals) {
     // Result erasure: if expectedDesc looks like Result, we just leave object on stack
 
-    if (e instanceof CoreModel.StringE s) { mv.visitLdcInsn(s.value); return; }
+    if (e instanceof CoreModel.StringE s) { emitConstString(ctx, mv, s.value); return; }
     if (e instanceof CoreModel.Bool b) { mv.visitInsn(b.value ? ICONST_1 : ICONST_0); return; }
     // Boolean not intrinsic: if expectedDesc is Z and expr is Call(Name("not"), [x])
     if (e instanceof CoreModel.Call c1 && c1.target instanceof CoreModel.Name nn1 && Objects.equals(nn1.name, "not") && "Z".equals(expectedDesc)) {
@@ -498,13 +854,13 @@ public final class Main {
     }
 
     if (e instanceof CoreModel.IntE i) {
-      if ("Ljava/lang/Object;".equals(expectedDesc)) {
-        mv.visitLdcInsn(Integer.valueOf(i.value));
-      } else {
-        mv.visitLdcInsn(i.value);
-      }
+      if ("J".equals(expectedDesc)) { emitConstLong(mv, i.value); return; }
+      if ("D".equals(expectedDesc)) { emitConstDouble(mv, (double)i.value); return; }
+      emitConstInt(mv, i.value);
       return;
     }
+    if (e instanceof CoreModel.LongE li) { emitConstLong(mv, li.value); return; }
+    if (e instanceof CoreModel.DoubleE di) { emitConstDouble(mv, di.value); return; }
 
 
 
@@ -543,7 +899,17 @@ public final class Main {
       // Locals/params via env
       if (env != null && env.containsKey(n.name)) {
         var slot = env.get(n.name);
-        if (intLocals != null && intLocals.contains(n.name)) mv.visitVarInsn(ILOAD, slot);
+        if ("J".equals(expectedDesc)) {
+          if (intLocals != null && intLocals.contains(n.name)) { mv.visitVarInsn(ILOAD, slot); mv.visitInsn(I2L); }
+          else if (longLocals != null && longLocals.contains(n.name)) { mv.visitVarInsn(LLOAD, slot); }
+          else if (doubleLocals != null && doubleLocals.contains(n.name)) { mv.visitVarInsn(DLOAD, slot); mv.visitInsn(D2L); }
+          else { mv.visitVarInsn(ALOAD, slot); }
+        } else if ("D".equals(expectedDesc)) {
+          if (intLocals != null && intLocals.contains(n.name)) { mv.visitVarInsn(ILOAD, slot); mv.visitInsn(I2D); }
+          else if (longLocals != null && longLocals.contains(n.name)) { mv.visitVarInsn(LLOAD, slot); mv.visitInsn(L2D); }
+          else if (doubleLocals != null && doubleLocals.contains(n.name)) { mv.visitVarInsn(DLOAD, slot); }
+          else { mv.visitVarInsn(ALOAD, slot); }
+        } else if (intLocals != null && intLocals.contains(n.name)) mv.visitVarInsn(ILOAD, slot);
         else mv.visitVarInsn(ALOAD, slot);
         return;
       }
@@ -603,57 +969,67 @@ public final class Main {
 
       // Text/String interop mappings (MVP)
       if (Objects.equals(name, "Text.concat") && c.args.size() == 2) {
+        warnNullability("Text.concat", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "concat", "(Ljava/lang/String;)Ljava/lang/String;", false);
         return;
       }
       if (Objects.equals(name, "Text.contains") && c.args.size() == 2) {
+        warnNullability("Text.contains", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "contains", "(Ljava/lang/CharSequence;)Z", false);
         return;
       }
       if (Objects.equals(name, "Text.equals") && c.args.size() == 2) {
+        warnNullability("Text.equals", c.args);
         emitExpr(ctx, mv, c.args.get(0), null, currentPkg, paramBase, env, intLocals);
         emitExpr(ctx, mv, c.args.get(1), null, currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
         return;
       }
       if (Objects.equals(name, "Text.toUpper") && c.args.size() == 1) {
+        warnNullability("Text.toUpper", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "toUpperCase", "()Ljava/lang/String;", false);
         return;
       }
       if (Objects.equals(name, "Text.indexOf") && c.args.size() == 2) {
+        warnNullability("Text.indexOf", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "indexOf", "(Ljava/lang/String;)I", false);
         return;
       }
       if (Objects.equals(name, "Text.startsWith") && c.args.size() == 2) {
+        warnNullability("Text.startsWith", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "startsWith", "(Ljava/lang/String;)Z", false);
         return;
       }
       if (Objects.equals(name, "Text.length") && c.args.size() == 1) {
+        warnNullability("Text.length", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
         return;
       }
       // List/Map interop
       if (Objects.equals(name, "List.length") && c.args.size() == 1) {
+        warnNullability("List.length", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "size", "()I", true);
         return;
       }
       if (Objects.equals(name, "List.isEmpty") && c.args.size() == 1) {
+        warnNullability("List.isEmpty", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "isEmpty", "()Z", true);
         return;
       }
       if (Objects.equals(name, "List.get") && c.args.size() == 2) {
+        warnNullability("List.get", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
         emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "get", "(I)Ljava/lang/Object;", true);
@@ -664,6 +1040,7 @@ public final class Main {
         return;
       }
       if (Objects.equals(name, "Map.get") && c.args.size() == 2) {
+        warnNullability("Map.get", c.args);
         emitExpr(ctx, mv, c.args.get(0), "Ljava/util/Map;", currentPkg, paramBase, env, intLocals);
         emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, intLocals);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
@@ -681,31 +1058,69 @@ public final class Main {
         String ownerInternal = cls.contains(".") ? cls.replace('.', '/') : toInternal(currentPkg, cls);
         // Very narrow special-case kept for AuthRepo.verify
         if (Objects.equals(name, "AuthRepo.verify") && c.args.size() == 2) {
-          for (var arg : c.args) emitExpr(ctx, mv, arg, null, currentPkg, paramBase, env, intLocals);
+          for (var arg : c.args) emitExpr(ctx, mv, arg, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
           mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
           return;
         }
-        // Basic overload selection heuristic: prefer int for known-int locals/literals; otherwise Object
+        // Overload selection heuristic:
+        // 1) arity match (implicit here), 2) exact primitives, 3) primitive widening across args (Int->Long/Double if any Long/Double present),
+        // 4) boxing (Object), fallback to Object.
+        warnNullability(name, c.args);
         StringBuilder mdesc = new StringBuilder("(");
+        boolean hasLong = false, hasDouble = false;
+        for (var a : c.args) {
+          Character k = classifyNumeric(a, intLocals, longLocals, doubleLocals);
+          if (k != null) { if (k == 'D') hasDouble = true; else if (k == 'J') hasLong = true; }
+        }
+        // If both present, Double dominates
+        if (hasDouble) hasLong = false;
+        java.util.List<String> argDescs = new java.util.ArrayList<>();
         for (var a : c.args) {
           String ad = "Ljava/lang/Object;";
-          if (a instanceof CoreModel.IntE) ad = "I";
-          else if (a instanceof CoreModel.Bool) ad = "Z";
+          if (a instanceof CoreModel.NullE) {
+            ad = "Ljava/lang/Object;";
+          } else if (a instanceof CoreModel.Bool) ad = "Z";
           else if (a instanceof CoreModel.StringE) ad = "Ljava/lang/String;";
-          else if (a instanceof CoreModel.Name nn2 && env != null && intLocals != null && intLocals.contains(nn2.name)) ad = "I";
+          else {
+            Character k = classifyNumeric(a, intLocals, longLocals, doubleLocals);
+            if (k != null) {
+              if (k == 'D' || hasDouble) ad = "D";
+              else if (k == 'J' || hasLong) ad = "J";
+              else ad = "I";
+            }
+          }
+          argDescs.add(ad);
           mdesc.append(ad);
         }
         String rdesc = ("I".equals(expectedDesc) || "Z".equals(expectedDesc) || "Ljava/lang/String;".equals(expectedDesc)) ? expectedDesc : "Ljava/lang/String;";
-        mdesc.append(")").append(rdesc);
-        for (var a : c.args) emitExpr(ctx, mv, a, null, currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, mdesc.toString(), false);
+        // Try reflective resolution to get an exact descriptor if class present
+        String reflectDesc = tryResolveReflect(ownerInternal, m, argDescs, rdesc);
+        String finalDesc;
+        if (reflectDesc != null) {
+          finalDesc = reflectDesc;
+        } else {
+          finalDesc = mdesc.append(")").append(rdesc).toString();
+          if (DIAG_OVERLOAD) {
+            boolean anyPrim = false;
+            for (String ad : argDescs) if ("I".equals(ad) || "J".equals(ad) || "D".equals(ad) || "Z".equals(ad)) { anyPrim = true; break; }
+            if (!anyPrim) {
+              System.err.println("HEURISTIC OVERLOAD: no primitive signal for " + ownerInternal.replace('/', '.') + "." + m + "(" + String.join(",", argDescs) + ") using heuristic " + finalDesc);
+            }
+          }
+        }
+        for (int i = 0; i < c.args.size(); i++) {
+          var a = c.args.get(i);
+          var ad = argDescs.get(i);
+          emitExpr(ctx, mv, a, ad, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+        }
+        mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, finalDesc, false);
         return;
       }
     }
     if (e instanceof CoreModel.Call cgen) {
       // Generic function value call: target is a closure implementing FnN
       int ar = (cgen.args == null) ? 0 : cgen.args.size();
-      emitExpr(ctx, mv, cgen.target, null, currentPkg, paramBase, env, intLocals);
+      emitExpr(ctx, mv, cgen.target, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
       String intf;
       String desc;
       if (ar == 0) { intf = "aster/runtime/Fn0"; desc = "()Ljava/lang/Object;"; }
@@ -715,7 +1130,7 @@ public final class Main {
       else { intf = "aster/runtime/Fn1"; desc = "(Ljava/lang/Object;)Ljava/lang/Object;"; }
       for (int i = 0; i < ar; i++) {
         // Pass arguments as Objects; for MVP, only reference types in examples
-        emitExpr(ctx, mv, cgen.args.get(i), "Ljava/lang/Object;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, cgen.args.get(i), "Ljava/lang/Object;", currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
       }
       mv.visitMethodInsn(INVOKEINTERFACE, intf, "apply", desc, true);
       if ("Ljava/lang/String;".equals(expectedDesc)) {
@@ -733,14 +1148,14 @@ public final class Main {
     if (e instanceof CoreModel.Ok ok) {
       mv.visitTypeInsn(NEW, "aster/runtime/Ok");
       mv.visitInsn(DUP);
-      emitExpr(ctx, mv, ok.expr, null, currentPkg, paramBase, env, intLocals);
+      emitExpr(ctx, mv, ok.expr, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
       mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Ok", "<init>", "(Ljava/lang/Object;)V", false);
       return;
     }
     if (e instanceof CoreModel.Err er) {
       mv.visitTypeInsn(NEW, "aster/runtime/Err");
       mv.visitInsn(DUP);
-      emitExpr(ctx, mv, er.expr, null, currentPkg, paramBase, env, intLocals);
+      emitExpr(ctx, mv, er.expr, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
       mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Err", "<init>", "(Ljava/lang/Object;)V", false);
       return;
     }
@@ -755,7 +1170,7 @@ public final class Main {
       for (var f : cons.fields) {
         String exp = "Ljava/lang/Object;";
         if (Objects.equals(f.name, "id") || Objects.equals(f.name, "name")) exp = "Ljava/lang/String;";
-        emitExpr(ctx, mv, f.expr, exp, currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, f.expr, exp, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
         descSb.append(exp);
       }
       descSb.append(")V");
@@ -880,6 +1295,7 @@ public final class Main {
         return;
       }
       if (java.util.Objects.equals(name, "Text.equals") && c.args != null && c.args.size() == 2) {
+        warnNullability("Text.equals", c.args);
         emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
         emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
         mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
@@ -887,6 +1303,7 @@ public final class Main {
         return;
       }
       if (java.util.Objects.equals(name, "Text.replace") && c.args != null && c.args.size() == 3) {
+        warnNullability("Text.replace", c.args);
         emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
         emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
@@ -897,6 +1314,7 @@ public final class Main {
         return;
       }
       if (java.util.Objects.equals(name, "Text.split") && c.args != null && c.args.size() == 2) {
+        warnNullability("Text.split", c.args);
         emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
         emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
@@ -906,6 +1324,7 @@ public final class Main {
         return;
       }
       if (java.util.Objects.equals(name, "Text.indexOf") && c.args != null && c.args.size() == 2) {
+        warnNullability("Text.indexOf", c.args);
         emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
         emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
@@ -915,6 +1334,7 @@ public final class Main {
         return;
       }
       if (java.util.Objects.equals(name, "Text.startsWith") && c.args != null && c.args.size() == 2) {
+        warnNullability("Text.startsWith", c.args);
         emitApplySimpleExpr(mv, c.args.get(0), env);
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
         emitApplySimpleExpr(mv, c.args.get(1), env);
@@ -924,6 +1344,7 @@ public final class Main {
         return;
       }
       if (java.util.Objects.equals(name, "Text.endsWith") && c.args != null && c.args.size() == 2) {
+        warnNullability("Text.endsWith", c.args);
         emitApplySimpleExpr(mv, c.args.get(0), env);
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
         emitApplySimpleExpr(mv, c.args.get(1), env);
@@ -1327,6 +1748,248 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     return pkg.replace('.', '/') + "/" + cls;
   }
   static String internalDesc(String internal) { return "L" + internal + ';'; }
+  static void emitConstString(Ctx ctx, MethodVisitor mv, String s) {
+    String pooled = ctx.stringPool.computeIfAbsent(s, k -> k);
+    mv.visitLdcInsn(pooled);
+  }
+  static void emitConstInt(MethodVisitor mv, int v) {
+    switch (v) {
+      case -1: mv.visitInsn(ICONST_M1); return;
+      case 0: mv.visitInsn(ICONST_0); return;
+      case 1: mv.visitInsn(ICONST_1); return;
+      case 2: mv.visitInsn(ICONST_2); return;
+      case 3: mv.visitInsn(ICONST_3); return;
+      case 4: mv.visitInsn(ICONST_4); return;
+      case 5: mv.visitInsn(ICONST_5); return;
+      default:
+        if (v >= -128 && v <= 127) { mv.visitIntInsn(BIPUSH, v); return; }
+        if (v >= -32768 && v <= 32767) { mv.visitIntInsn(SIPUSH, v); return; }
+        mv.visitLdcInsn(Integer.valueOf(v));
+    }
+  }
+  static void emitConstLong(MethodVisitor mv, long v) {
+    if (v == 0L) { mv.visitInsn(LCONST_0); return; }
+    if (v == 1L) { mv.visitInsn(LCONST_1); return; }
+    mv.visitLdcInsn(Long.valueOf(v));
+  }
+  static void emitConstDouble(MethodVisitor mv, double v) {
+    if (v == 0.0d) { mv.visitInsn(DCONST_0); return; }
+    if (v == 1.0d) { mv.visitInsn(DCONST_1); return; }
+    mv.visitLdcInsn(Double.valueOf(v));
+  }
+  static Character classifyNumeric(CoreModel.Expr e, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals) {
+    if (e instanceof CoreModel.DoubleE) return 'D';
+    if (e instanceof CoreModel.LongE) return 'J';
+    if (e instanceof CoreModel.IntE || e instanceof CoreModel.Bool) return 'I';
+    if (e instanceof CoreModel.Name n) {
+      if (doubleLocals != null && doubleLocals.contains(n.name)) return 'D';
+      if (longLocals != null && longLocals.contains(n.name)) return 'J';
+      if (intLocals != null && intLocals.contains(n.name)) return 'I';
+      return null;
+    }
+    if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn) {
+      String op = nn.name;
+      if (("+".equals(op) || "-".equals(op) || "times".equals(op) || "divided by".equals(op)) && c.args != null && c.args.size() == 2) {
+        Character k0 = classifyNumeric(c.args.get(0), intLocals, longLocals, doubleLocals);
+        Character k1 = classifyNumeric(c.args.get(1), intLocals, longLocals, doubleLocals);
+        if (k0 != null && k1 != null) {
+          if (k0 == 'D' || k1 == 'D') return 'D';
+          if (k0 == 'J' || k1 == 'J') return 'J';
+          return 'I';
+        }
+      }
+    }
+    return null;
+  }
+  static final java.util.Map<String,String> REFLECT_CACHE = new java.util.LinkedHashMap<>();
+  static final java.util.Map<String, java.util.List<String>> METHOD_CACHE = new java.util.LinkedHashMap<>();
+  static String tryResolveReflect(String ownerInternal, String method, java.util.List<String> argDescs, String retDesc) {
+    try {
+      String key = ownerInternal + "#" + method + "#" + String.join(",", argDescs) + "->" + retDesc;
+      if (REFLECT_CACHE.containsKey(key)) return REFLECT_CACHE.get(key);
+      String ownerName = ownerInternal.replace('/', '.');
+      Class<?> cls = Class.forName(ownerName);
+      java.lang.reflect.Method best = null;
+      int bestScore = Integer.MIN_VALUE;
+      java.util.List<String> bestDescs = new java.util.ArrayList<>();
+      java.lang.reflect.Method[] methods = cls.getDeclaredMethods();
+      // Update method cache with method name+descriptor (lightweight)
+      try {
+        java.util.List<String> list = new java.util.ArrayList<>();
+        for (var mm : methods) list.add(mm.getName() + buildMethodDesc(mm));
+        java.util.Collections.sort(list);
+        METHOD_CACHE.put(ownerInternal, list);
+      } catch (Throwable __) { /* ignore */ }
+      java.util.Arrays.sort(methods, (a,b) -> {
+        int c = a.getName().compareTo(b.getName());
+        if (c != 0) return c;
+        String sa = buildMethodDesc(a);
+        String sb = buildMethodDesc(b);
+        return sa.compareTo(sb);
+      });
+      for (var m : methods) {
+        if (!m.getName().equals(method)) continue;
+        var params = m.getParameterTypes();
+        boolean varargs = m.isVarArgs();
+        if (!varargs && params.length != argDescs.size()) continue;
+        if (varargs && params.length-1 > argDescs.size()) continue;
+        int score = 0;
+        boolean compatible = true;
+        int fixed = varargs ? params.length - 1 : params.length;
+        for (int i = 0; i < fixed; i++) {
+          Class<?> p = params[i]; String a = argDescs.get(i);
+          int s = -1000;
+          if ("Z".equals(a)) {
+            if (p == boolean.class) s = 30; else if (p == Boolean.class) s = 20; else if (p == Object.class) s = 5; else s = -1;
+          } else if ("I".equals(a)) {
+            if (p == int.class) s = 30; else if (p == long.class) s = 25; else if (p == double.class) s = 20; else if (p == Integer.class) s = 15; else if (Number.class.isAssignableFrom(p)) s = 10; else if (p == Object.class) s = 5; else s = -1;
+          } else if ("J".equals(a)) {
+            if (p == long.class) s = 30; else if (p == double.class) s = 20; else if (p == Long.class) s = 15; else if (Number.class.isAssignableFrom(p)) s = 10; else if (p == Object.class) s = 5; else s = -1;
+          } else if ("D".equals(a)) {
+            if (p == double.class) s = 30; else if (p == Double.class) s = 15; else if (Number.class.isAssignableFrom(p)) s = 10; else if (p == Object.class) s = 5; else s = -1;
+          } else if ("Ljava/lang/String;".equals(a)) {
+            if (p == String.class) s = 30; else if (CharSequence.class.isAssignableFrom(p)) s = 20; else if (p == Object.class) s = 5; else s = -1;
+          } else {
+            if (p == Object.class) s = 5; else s = -1;
+          }
+          if (s < 0) { compatible = false; break; }
+          score += s;
+        }
+        if (compatible && varargs) {
+          Class<?> comp = params[params.length - 1].getComponentType();
+          for (int i = fixed; i < argDescs.size(); i++) {
+            String a = argDescs.get(i);
+            int s = -1000;
+            if ("I".equals(a)) { if (comp == int.class) s = 30; else if (comp == long.class) s = 25; else if (comp == double.class) s = 20; else if (Number.class.isAssignableFrom(comp)) s = 10; else if (comp == Object.class) s = 5; else s = -1; }
+            else if ("J".equals(a)) { if (comp == long.class) s = 30; else if (comp == double.class) s = 20; else if (Number.class.isAssignableFrom(comp)) s = 10; else if (comp == Object.class) s = 5; else s = -1; }
+            else if ("D".equals(a)) { if (comp == double.class) s = 30; else if (Number.class.isAssignableFrom(comp)) s = 10; else if (comp == Object.class) s = 5; else s = -1; }
+            else if ("Ljava/lang/String;".equals(a)) { if (comp == String.class || CharSequence.class.isAssignableFrom(comp)) s = 20; else if (comp == Object.class) s = 5; else s = -1; }
+            else if ("Z".equals(a)) { if (comp == boolean.class) s = 30; else if (comp == Boolean.class) s = 20; else if (comp == Object.class) s = 5; else s = -1; }
+            else { if (comp == Object.class) s = 5; else s = -1; }
+            if (s < 0) { compatible = false; break; }
+            score += s;
+          }
+        }
+        if (!compatible) continue;
+        int primCount = 0;
+        for (Class<?> p : params) if (p.isPrimitive()) primCount++;
+        int total = score * 10 + primCount;
+        if (total > bestScore) {
+          bestScore = total; best = m; bestDescs.clear();
+          bestDescs.add(buildMethodDesc(m));
+        } else if (total == bestScore) {
+          bestDescs.add(buildMethodDesc(m));
+        }
+      }
+      if (best != null) {
+        String desc = buildMethodDesc(best);
+        if (bestDescs.size() > 1) {
+          // Deterministic selection among ties: choose lexicographically smallest descriptor
+          java.util.Collections.sort(bestDescs);
+          desc = bestDescs.get(0);
+        }
+        if (DIAG_OVERLOAD && bestDescs.size() > 1) {
+          System.err.println("AMBIGUOUS OVERLOAD: " + ownerInternal.replace('/', '.') + "." + method + "(" + String.join(",", argDescs) + ") -> candidates=" + bestDescs + ", selected=" + desc);
+        }
+        REFLECT_CACHE.put(key, desc);
+        return desc;
+      }
+    } catch (Throwable t) {
+      // Fallback to METHOD_CACHE if available
+      try {
+        java.util.List<String> list = METHOD_CACHE.get(ownerInternal);
+        if (list != null && !list.isEmpty()) {
+          int bestScore2 = Integer.MIN_VALUE; String bestDesc2 = null;
+          for (String nm : list) {
+            if (!nm.startsWith(method)) continue;
+            String desc = nm.substring(method.length());
+            int r = desc.indexOf(')'); if (!desc.startsWith("(") || r < 0) continue;
+            String params = desc.substring(1, r);
+            java.util.List<String> ptypes = new java.util.ArrayList<>();
+            for (int i = 0; i < params.length();) {
+              char c = params.charAt(i);
+              if (c == 'L') { int semi = params.indexOf(';', i); if (semi < 0) break; ptypes.add(params.substring(i, semi+1)); i = semi+1; }
+              else { ptypes.add(String.valueOf(c)); i++; }
+            }
+            if (ptypes.size() != argDescs.size()) continue;
+            int score = 0; boolean ok = true;
+            for (int i = 0; i < ptypes.size(); i++) {
+              String p = ptypes.get(i); String a = argDescs.get(i);
+              int s = -1000;
+              if ("Z".equals(a)) { if ("Z".equals(p)) s = 30; else if ("Ljava/lang/Boolean;".equals(p)) s = 15; else if ("Ljava/lang/Object;".equals(p)) s = 5; }
+              else if ("I".equals(a)) { if ("I".equals(p)) s = 30; else if ("J".equals(p)) s = 25; else if ("D".equals(p)) s = 20; else if (p.startsWith("Ljava/lang/") || p.equals("Ljava/lang/Object;")) s = 5; }
+              else if ("J".equals(a)) { if ("J".equals(p)) s = 30; else if ("D".equals(p)) s = 20; else if (p.startsWith("Ljava/lang/") || p.equals("Ljava/lang/Object;")) s = 5; }
+              else if ("D".equals(a)) { if ("D".equals(p)) s = 30; else if (p.startsWith("Ljava/lang/") || p.equals("Ljava/lang/Object;")) s = 5; }
+              else if ("Ljava/lang/String;".equals(a)) { if ("Ljava/lang/String;".equals(p)) s = 30; else if (p.equals("Ljava/lang/CharSequence;")) s = 20; else if (p.equals("Ljava/lang/Object;")) s = 5; }
+              else { if ("Ljava/lang/Object;".equals(p)) s = 5; }
+              if (s < 0) { ok = false; break; }
+              score += s;
+            }
+            if (!ok) continue;
+            if (score > bestScore2 || (score == bestScore2 && (bestDesc2 == null || desc.compareTo(bestDesc2) < 0))) { bestScore2 = score; bestDesc2 = desc; }
+          }
+          if (bestDesc2 != null) return bestDesc2;
+        }
+      } catch (Throwable __) { /* ignore */ }
+    }
+    return null;
+  }
+  static String javaTypeToDesc(Class<?> t) {
+    if (t == void.class) return "V";
+    if (t == int.class) return "I";
+    if (t == boolean.class) return "Z";
+    if (t == long.class) return "J";
+    if (t == double.class) return "D";
+    if (t.isArray()) return t.getName().replace('.', '/');
+    return "L" + t.getName().replace('.', '/') + ";";
+  }
+  static boolean[] nullPolicy(String dotted) {
+    if (NULL_POLICY_OVERRIDE.containsKey(dotted)) return NULL_POLICY_OVERRIDE.get(dotted);
+    return switch (dotted) {
+      case "aster.runtime.Interop.pick" -> new boolean[]{ true };
+      case "aster.runtime.Interop.sum" -> new boolean[]{ false, false };
+      case "Text.concat" -> new boolean[]{ false, false };
+      case "Text.contains" -> new boolean[]{ false, false };
+      case "Text.equals" -> new boolean[]{ true, true };
+      case "Text.toUpper" -> new boolean[]{ false };
+      case "Text.toLower" -> new boolean[]{ false };
+      case "Text.length" -> new boolean[]{ false };
+      case "Text.indexOf" -> new boolean[]{ false, false };
+      case "Text.startsWith" -> new boolean[]{ false, false };
+      case "Text.endsWith" -> new boolean[]{ false, false };
+      case "Text.replace" -> new boolean[]{ false, false, false };
+      case "Text.split" -> new boolean[]{ false, false };
+      case "List.length" -> new boolean[]{ false };
+      case "List.isEmpty" -> new boolean[]{ false };
+      case "List.get" -> new boolean[]{ false, false };
+      case "Map.get" -> new boolean[]{ false, true };
+      case "Map.containsKey" -> new boolean[]{ false, true };
+      case "Set.contains" -> new boolean[]{ false, true };
+      case "Set.add" -> new boolean[]{ false, true };
+      case "Set.remove" -> new boolean[]{ false, true };
+      default -> null;
+    };
+  }
+  static void warnNullability(String dotted, java.util.List<CoreModel.Expr> args) {
+    boolean[] policy = nullPolicy(dotted);
+    if (policy == null) return;
+    int n = Math.min(policy.length, args == null ? 0 : args.size());
+    for (int i = 0; i < n; i++) {
+      var a = args.get(i);
+      if (a instanceof CoreModel.NullE && policy[i] == false) {
+        String msg = "NULLABILITY: parameter " + (i+1) + " of '" + dotted + "' is non-null, but null was provided";
+        if (NULL_STRICT) throw new IllegalArgumentException(msg);
+        System.err.println(msg);
+      }
+    }
+  }
+
+  static String buildMethodDesc(java.lang.reflect.Method m) {
+    StringBuilder sb = new StringBuilder("(");
+    for (var p : m.getParameterTypes()) sb.append(javaTypeToDesc(p));
+    sb.append(")").append(javaTypeToDesc(m.getReturnType()));
+    return sb.toString();
+  }
   static String internalToPkg(String internal) {
     if (internal == null) return "";
     int i = internal.lastIndexOf('/');
@@ -1339,6 +2002,9 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
         case "Text" -> "Ljava/lang/String;";
         case "Int" -> "I";
         case "Bool" -> "Z";
+        case "Long" -> "J";
+        case "Double" -> "D";
+        case "Number" -> "Ljava/lang/Double;"; // Map primitive Number to boxed Double
         default -> {
           String internal = (tn.name.contains(".")) ? tn.name.replace('.', '/') : toInternal(pkg, tn.name);
           yield "L" + internal + ';';

@@ -521,6 +521,12 @@ function typecheckCase(
     bindPatternTypes(ctx, env2, c.pattern, et, diags);
   } else if (c.pattern.kind === 'PatName') {
     env2.vars.set(c.pattern.name, et);
+  } else if (c.pattern.kind === 'PatInt') {
+    // Scrutinee should be Int; we don't bind names for literal patterns
+    const isInt = !isUnknown(et) && et.kind === 'TypeName' && (et as Core.TypeName).name === 'Int';
+    if (!isInt) {
+      diags.push({ severity: 'error', message: `Integer pattern used on non-Int scrutinee (${tToString(et)})` });
+    }
   }
   // Body
   if (c.body.kind === 'Return') return typeOfExpr(ctx, env2, c.body.expr, diags);
@@ -622,6 +628,10 @@ function typeOfExpr(
       return { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
     case 'Int':
       return { kind: 'TypeName', name: 'Int' } as Core.TypeName;
+    case 'Long':
+      return { kind: 'TypeName', name: 'Long' } as Core.TypeName;
+    case 'Double':
+      return { kind: 'TypeName', name: 'Double' } as Core.TypeName;
     case 'String':
       return { kind: 'TypeName', name: 'Text' } as Core.TypeName;
     case 'Null':
@@ -691,6 +701,24 @@ function typeOfExpr(
       // Otherwise, infer from usage minimally: for now return Unknown
       for (const a of e.args) {
         void typeOfExpr(ctx, env, a, diags);
+      }
+      // Interop static call ambiguity diagnostic (numeric mix without clear target info)
+      if (e.target.kind === 'Name' && e.target.name.includes('.')) {
+        let hasInt = false, hasLong = false, hasDouble = false;
+        for (const a of e.args) {
+          switch (a.kind) {
+            case 'Int': hasInt = true; break;
+            case 'Long': hasLong = true; break;
+            case 'Double': hasDouble = true; break;
+          }
+        }
+        const kinds = (hasInt ? 1 : 0) + (hasLong ? 1 : 0) + (hasDouble ? 1 : 0);
+        if (kinds > 1) {
+          diags.push({
+            severity: 'warning',
+            message: `Ambiguous interop call '${e.target.name}': mixing numeric kinds (Int=${hasInt}, Long=${hasLong}, Double=${hasDouble}). Overload resolution may widen/box implicitly.`,
+          });
+        }
       }
       // await(expr) typing: await Maybe<T> => T; await Result<T,E> => T; else Unknown
       if (e.target.kind === 'Name' && e.target.name === 'await' && e.args.length === 1) {

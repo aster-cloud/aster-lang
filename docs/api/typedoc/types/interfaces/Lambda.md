@@ -4,7 +4,7 @@
 
 # Interface: Lambda
 
-Defined in: [types.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L221)
+Defined in: [types.ts:239](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L239)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"Lambda"`
 
-Defined in: [types.ts:222](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L222)
+Defined in: [types.ts:240](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L240)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:222](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **params**: readonly [`Parameter`](Parameter.md)[]
 
-Defined in: [types.ts:223](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L223)
+Defined in: [types.ts:241](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L241)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:223](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **retType**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:224](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L224)
+Defined in: [types.ts:242](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L242)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:224](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **body**: [`Block`](Block.md)
 
-Defined in: [types.ts:225](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L225)
+Defined in: [types.ts:243](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L243)

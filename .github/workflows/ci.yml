@@ -193,3 +193,9 @@ jobs:
 
       - name: Verify generated classes with javap
         run: npm run javap:verify
+
+      - name: Verify int-pattern lowering
+        run: npm run verify:asm:intmatch
+
+      - name: Verify examples compile (blocking)
+        run: npm run verify:examples

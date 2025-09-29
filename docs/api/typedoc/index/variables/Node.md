@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/ast.ts#L4)
+Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/ast.ts#L4)
 
 ## Type Declaration
 
@@ -320,6 +320,34 @@ readonly `string`[]
 
 [`Int`](../../types/interfaces/Int.md)
 
+### Long()
+
+> **Long**: (`value`) => [`Long`](../../types/interfaces/Long.md)
+
+#### Parameters
+
+##### value
+
+`number`
+
+#### Returns
+
+[`Long`](../../types/interfaces/Long.md)
+
+### Double()
+
+> **Double**: (`value`) => [`Double`](../../types/interfaces/Double.md)
+
+#### Parameters
+
+##### value
+
+`number`
+
+#### Returns
+
+[`Double`](../../types/interfaces/Double.md)
+
 ### String()
 
 > **String**: (`value`) => [`String`](../../types/interfaces/String.md)
@@ -609,3 +637,17 @@ readonly [`Pattern`](../../types/type-aliases/Pattern.md)[]
 #### Returns
 
 [`PatternName`](../../types/interfaces/PatternName.md)
+
+### PatternInt()
+
+> **PatternInt**: (`value`) => [`PatternInt`](../../types/interfaces/PatternInt.md)
+
+#### Parameters
+
+##### value
+
+`number`
+
+#### Returns
+
+[`PatternInt`](../../types/interfaces/PatternInt.md)

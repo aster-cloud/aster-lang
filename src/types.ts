@@ -36,6 +36,8 @@ export enum TokenKind {
   TYPE_IDENT = 'TYPE_IDENT',
   STRING = 'STRING',
   INT = 'INT',
+  FLOAT = 'FLOAT',
+  LONG = 'LONG',
   BOOL = 'BOOL',
   NULL = 'NULL',
   KEYWORD = 'KEYWORD',
@@ -150,7 +152,7 @@ export interface Wait extends AstNode {
   readonly names: readonly string[];
 }
 
-export type Pattern = PatternNull | PatternCtor | PatternName;
+export type Pattern = PatternNull | PatternCtor | PatternName | PatternInt;
 
 export interface PatternNull extends AstNode {
   readonly kind: 'PatternNull';
@@ -168,10 +170,17 @@ export interface PatternName extends AstNode {
   readonly name: string;
 }
 
+export interface PatternInt extends AstNode {
+  readonly kind: 'PatternInt';
+  readonly value: number;
+}
+
 export type Expression =
   | Name
   | Bool
   | Int
+  | Long
+  | Double
   | String
   | Null
   | Call
@@ -200,6 +209,15 @@ export interface Bool extends AstNode {
 
 export interface Int extends AstNode {
   readonly kind: 'Int';
+  readonly value: number;
+}
+export interface Long extends AstNode {
+  readonly kind: 'Long';
+  readonly value: number;
+}
+
+export interface Double extends AstNode {
+  readonly kind: 'Double';
   readonly value: number;
 }
 
@@ -415,7 +433,7 @@ export namespace Core {
     readonly body: Return | Block;
   }
 
-  export type Pattern = PatNull | PatCtor | PatName;
+  export type Pattern = PatNull | PatCtor | PatName | PatInt;
 
   export interface PatNull extends CoreNode {
     readonly kind: 'PatNull';
@@ -433,10 +451,17 @@ export namespace Core {
     readonly name: string;
   }
 
+  export interface PatInt extends CoreNode {
+    readonly kind: 'PatInt';
+    readonly value: number;
+  }
+
   export type Expression =
     | Name
     | Bool
     | Int
+    | Long
+    | Double
     | String
     | Null
     | Call
@@ -459,6 +484,14 @@ export namespace Core {
 
   export interface Int extends CoreNode {
     readonly kind: 'Int';
+    readonly value: number;
+  }
+  export interface Long extends CoreNode {
+    readonly kind: 'Long';
+    readonly value: number; // note: may exceed 2^53-1 if sourced externally
+  }
+  export interface Double extends CoreNode {
+    readonly kind: 'Double';
     readonly value: number;
   }
 

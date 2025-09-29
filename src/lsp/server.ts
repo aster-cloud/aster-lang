@@ -18,12 +18,14 @@ import {
   // type DocumentDiagnosticReport,
 } from 'vscode-languageserver/node.js';
 
-// import { typecheckModule } from '../typecheck.js';
+import { typecheckModule, type TypecheckDiagnostic } from '../typecheck.js';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { canonicalize } from '../canonicalizer.js';
 import { lex } from '../lexer.js';
+// (no TokenKind import; analysis operates on tokens directly)
+import { findAmbiguousInteropCalls, computeDisambiguationEdits, findDottedCallRangeAt, describeDottedCallAt, buildDescriptorPreview, returnTypeTextFromDesc } from './analysis.js';
 import { parse } from '../parser.js';
 import { DiagnosticError } from '../diagnostics.js';
 import { KW } from '../tokens.js';
@@ -149,8 +151,30 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   try {
     const canonicalized = canonicalize(text);
     const tokens = lex(canonicalized);
-    parse(tokens);
-    // If we get here, the document is valid
+    const ast = parse(tokens);
+    // Lightweight lexical checks for interop
+    diagnostics.push(...findAmbiguousInteropCalls(tokens));
+    diagnostics.push(...(await import('./analysis.js')).findNullabilityDiagnostics(tokens));
+    // Also run core + typecheck to surface semantic warnings
+    try {
+      const core = (await import('../lower_to_core.js')).lowerModule(ast);
+      const tdiags: TypecheckDiagnostic[] = typecheckModule(core);
+      for (const td of tdiags) {
+        const d: Diagnostic = {
+          severity:
+            td.severity === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 0 },
+          },
+          message: td.message,
+          source: 'aster-typecheck',
+        };
+        diagnostics.push(d);
+      }
+    } catch {
+      // ignore typecheck failures here; parse errors handled below
+    }
   } catch (error) {
     if (error instanceof DiagnosticError) {
       const diag = error.diagnostic;
@@ -248,18 +272,130 @@ connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
   return item;
 });
 
-connection.onHover(() => {
-  return {
-    contents: {
-      kind: 'markdown',
-      value: 'Aster CNL - A human-readable programming language',
-    },
-  };
+connection.onHover(async params => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return null;
+  const text = doc.getText();
+  const can = canonicalize(text);
+  const toks = lex(can);
+  const pos = params.position;
+  const anyCall = findDottedCallRangeAt(toks, pos);
+  if (anyCall) {
+    // Include a short signature preview by heuristic
+    const info = describeDottedCallAt(toks, pos);
+    const sig = info ? `${info.name}(${info.argDescs.join(', ')})` : 'interop(...)';
+    const diags = findAmbiguousInteropCalls(toks);
+    const amb = diags.find(
+      d =>
+        d.range.start.line <= pos.line &&
+        d.range.end.line >= pos.line &&
+        d.range.start.character <= pos.character &&
+        d.range.end.character >= pos.character
+    );
+    const header = amb ? 'Ambiguous interop call' : 'Interop call';
+    const body = amb
+      ? 'Use `1L` or `1.0` to disambiguate; a Quick Fix is available.'
+      : 'Overload selection uses primitive widening/boxing; use `1L` or `1.0` to make intent explicit.';
+    const desc = info ? buildDescriptorPreview(info.name, info.argDescs) : null;
+    const retText = returnTypeTextFromDesc(desc);
+    const extra = desc ? `\nDescriptor: \`${desc}\`` : '';
+    const retLine = retText ? `\nReturns: **${retText}**` : '';
+    const msg = `**${header}** — [Guide → JVM Interop Overloads](/guide/interop-overloads)\n\nPreview: \`${sig}\`${extra}${retLine}\n\n${body}`;
+    return { contents: { kind: 'markdown', value: msg } };
+  }
+  return null;
 });
 
 connection.onDocumentSymbol(() => {
   // TODO: Implement document symbol provider
   return [];
+});
+
+// Quick fixes / hints for ambiguous interop calls
+connection.onCodeAction(params => {
+  const actions: any[] = [];
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return actions;
+  for (const d of params.context.diagnostics) {
+    if (typeof d.message === 'string' && d.message.startsWith('Ambiguous interop call')) {
+      // Advisory hint
+      actions.push({
+        title: 'Hint: Disambiguate numeric overload (use 1L or 1.0) — see Guide: JVM Interop Overloads',
+        kind: 'quickfix',
+        diagnostics: [d],
+      });
+      // Compute concrete edits from current document content
+      try {
+        const text = doc.getText();
+        const can = canonicalize(text);
+        const toks = lex(can);
+        const edits = computeDisambiguationEdits(toks, d.range);
+        if (edits.length > 0) {
+          actions.push({
+            title: 'Fix: Make numeric literals unambiguous',
+            kind: 'quickfix',
+            diagnostics: [d],
+            edit: {
+              changes: {
+                [params.textDocument.uri]: edits,
+              },
+            },
+          });
+        }
+      } catch {
+        // ignore
+      }
+    }
+    // Quick fix for nullability: replace null with "" for Text.* calls
+    if (typeof d.message === 'string' && d.message.startsWith('Nullability:')) {
+      // Parse dotted name and param index from diagnostic message
+      const m = d.message.match(/parameter\s+(\d+)\s+of\s+'([^']+)'/);
+      const paramIdx = m ? Math.max(1, parseInt(m[1] || '1', 10)) : 1;
+      const dotted = m ? m[2] || '' : '';
+      const suggest = (dn: string, idx: number): string => {
+        // Text helpers
+        if (dn === 'Text.split') return idx === 2 ? '" "' : '""'; // h, sep
+        if (dn === 'Text.startsWith') return '""'; // param 1 or 2
+        if (dn === 'Text.endsWith') return '""';   // param 1 or 2
+        if (dn === 'Text.indexOf') return idx === 2 ? '" "' : '""'; // h, needle
+        if (dn === 'Text.contains') return '""';
+        if (dn === 'Text.replace') return '""';    // any of 1/2/3
+        if (dn === 'Text.toUpper' || dn === 'Text.toLower' || dn === 'Text.length') return '""';
+        if (dn === 'Text.concat') return '""';
+        // Collections / Interop defaults
+        if (dn === 'List.get' && idx === 2) return '0';
+        if (dn === 'Map.get' && idx === 2) return '""';
+        if (dn === 'Map.containsKey' && idx === 2) return '""';
+        if (dn === 'Set.contains' && idx === 2) return '""';
+        if (dn === 'Set.add' && idx === 2) return '""';
+        if (dn === 'Set.remove' && idx === 2) return '""';
+        if (dn === 'aster.runtime.Interop.sum') return '0';
+        if (dn === 'aster.runtime.Interop.pick') return '""';
+        // fallback for Text.*
+        if (dn.startsWith('Text.')) return '""';
+        return 'null';
+      };
+      const replacement = suggest(dotted, paramIdx);
+      if (replacement !== 'null') {
+        actions.push({
+          title: `Fix: Replace null with ${replacement}`,
+          kind: 'quickfix',
+          diagnostics: [d],
+          edit: {
+            changes: {
+              [params.textDocument.uri]: [
+                {
+                  range: d.range,
+                  newText: replacement,
+                },
+              ],
+            },
+          },
+        });
+      }
+    }
+  }
+  return actions;
 });
 
 // Make the text document manager listen on the connection

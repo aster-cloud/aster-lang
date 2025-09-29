@@ -4,7 +4,7 @@
 
 # Interface: If
 
-Defined in: [types.ts:399](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L399)
+Defined in: [types.ts:417](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L417)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:399](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **kind**: `"If"`
 
-Defined in: [types.ts:400](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L400)
+Defined in: [types.ts:418](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L418)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:400](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **cond**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:401](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L401)
+Defined in: [types.ts:419](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L419)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:401](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **thenBlock**: [`Block`](Block.md)
 
-Defined in: [types.ts:402](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L402)
+Defined in: [types.ts:420](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L420)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:402](https://github.com/wontlost-ltd/aster-lang/blob/c2afe
 
 > `readonly` **elseBlock**: `null` \| [`Block`](Block.md)
 
-Defined in: [types.ts:403](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L403)
+Defined in: [types.ts:421](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L421)

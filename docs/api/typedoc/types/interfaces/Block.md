@@ -4,7 +4,7 @@
 
 # Interface: Block
 
-Defined in: [types.ts:98](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L98)
+Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L100)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:98](https://github.com/wontlost-ltd/aster-lang/blob/c2afec
 
 > `readonly` **kind**: `"Block"`
 
-Defined in: [types.ts:99](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L99)
+Defined in: [types.ts:101](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L101)
 
 #### Overrides
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:99](https://github.com/wontlost-ltd/aster-lang/blob/c2afec
 
 > `readonly` **statements**: readonly [`Statement`](../type-aliases/Statement.md)[]
 
-Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/c2afec81f1ccfc11a50452409ee9aa69265cf04f/src/types.ts#L100)
+Defined in: [types.ts:102](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L102)

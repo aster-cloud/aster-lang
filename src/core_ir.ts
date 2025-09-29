@@ -82,6 +82,8 @@ export const Core = {
   Name: (name: string): CoreTypes.Name => ({ kind: 'Name', name }),
   Bool: (value: boolean): CoreTypes.Bool => ({ kind: 'Bool', value }),
   Int: (value: number): CoreTypes.Int => ({ kind: 'Int', value }),
+  Long: (value: number): CoreTypes.Long => ({ kind: 'Long', value }),
+  Double: (value: number): CoreTypes.Double => ({ kind: 'Double', value }),
   String: (value: string): CoreTypes.String => ({ kind: 'String', value }),
   Null: (): CoreTypes.Null => ({ kind: 'Null' }),
   Call: (target: CoreTypes.Expression, args: readonly CoreTypes.Expression[]): CoreTypes.Call => ({
@@ -134,4 +136,5 @@ export const Core = {
     ...(args && args.length > 0 ? { args } : {}),
   }),
   PatName: (name: string): CoreTypes.PatName => ({ kind: 'PatName', name }),
+  PatInt: (value: number): CoreTypes.PatInt => ({ kind: 'PatInt', value }),
 };
