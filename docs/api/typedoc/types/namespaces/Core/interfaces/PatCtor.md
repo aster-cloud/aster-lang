@@ -4,7 +4,7 @@
 
 # Interface: PatCtor
 
-Defined in: [types.ts:442](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L442)
+Defined in: [types.ts:452](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L452)
 
 ## Extends
 
@@ -12,11 +12,23 @@ Defined in: [types.ts:442](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 ## Properties
 
+### origin?
+
+> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+
+Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+
+#### Inherited from
+
+[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"PatCtor"`
 
-Defined in: [types.ts:443](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L443)
+Defined in: [types.ts:453](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L453)
 
 #### Overrides
 
@@ -28,7 +40,7 @@ Defined in: [types.ts:443](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:444](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L444)
+Defined in: [types.ts:454](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L454)
 
 ***
 
@@ -36,7 +48,7 @@ Defined in: [types.ts:444](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:445](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L445)
+Defined in: [types.ts:455](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L455)
 
 ***
 
@@ -44,4 +56,4 @@ Defined in: [types.ts:445](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` `optional` **args**: readonly [`Pattern`](../type-aliases/Pattern.md)[]
 
-Defined in: [types.ts:446](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L446)
+Defined in: [types.ts:456](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L456)

@@ -4,7 +4,7 @@
 
 # Interface: PatName
 
-Defined in: [types.ts:449](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L449)
+Defined in: [types.ts:459](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L459)
 
 ## Extends
 
@@ -12,11 +12,23 @@ Defined in: [types.ts:449](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 ## Properties
 
+### origin?
+
+> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+
+Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+
+#### Inherited from
+
+[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"PatName"`
 
-Defined in: [types.ts:450](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L450)
+Defined in: [types.ts:460](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L460)
 
 #### Overrides
 
@@ -28,4 +40,4 @@ Defined in: [types.ts:450](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:451](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L451)
+Defined in: [types.ts:461](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L461)

@@ -4,7 +4,7 @@
 
 # Interface: PatNull
 
-Defined in: [types.ts:438](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L438)
+Defined in: [types.ts:448](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L448)
 
 ## Extends
 
@@ -12,11 +12,23 @@ Defined in: [types.ts:438](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 ## Properties
 
+### origin?
+
+> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+
+Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+
+#### Inherited from
+
+[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"PatNull"`
 
-Defined in: [types.ts:439](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L439)
+Defined in: [types.ts:449](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L449)
 
 #### Overrides
 

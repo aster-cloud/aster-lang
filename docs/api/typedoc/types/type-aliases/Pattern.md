@@ -6,4 +6,4 @@
 
 > **Pattern** = [`PatternNull`](../interfaces/PatternNull.md) \| [`PatternCtor`](../interfaces/PatternCtor.md) \| [`PatternName`](../interfaces/PatternName.md) \| [`PatternInt`](../interfaces/PatternInt.md)
 
-Defined in: [types.ts:155](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L155)
+Defined in: [types.ts:164](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L164)

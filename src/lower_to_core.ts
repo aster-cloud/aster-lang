@@ -1,4 +1,5 @@
 import { Core, Effect } from './core_ir.js';
+import type { Span } from './types.js';
 import type {
   Module,
   Declaration,
@@ -12,20 +13,38 @@ import type {
 
 export function lowerModule(ast: Module): import('./types.js').Core.Module {
   const decls = ast.decls.map(lowerDecl);
-  return Core.Module(ast.name, decls);
+  const m = Core.Module(ast.name, decls);
+  const o = spanToOrigin((ast as any).span, (ast as any).file ?? null);
+  if (o) (m as any).origin = o;
+  return m;
 }
 
 function lowerDecl(d: Declaration): import('./types.js').Core.Declaration {
   switch (d.kind) {
     case 'Import':
-      return Core.Import(d.name, d.asName || null);
+      {
+        const out = Core.Import(d.name, d.asName || null);
+        const o = spanToOrigin((d as any).span, (d as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Data':
-      return Core.Data(
-        d.name,
-        d.fields.map(f => ({ name: f.name, type: lowerType(f.type) }))
-      );
+      {
+        const out = Core.Data(
+          d.name,
+          d.fields.map(f => ({ name: f.name, type: lowerType(f.type) }))
+        );
+        const o = spanToOrigin((d as any).span, (d as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Enum':
-      return Core.Enum(d.name, [...d.variants]);
+      {
+        const out = Core.Enum(d.name, [...d.variants]);
+        const o = spanToOrigin((d as any).span, (d as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Func':
       return lowerFunc(d);
     default:
@@ -39,40 +58,91 @@ function lowerFunc(f: Func): import('./types.js').Core.Func {
   const ret = lowerTypeWithVars(f.retType, tvars);
   const effects = (f.effects || []).map(e => (e === 'io' ? Effect.IO : Effect.CPU));
   const body = f.body ? lowerBlock(f.body) : Core.Block([]);
-  return Core.Func(f.name, f.typeParams ?? [], params, ret, effects, body);
+  const out = Core.Func(f.name, f.typeParams ?? [], params, ret, effects, body);
+  const o = spanToOrigin((f as any).span, (f as any).file ?? null);
+  if (o) (out as any).origin = o;
+  return out;
 }
 
 function lowerBlock(b: Block): import('./types.js').Core.Block {
-  return Core.Block(b.statements.map(lowerStmt));
+  const out = Core.Block(b.statements.map(lowerStmt));
+  const o = spanToOrigin((b as any).span, (b as any).file ?? null);
+  if (o) (out as any).origin = o;
+  return out;
 }
 
 function lowerStmt(s: Statement): import('./types.js').Core.Statement {
   switch (s.kind) {
     case 'Let':
-      return Core.Let(s.name, lowerExpr(s.expr));
+      {
+        const out = Core.Let(s.name, lowerExpr(s.expr));
+        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Set':
-      return Core.Set(s.name, lowerExpr(s.expr));
+      {
+        const out = Core.Set(s.name, lowerExpr(s.expr));
+        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Return':
-      return Core.Return(lowerExpr(s.expr));
+      {
+        const out = Core.Return(lowerExpr(s.expr));
+        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'If':
-      return Core.If(
-        lowerExpr(s.cond),
-        lowerBlock(s.thenBlock),
-        s.elseBlock ? lowerBlock(s.elseBlock) : null
-      );
+      {
+        const out = Core.If(
+          lowerExpr(s.cond),
+          lowerBlock(s.thenBlock),
+          s.elseBlock ? lowerBlock(s.elseBlock) : null
+        );
+        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     // Scope sugar lowering placeholder: if a Block starts with a special marker, we could emit Scope. For now none.
 
     case 'Match':
-      return Core.Match(
-        lowerExpr(s.expr),
-        s.cases.map(c => Core.Case(lowerPattern(c.pattern), lowerCaseBody(c.body)))
-      );
+      {
+        const out = Core.Match(
+          lowerExpr(s.expr),
+          s.cases.map(c => {
+            const cc = Core.Case(lowerPattern(c.pattern), lowerCaseBody(c.body));
+            const co = spanToOrigin((c as any).span, (c as any).file ?? null);
+            if (co) (cc as any).origin = co;
+            return cc;
+          })
+        );
+        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Start':
-      return Core.Start(s.name, lowerExpr(s.expr));
+      {
+        const out = Core.Start(s.name, lowerExpr(s.expr));
+        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Wait':
-      return Core.Wait(s.names);
+      {
+        const out = Core.Wait(s.names);
+        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Block':
-      return Core.Scope((s as Block).statements.map(lowerStmt));
+      {
+        const out = Core.Scope((s as Block).statements.map(lowerStmt));
+        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     default:
       // For bare expressions evaluated for side-effects in v0: wrap as Return(expr) for now
       return Core.Return(lowerExpr(s as Expression));
@@ -83,41 +153,111 @@ function lowerCaseBody(
   body: import('./types.js').Return | Block
 ): import('./types.js').Core.Return | import('./types.js').Core.Block {
   // Body can be a Return node or a Block
-  if (body.kind === 'Return') return Core.Return(lowerExpr(body.expr));
+  if (body.kind === 'Return') {
+    const out = Core.Return(lowerExpr(body.expr));
+    const o = spanToOrigin((body as any).span, (body as any).file ?? null);
+    if (o) (out as any).origin = o;
+    return out;
+  }
   return lowerBlock(body);
 }
 
 function lowerExpr(e: Expression): import('./types.js').Core.Expression {
   switch (e.kind) {
     case 'Name':
-      return Core.Name(e.name);
+      {
+        const out = Core.Name(e.name);
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Bool':
-      return Core.Bool(e.value);
+      {
+        const out = Core.Bool(e.value);
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Int':
-      return Core.Int(e.value);
+      {
+        const out = Core.Int(e.value);
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Long':
-      return Core.Long(e.value);
+      {
+        const out = Core.Long(e.value);
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Double':
-      return Core.Double(e.value);
+      {
+        const out = Core.Double(e.value);
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'String':
-      return Core.String(e.value);
+      {
+        const out = Core.String(e.value);
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Null':
-      return Core.Null();
+      {
+        const out = Core.Null();
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Call':
-      return Core.Call(lowerExpr(e.target), e.args.map(lowerExpr));
+      {
+        const out = Core.Call(lowerExpr(e.target), e.args.map(lowerExpr));
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Construct':
-      return Core.Construct(
-        e.typeName,
-        e.fields.map(f => ({ name: f.name, expr: lowerExpr(f.expr) }))
-      );
+      {
+        const out = Core.Construct(
+          e.typeName,
+          e.fields.map(f => ({ name: f.name, expr: lowerExpr(f.expr) }))
+        );
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Ok':
-      return Core.Ok(lowerExpr(e.expr));
+      {
+        const out = Core.Ok(lowerExpr(e.expr));
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Err':
-      return Core.Err(lowerExpr(e.expr));
+      {
+        const out = Core.Err(lowerExpr(e.expr));
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Some':
-      return Core.Some(lowerExpr(e.expr));
+      {
+        const out = Core.Some(lowerExpr(e.expr));
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'None':
-      return Core.None();
+      {
+        const out = Core.None();
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Lambda': {
       // Naive capture analysis: collect Name identifiers in body that are not params and not dotted
       const paramNames = new Set(e.params.map(p => p.name));
@@ -184,39 +324,100 @@ function lowerExpr(e: Expression): import('./types.js').Core.Expression {
 function lowerPattern(p: Pattern): import('./types.js').Core.Pattern {
   switch (p.kind) {
     case 'PatternNull':
-      return Core.PatNull();
+      {
+        const out = Core.PatNull();
+        const o = spanToOrigin((p as any).span, (p as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'PatternInt':
-      return Core.PatInt(p.value);
+      {
+        const out = Core.PatInt(p.value);
+        const o = spanToOrigin((p as any).span, (p as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'PatternCtor': {
       const ctor = p as Pattern & { args?: readonly Pattern[] };
       const args = ctor.args ? ctor.args.map(pp => lowerPattern(pp)) : undefined;
-      return Core.PatCtor(p.typeName, [...(p.names ?? [])], args);
+      const out = Core.PatCtor(p.typeName, [...(p.names ?? [])], args);
+      const o = spanToOrigin((p as any).span, (p as any).file ?? null);
+      if (o) (out as any).origin = o;
+      return out;
     }
     case 'PatternName':
-      return Core.PatName(p.name);
+      {
+        const out = Core.PatName(p.name);
+        const o = spanToOrigin((p as any).span, (p as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     default:
       throw new Error(`Unknown pattern kind: ${(p as { kind: string }).kind}`);
   }
 }
 
+function spanToOrigin(span: Span | undefined, file: string | null): import('./types.js').Origin | null {
+  if (!span) return null;
+  return { file: file ?? undefined, start: span.start, end: span.end } as any;
+}
+
 function lowerType(t: Type): import('./types.js').Core.Type {
   switch (t.kind) {
-    case 'TypeName':
-      return Core.TypeName(t.name);
-    case 'TypeVar':
-      return Core.TypeVar(t.name);
+    case 'TypeName': {
+      const out = Core.TypeName(t.name);
+      const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+      if (o) (out as any).origin = o;
+      return out;
+    }
+    case 'TypeVar': {
+      const out = Core.TypeVar(t.name);
+      const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+      if (o) (out as any).origin = o;
+      return out;
+    }
     case 'TypeApp':
-      return Core.TypeApp(t.base, t.args.map(lowerType));
+      {
+        const out = Core.TypeApp(t.base, t.args.map(lowerType));
+        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Maybe':
-      return Core.Maybe(lowerType(t.type));
+      {
+        const out = Core.Maybe(lowerType(t.type));
+        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Option':
-      return Core.Option(lowerType(t.type));
+      {
+        const out = Core.Option(lowerType(t.type));
+        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Result':
-      return Core.Result(lowerType(t.ok), lowerType(t.err));
+      {
+        const out = Core.Result(lowerType(t.ok), lowerType(t.err));
+        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'List':
-      return Core.List(lowerType(t.type));
+      {
+        const out = Core.List(lowerType(t.type));
+        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Map':
-      return Core.Map(lowerType(t.key), lowerType(t.val));
+      {
+        const out = Core.Map(lowerType(t.key), lowerType(t.val));
+        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     default:
       throw new Error(`Unknown type kind: ${(t as { kind: string }).kind}`);
   }

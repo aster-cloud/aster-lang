@@ -4,7 +4,7 @@
 
 # Interface: Let
 
-Defined in: [types.ts:400](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L400)
+Defined in: [types.ts:410](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L410)
 
 ## Extends
 
@@ -12,11 +12,23 @@ Defined in: [types.ts:400](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 ## Properties
 
+### origin?
+
+> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+
+Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+
+#### Inherited from
+
+[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"Let"`
 
-Defined in: [types.ts:401](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L401)
+Defined in: [types.ts:411](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L411)
 
 #### Overrides
 
@@ -28,7 +40,7 @@ Defined in: [types.ts:401](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:402](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L402)
+Defined in: [types.ts:412](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L412)
 
 ***
 
@@ -36,4 +48,4 @@ Defined in: [types.ts:402](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:403](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L403)
+Defined in: [types.ts:413](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L413)

@@ -17,6 +17,7 @@
 
 - [Position](interfaces/Position.md)
 - [Span](interfaces/Span.md)
+- [Origin](interfaces/Origin.md)
 - [Token](interfaces/Token.md)
 - [AstNode](interfaces/AstNode.md)
 - [Module](interfaces/Module.md)

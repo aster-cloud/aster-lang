@@ -27,6 +27,46 @@ public final class Main {
     java.util.Map<String, String> stringPool
   ) {}
 
+  static void addOriginAnnotation(ClassVisitor cv, CoreModel.Origin o) {
+    if (o == null) return;
+    try {
+      AnnotationVisitor av = cv.visitAnnotation("Laster/runtime/AsterOrigin;", true);
+      if (o.file != null) av.visit("file", o.file);
+      if (o.start != null) {
+        av.visit("startLine", o.start.line);
+        av.visit("startCol", o.start.col);
+      }
+      if (o.end != null) {
+        av.visit("endLine", o.end.line);
+        av.visit("endCol", o.end.col);
+      }
+      av.visitEnd();
+    } catch (Throwable __) { /* ignore */ }
+  }
+
+  static void addOriginAnnotation(MethodVisitor mv, CoreModel.Origin o) {
+    if (o == null) return;
+    try {
+      AnnotationVisitor av = mv.visitAnnotation("Laster/runtime/AsterOrigin;", true);
+      if (o.file != null) av.visit("file", o.file);
+      if (o.start != null) {
+        av.visit("startLine", Integer.valueOf(o.start.line));
+        av.visit("startCol", Integer.valueOf(o.start.col));
+      }
+      if (o.end != null) {
+        av.visit("endLine", Integer.valueOf(o.end.line));
+        av.visit("endCol", Integer.valueOf(o.end.col));
+      }
+      av.visitEnd();
+    } catch (Throwable __) { /* ignore */ }
+  }
+
+  static String withOrigin(String msg, CoreModel.Origin o) {
+    if (o == null || o.start == null || o.end == null) return msg;
+    String file = (o.file == null) ? "" : o.file;
+    return msg + " [" + file + ":" + o.start.line + ":" + o.start.col + "-" + o.end.line + ":" + o.end.col + "]";
+  }
+
   public static void main(String[] args) throws Exception {
     var mapper = new ObjectMapper();
     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -158,6 +198,7 @@ public final class Main {
     var cw = cwFrames();
     var internal = toInternal(pkg, d.name);
     cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
+    addOriginAnnotation(cw, d.origin);
     cw.visitSource((d.name == null ? "Data" : d.name) + ".java", null);
     // fields
     for (var f : d.fields) {
@@ -196,6 +237,7 @@ public final class Main {
     var cw = new ClassWriter(0);
     var internal = toInternal(pkg, en.name);
     cw.visit(V17, ACC_PUBLIC | ACC_FINAL | ACC_ENUM, internal, null, "java/lang/Enum", null);
+    addOriginAnnotation(cw, en.origin);
     cw.visitSource((en.name == null ? "Enum" : en.name) + ".java", null);
     for (var v : en.variants) {
       cw.visitField(ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_ENUM, v, internalDesc(internal), null, null).visitEnd();
@@ -217,11 +259,12 @@ public final class Main {
     paramsDesc.append(")").append(retDesc);
 
     var mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, fn.name, paramsDesc.toString(), null, null);
+    addOriginAnnotation(mv, fn.origin);
     mv.visitCode();
     var lStart = new Label();
     mv.visitLabel(lStart);
     mv.visitLineNumber(1, lStart);
-    System.out.println("EMIT FUNC: " + pkg + "." + fn.name);
+    System.out.println(withOrigin("EMIT FUNC: " + pkg + "." + fn.name, fn.origin));
     // Track LocalVariableTable entries
     record LV(String name, String desc, int slot) {}
     java.util.List<LV> lvars = new java.util.ArrayList<>();
@@ -234,19 +277,19 @@ public final class Main {
       boolean intInt = fn.params.stream().allMatch(p -> p.type instanceof CoreModel.TypeName tn && Objects.equals(tn.name, "Int"));
       if (intInt && fn.ret instanceof CoreModel.TypeName rtn) {
         if ((Objects.equals(fn.name, "add") || Objects.equals(fn.name, "add2")) && Objects.equals(((CoreModel.TypeName)fn.ret).name, "Int")) {
-          System.out.println("FAST-PATH ADD: emitting ILOAD/ILOAD/IADD/IRETURN");
+          System.out.println(withOrigin("FAST-PATH ADD: emitting ILOAD/ILOAD/IADD/IRETURN", fn.origin));
           mv.visitVarInsn(ILOAD, 0);
           mv.visitVarInsn(ILOAD, 1);
           mv.visitInsn(IADD);
           mv.visitInsn(IRETURN);
           mv.visitMaxs(0,0); mv.visitEnd();
           var bytes = cw.toByteArray();
-          System.out.println("FAST-PATH ADD: class size=" + bytes.length + " bytes");
+          System.out.println(withOrigin("FAST-PATH ADD: class size=" + bytes.length + " bytes", fn.origin));
           writeClass(ctx, internal, bytes);
           return;
         }
         if ((Objects.equals(fn.name, "cmp") || Objects.equals(fn.name, "cmp2")) && Objects.equals(((CoreModel.TypeName)fn.ret).name, "Bool")) {
-          System.out.println("FAST-PATH CMP: emitting IF_ICMPLT logic");
+          System.out.println(withOrigin("FAST-PATH CMP: emitting IF_ICMPLT logic", fn.origin));
           var lT = new Label(); var lE = new Label();
           mv.visitVarInsn(ILOAD, 0);
           mv.visitVarInsn(ILOAD, 1);
@@ -259,7 +302,7 @@ public final class Main {
           mv.visitInsn(IRETURN);
           mv.visitMaxs(0,0); mv.visitEnd();
           var bytes = cw.toByteArray();
-          System.out.println("FAST-PATH CMP: class size=" + bytes.length + " bytes");
+          System.out.println(withOrigin("FAST-PATH CMP: class size=" + bytes.length + " bytes", fn.origin));
           writeClass(ctx, internal, bytes);
           return;
         }
@@ -512,9 +555,11 @@ public final class Main {
                     var labels = new Label[span];
                     for (int i2 = 0; i2 < span; i2++) labels[i2] = new Label();
                     mv.visitTableSwitchInsn(min, max, defaultLInt, labels);
+                    boolean[] seen = new boolean[span];
                     for (var c : mm.cases) if (c.pattern instanceof CoreModel.PatInt) {
                       int idx = ((CoreModel.PatInt)c.pattern).value - min;
                       mv.visitLabel(labels[idx]);
+                      seen[idx] = true;
                       { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                       if (c.body instanceof CoreModel.Return rr) {
                         emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
@@ -526,6 +571,13 @@ public final class Main {
                         }
                         mv.visitJumpInsn(GOTO, endLabelInt);
                         usedEndInt = true;
+                      }
+                    }
+                    // Visit any gaps to satisfy ASM frame computation and route to default
+                    for (int i2 = 0; i2 < span; i2++) {
+                      if (!seen[i2]) {
+                        mv.visitLabel(labels[i2]);
+                        mv.visitJumpInsn(GOTO, defaultLInt);
                       }
                     }
                   } else {
@@ -552,7 +604,7 @@ public final class Main {
                       }
                     }
                   }
-                  // Default: emit the non-int case body
+                  // Default: emit the non-int case body (inline, no shared end jump)
                   mv.visitLabel(defaultLInt);
                   { var lCaseD = new Label(); mv.visitLabel(lCaseD); mv.visitLineNumber(lineNo.getAndIncrement(), lCaseD); }
                   var cdef = nonInt.get(0);
@@ -564,10 +616,10 @@ public final class Main {
                       emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
                       if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                     }
-                    // unify fall-through to end
-                    mv.visitJumpInsn(GOTO, endLabelInt);
+                    // Default body falls through; do not jump to shared end label
                   }
-                  if (usedEndInt) mv.visitLabel(endLabelInt);
+                  // Always mark the end label to stabilize frame computation for branch targets
+                  mv.visitLabel(endLabelInt);
                   continue;
                 }
               }
@@ -1191,6 +1243,7 @@ public final class Main {
       else if (arity == 3) { ifaces = new String[] { "aster/runtime/Fn3" }; applyDesc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
       else { ifaces = new String[] { "aster/runtime/Fn4" }; applyDesc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
     cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", ifaces);
+    addOriginAnnotation(cw, lam.origin);
     // captured fields as Object
     int capN = (lam.captures == null) ? 0 : lam.captures.size();
     for (int i = 0; i < capN; i++) {
@@ -1216,6 +1269,7 @@ public final class Main {
     mv.visitEnd();
     // apply method: load params and captured fields into locals, then emit body with simple control flow
     var mv2 = cw.visitMethod(ACC_PUBLIC, "apply", applyDesc, null, null);
+    addOriginAnnotation(mv2, lam.origin);
     mv2.visitCode();
     // Environment: map names to local slots
     java.util.Map<String,Integer> env = new java.util.HashMap<>();

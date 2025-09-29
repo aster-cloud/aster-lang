@@ -81,6 +81,7 @@ export function parse(tokens: readonly Token[]): Module {
       }
     } else if (isKeyword(KW.TO)) {
       // Function
+      const toTok = peek();
       nextWord();
       const name = parseIdent();
       // Optional type parameters: 'of' TypeId ('and' TypeId)*
@@ -163,7 +164,10 @@ export function parse(tokens: readonly Token[]): Module {
         error("Expected '.' or ':' after return type");
       }
 
-      decls.push(Node.Func(name, typeParams, params, retType, effects, body));
+      const endTok = tokens[i - 1] || peek();
+      const fn = Node.Func(name, typeParams, params, retType, effects, body);
+      (fn as any).span = { start: toTok.start, end: endTok.end };
+      decls.push(fn);
     } else if (at(TokenKind.NEWLINE) || at(TokenKind.DEDENT) || at(TokenKind.INDENT)) {
       // Tolerate stray whitespace/dedent/indent at top-level
       next();
@@ -457,8 +461,12 @@ export function parse(tokens: readonly Token[]): Module {
       consumeNewlines();
     }
     if (!at(TokenKind.DEDENT)) error('Expected dedent');
+    const endTok = peek();
     next();
-    return Node.Block(statements);
+    const b = Node.Block(statements);
+    const startSpan = (statements[0] as any)?.span?.start || endTok.start;
+    (b as any).span = { start: startSpan, end: endTok.end };
+    return b;
   }
 
   function expectPeriodEnd(): void {
@@ -477,6 +485,7 @@ export function parse(tokens: readonly Token[]): Module {
 
   function parseStatement(): Statement {
     if (isKeyword(KW.LET)) {
+      const letTok = peek();
       nextWord();
       const name = parseIdent();
       expectKeyword(KW.BE, "Use 'be' in bindings: 'Let x be ...'.");
@@ -492,25 +501,39 @@ export function parse(tokens: readonly Token[]): Module {
         next();
         expectNewline();
         const body = parseBlock();
-        return Node.Let(name, Node.Lambda(params, retType, body));
+        const nd = Node.Let(name, Node.Lambda(params, retType, body));
+        const endTok = tokens[i - 1] || peek();
+        (nd as any).span = { start: letTok.start, end: endTok.end };
+        return nd;
       }
       const expr = parseExpr();
       expectPeriodEnd();
-      return Node.Let(name, expr);
+      const nd = Node.Let(name, expr);
+      const endTok = tokens[i - 1] || peek();
+      (nd as any).span = { start: letTok.start, end: endTok.end };
+      return nd;
     }
     if (isKeyword(KW.SET)) {
+      const setTok = peek();
       nextWord();
       const name = parseIdent();
       expectKeyword(KW.TO_WORD, "Use 'to' in assignments: 'Set x to ...'.");
       const expr = parseExpr();
       expectPeriodEnd();
-      return Node.Set(name, expr);
+      const nd = Node.Set(name, expr);
+      const endTok = tokens[i - 1] || peek();
+      (nd as any).span = { start: setTok.start, end: endTok.end };
+      return nd;
     }
     if (isKeyword(KW.RETURN)) {
+      const retTok = peek();
       nextWord();
       const expr = parseExpr();
       expectPeriodEndOrLine();
-      return Node.Return(expr);
+      const nd = Node.Return(expr);
+      const endTok = tokens[i - 1] || peek();
+      (nd as any).span = { start: retTok.start, end: endTok.end };
+      return nd;
     }
     if (isKeyword(KW.AWAIT)) {
       nextWord();
@@ -522,6 +545,7 @@ export function parse(tokens: readonly Token[]): Module {
       return aw as unknown as Statement;
     }
     if (isKeyword(KW.IF)) {
+      const ifTok = peek();
       nextWord();
       let negate = false;
       if (isKeyword(KW.NOT)) {
@@ -546,16 +570,23 @@ export function parse(tokens: readonly Token[]): Module {
         expectNewline();
         elseBlock = parseBlock();
       }
-      return Node.If(condExpr, thenBlock, elseBlock);
+      const nd = Node.If(condExpr, thenBlock, elseBlock);
+      const endTok = tokens[i - 1] || peek();
+      (nd as any).span = { start: ifTok.start, end: endTok.end };
+      return nd;
     }
     if (isKeyword(KW.MATCH)) {
+      const mTok = peek();
       nextWord();
       const expr = parseExpr();
       if (!at(TokenKind.COLON)) error("Expected ':' after match expression");
       next();
       expectNewline();
       const cases = parseCases();
-      return Node.Match(expr, cases);
+      const nd = Node.Match(expr, cases);
+      const endTok = tokens[i - 1] || peek();
+      (nd as any).span = { start: mTok.start, end: endTok.end };
+      return nd;
     }
     // Plain bare expression as statement (allow method calls, constructions) ending with '.'
     if (

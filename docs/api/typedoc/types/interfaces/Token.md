@@ -4,7 +4,7 @@
 
 # Interface: Token
 
-Defined in: [types.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L13)
+Defined in: [types.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L20)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f9
 
 > `readonly` **kind**: [`TokenKind`](../enumerations/TokenKind.md)
 
-Defined in: [types.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L14)
+Defined in: [types.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L21)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f9
 
 > `readonly` **value**: `null` \| `string` \| `number` \| `boolean`
 
-Defined in: [types.ts:15](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L15)
+Defined in: [types.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L22)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:15](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f9
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:16](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L16)
+Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L23)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:16](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f9
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:17](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L17)
+Defined in: [types.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L24)

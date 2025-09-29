@@ -4,7 +4,7 @@
 
 # Interface: Construct
 
-Defined in: [types.ts:521](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L521)
+Defined in: [types.ts:531](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L531)
 
 ## Extends
 
@@ -12,11 +12,23 @@ Defined in: [types.ts:521](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 ## Properties
 
+### origin?
+
+> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+
+Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+
+#### Inherited from
+
+[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"Construct"`
 
-Defined in: [types.ts:522](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L522)
+Defined in: [types.ts:532](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L532)
 
 #### Overrides
 
@@ -28,7 +40,7 @@ Defined in: [types.ts:522](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:523](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L523)
+Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L533)
 
 ***
 
@@ -36,4 +48,4 @@ Defined in: [types.ts:523](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **fields**: readonly [`ConstructField`](ConstructField.md)[]
 
-Defined in: [types.ts:524](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L524)
+Defined in: [types.ts:534](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L534)

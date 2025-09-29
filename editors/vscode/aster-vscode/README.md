@@ -17,8 +17,23 @@ Configuration:
 
 - `aster.langServer.path` (default: `dist/src/lsp/server.js`): override the server entry, relative to workspace root.
 
+## Capabilities Manifest
+
+To enable capability checks in diagnostics, set the `ASTER_CAPS` environment variable to a JSON manifest before launching VS Code or the language server.
+
+Example shell launch:
+
+```
+ASTER_CAPS=cnl/examples/capabilities.json code .
+```
+
+Manifest format:
+- `allow`: per-capability allow-list (e.g., `{ "io": ["demo.capdemo.*"], "cpu": ["*"] }`)
+- Optional `deny`: entries that take precedence over allow (e.g., `{ "io": ["demo.capdemo.bad*"] }`)
+
+Patterns: `*`, `module`, `module.*`, `module.func`, and suffix wildcard `module.func*`.
+
 Notes:
 
 - This is a minimal client using `stdio` transport. Features depend on server capabilities as they evolve.
 - Language id is `aster` and files with `.cnl` extension are recognized.
-

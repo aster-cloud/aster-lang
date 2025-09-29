@@ -32,6 +32,14 @@ This page lists common npm scripts and the unified `aster` CLI subcommands.
 - `npm run test:fuzz` — Fuzz tests.
 - `npm run bench` — Benchmarks.
 
+## Capabilities Manifest
+
+- Set `ASTER_CAPS=/path/to/capabilities.json` to enable capability checks during typecheck and in the LSP.
+- Manifest format (JSON):
+  - `allow`: `{ io: ["module.*", "module.func"], cpu: ["*"] }`
+  - Optional `deny`: `{ io: ["module.bad*"], cpu: [] }` (deny takes precedence over allow)
+- Supported patterns: `*`, `module`, `module.*`, `module.func`, and suffix wildcard `module.func*`.
+
 ## Lint & Format
 
 - `npm run lint` — ESLint.
@@ -73,4 +81,3 @@ This page lists common npm scripts and the unified `aster` CLI subcommands.
 - `npm run repl` — Experimental REPL.
 - `npm run lsp` — Start the LSP server (stdio).
 - `npm run new -- <dir>` — Scaffold a new Aster project in `<dir>`.
-

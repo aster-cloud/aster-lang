@@ -14,11 +14,18 @@ import {
   CompletionItemKind,
   TextDocumentSyncKind,
   InitializeResult,
+  CodeActionKind,
+  type CodeAction,
+  type CodeActionParams,
+  TextEdit,
+  type Range,
   // DocumentDiagnosticReportKind,
   // type DocumentDiagnosticReport,
 } from 'vscode-languageserver/node.js';
 
-import { typecheckModule, type TypecheckDiagnostic } from '../typecheck.js';
+import { typecheckModule, typecheckModuleWithCapabilities, type TypecheckDiagnostic } from '../typecheck.js';
+import fs from 'node:fs';
+import type { CapabilityManifest } from '../capabilities.js';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -66,6 +73,9 @@ connection.onInitialize((params: InitializeParams) => {
       diagnosticProvider: {
         interFileDependencies: false,
         workspaceDiagnostics: false,
+      },
+      codeActionProvider: {
+        codeActionKinds: [CodeActionKind.QuickFix],
       },
       hoverProvider: true,
       documentSymbolProvider: true,
@@ -158,7 +168,15 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     // Also run core + typecheck to surface semantic warnings
     try {
       const core = (await import('../lower_to_core.js')).lowerModule(ast);
-      const tdiags: TypecheckDiagnostic[] = typecheckModule(core);
+      // Load capability manifest if configured via env (singleton read)
+      let manifest: CapabilityManifest | null = null;
+      const capsPath = process.env.ASTER_CAPS || '';
+      if (capsPath) {
+        try { manifest = JSON.parse(fs.readFileSync(capsPath, 'utf8')); } catch { manifest = null; }
+      }
+      const tdiags: TypecheckDiagnostic[] = manifest
+        ? typecheckModuleWithCapabilities(core, manifest)
+        : typecheckModule(core);
       for (const td of tdiags) {
         const d: Diagnostic = {
           severity:
@@ -170,6 +188,8 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
           message: td.message,
           source: 'aster-typecheck',
         };
+        if (td.code !== null && td.code !== undefined) (d as any).code = td.code as string;
+        if (td.data !== null && td.data !== undefined) (d as any).data = td.data as any;
         diagnostics.push(d);
       }
     } catch {
@@ -227,6 +247,162 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
   // Send the computed diagnostics to VSCode.
   connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+}
+
+connection.onCodeAction(async (params: CodeActionParams): Promise<CodeAction[]> => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return [];
+  const text = doc.getText();
+  const actions: CodeAction[] = [];
+  const capsPath = process.env.ASTER_CAPS || '';
+  for (const d of params.context.diagnostics) {
+    const code = (d.code as string) || '';
+    if (code === 'EFF_MISSING_IO' || code === 'EFF_MISSING_CPU') {
+      const cap = code.endsWith('IO') ? 'IO' : 'CPU';
+      const func = ((d as any).data?.func as string) || extractFuncNameFromMessage(d.message);
+      const edit = headerInsertEffectEdit(text, func, cap);
+      if (edit) actions.push({
+        title: `Add It performs ${cap} to '${func}'`,
+        kind: CodeActionKind.QuickFix,
+        edit: { changes: { [params.textDocument.uri]: [edit] } },
+        diagnostics: [d],
+      });
+    }
+    if (code === 'EFF_SUPERFLUOUS_IO' || code === 'EFF_SUPERFLUOUS_CPU') {
+      const cap = code.endsWith('IO') ? 'IO' : 'CPU';
+      const func = ((d as any).data?.func as string) || extractFuncNameFromMessage(d.message);
+      const edit = headerRemoveEffectEdit(text, func);
+      if (edit) actions.push({
+        title: `Remove It performs ${cap} from '${func}'`,
+        kind: CodeActionKind.QuickFix,
+        edit: { changes: { [params.textDocument.uri]: [edit] } },
+        diagnostics: [d],
+      });
+    }
+    if ((code === 'CAP_IO_NOT_ALLOWED' || code === 'CAP_CPU_NOT_ALLOWED') && capsPath) {
+      const cap = code === 'CAP_IO_NOT_ALLOWED' ? 'io' : 'cpu';
+      const func = ((d as any).data?.func as string) || extractFuncNameFromMessage(d.message);
+      const mod = ((d as any).data?.module as string) || extractModuleName(text) || '';
+      const fqn = mod ? `${mod}.${func}` : func;
+      try {
+        const fsText = fs.readFileSync(capsPath, 'utf8');
+        const man = JSON.parse(fsText);
+        const uri = toFileUri(capsPath);
+        // Offer: allow for specific function (ensure FQN)
+        {
+          const manFn = structuredClone(man);
+          const textFn = ensureCapabilityAllow(manFn, cap, fqn);
+          actions.push({
+            title: `Allow ${cap.toUpperCase()} for ${fqn} in manifest`,
+            kind: CodeActionKind.QuickFix,
+            edit: { changes: { [uri]: [TextEdit.replace(fullDocRange(), textFn)] } },
+            diagnostics: [d],
+          });
+        }
+        // Offer: allow for entire module (module.*)
+        if (mod) {
+          const modWildcard = `${mod}.*`;
+          const manMod = structuredClone(man);
+          const textMod = ensureCapabilityAllow(manMod, cap, modWildcard);
+          actions.push({
+            title: `Allow ${cap.toUpperCase()} for ${mod}.* in manifest`,
+            kind: CodeActionKind.QuickFix,
+            edit: { changes: { [uri]: [TextEdit.replace(fullDocRange(), textMod)] } },
+            diagnostics: [d],
+          });
+
+          // If module.* is already present, offer to narrow to function-only (remove module.*)
+          const arr: string[] = Array.isArray(man.allow?.[cap]) ? man.allow[cap] : [];
+          if (arr.includes(modWildcard)) {
+            const manNarrow = structuredClone(man);
+            const textNarrow = swapCapabilityAllow(manNarrow, cap, modWildcard, fqn);
+            actions.push({
+              title: `Narrow ${cap.toUpperCase()} from ${mod}.* to ${fqn}`,
+              kind: CodeActionKind.QuickFix,
+              edit: { changes: { [uri]: [TextEdit.replace(fullDocRange(), textNarrow)] } },
+              diagnostics: [d],
+            });
+          }
+          // If function is already present, offer to broaden to module.* (remove fqn)
+          if (arr.includes(fqn)) {
+            const manBroad = structuredClone(man);
+            const textBroad = swapCapabilityAllow(manBroad, cap, fqn, modWildcard);
+            actions.push({
+              title: `Broaden ${cap.toUpperCase()} from ${fqn} to ${mod}.*`,
+              kind: CodeActionKind.QuickFix,
+              edit: { changes: { [uri]: [TextEdit.replace(fullDocRange(), textBroad)] } },
+              diagnostics: [d],
+            });
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return actions;
+});
+
+function fullDocRange(): Range {
+  return { start: { line: 0, character: 0 }, end: { line: Number.MAX_SAFE_INTEGER, character: 0 } };
+}
+
+function extractFuncNameFromMessage(msg: string): string {
+  const m = msg.match(/Function '([^']+)'/);
+  return m?.[1] ?? '';
+}
+
+function extractModuleName(text: string): string | null {
+  const m = text.match(/This module is ([A-Za-z][A-Za-z0-9_.]*)\./);
+  return m?.[1] ?? null;
+}
+
+function headerInsertEffectEdit(text: string, func: string, cap: 'IO' | 'CPU'): TextEdit | null {
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    if (/^To\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line)) {
+      if (/It performs/i.test(line)) return null;
+      const withEff = line.replace(/(:|\.)\s*$/, `. It performs ${cap}:`);
+      return TextEdit.replace({ start: { line: i, character: 0 }, end: { line: i, character: line.length } }, withEff);
+    }
+  }
+  return null;
+}
+
+function headerRemoveEffectEdit(text: string, func: string): TextEdit | null {
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    if (/^To\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line) && /It performs/i.test(line)) {
+      const cleaned = line.replace(/\. It performs (IO|CPU):/i, ':');
+      return TextEdit.replace({ start: { line: i, character: 0 }, end: { line: i, character: line.length } }, cleaned);
+    }
+  }
+  return null;
+}
+
+function ensureCapabilityAllow(man: any, cap: string, entry: string): string {
+  const allow = (man.allow = man.allow || {});
+  const arr: string[] = (allow[cap] = Array.isArray(allow[cap]) ? allow[cap] : []);
+  if (!arr.includes(entry)) arr.push(entry);
+  return JSON.stringify(man, null, 2) + '\n';
+}
+
+function swapCapabilityAllow(man: any, cap: string, removeEntry: string, addEntry: string): string {
+  const allow = (man.allow = man.allow || {});
+  const arr: string[] = (allow[cap] = Array.isArray(allow[cap]) ? allow[cap] : []);
+  const idx = arr.indexOf(removeEntry);
+  if (idx >= 0) arr.splice(idx, 1);
+  if (!arr.includes(addEntry)) arr.push(addEntry);
+  return JSON.stringify(man, null, 2) + '\n';
+}
+
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+function toFileUri(p: string): string {
+  const abs = path.isAbsolute(p) ? p : path.resolve(p);
+  return String(pathToFileURL(abs));
 }
 
 // TODO: upgrade to LSP 3.17+ for document diagnostics when ready

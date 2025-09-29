@@ -1,0 +1,7 @@
+This module is demo.capdemo.
+
+To hello with name: Text, produce Text. It performs IO:
+  Return Text.concat("Hello, ", name).
+
+To badIO, produce Text. It performs IO:
+  Return Text.toUpper("x").

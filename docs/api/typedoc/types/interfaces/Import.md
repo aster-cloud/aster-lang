@@ -4,7 +4,7 @@
 
 # Interface: Import
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L62)
+Defined in: [types.ts:71](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L71)
 
 ## Extends
 
@@ -12,11 +12,35 @@ Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f9
 
 ## Properties
 
+### span?
+
+> `readonly` `optional` **span**: [`Span`](Span.md)
+
+Defined in: [types.ts:61](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L61)
+
+#### Inherited from
+
+[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `null` \| `string`
+
+Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L62)
+
+#### Inherited from
+
+[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"Import"`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L63)
+Defined in: [types.ts:72](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L72)
 
 #### Overrides
 
@@ -28,7 +52,7 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f9
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L64)
+Defined in: [types.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L73)
 
 ***
 
@@ -36,4 +60,4 @@ Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f9
 
 > `readonly` **asName**: `null` \| `string`
 
-Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L65)
+Defined in: [types.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L74)

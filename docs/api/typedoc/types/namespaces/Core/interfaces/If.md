@@ -4,7 +4,7 @@
 
 # Interface: If
 
-Defined in: [types.ts:417](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L417)
+Defined in: [types.ts:427](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L427)
 
 ## Extends
 
@@ -12,11 +12,23 @@ Defined in: [types.ts:417](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 ## Properties
 
+### origin?
+
+> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+
+Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+
+#### Inherited from
+
+[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"If"`
 
-Defined in: [types.ts:418](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L418)
+Defined in: [types.ts:428](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L428)
 
 #### Overrides
 
@@ -28,7 +40,7 @@ Defined in: [types.ts:418](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **cond**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:419](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L419)
+Defined in: [types.ts:429](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L429)
 
 ***
 
@@ -36,7 +48,7 @@ Defined in: [types.ts:419](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **thenBlock**: [`Block`](Block.md)
 
-Defined in: [types.ts:420](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L420)
+Defined in: [types.ts:430](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L430)
 
 ***
 
@@ -44,4 +56,4 @@ Defined in: [types.ts:420](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **elseBlock**: `null` \| [`Block`](Block.md)
 
-Defined in: [types.ts:421](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L421)
+Defined in: [types.ts:431](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L431)

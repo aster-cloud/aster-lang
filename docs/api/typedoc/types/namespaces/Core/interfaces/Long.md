@@ -4,7 +4,7 @@
 
 # Interface: Long
 
-Defined in: [types.ts:489](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L489)
+Defined in: [types.ts:499](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L499)
 
 ## Extends
 
@@ -12,11 +12,23 @@ Defined in: [types.ts:489](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 ## Properties
 
+### origin?
+
+> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+
+Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+
+#### Inherited from
+
+[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"Long"`
 
-Defined in: [types.ts:490](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L490)
+Defined in: [types.ts:500](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L500)
 
 #### Overrides
 
@@ -28,4 +40,4 @@ Defined in: [types.ts:490](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **value**: `number`
 
-Defined in: [types.ts:491](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L491)
+Defined in: [types.ts:501](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L501)

@@ -65,6 +65,12 @@ Re-exports [Span](../types/interfaces/Span.md)
 
 ***
 
+### Origin
+
+Re-exports [Origin](../types/interfaces/Origin.md)
+
+***
+
 ### Token
 
 Re-exports [Token](../types/interfaces/Token.md)

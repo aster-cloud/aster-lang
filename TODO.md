@@ -30,7 +30,7 @@ Emitter Quality
 - [x] Constant pool determinism/deduplication (determinism gate is present; implement CP interning/dedup where applicable).
   - Done: stabilized iteration order for decls/fields/variants, deterministic line numbering, deterministic method-cache fallback; added string constant pooling in emitter; ASM writer already de‑dups constants. Determinism check `determinism:asm` passes.
   - [x] Add switch lowering for int-pattern matches (tableswitch/lookupswitch) when all cases are integer literals; verified via javap.
-  - [ ] Mixed int + default: refactor lowering to inline default body and avoid shared end labels; re‑enable CI assertion after stabilization.
+  - [x] Mixed int + default: refactor lowering to inline default body and avoid shared end labels; re‑enable CI assertion after stabilization.
 
 Interop Hardening
 - [x] Formalize overload resolution policy (arity → exact → primitive widening → boxing → varargs) with clear tie-breaking.
@@ -42,11 +42,14 @@ Interop Hardening
 - [x] Map core `Number` to JVM `java.lang.Double`; add runtime boxing helpers `aster.runtime.Primitives` (number/integer/longNum/bool); update examples and docs to use helpers.
 
 Effects & Capabilities
-- [ ] Capability manifest (YAML/JSON) + compile-time checks mapping effects to declared capabilities.
-- [ ] LSP code actions for inserting effects/capabilities.
+- [x] Capability manifest (YAML/JSON) + compile-time checks mapping effects to declared capabilities.
+- [x] LSP code actions for inserting effects/capabilities.
 
 Debuggability & Provenance
-- [ ] Attach `(file,start,end)` to IR nodes; emit runtime `@AsterOrigin` and include spans in logs.
+- [x] Attach `(file,start,end)` to IR nodes; emit runtime `@AsterOrigin` and include spans in logs.
+  - IR: `origin` propagated on all Core nodes in lowering (Module, decls, stmts, exprs, patterns, types).
+  - Runtime: added `aster.runtime.AsterOrigin` (RUNTIME retention).
+  - Emitter: annotates Data/Enum classes, function methods, and lambda classes + apply(); logs include spans.
 
 LSP & Formatter
 - [ ] Lossless CST and idempotent formatter fuzzing.
@@ -55,7 +58,7 @@ LSP & Formatter
 Tests & CI
 - [x] Promote javap interop assertions to blocking after N green runs.
 - [x] Expand verifier fuzz corpus (random CFGs, simple static calls) and keep non-blocking until stable.
-- [ ] Native lane: keep non-blocking; document Xcode/GraalVM prerequisites.
+- [x] Native lane: keep non-blocking; document Xcode/GraalVM prerequisites.
 
 Examples
 - [x] Add CI assertion that examples compile against package map (verify:examples is blocking in CI).

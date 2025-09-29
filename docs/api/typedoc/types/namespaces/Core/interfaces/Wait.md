@@ -4,7 +4,7 @@
 
 # Interface: Wait
 
-Defined in: [types.ts:389](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L389)
+Defined in: [types.ts:399](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L399)
 
 ## Extends
 
@@ -12,11 +12,23 @@ Defined in: [types.ts:389](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 ## Properties
 
+### origin?
+
+> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+
+Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+
+#### Inherited from
+
+[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+
+***
+
 ### kind
 
 > `readonly` **kind**: `"Wait"`
 
-Defined in: [types.ts:390](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L390)
+Defined in: [types.ts:400](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L400)
 
 #### Overrides
 
@@ -28,4 +40,4 @@ Defined in: [types.ts:390](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:391](https://github.com/wontlost-ltd/aster-lang/blob/b3f4f92e2fab21136a15625be5d004d943480a0e/src/types.ts#L391)
+Defined in: [types.ts:401](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L401)

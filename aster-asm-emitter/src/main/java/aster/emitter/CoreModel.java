@@ -4,9 +4,12 @@ import com.fasterxml.jackson.annotation.*;
 import java.util.*;
 
 public final class CoreModel {
+  public static final class Position { public int line; public int col; }
+  public static final class Origin { public String file; public Position start; public Position end; }
   public static final class Module {
     public String name;
     public List<Decl> decls;
+    public Origin origin;
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
@@ -21,12 +24,14 @@ public final class CoreModel {
   public static final class Data implements Decl {
     public String name;
     public List<Field> fields;
+    public Origin origin;
   }
 
   @JsonTypeName("Enum")
   public static final class Enum implements Decl {
     public String name;
     public List<String> variants;
+    public Origin origin;
   }
 
   @JsonTypeName("Func")
@@ -36,6 +41,7 @@ public final class CoreModel {
     public Type ret;
     public List<String> effects;
     public Block body;
+    public Origin origin;
   }
 
   public static final class Field { public String name; public Type type; }
@@ -54,22 +60,22 @@ public final class CoreModel {
   public sealed interface Type permits TypeName, Result, Maybe, Option, ListT, MapT, FuncType {}
 
   @JsonTypeName("TypeName")
-  public static final class TypeName implements Type { public String name; }
+  public static final class TypeName implements Type { public String name; public Origin origin; }
   @JsonTypeName("Result")
-  public static final class Result implements Type { public Type ok; public Type err; }
+  public static final class Result implements Type { public Type ok; public Type err; public Origin origin; }
   @JsonTypeName("Maybe")
-  public static final class Maybe implements Type { public Type type; }
+  public static final class Maybe implements Type { public Type type; public Origin origin; }
   @JsonTypeName("Option")
-  public static final class Option implements Type { public Type type; }
+  public static final class Option implements Type { public Type type; public Origin origin; }
   @JsonTypeName("List")
-  public static final class ListT implements Type { public Type type; }
+  public static final class ListT implements Type { public Type type; public Origin origin; }
   @JsonTypeName("Map")
-  public static final class MapT implements Type { public Type key; public Type val; }
+  public static final class MapT implements Type { public Type key; public Type val; public Origin origin; }
   @JsonTypeName("FuncType")
-  public static final class FuncType implements Type { public java.util.List<Type> params; public Type ret; }
+  public static final class FuncType implements Type { public java.util.List<Type> params; public Type ret; public Origin origin; }
 
   @JsonTypeName("Block")
-  public static final class Block implements Stmt { public List<Stmt> statements; }
+  public static final class Block implements Stmt { public List<Stmt> statements; public Origin origin; }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
@@ -84,20 +90,20 @@ public final class CoreModel {
   public sealed interface Stmt permits Let, Set, Return, If, Match, Scope, Block {}
 
   @JsonTypeName("Let")
-  public static final class Let implements Stmt { public String name; public Expr expr; }
+  public static final class Let implements Stmt { public String name; public Expr expr; public Origin origin; }
   @JsonTypeName("Set")
-  public static final class Set implements Stmt { public String name; public Expr expr; }
+  public static final class Set implements Stmt { public String name; public Expr expr; public Origin origin; }
   @JsonTypeName("Return")
-  public static final class Return implements Stmt { public Expr expr; }
+  public static final class Return implements Stmt { public Expr expr; public Origin origin; }
   @JsonTypeName("If")
-  public static final class If implements Stmt { public Expr cond; public Block thenBlock; public Block elseBlock; }
+  public static final class If implements Stmt { public Expr cond; public Block thenBlock; public Block elseBlock; public Origin origin; }
   @JsonTypeName("Match")
-  public static final class Match implements Stmt { public Expr expr; public List<Case> cases; }
+  public static final class Match implements Stmt { public Expr expr; public List<Case> cases; public Origin origin; }
   @JsonTypeName("Scope")
-  public static final class Scope implements Stmt { public List<Stmt> statements; }
+  public static final class Scope implements Stmt { public List<Stmt> statements; public Origin origin; }
 
   @JsonTypeName("Case")
-  public static final class Case { public Pattern pattern; public Stmt body; }
+  public static final class Case { public Pattern pattern; public Stmt body; public Origin origin; }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
@@ -109,7 +115,7 @@ public final class CoreModel {
   public sealed interface Pattern permits PatNull, PatCtor, PatName, PatInt {}
 
   @JsonTypeName("PatNull")
-  public static final class PatNull implements Pattern {}
+  public static final class PatNull implements Pattern { public Origin origin; }
   @JsonTypeName("PatCtor")
   public static final class PatCtor implements Pattern {
     public String typeName;
@@ -117,11 +123,12 @@ public final class CoreModel {
     public List<String> names;
     // New: nested patterns for positional fields
     public List<Pattern> args;
+    public Origin origin;
   }
   @JsonTypeName("PatName")
-  public static final class PatName implements Pattern { public String name; }
+  public static final class PatName implements Pattern { public String name; public Origin origin; }
   @JsonTypeName("PatInt")
-  public static final class PatInt implements Pattern { public int value; }
+  public static final class PatInt implements Pattern { public int value; public Origin origin; }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
@@ -143,32 +150,32 @@ public final class CoreModel {
   public sealed interface Expr permits Name, Bool, IntE, LongE, DoubleE, StringE, NullE, Ok, Err, Some, NoneE, Construct, Call, Lambda {}
 
   @JsonTypeName("Name")
-  public static final class Name implements Expr { public String name; }
+  public static final class Name implements Expr { public String name; public Origin origin; }
   @JsonTypeName("Bool")
-  public static final class Bool implements Expr { public boolean value; }
+  public static final class Bool implements Expr { public boolean value; public Origin origin; }
   @JsonTypeName("Int")
-  public static final class IntE implements Expr { public int value; }
+  public static final class IntE implements Expr { public int value; public Origin origin; }
   @JsonTypeName("Long")
-  public static final class LongE implements Expr { public long value; }
+  public static final class LongE implements Expr { public long value; public Origin origin; }
   @JsonTypeName("Double")
-  public static final class DoubleE implements Expr { public double value; }
+  public static final class DoubleE implements Expr { public double value; public Origin origin; }
   @JsonTypeName("String")
-  public static final class StringE implements Expr { public String value; }
+  public static final class StringE implements Expr { public String value; public Origin origin; }
   @JsonTypeName("Null")
-  public static final class NullE implements Expr {}
+  public static final class NullE implements Expr { public Origin origin; }
   @JsonTypeName("Ok")
-  public static final class Ok implements Expr { public Expr expr; }
+  public static final class Ok implements Expr { public Expr expr; public Origin origin; }
   @JsonTypeName("Err")
-  public static final class Err implements Expr { public Expr expr; }
+  public static final class Err implements Expr { public Expr expr; public Origin origin; }
   @JsonTypeName("Some")
-  public static final class Some implements Expr { public Expr expr; }
+  public static final class Some implements Expr { public Expr expr; public Origin origin; }
   @JsonTypeName("None")
-  public static final class NoneE implements Expr {}
+  public static final class NoneE implements Expr { public Origin origin; }
   @JsonTypeName("Construct")
-  public static final class Construct implements Expr { public String typeName; public List<FieldInit> fields; }
+  public static final class Construct implements Expr { public String typeName; public List<FieldInit> fields; public Origin origin; }
   public static final class FieldInit { public String name; public Expr expr; }
   @JsonTypeName("Call")
-  public static final class Call implements Expr { public Expr target; public List<Expr> args; }
+  public static final class Call implements Expr { public Expr target; public List<Expr> args; public Origin origin; }
   @JsonTypeName("Lambda")
-  public static final class Lambda implements Expr { public List<Param> params; public Type ret; public Block body; public List<String> captures; }
+  public static final class Lambda implements Expr { public List<Param> params; public Type ret; public Block body; public List<String> captures; public Origin origin; }
 }

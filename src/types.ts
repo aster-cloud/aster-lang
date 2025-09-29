@@ -10,6 +10,13 @@ export interface Span {
   readonly end: Position;
 }
 
+// Optional file-backed origin info; used for IR provenance and logs
+export interface Origin {
+  readonly file?: string;
+  readonly start: Position;
+  readonly end: Position;
+}
+
 export interface Token {
   readonly kind: TokenKind;
   readonly value: string | number | boolean | null;
@@ -51,6 +58,8 @@ export enum Effect {
 // CNL AST types
 export interface AstNode {
   readonly kind: string;
+  readonly span?: Span;
+  readonly file?: string | null;
 }
 
 export interface Module extends AstNode {
@@ -328,6 +337,7 @@ export interface FuncType extends AstNode {
 export namespace Core {
   export interface CoreNode {
     readonly kind: string;
+    readonly origin?: Origin;
   }
 
   export interface Module extends CoreNode {

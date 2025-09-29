@@ -1,10 +1,13 @@
 import type { Core } from './types.js';
+import { type CapabilityManifest, type CapabilityContext, isAllowed } from './capabilities.js';
 // import { DiagnosticBuilder, DiagnosticCode, DiagnosticSeverity } from './diagnostics.js';
 import { IO_PREFIXES, CPU_PREFIXES } from './config/effects.js';
 
 export interface TypecheckDiagnostic {
   severity: 'error' | 'warning';
   message: string;
+  code?: string;
+  data?: unknown;
 }
 
 // Internal representation for types during checking
@@ -140,6 +143,25 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
   return diags;
 }
 
+export function typecheckModuleWithCapabilities(
+  m: Core.Module,
+  manifest: CapabilityManifest | null
+): TypecheckDiagnostic[] {
+  const diags = typecheckModule(m);
+  const capCtx: CapabilityContext = { moduleName: m.name ?? '' };
+  for (const d of m.decls) {
+    if (d.kind !== 'Func') continue;
+    const effs = new Set(d.effects.map(e => String(e).toLowerCase()));
+    if (effs.has('io') && !isAllowed('io', d.name, capCtx, manifest)) {
+      diags.push({ severity: 'error', message: `Function '${d.name}' declares @io but capability manifest does not allow it for module '${m.name}'.`, code: 'CAP_IO_NOT_ALLOWED', data: { func: d.name, module: m.name, cap: 'io' } });
+    }
+    if (effs.has('cpu') && !isAllowed('cpu', d.name, capCtx, manifest)) {
+      diags.push({ severity: 'error', message: `Function '${d.name}' declares @cpu but capability manifest does not allow it for module '${m.name}'.`, code: 'CAP_CPU_NOT_ALLOWED', data: { func: d.name, module: m.name, cap: 'cpu' } });
+    }
+  }
+  return diags;
+}
+
 function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] {
   // enum member → enum type lookup for expression typing
   const enumMemberOf = new Map<string, string>();
@@ -165,21 +187,29 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
     diags.push({
       severity: 'warning',
       message: `Function '${f.name}' may perform I/O but is missing @io effect.`,
+      code: 'EFF_MISSING_IO',
+      data: { func: f.name },
     });
   if (!effs.has('io') && hasIO)
     diags.push({
       severity: 'warning',
       message: `Function '${f.name}' declares @io but no obvious I/O found.`,
+      code: 'EFF_SUPERFLUOUS_IO',
+      data: { func: f.name },
     });
   if (effs.has('cpu') && !hasCPU)
     diags.push({
       severity: 'warning',
       message: `Function '${f.name}' may perform CPU-bound work but is missing @cpu effect.`,
+      code: 'EFF_MISSING_CPU',
+      data: { func: f.name },
     });
   if (!effs.has('cpu') && hasCPU)
     diags.push({
       severity: 'warning',
       message: `Function '${f.name}' declares @cpu but no obvious CPU-bound work found.`,
+      code: 'EFF_SUPERFLUOUS_CPU',
+      data: { func: f.name },
     });
   // Async discipline: every started task should be waited somewhere in the body
   const aw = collectAsync(f.body);

@@ -95,6 +95,53 @@ async function runOneTypecheck(inputPath: string, expectPath: string): Promise<v
   }
 }
 
+async function runOneTypecheckWithCaps(
+  inputPath: string,
+  expectPath: string,
+  manifestPath: string
+): Promise<void> {
+  try {
+    const src = fs.readFileSync(inputPath, 'utf8');
+    const can = canonicalize(src);
+    const toks = lex(can);
+    const ast = parse(toks);
+    const { lowerModule } = await import('../src/lower_to_core.js');
+    const core = lowerModule(ast);
+    const { typecheckModuleWithCapabilities } = await import('../src/typecheck.js');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const diags = typecheckModuleWithCapabilities(core, manifest);
+    const capOnly = diags.filter(d => d.message.includes('capability manifest'));
+    const actualLines = Array.from(
+      new Set(capOnly.map(d => `${d.severity.toUpperCase()}: ${d.message}`))
+    );
+    const expectedLines = Array.from(
+      new Set(
+        fs
+          .readFileSync(expectPath, 'utf8')
+          .split(/\r?\n/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
+      )
+    );
+    const actual = actualLines.join('\n') + (actualLines.length ? '\n' : '');
+    const expected = expectedLines.join('\n') + (expectedLines.length ? '\n' : '');
+    if (actual !== expected) {
+      console.error(`FAIL: TYPECHECK+CAPS ${inputPath}`);
+      console.error('--- Actual ---');
+      process.stdout.write(actual);
+      console.error('--- Expected ---');
+      process.stdout.write(expected);
+      process.exitCode = 1;
+    } else {
+      console.log(`OK: TYPECHECK+CAPS ${inputPath}`);
+    }
+  } catch (e: unknown) {
+    const err = e as { message?: string };
+    console.error(`ERROR: TYPECHECK+CAPS ${inputPath}: ${err.message ?? String(e)}`);
+    process.exitCode = 1;
+  }
+}
+
 async function main(): Promise<void> {
   runOneAst('cnl/examples/greet.cnl', 'cnl/examples/expected_greet.ast.json');
   runOneAst('cnl/examples/login.cnl', 'cnl/examples/expected_login.ast.json');
@@ -238,6 +285,17 @@ async function main(): Promise<void> {
   );
   // Interop numeric literal kinds (CNL → Core)
   await runOneCore('cnl/examples/interop_sum.cnl', 'cnl/examples/interop_sum_core.json');
+  // Capability manifest violation golden (intentional errors)
+  await runOneTypecheckWithCaps(
+    'cnl/examples/capdemo.cnl',
+    'cnl/examples/expected_cap_violate.diag.txt',
+    'cnl/examples/capabilities_deny.json'
+  );
+  await runOneTypecheckWithCaps(
+    'cnl/examples/capdemo.cnl',
+    'cnl/examples/expected_cap_mixed.diag.txt',
+    'cnl/examples/capabilities_mixed.json'
+  );
 }
 
 main().catch(e => {
@@ -251,6 +309,8 @@ function prune(obj: unknown): unknown {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
       if (k === 'typeParams' && Array.isArray(v) && v.length === 0) continue;
+      // Drop provenance/ancillary fields from comparisons
+      if (k === 'span' || k === 'file' || k === 'origin') continue;
       out[k] = prune(v as unknown);
     }
     return out;

@@ -75,6 +75,9 @@ npm run bench           # Performance benchmarks
 
 # Full CI pipeline (Node 22+, JDK 21+ for JVM checks)
 npm run ci
+
+# CI debug for LSP code actions (prints diagnostics and action titles)
+CI_DEBUG=1 npm run ci
 ```
 
 ## Code Style

@@ -4,7 +4,18 @@ import { canonicalize } from '../src/canonicalizer.js';
 import { lex } from '../src/lexer.js';
 import { parse } from '../src/parser.js';
 import { lowerModule } from '../src/lower_to_core.js';
-import { typecheckModule } from '../src/typecheck.js';
+import { typecheckModule, typecheckModuleWithCapabilities } from '../src/typecheck.js';
+
+function readManifest(): import('../src/capabilities.js').CapabilityManifest | null {
+  const p = process.env.ASTER_CAPS || '';
+  if (!p) return null;
+  try {
+    const s = fs.readFileSync(p, 'utf8');
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
 
 function main(): void {
   const file = process.argv[2];
@@ -17,7 +28,8 @@ function main(): void {
   const toks = lex(can);
   const ast = parse(toks);
   const core = lowerModule(ast);
-  const diags = typecheckModule(core);
+  const man = readManifest();
+  const diags = man ? typecheckModuleWithCapabilities(core, man) : typecheckModule(core);
   if (diags.length === 0) {
     console.log('Typecheck OK');
   } else {
