@@ -2,10 +2,6 @@ This module is demo.int_match_default.
 
 To classifyDefault with n: Int, produce Text:
   Match n:
-    When 10,
-      Return "ten".
-    When 20,
-      Return "twenty".
-    When other,
-      Return Text.concat("other:", "case").
-
+    When 10, Return "ten".
+    When 20, Return "twenty".
+    When other, Return Text.concat("other:", "case").

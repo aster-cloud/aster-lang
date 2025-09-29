@@ -1,12 +1,12 @@
 This module is demo.policy.
 
-Define an Action as one of Read or Write or Delete or Admin.
+Define Action as one of Read, Write, Delete, Admin.
 
-Define a Resource as one of Document or User or System.
+Define Resource as one of Document, User, System.
 
-Define a PolicyContext with userId: Text and userRole: Text and resourceOwner: Text and resourceType: Resource and timeOfDay: Number and location: Text.
+Define PolicyContext with userId: Text, userRole: Text, resourceOwner: Text, resourceType: Resource, timeOfDay: Double, location: Text.
 
-To canAccess with role: Text and action: Action and ownerId: Text and userId: Text, produce Bool:
+To canAccess with role: Text and action: Action and ownerId: Text and userId: Text produce Bool:
   If Text.equals(role, "admin"),:
     Return true.
   If Action.equals(action, Read),:
@@ -19,14 +19,14 @@ To canAccess with role: Text and action: Action and ownerId: Text and userId: Te
     Return Text.equals(role, "admin").
   Return false.
 
-To evaluateOwnerBasedRule with role: Text and action: Action and resource: Resource and context: PolicyContext, produce Bool:
-  If not Text.equals(role, context.userRole),:
+To evaluateOwnerBasedRule with role: Text and action: Action and resource: Resource and context: PolicyContext produce Bool:
+  If not(Text.equals(role, context.userRole)),:
     Return false.
-  If not Action.equals(action, Read),:
+  If not(Action.equals(action, Read)),:
     Return false.
-  If not Resource.equals(resource, context.resourceType),:
+  If not(Resource.equals(resource, context.resourceType)),:
     Return false.
   Return Text.equals(context.userId, context.resourceOwner).
 
-To evaluateUserReadRule with context: PolicyContext, produce Bool:
+To evaluateUserReadRule with context: PolicyContext produce Bool:
   Return evaluateOwnerBasedRule("user", Read, Document, context).

@@ -3,18 +3,17 @@ This module is std.maybe_result.
 To inc with x: Int, produce Int:
   Return x.
 
-To maybeWithDefault with x: maybe Int and d: Int, produce Int:
+To maybeWithDefault with x: Int? and d: Int, produce Int:
   Return Maybe.withDefault(x, d).
 
-To mapMaybe with x: maybe Int, produce maybe Int:
+To mapMaybe with x: Int?, produce Int?:
   Return Maybe.map(x, inc).
 
 To logErr with e: Text, produce Text:
   Return e.
 
-To mapOk with r: Result of Int or Text, produce Result of Int or Text:
+To mapOk with r: Result of Int and Text, produce Result of Int and Text:
   Return Result.mapOk(r, inc).
 
-To tapError with r: Result of Int or Text, produce Result of Int or Text:
+To tapError with r: Result of Int and Text, produce Result of Int and Text:
   Return Result.tapError(r, logErr).
-

@@ -39,6 +39,7 @@ export enum TokenKind {
   MINUS = 'MINUS',
   LT = 'LT',
   GT = 'GT',
+  QUESTION = 'QUESTION',
   IDENT = 'IDENT',
   TYPE_IDENT = 'TYPE_IDENT',
   STRING = 'STRING',

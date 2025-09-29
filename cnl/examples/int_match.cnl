@@ -2,11 +2,7 @@ This module is demo.int_match.
 
 To classify with n: Int, produce Text:
   Match n:
-    When 0,
-      Return "zero".
-    When 1,
-      Return "one".
-    When 2,
-      Return "two".
-    When 42,
-      Return "answer".
+    When 0, Return "zero".
+    When 1, Return "one".
+    When 2, Return "two".
+    When 42, Return "answer".

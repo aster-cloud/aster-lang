@@ -1,11 +1,10 @@
-Define a User with id: Text and name: Text.
-Define a Dash with profile: Text and timeline: Text.
-Define an AuthErr as one of InvalidCreds or Locked.
+Define User with id: Text, name: Text.
 
-To fetch dashboard for u: User, produce Result of Dash or AuthErr. It performs IO:
-  Within a scope:
-    Start profile as async ProfileSvc.load(u.id).
-    Start timeline as async FeedSvc.timeline(u.id).
-    Wait for profile and timeline.
-    Return Ok of Dash(profile, timeline).
+Define Dash with profile: Text, timeline: Text.
 
+Define AuthErr as one of InvalidCreds, Locked.
+To fetchDashboard with u: User, produce Result of Dash and AuthErr. It performs io:
+  Start profile as async ProfileSvc.load(u.id).
+  Start timeline as async FeedSvc.timeline(u.id).
+  Wait for profile, timeline.
+  Return ok of Dash(profile, timeline).

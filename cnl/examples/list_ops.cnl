@@ -1,10 +1,10 @@
 This module is demo.list.
 
-To length xs: list of Text, produce Int:
+To length with xs: List of Text, produce Int:
   Return List.length(xs).
 
-To third xs: list of Text, produce Text:
+To third with xs: List of Text, produce Text:
   Return List.get(xs, 2).
 
-To isEmpty xs: list of Text, produce Bool:
+To isEmpty with xs: List of Text, produce Bool:
   Return List.isEmpty(xs).

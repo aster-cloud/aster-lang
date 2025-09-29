@@ -63,6 +63,20 @@ export function lex(input: string): Token[] {
   while (i < input.length) {
     const ch = peek();
 
+    // Line comments: '//' or '#'
+    if (ch === '#') {
+      // consume until newline (do not emit tokens)
+      while (i < input.length && peek() !== '\n') next();
+      continue;
+    }
+    if (ch === '/' && input[i + 1] === '/') {
+      // consume '//' and rest of the line
+      next();
+      next();
+      while (i < input.length && peek() !== '\n') next();
+      continue;
+    }
+
     // Newline + indentation
     if (ch === '\n') {
       next();
@@ -125,6 +139,11 @@ export function lex(input: string): Token[] {
     if (ch === '+') {
       next();
       push(TokenKind.PLUS, '+');
+      continue;
+    }
+    if (ch === '?') {
+      next();
+      push(TokenKind.QUESTION, '?');
       continue;
     }
     if (ch === '-') {

@@ -4,7 +4,7 @@
 
 # Interface: PatInt
 
-Defined in: [types.ts:464](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L464)
+Defined in: [types.ts:465](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L465)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:464](https://github.com/wontlost-ltd/aster-lang/blob/b4a85
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L340)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:340](https://github.com/wontlost-ltd/aster-lang/blob/b4a85
 
 > `readonly` **kind**: `"PatInt"`
 
-Defined in: [types.ts:465](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L465)
+Defined in: [types.ts:466](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L466)
 
 #### Overrides
 
@@ -40,4 +40,4 @@ Defined in: [types.ts:465](https://github.com/wontlost-ltd/aster-lang/blob/b4a85
 
 > `readonly` **value**: `number`
 
-Defined in: [types.ts:466](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L466)
+Defined in: [types.ts:467](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L467)

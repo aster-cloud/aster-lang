@@ -4,7 +4,7 @@
 
 # Interface: Parameter
 
-Defined in: [types.ts:382](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L382)
+Defined in: [types.ts:383](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L383)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:382](https://github.com/wontlost-ltd/aster-lang/blob/b4a85
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:383](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L383)
+Defined in: [types.ts:384](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L384)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:383](https://github.com/wontlost-ltd/aster-lang/blob/b4a85
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:384](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/types.ts#L384)
+Defined in: [types.ts:385](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L385)

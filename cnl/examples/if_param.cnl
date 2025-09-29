@@ -1,8 +1,7 @@
 This module is demo.ifp.
 
-To choose flag: Text, produce Text:
+To choose with flag: Text, produce Text:
   If flag,:
     Return "Y".
   Otherwise,:
     Return "N".
-

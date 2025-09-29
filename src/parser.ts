@@ -19,6 +19,7 @@ export function parse(tokens: readonly Token[]): Module {
   let i = 0;
   const peek = (): Token => tokens[i] || tokens[tokens.length - 1]!;
   const next = (): Token => tokens[i++]!;
+  let currentTypeVars: Set<string> = new Set();
   const at = (kind: TokenKind, value?: string | number | boolean | null): boolean => {
     const t = peek();
     if (!t) return false;
@@ -40,6 +41,7 @@ export function parse(tokens: readonly Token[]): Module {
   }
 
   const decls: Declaration[] = [];
+  const declaredTypes = new Set<string>();
   let moduleName: string | null = null;
   consumeNewlines();
   while (!at(TokenKind.EOF)) {
@@ -71,11 +73,16 @@ export function parse(tokens: readonly Token[]): Module {
         const fields = parseFieldList();
         expectDot();
         decls.push(Node.Data(typeName, fields));
+        declaredTypes.add(typeName);
       } else if (isKeywordSeq(KW.ONE_OF)) {
         nextWords(kwParts(KW.ONE_OF));
         const variants = parseVariantList();
         expectDot();
-        decls.push(Node.Enum(typeName, variants));
+        const en = Node.Enum(typeName, variants);
+        const spans = (parseVariantList as any)._lastSpans as import('./types.js').Span[] | undefined;
+        if (spans && Array.isArray(spans)) (en as any).variantSpans = spans;
+        decls.push(en);
+        declaredTypes.add(typeName);
       } else {
         error("Expected 'with' or 'as one of' after type name");
       }
@@ -83,9 +90,10 @@ export function parse(tokens: readonly Token[]): Module {
       // Function
       const toTok = peek();
       nextWord();
+      const nameTok = peek();
       const name = parseIdent();
       // Optional type parameters: 'of' TypeId ('and' TypeId)*
-      const typeParams: string[] = [];
+      let typeParams: string[] = [];
       if (isKeyword('of')) {
         nextWord();
         let more = true;
@@ -111,8 +119,12 @@ export function parse(tokens: readonly Token[]): Module {
           more = false;
         }
       }
+      // Capture generic type parameters: 'of T and U'
+      const savedTypeVars = new Set(currentTypeVars);
+      currentTypeVars = new Set(typeParams);
       const params = parseParamList();
-      expectCommaOr();
+      if (params.length > 0) expectCommaOr();
+      else if (at(TokenKind.COMMA)) next();
       expectKeyword(KW.PRODUCE, "Expected 'produce' and return type");
       const retType = parseType();
       let effects: string[] = [];
@@ -164,9 +176,62 @@ export function parse(tokens: readonly Token[]): Module {
         error("Expected '.' or ':' after return type");
       }
 
+      // Infer missing generic type parameters from usage if none declared explicitly
+      if (typeParams.length === 0) {
+        const BUILTINS = new Set(['Int', 'Bool', 'Text', 'Double', 'Float', 'Option', 'Result', 'List', 'Map']);
+        const found = new Set<string>();
+        const visitType = (t: Type): void => {
+          switch (t.kind) {
+            case 'TypeName':
+              if (
+                typeof t.name === 'string' &&
+                /^[A-Z][A-Za-z0-9_]*$/.test(t.name) &&
+                !BUILTINS.has(t.name) &&
+                !declaredTypes.has(t.name)
+              ) {
+                found.add(t.name);
+              }
+              break;
+            case 'TypeApp':
+              t.args.forEach(visitType);
+              break;
+            case 'Maybe':
+            case 'Option':
+              visitType((t as any).type);
+              break;
+            case 'Result':
+              visitType((t as any).ok);
+              visitType((t as any).err);
+              break;
+            case 'List':
+              visitType((t as any).type);
+              break;
+            case 'Map':
+              visitType((t as any).key);
+              visitType((t as any).val);
+              break;
+            case 'FuncType':
+              (t as any).params.forEach(visitType);
+              visitType((t as any).ret);
+              break;
+            default:
+              break;
+          }
+        };
+        for (const p of params) visitType(p.type);
+        visitType(retType);
+        if (found.size > 0) {
+          typeParams = Array.from(found);
+        }
+      }
+
       const endTok = tokens[i - 1] || peek();
+      // restore type params scope
+      currentTypeVars = savedTypeVars;
       const fn = Node.Func(name, typeParams, params, retType, effects, body);
       (fn as any).span = { start: toTok.start, end: endTok.end };
+      // Record function name span for precise navigation/highlighting
+      ;(fn as any).nameSpan = { start: nameTok.start, end: (tokens[i - 1] || nameTok).end };
       decls.push(fn);
     } else if (at(TokenKind.NEWLINE) || at(TokenKind.DEDENT) || at(TokenKind.INDENT)) {
       // Tolerate stray whitespace/dedent/indent at top-level
@@ -220,8 +285,9 @@ export function parse(tokens: readonly Token[]): Module {
     next();
   }
   function expectCommaOr(): void {
-    if (!at(TokenKind.COMMA)) Diagnostics.expectedPunctuation(',', peek().start).throw();
-    next();
+    if (at(TokenKind.COMMA)) {
+      next();
+    }
   }
   function expectNewline(): void {
     if (!at(TokenKind.NEWLINE))
@@ -259,11 +325,15 @@ export function parse(tokens: readonly Token[]): Module {
     const fields: Field[] = [];
     let hasMore = true;
     while (hasMore) {
+      const nameTok = peek();
       const name = parseIdent();
       if (!at(TokenKind.COLON)) error("Expected ':' after field name");
       next();
       const t = parseType();
-      fields.push({ name, type: t });
+      const f: Field = { name, type: t };
+      const endTok = tokens[i - 1] || peek();
+      (f as any).span = { start: nameTok.start, end: endTok.end };
+      fields.push(f);
       if (at(TokenKind.COMMA)) {
         next();
         continue;
@@ -278,9 +348,12 @@ export function parse(tokens: readonly Token[]): Module {
   }
   function parseVariantList(): string[] {
     const vars: string[] = [];
+    const spans: import('./types.js').Span[] = [] as any;
     let hasMore = true;
     while (hasMore) {
+      const vTok = peek();
       const v = parseTypeIdent();
+      spans.push({ start: vTok.start, end: (tokens[i - 1] || vTok).end } as any);
       vars.push(v);
       if (at(TokenKind.IDENT) && ((peek().value as string) || '').toLowerCase() === KW.OR) {
         nextWord();
@@ -292,6 +365,10 @@ export function parse(tokens: readonly Token[]): Module {
       }
       hasMore = false;
     }
+    // Attach variant spans to the last created Enum node by caller using a side-channel is messy,
+    // so return vars here and the caller will attach spans after constructing the node.
+    // We stash spans on a temporary property on the parser function object for retrieval.
+    (parseVariantList as any)._lastSpans = spans;
     return vars;
   }
 
@@ -302,11 +379,15 @@ export function parse(tokens: readonly Token[]): Module {
       nextWord();
       let hasMore = true;
       while (hasMore) {
+        const nameTok = peek();
         const name = parseIdent();
         if (!at(TokenKind.COLON)) error("Expected ':' after parameter name");
         next();
         const type = parseType();
-        params.push({ name, type });
+        const p: Parameter = { name, type };
+        const endTok = tokens[i - 1] || peek();
+        (p as any).span = { start: nameTok.start, end: endTok.end };
+        params.push(p);
         if (at(TokenKind.IDENT) && ((peek().value as string) || '').toLowerCase() === KW.AND) {
           nextWord();
           continue;
@@ -319,11 +400,15 @@ export function parse(tokens: readonly Token[]): Module {
     if (at(TokenKind.IDENT) && tokens[i + 1] && tokens[i + 1]!.kind === TokenKind.COLON) {
       let hasMore = true;
       while (hasMore) {
+        const nameTok = peek();
         const name = parseIdent();
         if (!at(TokenKind.COLON)) error("Expected ':' after parameter name");
         next();
         const type = parseType();
-        params.push({ name, type });
+        const p: Parameter = { name, type };
+        const endTok = tokens[i - 1] || peek();
+        (p as any).span = { start: nameTok.start, end: endTok.end };
+        params.push(p);
         if (at(TokenKind.IDENT) && ((peek().value as string) || '').toLowerCase() === KW.AND) {
           nextWord();
           continue;
@@ -348,21 +433,30 @@ export function parse(tokens: readonly Token[]): Module {
   }
 
   function parseType(): Type {
+    const applyNullable = (t: Type): Type => {
+      if (at(TokenKind.QUESTION)) {
+        next();
+        return Node.Maybe(t);
+      }
+      return t;
+    };
     // maybe T | Option of T | Result of T or E | list of T | map Text to Int | Text/Int/Float/Bool | TypeIdent
     if (isKeyword(KW.MAYBE)) {
       nextWord();
-      return Node.Maybe(parseType());
+      return applyNullable(Node.Maybe(parseType()));
     }
     if (isKeywordSeq(KW.OPTION_OF)) {
       nextWords(kwParts(KW.OPTION_OF));
-      return Node.Option(parseType());
+      return applyNullable(Node.Option(parseType()));
     }
     if (isKeywordSeq(KW.RESULT_OF)) {
       nextWords(kwParts(KW.RESULT_OF));
       const ok = parseType();
-      expectKeyword(KW.OR, "Expected 'or' in Result of");
+      // Accept 'or' or 'and' between ok and err
+      if (isKeyword(KW.OR) || isKeyword(KW.AND)) nextWord();
+      else Diagnostics.expectedKeyword('or/and', peek().start).withMessage("Expected 'or'/'and' in Result of").throw();
       const err = parseType();
-      return Node.Result(ok, err);
+      return applyNullable(Node.Result(ok, err));
     }
     if (isKeywordSeq(KW.FOR_EACH)) {
       /* not a type; handled elsewhere */
@@ -374,31 +468,31 @@ export function parse(tokens: readonly Token[]): Module {
     if (isKeywordSeq(['list', 'of'])) {
       nextWord();
       nextWord();
-      return Node.List(parseType());
+      return applyNullable(Node.List(parseType()));
     }
     if (isKeyword('map')) {
       nextWord();
       const k = parseType();
       expectKeyword(KW.TO_WORD, "Expected 'to' in map type");
       const v = parseType();
-      return Node.Map(k, v);
+      return applyNullable(Node.Map(k, v));
     }
 
     if (isKeyword(KW.TEXT)) {
       nextWord();
-      return Node.TypeName('Text');
+      return applyNullable(Node.TypeName('Text'));
     }
     if (isKeyword(KW.INT)) {
       nextWord();
-      return Node.TypeName('Int');
+      return applyNullable(Node.TypeName('Int'));
     }
     if (isKeyword(KW.FLOAT)) {
       nextWord();
-      return Node.TypeName('Double');
+      return applyNullable(Node.TypeName('Double'));
     }
     if (isKeyword(KW.BOOL_TYPE)) {
       nextWord();
-      return Node.TypeName('Bool');
+      return applyNullable(Node.TypeName('Bool'));
     }
 
     // Handle capitalized type keywords (Int, Bool, etc.) that are tokenized as IDENT
@@ -406,19 +500,19 @@ export function parse(tokens: readonly Token[]): Module {
       const value = peek().value as string;
       if (value === 'Int') {
         nextWord();
-        return Node.TypeName('Int');
+        return applyNullable(Node.TypeName('Int'));
       }
       if (value === 'Bool') {
         nextWord();
-        return Node.TypeName('Bool');
+        return applyNullable(Node.TypeName('Bool'));
       }
       if (value === 'Text') {
         nextWord();
-        return Node.TypeName('Text');
+        return applyNullable(Node.TypeName('Text'));
       }
       if (value === 'Float') {
         nextWord();
-        return Node.TypeName('Float');
+        return applyNullable(Node.TypeName('Float'));
       }
     }
 
@@ -441,9 +535,13 @@ export function parse(tokens: readonly Token[]): Module {
           }
           more = false;
         }
-        return Node.TypeApp(name, args);
+        return applyNullable(Node.TypeApp(name, args));
       }
-      return Node.TypeName(name);
+      // Recognize type variables in current function scope
+      if (currentTypeVars.has(name)) {
+        return applyNullable(Node.TypeVar(name));
+      }
+      return applyNullable(Node.TypeName(name));
     }
 
     error('Expected type');
@@ -836,11 +934,15 @@ export function parse(tokens: readonly Token[]): Module {
         const fields: import('./types.js').ConstructField[] = [];
         let hasMore = true;
         while (hasMore) {
+          const nameTok = peek();
           const name = parseIdent();
           if (!at(TokenKind.EQUALS)) error("Expected '=' in construction");
           next();
           const e = parseExpr();
-          fields.push({ name, expr: e });
+          const fld: import('./types.js').ConstructField = { name, expr: e };
+          const endTok = tokens[i - 1] || peek();
+          (fld as any).span = { start: nameTok.start, end: endTok.end };
+          fields.push(fld);
           if (isKeyword(KW.AND)) {
             nextWord();
             continue;

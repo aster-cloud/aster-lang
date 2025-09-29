@@ -1,9 +1,8 @@
 This module is app.
 
-Define a User with id: Text and name: Text.
+Define User with id: Text, name: Text.
 
-To greet user: maybe User, produce Text:
+To greet with user: User?, produce Text:
   Match user:
     When null, Return "Hi, guest".
     When User(id, name), Return "Welcome, {name}".
-

@@ -1,8 +1,8 @@
 This module is app.match.
 
-Define a Color with name: Text.
-To pick with k: maybe Color, produce Text:
+Define Color with name: Text.
+
+To pick with k: Color?, produce Text:
   Match k:
     When null, Return "none".
     When Color(name), Return "has color".
-

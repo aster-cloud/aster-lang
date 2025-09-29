@@ -6,7 +6,7 @@
 
 > `const` **KW**: `object`
 
-Defined in: [tokens.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/b4a8510b31e37921c06a9d1132fe8c41a3d335af/src/tokens.ts#L5)
+Defined in: [tokens.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/tokens.ts#L5)
 
 ## Type Declaration
 

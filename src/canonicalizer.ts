@@ -24,6 +24,12 @@ export function canonicalize(input: string): string {
   // Normalize newlines to \n
   let s = input.replace(/\r\n?/g, '\n');
 
+  // Drop line comments (// and #) entirely; formatter/LSP preserve docs separately
+  s = s
+    .split('\n')
+    .filter(line => !/^\s*\/\//.test(line) && !/^\s*#/.test(line))
+    .join('\n');
+
   // Normalize smart quotes to straight quotes
   s = s.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
 

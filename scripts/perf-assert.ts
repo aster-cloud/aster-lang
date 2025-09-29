@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+import { performance } from 'node:perf_hooks';
+import { canonicalize } from '../src/canonicalizer.js';
+import { lex } from '../src/lexer.js';
+import { parse } from '../src/parser.js';
+
+function p50(ns: number[]): number {
+  if (ns.length === 0) return 0;
+  const a = [...ns].sort((x, y) => x - y);
+  const mid = Math.floor(a.length / 2);
+  return a.length % 2 ? a[mid]! : (a[mid - 1]! + a[mid]!) / 2;
+}
+
+const text = [
+  'This module is demo.perfassert.',
+  'To join with left: Text and right: Text, produce Text:',
+  '  Return Text.concat(left, right).',
+  ''
+].join('\n');
+
+const N = 100;
+const can = canonicalize(text);
+const tParse: number[] = [];
+for (let i = 0; i < N; i++) {
+  const t0 = performance.now();
+  const toks = lex(can);
+  parse(toks);
+  const t1 = performance.now();
+  tParse.push(t1 - t0);
+}
+const p = p50(tParse);
+console.log(JSON.stringify({ files: N, parse: { p50: p.toFixed(2) } }, null, 2));
+if (p > 30) {
+  console.error(`Parse p50 ${p.toFixed(2)} exceeds 30ms`);
+  process.exit(2);
+}
