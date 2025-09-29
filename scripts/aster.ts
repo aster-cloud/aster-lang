@@ -290,6 +290,5 @@ async function watchFile(file: string, run: () => void | Promise<void>): Promise
     process.exit(1);
   }
   // Keep process alive indefinitely
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  await new Promise<void>(() => {});
+  await new Promise<void>(resolve => void resolve);
 }

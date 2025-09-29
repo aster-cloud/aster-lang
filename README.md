@@ -239,6 +239,8 @@ Coding style:
 - Benchmarks: `npm run bench`
 - Golden tests: `npm run test:golden`
 - Update goldens: `npm run test:golden:update` (review diffs before committing)
+ - Example formatting: `npm run fmt:examples` rewrites examples to strict CNL
+   (effects in headers, comma‑separated params) and sanitizes legacy placeholders.
 
 ## Examples
 

@@ -1,7 +1,7 @@
 This module is demo.map.
 
-To val with m: map Text to Text and k: Text, produce Text?:
+To val with m: Map Text to Text, k: Text, produce Text?:
   Return Map.get(m, k).
 
-To valStrict with m: map Text to Text and k: Text, produce Text:
+To valStrict with m: Map Text to Text, k: Text, produce Text:
   Return Map.get(m, k).

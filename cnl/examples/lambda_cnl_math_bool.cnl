@@ -1,11 +1,9 @@
 This module is demo.lambdamath.
 
-
-To compute produce Int:
+To compute, produce Int:
   Let inc be function with x: Int, produce Int:
-    Return x + 1.
+    Return +(x, 1).
   Return inc(41).
-
 
 To invert with v: Bool, produce Bool:
   Let neg be function with x: Bool, produce Bool:

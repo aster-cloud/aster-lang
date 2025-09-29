@@ -6,7 +6,7 @@ Define Resource as one of Document, User, System.
 
 Define PolicyContext with userId: Text, userRole: Text, resourceOwner: Text, resourceType: Resource, timeOfDay: Double, location: Text.
 
-To canAccess with role: Text and action: Action and ownerId: Text and userId: Text produce Bool:
+To canAccess with role: Text, action: Action, ownerId: Text, userId: Text, produce Bool:
   If Text.equals(role, "admin"),:
     Return true.
   If Action.equals(action, Read),:
@@ -19,7 +19,7 @@ To canAccess with role: Text and action: Action and ownerId: Text and userId: Te
     Return Text.equals(role, "admin").
   Return false.
 
-To evaluateOwnerBasedRule with role: Text and action: Action and resource: Resource and context: PolicyContext produce Bool:
+To evaluateOwnerBasedRule with role: Text, action: Action, resource: Resource, context: PolicyContext, produce Bool:
   If not(Text.equals(role, context.userRole)),:
     Return false.
   If not(Action.equals(action, Read)),:
@@ -28,5 +28,5 @@ To evaluateOwnerBasedRule with role: Text and action: Action and resource: Resou
     Return false.
   Return Text.equals(context.userId, context.resourceOwner).
 
-To evaluateUserReadRule with context: PolicyContext produce Bool:
+To evaluateUserReadRule with context: PolicyContext, produce Bool:
   Return evaluateOwnerBasedRule("user", Read, Document, context).

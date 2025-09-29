@@ -92,8 +92,9 @@ Return (x: Text) => Text.concat("Hi, ", x).
 Notes:
 - The first form reuses existing header words (with/produce) and block shape.
 - The short-form introduces a minimal `=>` token for expression lambdas.
-- Either form would lower to `Core.Lambda` with `captures` derived from free
-  variables. Parsing these is future work tracked in the tasks checklist.
+- Both forms lower to `Core.Lambda` with `captures` derived from free
+  variables. Block form is implemented; short-form parsing is supported for
+  simple cases and infers common return types.
 ## Usage
 
 Two forms are supported in CNL:
@@ -133,4 +134,3 @@ npm run verify:asm:lambda:cnl
 ```
 
 This emits classes for the lambda examples in `cnl/examples/` and runs `javap -v` on all emitted `.class` files.
-

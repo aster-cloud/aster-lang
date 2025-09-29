@@ -4,7 +4,7 @@
 
 # Interface: Call
 
-Defined in: [types.ts:518](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L518)
+Defined in: [types.ts:518](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L518)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:518](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **kind**: `"Call"`
 
-Defined in: [types.ts:519](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L519)
+Defined in: [types.ts:519](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L519)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:519](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **target**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:520](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L520)
+Defined in: [types.ts:520](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L520)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [types.ts:520](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **args**: readonly [`Expression`](../type-aliases/Expression.md)[]
 
-Defined in: [types.ts:521](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L521)
+Defined in: [types.ts:521](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L521)

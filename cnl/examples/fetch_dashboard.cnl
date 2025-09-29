@@ -3,8 +3,9 @@ Define User with id: Text, name: Text.
 Define Dash with profile: Text, timeline: Text.
 
 Define AuthErr as one of InvalidCreds, Locked.
+
 To fetchDashboard with u: User, produce Result of Dash and AuthErr. It performs io:
   Start profile as async ProfileSvc.load(u.id).
   Start timeline as async FeedSvc.timeline(u.id).
-  Wait for profile, timeline.
+  Wait for profile and timeline.
   Return ok of Dash(profile, timeline).

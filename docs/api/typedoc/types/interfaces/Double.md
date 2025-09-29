@@ -4,7 +4,7 @@
 
 # Interface: Double
 
-Defined in: [types.ts:229](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L229)
+Defined in: [types.ts:229](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L229)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:229](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` `optional` **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L62)
+Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L62)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/f3be42
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L63)
+Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L63)
 
 #### Inherited from
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/f3be42
 
 > `readonly` **kind**: `"Double"`
 
-Defined in: [types.ts:230](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L230)
+Defined in: [types.ts:230](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L230)
 
 #### Overrides
 
@@ -52,4 +52,4 @@ Defined in: [types.ts:230](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **value**: `number`
 
-Defined in: [types.ts:231](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L231)
+Defined in: [types.ts:231](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L231)

@@ -4,7 +4,7 @@
 
 # Interface: Let
 
-Defined in: [types.ts:411](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L411)
+Defined in: [types.ts:411](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L411)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:411](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **kind**: `"Let"`
 
-Defined in: [types.ts:412](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L412)
+Defined in: [types.ts:412](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L412)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:412](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:413](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L413)
+Defined in: [types.ts:413](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L413)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [types.ts:413](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:414](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L414)
+Defined in: [types.ts:414](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L414)

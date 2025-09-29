@@ -3,7 +3,7 @@ This module is std.maybe_result.
 To inc with x: Int, produce Int:
   Return x.
 
-To maybeWithDefault with x: Int? and d: Int, produce Int:
+To maybeWithDefault with x: Int?, d: Int, produce Int:
   Return Maybe.withDefault(x, d).
 
 To mapMaybe with x: Int?, produce Int?:

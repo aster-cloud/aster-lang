@@ -66,7 +66,7 @@ function buildIfNeeded(): void {
   try {
     // Build classes and resolve dependencies; force re-run to pick up source changes
     cp.execFileSync(runCmd, [':truffle:classes', '--rerun-tasks', '--no-daemon', '--console=plain'], { stdio: 'inherit', env });
-  } catch (e) {
+  } catch {
     console.error('Failed to run Gradle to build Truffle classes.');
   }
 }

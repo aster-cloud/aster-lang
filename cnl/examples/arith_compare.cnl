@@ -1,7 +1,7 @@
 This module is app.math.
 
-To cmp with x: Int and y: Int, produce Bool:
-  Return x < y.
+To cmp with x: Int, y: Int, produce Bool:
+  Return <(x, y).
 
-To add with x: Int and y: Int, produce Int:
-  Return x + y.
+To add with x: Int, y: Int, produce Int:
+  Return +(x, y).

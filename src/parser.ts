@@ -19,6 +19,8 @@ export function parse(tokens: readonly Token[]): Module {
   let i = 0;
   const peek = (): Token => tokens[i] || tokens[tokens.length - 1]!;
   const next = (): Token => tokens[i++]!;
+  // Collect effects encountered in trailing sentences like "It performs io." after returns
+  let collectedEffects: string[] | null = null;
   let currentTypeVars: Set<string> = new Set();
   const at = (kind: TokenKind, value?: string | number | boolean | null): boolean => {
     const t = peek();
@@ -128,6 +130,9 @@ export function parse(tokens: readonly Token[]): Module {
       expectKeyword(KW.PRODUCE, "Expected 'produce' and return type");
       const retType = parseType();
       let effects: string[] = [];
+      // Prepare to collect any trailing effect sentences inside the body
+      const prevCollected: string[] | null = collectedEffects;
+      collectedEffects = [];
       let body: Block | null = null;
 
       // After return type, we can see '.' ending the sentence, then an optional effect sentence
@@ -226,6 +231,12 @@ export function parse(tokens: readonly Token[]): Module {
       }
 
       const endTok = tokens[i - 1] || peek();
+      // Merge any trailing effect sentences collected inside the body
+      if (Array.isArray(collectedEffects) && collectedEffects.length > 0) {
+        effects = effects.concat(collectedEffects);
+      }
+      // restore collector and type params scope
+      collectedEffects = prevCollected;
       // restore type params scope
       currentTypeVars = savedTypeVars;
       const fn = Node.Func(name, typeParams, params, retType, effects, body);
@@ -392,11 +403,20 @@ export function parse(tokens: readonly Token[]): Module {
           nextWord();
           continue;
         }
+        if (at(TokenKind.COMMA)) {
+          // If a trailing comma appears before 'produce', stop params
+          if (tokLowerAt(i + 1) === KW.PRODUCE) {
+            hasMore = false;
+          } else {
+            next();
+            continue;
+          }
+        }
         hasMore = false;
       }
       return params;
     }
-    // Bare params: name: Type [and name: Type]*
+    // Bare params: name: Type [(and|,) name: Type]*
     if (at(TokenKind.IDENT) && tokens[i + 1] && tokens[i + 1]!.kind === TokenKind.COLON) {
       let hasMore = true;
       while (hasMore) {
@@ -409,9 +429,20 @@ export function parse(tokens: readonly Token[]): Module {
         const endTok = tokens[i - 1] || peek();
         (p as any).span = { start: nameTok.start, end: endTok.end };
         params.push(p);
+        // Accept 'and' or ',' between parameters
         if (at(TokenKind.IDENT) && ((peek().value as string) || '').toLowerCase() === KW.AND) {
           nextWord();
           continue;
+        }
+        if (at(TokenKind.COMMA)) {
+          // If a trailing comma appears before 'produce' or 'with', stop params
+          const after = tokLowerAt(i + 1);
+          if (after === KW.PRODUCE || after === KW.WITH) {
+            hasMore = false;
+          } else {
+            next();
+            continue;
+          }
         }
         hasMore = false;
       }
@@ -550,7 +581,16 @@ export function parse(tokens: readonly Token[]): Module {
   function parseBlock(): Block {
     const statements: Statement[] = [];
     consumeNewlines();
-    if (!at(TokenKind.INDENT)) error('Expected indent');
+    // Allow either an indented block or a single-line block without INDENT.
+    if (!at(TokenKind.INDENT)) {
+      // Parse a single statement at current indentation level
+      const startTok = peek();
+      const stmt = parseStatement();
+      const endTok = tokens[i - 1] || startTok;
+      const b = Node.Block([stmt]);
+      (b as any).span = { start: startTok.start, end: endTok.end };
+      return b;
+    }
     next();
     while (!at(TokenKind.DEDENT) && !at(TokenKind.EOF)) {
       consumeNewlines();
@@ -628,6 +668,17 @@ export function parse(tokens: readonly Token[]): Module {
       nextWord();
       const expr = parseExpr();
       expectPeriodEndOrLine();
+      // Allow trailing effect sentence immediately after a Return: 'It performs io.'
+      // This attaches to the enclosing function's effects if present.
+      if ((tokLowerAt(i) === 'it' && tokLowerAt(i + 1) === 'performs') || tokLowerAt(i) === 'performs') {
+        if (tokLowerAt(i) === 'it') nextWord();
+        if (tokLowerAt(i) === 'performs') {
+          nextWord();
+          const effs = parseEffectList();
+          expectPeriodEnd();
+          if (Array.isArray(collectedEffects)) collectedEffects.push(...effs);
+        }
+      }
       const nd = Node.Return(expr);
       const endTok = tokens[i - 1] || peek();
       (nd as any).span = { start: retTok.start, end: endTok.end };
@@ -698,10 +749,10 @@ export function parse(tokens: readonly Token[]): Module {
     ) {
       const exprStart = i;
       try {
-        const e = parseExpr();
+        const _e = parseExpr();
         expectPeriodEnd();
-        return e as Statement; // Not lowering; in v0, only Return statements are valid side-effects.
-      } catch (e) {
+        return _e as Statement; // Not lowering; in v0, only Return statements are valid side-effects.
+      } catch {
         // rewind
         i = exprStart;
       }
@@ -771,6 +822,17 @@ export function parse(tokens: readonly Token[]): Module {
   }
 
   function parseExpr(): Expression {
+    // Operator-name calls like '<(x, y)' or '+(x, y)' or '>(x, y)'
+    if (at(TokenKind.LT) || at(TokenKind.PLUS) || at(TokenKind.MINUS) || at(TokenKind.GT)) {
+      const symTok = next();
+      const sym = symTok.kind === TokenKind.LT ? '<' : symTok.kind === TokenKind.GT ? '>' : symTok.kind === TokenKind.PLUS ? '+' : '-';
+      if (at(TokenKind.LPAREN)) {
+        const target = Node.Name(sym);
+        const args = parseArgList();
+        return Node.Call(target, args);
+      }
+      return Node.Name(sym);
+    }
     return parseComparison();
   }
 
@@ -945,6 +1007,10 @@ export function parse(tokens: readonly Token[]): Module {
           fields.push(fld);
           if (isKeyword(KW.AND)) {
             nextWord();
+            continue;
+          }
+          if (at(TokenKind.COMMA)) {
+            next();
             continue;
           }
           hasMore = false;

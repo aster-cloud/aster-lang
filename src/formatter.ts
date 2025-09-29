@@ -17,7 +17,16 @@ import type {
 } from './types.js';
 
 export function formatCNL(text: string): string {
-  const can = canonicalize(text);
+  // Pre-sanitize common broken patterns (e.g., accidental '.:' before earlier formatter fix)
+  const input = text
+    .replace(/produce([^\n]*?)\.\s*:/g, (_m, p1) => `produce${p1}:`)
+    // Replace legacy placeholder return with strict 'none'
+    .replace(/^\s*Return\s+<expr>\s*\./gm, match => match.replace(/<expr>/, 'none'))
+    .replace(/<expr>\s*\./g, 'none.')
+    .replace(/^\s*Return\s+<[^>]+>\s*\./gm, 'Return none.')
+    // Collapse accidental double periods from earlier bad formatters
+    .replace(/\.{2,}/g, '.');
+  const can = canonicalize(input);
   let tokens;
   try {
     tokens = lex(can);
@@ -31,7 +40,7 @@ export function formatCNL(text: string): string {
     formatted = simpleFormatModule(ast);
   } catch {
     // If the source doesn't parse, return it unchanged
-    return text;
+    return input;
   }
   // Preserve a trailing newline if the original had one; otherwise leave as-is
   const hadTrailingNewline = /\n$/.test(cst.trailing?.text ?? '') || /\n$/.test(text);
@@ -95,13 +104,16 @@ function formatEnum(e: Enum): string {
 
 function formatFunc(f: Func): string {
   const params = formatParams(f.params);
-  const effects = f.effects && f.effects.length > 0 ? ` It performs ${formatEffects(f.effects)}.` : '';
+  const hasEff = !!(f.effects && f.effects.length > 0);
+  const effTxt = hasEff ? ` It performs ${formatEffects(f.effects)}` : '';
   if (!f.body) {
-    return `To ${f.name}${params}, produce ${formatType(f.retType)}.${effects}`.trimEnd();
+    return `To ${f.name}${params}, produce ${formatType(f.retType)}.${effTxt}`.trimEnd();
   }
-  const header = `To ${f.name}${params}, produce ${formatType(f.retType)}:`;
+  const header = hasEff
+    ? `To ${f.name}${params}, produce ${formatType(f.retType)}.${effTxt}:`
+    : `To ${f.name}${params}, produce ${formatType(f.retType)}:`;
   const body = formatBlock(f.body, 1);
-  return `${header}\n${body}${effects}`;
+  return `${header}\n${body}`;
 }
 
 function formatEffects(effs: readonly string[]): string {
@@ -123,11 +135,25 @@ function formatBlock(b: Block, lvl: number): string {
 function formatStmt(s: Statement, lvl: number): string {
   switch (s.kind) {
     case 'Let':
+      if ((s as any).expr && (s as any).expr.kind === 'Lambda') {
+        const lam = (s as any).expr as any;
+        const ps = (lam.params as any[]).map((p: any) => `${p.name}: ${formatType(p.type)}`).join(', ');
+        const header = `Let ${s.name} be function with ${ps}, produce ${formatType(lam.retType)}:`;
+        const body = formatBlock(lam.body, lvl + 1);
+        return `${header}\n${body}`;
+      }
       return `Let ${s.name} be ${formatExpr(s.expr)}.`;
     case 'Set':
       return `Set ${s.name} to ${formatExpr(s.expr)}.`;
     case 'Return':
       return `Return ${formatExpr(s.expr)}.`;
+    case 'Start':
+      return `Start ${s.name} as async ${formatExpr((s as any).expr)}.`;
+    case 'Wait': {
+      const names = (s as any).names as string[];
+      const inner = names.length <= 2 ? names.join(' and ') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+      return `Wait for ${inner}.`;
+    }
     case 'If': {
       const head = `If ${formatExpr(s.cond)},:`;
       const thenB = '\n' + formatBlock(s.thenBlock, lvl + 1);
@@ -183,10 +209,15 @@ function formatExpr(e: Expression): string {
       return String(e.value);
     case 'Long':
       return String(e.value) + 'L';
-    case 'Double':
-      return String(e.value);
+    case 'Double': {
+      const v = e.value;
+      if (Number.isFinite(v) && Math.floor(v) === v) return v.toFixed(1);
+      return String(v);
+    }
     case 'String':
       return JSON.stringify(e.value);
+    case 'None':
+      return 'none';
     case 'Ok':
       return `ok of ${formatExpr(e.expr)}`;
     case 'Err':

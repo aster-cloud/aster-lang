@@ -1,6 +1,5 @@
 This module is demo.lambdamixed.
 
-
 To demo with pfx: Text, produce Text:
   Let f be function with x: Text, produce Text:
     Return Text.concat(pfx, x).
@@ -8,8 +7,7 @@ To demo with pfx: Text, produce Text:
     Return Text.concat("2", y).
   Return Text.concat(f(""), g("b")).
 
-
-To compare with x: Int and y: Int, produce Bool:
-  Let cmp be function with x1: Int and y1: Int, produce Bool:
-    Return x1 < y1.
+To compare with x: Int, y: Int, produce Bool:
+  Let cmp be function with x1: Int, y1: Int, produce Bool:
+    Return <(x1, y1).
   Return cmp(x, y).

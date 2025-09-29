@@ -1,7 +1,7 @@
 This module is std.text.
 
-To concat with left: Text and right: Text, produce Text:
+To concat with left: Text, right: Text, produce Text:
   Return Text.concat(left, right).
 
-To hasSubstring with haystack: Text and needle: Text, produce Bool:
+To hasSubstring with haystack: Text, needle: Text, produce Bool:
   Return Text.contains(haystack, needle).

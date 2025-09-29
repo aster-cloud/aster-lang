@@ -4,9 +4,8 @@ Define User with id: Text, name: Text.
 
 Define AuthErr as one of InvalidCreds, Locked.
 
-
-To login with user: Text and pass: Text, produce Result of User and AuthErr. It performs io:
+To login with user: Text, pass: Text, produce Result of User and AuthErr. It performs io:
   Let ok be AuthRepo.verify(user, pass).
   If not(ok),:
     Return err of InvalidCreds.
-  Return ok of User with id = UUID.randomUUID() and name = user.
+  Return ok of User with id = UUID.randomUUID(), name = user.

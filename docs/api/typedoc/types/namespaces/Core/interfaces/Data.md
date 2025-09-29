@@ -4,7 +4,7 @@
 
 # Interface: Data
 
-Defined in: [types.ts:356](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L356)
+Defined in: [types.ts:356](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L356)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:356](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **kind**: `"Data"`
 
-Defined in: [types.ts:357](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L357)
+Defined in: [types.ts:357](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L357)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:357](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:358](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L358)
+Defined in: [types.ts:358](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L358)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [types.ts:358](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **fields**: readonly [`Field`](Field.md)[]
 
-Defined in: [types.ts:359](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L359)
+Defined in: [types.ts:359](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L359)

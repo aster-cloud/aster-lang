@@ -399,8 +399,6 @@ function collectEffects(b: Core.Block): Set<'io' | 'cpu'> {
   return effs;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-
 function typecheckBlock(
   ctx: ModuleContext,
   env: Env,

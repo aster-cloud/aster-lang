@@ -4,7 +4,7 @@
 
 # Interface: Match
 
-Defined in: [types.ts:143](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L143)
+Defined in: [types.ts:143](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L143)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:143](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` `optional` **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L62)
+Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L62)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/f3be42
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L63)
+Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L63)
 
 #### Inherited from
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/f3be42
 
 > `readonly` **kind**: `"Match"`
 
-Defined in: [types.ts:144](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L144)
+Defined in: [types.ts:144](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L144)
 
 #### Overrides
 
@@ -52,7 +52,7 @@ Defined in: [types.ts:144](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:145](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L145)
+Defined in: [types.ts:145](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L145)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: [types.ts:145](https://github.com/wontlost-ltd/aster-lang/blob/f3be4
 
 > `readonly` **cases**: readonly [`Case`](Case.md)[]
 
-Defined in: [types.ts:146](https://github.com/wontlost-ltd/aster-lang/blob/f3be429a3dd4fa3b3fa1ca69bb6ae12cde8a35f5/src/types.ts#L146)
+Defined in: [types.ts:146](https://github.com/wontlost-ltd/aster-lang/blob/4267a217b736c6a8661d2a198c0f0014f00e7248/src/types.ts#L146)

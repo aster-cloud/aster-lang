@@ -24,6 +24,11 @@ export function canonicalize(input: string): string {
   // Normalize newlines to \n
   let s = input.replace(/\r\n?/g, '\n');
 
+  // Normalize tabs to two spaces (indentation is 2-space significant)
+  // Convert all tabs, including leading indentation, to ensure the lexer
+  // measures indentation consistently.
+  s = s.replace(/\t/g, '  ');
+
   // Drop line comments (// and #) entirely; formatter/LSP preserve docs separately
   s = s
     .split('\n')

@@ -1,7 +1,6 @@
 This module is demo.lambdamatchmaybe.
 
-
-To fromMaybe with x: Text? and d: Text, produce Text:
+To fromMaybe with x: Text?, d: Text, produce Text:
   Let f be function with x: Text?, produce Text:
     Match x:
       When null, Return d.
