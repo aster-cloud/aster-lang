@@ -4,7 +4,7 @@
 
 # Interface: Construct
 
-Defined in: [types.ts:532](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L532)
+Defined in: [types.ts:532](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L532)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:532](https://github.com/wontlost-ltd/aster-lang/blob/f4835
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f4835
 
 > `readonly` **kind**: `"Construct"`
 
-Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L533)
+Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L533)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/f4835
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:534](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L534)
+Defined in: [types.ts:534](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L534)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [types.ts:534](https://github.com/wontlost-ltd/aster-lang/blob/f4835
 
 > `readonly` **fields**: readonly [`ConstructField`](ConstructField.md)[]
 
-Defined in: [types.ts:535](https://github.com/wontlost-ltd/aster-lang/blob/f4835243b7407eea7faa5aab94a9792f719aa9d7/src/types.ts#L535)
+Defined in: [types.ts:535](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L535)
