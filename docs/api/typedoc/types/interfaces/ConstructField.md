@@ -4,7 +4,7 @@
 
 # Interface: ConstructField
 
-Defined in: [types.ts:262](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L262)
+Defined in: [types.ts:262](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L262)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:262](https://github.com/wontlost-ltd/aster-lang/blob/b07ed
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:263](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L263)
+Defined in: [types.ts:263](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L263)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:263](https://github.com/wontlost-ltd/aster-lang/blob/b07ed
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:264](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L264)
+Defined in: [types.ts:264](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L264)

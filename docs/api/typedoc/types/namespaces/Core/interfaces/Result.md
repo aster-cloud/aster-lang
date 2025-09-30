@@ -4,7 +4,7 @@
 
 # Interface: Result
 
-Defined in: [types.ts:591](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L591)
+Defined in: [types.ts:591](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L591)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:591](https://github.com/wontlost-ltd/aster-lang/blob/b07ed
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/b07ed
 
 > `readonly` **kind**: `"Result"`
 
-Defined in: [types.ts:592](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L592)
+Defined in: [types.ts:592](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L592)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:592](https://github.com/wontlost-ltd/aster-lang/blob/b07ed
 
 > `readonly` **ok**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:593](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L593)
+Defined in: [types.ts:593](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L593)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [types.ts:593](https://github.com/wontlost-ltd/aster-lang/blob/b07ed
 
 > `readonly` **err**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:594](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L594)
+Defined in: [types.ts:594](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L594)
