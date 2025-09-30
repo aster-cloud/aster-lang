@@ -19,7 +19,7 @@ import type {
 
 export function formatCNL(
   text: string,
-  opts?: { mode?: 'lossless' | 'normalize'; reflow?: boolean }
+  opts?: { mode?: 'lossless' | 'normalize'; reflow?: boolean; preserveComments?: boolean; preserveStandaloneComments?: boolean }
 ): string {
   if (opts?.mode === 'lossless') {
     try {
@@ -56,11 +56,66 @@ export function formatCNL(
   }
   // Preserve a trailing newline if the original had one; otherwise leave as-is
   const hadTrailingNewline = /\n$/.test(cst.trailing?.text ?? '') || /\n$/.test(text);
-  const out = formatted + (hadTrailingNewline ? '\n' : '');
+  let out = formatted + (hadTrailingNewline ? '\n' : '');
+  // Optional: best-effort preserve inline end-of-line comments from the original
+  if (opts?.preserveComments) {
+    out = reattachInlineComments(text, out, cst.inlineComments, !!opts?.preserveStandaloneComments);
+  }
   // Preserve any byte order mark or leading whitespace prefix (if any)
   const leading = cst.leading?.text ?? '';
   const bom = leading.startsWith('\uFEFF') ? '\uFEFF' : '';
   return bom + out;
+}
+
+// Best-effort: preserve inline end-of-line comments (// or #) by collecting them
+// from the original and appending them to the corresponding non-empty lines in
+// the formatted output. Standalone comment lines are not preserved.
+function reattachInlineComments(
+  original: string,
+  formatted: string,
+  inline?: readonly { line: number; text: string; standalone?: boolean }[],
+  includeStandalone?: boolean
+): string {
+  const origLines = original.split(/\r?\n/);
+  const fmtLines = formatted.split(/\r?\n/);
+  const comments: string[] = inline && inline.length ? inline.filter(c => !c.standalone).map(c => c.text) : (() : string[] => {
+    const tmp: string[] = [];
+    for (const line of origLines) {
+      const m = line.match(/^(.*?)(\s*(\/\/|#).*)$/);
+      if (m && m[1] && m[1].trim().length > 0 && m[2]) tmp.push(m[2].trim());
+    }
+    return tmp;
+  })();
+  const standalone: string[] = includeStandalone && inline && inline.length ? inline.filter(c => !!c.standalone).map(c => c.text) : [];
+  if (comments.length === 0 && standalone.length === 0) return formatted;
+  let ci = 0;
+  for (let i = 0; i < fmtLines.length && ci < comments.length; i++) {
+    const line = fmtLines[i]!;
+    if (line.trim().length === 0) continue;
+    // Avoid duplicating if formatted line already contains a comment
+    if (/\/\//.test(line) || /(^|\s)#/.test(line)) continue;
+    fmtLines[i] = line.replace(/[ \t]+$/, '') + '  ' + comments[ci]!;
+    ci++;
+  }
+  // Insert standalone comments on empty lines (try to place near top/bottom and around blocks)
+  if (includeStandalone && standalone.length > 0) {
+    const firstNonEmpty = fmtLines.findIndex(l => l.trim().length > 0);
+    let si = 0;
+    // Place first standalone before the first non-empty line (header)
+    if (firstNonEmpty >= 0) {
+      fmtLines.splice(firstNonEmpty, 0, standalone[si]!);
+      si++;
+    }
+    // If more than two, place intermediates after first indented line
+    const firstIndented = fmtLines.findIndex(l => /^\s+\S/.test(l));
+    while (si < standalone.length - 1 && firstIndented >= 0) {
+      fmtLines.splice(firstIndented + 1, 0, standalone[si]!);
+      si++;
+    }
+    // Place last at end
+    if (si < standalone.length) fmtLines.push(standalone[si]!);
+  }
+  return fmtLines.join('\n');
 }
 
 function indent(n: number): string {

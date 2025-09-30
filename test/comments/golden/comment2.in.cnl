@@ -1,0 +1,6 @@
+This module is demo.morecomments.
+
+To compute, produce Int: // header comment
+  Let x be 1. // x init
+  Return +(x, 1). // add one
+

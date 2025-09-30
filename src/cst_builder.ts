@@ -1,7 +1,7 @@
 import { canonicalize } from './canonicalizer.js';
 import { lex } from './lexer.js';
 import type { Token } from './types.js';
-import type { CstModule, CstToken } from './cst.js';
+import type { CstModule, CstToken, InlineComment } from './cst.js';
 
 function buildLineStarts(text: string): number[] {
   const starts: number[] = [0];
@@ -31,6 +31,7 @@ export function buildCst(text: string, prelexed?: readonly Token[]): CstModule {
   const can = canonicalize(text);
   const toks = (prelexed as Token[] | undefined) ?? lex(can);
   const cstTokens = tokensToCstTokens(text, toks);
+  const inlineComments = collectInlineComments(text);
   const span = cstTokens.length
     ? { start: cstTokens[0]!.start, end: cstTokens[cstTokens.length - 1]!.end }
     : { start: { line: 1, col: 1 }, end: { line: 1, col: 1 } };
@@ -38,7 +39,7 @@ export function buildCst(text: string, prelexed?: readonly Token[]): CstModule {
   const trailing = cstTokens.length > 0
     ? { text: text.slice(cstTokens[cstTokens.length - 1]!.endOffset) }
     : { text: '' };
-  return { kind: 'Module', tokens: cstTokens, children: [], span, leading, trailing } as CstModule;
+  return { kind: 'Module', tokens: cstTokens, children: [], span, leading, trailing, inlineComments } as CstModule;
 }
 
 // Lossless CST builder: lex the original text (no canonicalization) so token
@@ -47,6 +48,7 @@ export function buildCst(text: string, prelexed?: readonly Token[]): CstModule {
 export function buildCstLossless(text: string): CstModule {
   const toks = lex(text);
   const cstTokens = tokensToCstTokens(text, toks);
+  const inlineComments = collectInlineComments(text);
   const span = cstTokens.length
     ? { start: cstTokens[0]!.start, end: cstTokens[cstTokens.length - 1]!.end }
     : { start: { line: 1, col: 1 }, end: { line: 1, col: 1 } };
@@ -62,5 +64,21 @@ export function buildCstLossless(text: string): CstModule {
     leading,
     trailing,
     fullText: text,
+    inlineComments,
   } as CstModule;
+}
+
+function collectInlineComments(text: string): InlineComment[] {
+  const out: InlineComment[] = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const m = line.match(/^(.*?)(\s*(\/\/|#).*)$/);
+    if (m && m[2]) {
+      const code = (m[1] || '').trim();
+      const comment = m[2].trim();
+      out.push({ line: i + 1, text: comment, standalone: code.length === 0 });
+    }
+  }
+  return out;
 }

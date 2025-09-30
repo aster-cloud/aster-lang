@@ -4,7 +4,7 @@
 
 # Interface: PatCtor
 
-Defined in: [types.ts:453](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L453)
+Defined in: [types.ts:453](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L453)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:453](https://github.com/wontlost-ltd/aster-lang/blob/f053c
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/f053c
 
 > `readonly` **kind**: `"PatCtor"`
 
-Defined in: [types.ts:454](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L454)
+Defined in: [types.ts:454](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L454)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:454](https://github.com/wontlost-ltd/aster-lang/blob/f053c
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:455](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L455)
+Defined in: [types.ts:455](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L455)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [types.ts:455](https://github.com/wontlost-ltd/aster-lang/blob/f053c
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:456](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L456)
+Defined in: [types.ts:456](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L456)
 
 ***
 
@@ -56,4 +56,4 @@ Defined in: [types.ts:456](https://github.com/wontlost-ltd/aster-lang/blob/f053c
 
 > `readonly` `optional` **args**: readonly [`Pattern`](../type-aliases/Pattern.md)[]
 
-Defined in: [types.ts:457](https://github.com/wontlost-ltd/aster-lang/blob/f053c53a14827c4a30ae5d1a128f8c19cddebf8a/src/types.ts#L457)
+Defined in: [types.ts:457](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L457)

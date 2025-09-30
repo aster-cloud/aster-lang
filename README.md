@@ -245,6 +245,7 @@ Coding style:
   - Lossless (preserve trivia): `npm run fmt:examples:lossless` prints byte‑for‑byte
     using the CST (use `:check` variants to verify without writing). Add `--lossless-reflow`
     via `fmt:examples:lossless:reflow` for minimal seam fixes (e.g., `. :` → `:`).
+  - Preserve inline comments (normalize): add `--preserve-comments` to keep end‑of‑line comments on corresponding lines (best effort).
 
 ## Editor Integration
 
@@ -281,6 +282,9 @@ npm run format:file -- --lossless --lossless-reflow path/to/file.cnl
 
 # Overwrite with lossless reflow
 npm run format:file -- --write --lossless --lossless-reflow path/to/file.cnl
+
+# Normalize with inline comment preservation (best effort)
+npm run format:file -- --write --preserve-comments path/to/file.cnl
 ```
 
 

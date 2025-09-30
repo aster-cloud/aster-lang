@@ -14,6 +14,12 @@ export interface Trivia {
   readonly text: string;
 }
 
+export interface InlineComment {
+  readonly line: number; // 1-based line number
+  readonly text: string; // including // or # prefix
+  readonly standalone?: boolean; // true if the line contained only a comment
+}
+
 export interface CstNodeBase {
   readonly kind: string;
   readonly span: Span;
@@ -27,5 +33,6 @@ export interface CstModule extends CstNodeBase {
   // When built in lossless mode, retain the original full text so printers
   // can reconstruct inter-token trivia exactly.
   readonly fullText?: string;
+  readonly inlineComments?: readonly InlineComment[];
   readonly children: readonly CstNodeBase[];
 }

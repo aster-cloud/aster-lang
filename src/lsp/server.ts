@@ -10,6 +10,7 @@ import {
   ProposedFeatures,
   InitializeParams,
   DidChangeConfigurationNotification,
+  DidChangeWatchedFilesNotification,
   CompletionItem,
   CompletionItemKind,
   TextDocumentSyncKind,
@@ -86,6 +87,7 @@ type CachedDoc = {
 };
 const docCache: Map<string, CachedDoc> = new Map();
 const pendingValidate: Map<string, ReturnType<typeof setTimeout>> = new Map();
+let indexWriteTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getOrParse(doc: TextDocument): CachedDoc {
   const key = doc.uri;
@@ -126,6 +128,11 @@ function getOrParse(doc: TextDocument): CachedDoc {
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
+let indexPersistEnabled = true;
+let indexPathOverride: string | null = null;
+let hasWatchedFilesCapability = false;
+let watcherRegistered = false;
+const HEALTH_METHOD = 'aster/health';
 
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
@@ -139,6 +146,11 @@ connection.onInitialize((params: InitializeParams) => {
     capabilities.textDocument &&
     capabilities.textDocument.publishDiagnostics &&
     capabilities.textDocument.publishDiagnostics.relatedInformation
+  );
+  hasWatchedFilesCapability = !!(
+    capabilities.workspace &&
+    (capabilities.workspace as any).didChangeWatchedFiles &&
+    (capabilities.workspace as any).didChangeWatchedFiles.dynamicRegistration
   );
 
   const result: InitializeResult = {
@@ -188,16 +200,63 @@ connection.onInitialized(() => {
       connection.console.log('Workspace folder change event received.');
     });
   }
+  tryLoadPersistedIndex();
+  // Respond to external file changes if client supports it
+  if (hasWatchedFilesCapability) {
+    try {
+      connection.client.register(DidChangeWatchedFilesNotification.type, {
+        watchers: [{ globPattern: '**/*.cnl' }],
+      });
+      watcherRegistered = true;
+    } catch {
+      // ignore registration failure
+    }
+    connection.onDidChangeWatchedFiles(ev => {
+      try {
+        for (const ch of ev.changes) {
+          const path = uriToFsPath(ch.uri);
+          if (!path) continue;
+          if (fs.existsSync(path)) {
+            const text = fs.readFileSync(path, 'utf8');
+            const doc = TextDocument.create(ch.uri, 'cnl', 0, text);
+            updateIndexForDocument(doc);
+          } else {
+            indexByUri.delete(ch.uri);
+          }
+        }
+        scheduleIndexWrite();
+      } catch {
+        // ignore
+      }
+    });
+  } else {
+    connection.console.warn('Client does not advertise didChangeWatchedFiles; workspace index updates may be limited to open documents.');
+  }
+  // Health request handler
+  connection.onRequest(HEALTH_METHOD, () => {
+    return {
+      watchers: {
+        capability: hasWatchedFilesCapability,
+        registered: watcherRegistered,
+      },
+      index: {
+        files: indexByUri.size,
+        modules: indexByModule.size,
+      },
+    } as const;
+  });
 });
 
 // The example settings
 interface AsterSettings {
   maxNumberOfProblems: number;
   format?: { mode?: 'lossless' | 'normalize'; reflow?: boolean };
+  index?: { persist?: boolean; path?: string };
+  rename?: { scope?: 'open' | 'workspace' };
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
-const defaultSettings: AsterSettings = { maxNumberOfProblems: 1000, format: { mode: 'lossless', reflow: true } };
+const defaultSettings: AsterSettings = { maxNumberOfProblems: 1000, format: { mode: 'lossless', reflow: true }, index: { persist: true }, rename: { scope: 'workspace' } };
 let globalSettings: AsterSettings = defaultSettings;
 
 // Cache the settings of all open documents
@@ -213,6 +272,14 @@ connection.onDidChangeConfiguration(change => {
 
   // Revalidate all open text documents
   documents.all().forEach(validateTextDocument);
+  // Update index settings
+  getDocumentSettings('').then(s => {
+    indexPersistEnabled = s.index?.persist ?? true;
+    indexPathOverride = s.index?.path ?? null;
+  }).catch(() => {
+    indexPersistEnabled = true;
+    indexPathOverride = null;
+  });
 });
 
 function getDocumentSettings(resource: string): Promise<AsterSettings> {
@@ -246,6 +313,22 @@ documents.onDidChangeContent(change => {
     void validateTextDocument(change.document);
   }, 150);
   pendingValidate.set(uri, handle);
+  // Update index for open document
+  try {
+    updateIndexForDocument(change.document);
+    scheduleIndexWrite();
+  } catch {
+    // ignore
+  }
+});
+
+documents.onDidSave(e => {
+  try {
+    updateIndexForDocument(e.document);
+    scheduleIndexWrite();
+  } catch {
+    // ignore
+  }
 });
 
 // Range formatting provider (lossless with minimal seam reflow)
@@ -314,6 +397,51 @@ documents.onDidClose(e => {
   }
 });
 
+function updateIndexForDocument(doc: TextDocument): void {
+  const text = doc.getText();
+  const can = canonicalize(text);
+  const tokens = lex(can);
+  let ast: AstModule | null = null;
+  try {
+    ast = parse(tokens) as AstModule;
+  } catch {
+    ast = null;
+  }
+  if (!ast) return;
+  const decls: IndexedDecl[] = [];
+  for (const d of ast.decls as AstDecl[]) {
+    if (d.kind === 'Func' || d.kind === 'Data' || d.kind === 'Enum')
+      decls.push({ name: (d as any).name, kind: d.kind as any, span: (d as any).span, nameSpan: (d as any).nameSpan });
+  }
+  const rec: IndexedDoc = { uri: doc.uri, moduleName: ast.name ?? null, decls };
+  indexByUri.set(doc.uri, rec);
+  if (rec.moduleName) indexByModule.set(rec.moduleName, rec);
+}
+
+function scheduleIndexWrite(): void {
+  if (!indexPersistEnabled) return;
+  if (indexWriteTimer) clearTimeout(indexWriteTimer);
+  indexWriteTimer = setTimeout(() => {
+    try {
+      const root = process.cwd();
+      const outPath = indexPathOverride || pathJoin(root, '.asteri', 'lsp-index.json');
+      const fs = require('node:fs');
+      const path = require('node:path');
+      fs.mkdirSync(path.dirname(outPath), { recursive: true });
+      const files = Array.from(indexByUri.values());
+      const payload = { version: 1, generatedAt: new Date().toISOString(), root, files };
+      fs.writeFileSync(outPath, JSON.stringify(payload, null, 2), 'utf8');
+      connection.console.log(`Index written: ${path.relative(root, outPath)}`);
+    } catch (e: any) {
+      connection.console.warn(`Failed writing index: ${e?.message ?? String(e)}`);
+    }
+  }, 500);
+}
+
+function pathJoin(...parts: string[]): string {
+  return require('node:path').join.apply(null, parts as any);
+}
+
 // Workspace symbols across open documents
 connection.onWorkspaceSymbol(({ query }): WorkspaceSymbol[] => {
   const out: WorkspaceSymbol[] = [];
@@ -332,6 +460,176 @@ connection.onWorkspaceSymbol(({ query }): WorkspaceSymbol[] => {
   }
   return out;
 });
+
+// Cross-file references
+connection.onReferences(async (params: ReferenceParams, token?: any) => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return [];
+  const text = doc.getText();
+  const pos = params.position;
+  const offset = doc.offsetAt(pos);
+  // naive token capture: expand to nearest word boundaries
+  const word = captureWordAt(text, offset);
+  if (!word) return [];
+  const out: Location[] = [];
+  const settings = await getDocumentSettings(doc.uri).catch(() => defaultSettings);
+  const scope = settings.rename?.scope ?? 'workspace';
+  const openUris = new Set(documents.keys());
+  let processed = 0;
+  const total = indexByUri.size;
+  // Progress: begin
+  beginProgress((params as any).workDoneToken, 'Aster references');
+  for (const rec of indexByUri.values()) {
+    if (scope === 'open' && !openUris.has(rec.uri)) continue;
+    if (token?.isCancellationRequested) break;
+    try {
+      const fsPath = uriToFsPath(rec.uri) || rec.uri;
+      const t = fs.readFileSync(fsPath, 'utf8');
+      const positions = findTokenPositionsSafe(t, word);
+      for (const p of positions) out.push({ uri: ensureUri(rec.uri), range: { start: offsetToPos(t, p.start), end: offsetToPos(t, p.end) } });
+    } catch {
+      continue;
+    }
+    processed++;
+    if (processed % 50 === 0) reportProgress((params as any).workDoneToken, `${processed}/${total}`);
+  }
+  // Progress: end
+  endProgress((params as any).workDoneToken);
+  return out;
+});
+
+connection.onRenameRequest(async (params: RenameParams, token?: any): Promise<WorkspaceEdit | null> => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return null;
+  const text = doc.getText();
+  const offset = doc.offsetAt(params.position);
+  const word = captureWordAt(text, offset);
+  if (!word) return null;
+  const changes: Record<string, TextEdit[]> = {};
+  const settings = await getDocumentSettings(doc.uri).catch(() => defaultSettings);
+  const scope = settings.rename?.scope ?? 'workspace';
+  const openUris = new Set(documents.keys());
+  let processed = 0;
+  const total = indexByUri.size;
+  beginProgress((params as any).workDoneToken, 'Aster rename');
+  for (const rec of indexByUri.values()) {
+    if (scope === 'open' && !openUris.has(rec.uri)) continue;
+    if (token?.isCancellationRequested) break;
+    try {
+      const uri = ensureUri(rec.uri);
+      const fsPath = uriToFsPath(rec.uri) || rec.uri;
+      const t = fs.readFileSync(fsPath, 'utf8');
+      const positions = findTokenPositionsSafe(t, word);
+      if (positions.length === 0) continue;
+      const edits: TextEdit[] = positions.map(p => ({ range: { start: offsetToPos(t, p.start), end: offsetToPos(t, p.end) }, newText: params.newName }));
+      changes[uri] = (changes[uri] || []).concat(edits);
+    } catch {
+      continue;
+    }
+    processed++;
+    if (processed % 50 === 0) reportProgress((params as any).workDoneToken, `${processed}/${total}`);
+  }
+  endProgress((params as any).workDoneToken);
+  return { changes };
+});
+
+function captureWordAt(text: string, offset: number): string | null {
+  const isWord = (c: string): boolean => /[A-Za-z0-9_.]/.test(c);
+  let s = offset;
+  while (s > 0 && isWord(text[s - 1]!)) s--;
+  let e = offset;
+  while (e < text.length && isWord(text[e]!)) e++;
+  if (s === e) return null;
+  return text.slice(s, e);
+}
+
+function findWordPositions(text: string, word: string): Array<{ start: number; end: number }> {
+  const out: Array<{ start: number; end: number }> = [];
+  const re = new RegExp(`(?<![A-Za-z0-9_.])${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9_.])`, 'g');
+  for (let m; (m = re.exec(text)); ) {
+    out.push({ start: m.index, end: m.index + word.length });
+  }
+  return out;
+}
+
+function findTokenPositionsSafe(text: string, word: string): Array<{ start: number; end: number }> {
+  // If word contains '.', fallback to simple word regex matching over text
+  if (word.includes('.')) return findWordPositions(text, word);
+  try {
+    const can = canonicalize(text);
+    const toks = lex(can);
+    const starts = buildLineStarts(text);
+    const out: Array<{ start: number; end: number }> = [];
+    for (const t of toks) {
+      if ((t.kind === TokenKind.IDENT || t.kind === TokenKind.TYPE_IDENT) && String(t.value) === word) {
+        const s = toOffset(starts, t.start.line, t.start.col);
+        const e = toOffset(starts, t.end.line, t.end.col);
+        out.push({ start: s, end: e });
+      }
+    }
+    return out.length ? out : findWordPositions(text, word);
+  } catch {
+    return findWordPositions(text, word);
+  }
+}
+
+function buildLineStarts(text: string): number[] {
+  const a: number[] = [0];
+  for (let i = 0; i < text.length; i++) if (text[i] === '\n') a.push(i + 1);
+  return a;
+}
+function toOffset(starts: readonly number[], line: number, col: number): number {
+  const li = Math.max(1, line) - 1;
+  const base = starts[li] ?? 0;
+  return base + Math.max(1, col) - 1;
+}
+
+function offsetToPos(text: string, off: number): { line: number; character: number } {
+  let line = 0;
+  let last = 0;
+  for (let i = 0; i < text.length && i < off; i++) if (text[i] === '\n') { line++; last = i + 1; }
+  return { line, character: off - last };
+}
+
+function ensureUri(u: string): string {
+  if (u.startsWith('file://')) return u;
+  const path = require('node:path');
+  const to = 'file://' + (path.isAbsolute(u) ? u : path.join(process.cwd(), u));
+  return to;
+}
+
+function uriToFsPath(u: string): string | null {
+  try {
+    if (u.startsWith('file://')) return new URL(u).pathname;
+  } catch {}
+  return null;
+}
+
+// Work Done Progress helpers (no-op if token missing)
+function beginProgress(token: unknown, title: string): void {
+  try {
+    if (!token) return;
+    (connection as any).sendProgress({ method: '$/progress' }, token, { kind: 'begin', title });
+  } catch {
+    // ignore
+  }
+}
+function reportProgress(token: unknown, message: string): void {
+  try {
+    if (!token) return;
+    (connection as any).sendProgress({ method: '$/progress' }, token, { kind: 'report', message });
+  } catch {
+    // ignore
+  }
+}
+function endProgress(token: unknown): void {
+  try {
+    if (!token) return;
+    (connection as any).sendProgress({ method: '$/progress' }, token, { kind: 'end' });
+  } catch {
+    // ignore
+  }
+}
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   void (await getDocumentSettings(textDocument.uri));
@@ -1547,3 +1845,22 @@ documents.listen(connection);
 
 // Listen on the connection
 connection.listen();
+function tryLoadPersistedIndex(): void {
+  try {
+    if (!indexPersistEnabled) return;
+    const root = process.cwd();
+    const p = indexPathOverride || require('node:path').join(root, '.asteri', 'lsp-index.json');
+    const fs = require('node:fs');
+    if (!fs.existsSync(p)) return;
+    const json = JSON.parse(fs.readFileSync(p, 'utf8')) as { files?: any[] };
+    if (!json || !Array.isArray(json.files)) return;
+    for (const f of json.files) {
+      const rec = { uri: f.uri as string, moduleName: (f.moduleName as string) || null, decls: f.decls as any[] };
+      indexByUri.set(rec.uri, rec);
+      if (rec.moduleName) indexByModule.set(rec.moduleName, rec);
+    }
+    connection.console.log(`Loaded persisted index: ${json.files.length} files.`);
+  } catch (e: any) {
+    connection.console.warn(`Failed to load persisted index: ${e?.message ?? String(e)}`);
+  }
+}

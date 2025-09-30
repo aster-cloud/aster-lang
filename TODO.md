@@ -60,8 +60,49 @@ LSP & Formatter
 - [x] LSP features: hover/types/effects, go-to-def, find-refs, rename, semantic tokens, quick-fixes; p50 < 30ms on 100 files.
   - Follow-ups
     - [ ] Persisted workspace symbol/index across sessions (disk-backed cache) for cross-file features without opening files.
+      - [ ] Design: JSON index per workspace root under `.asteri/lsp-index.json` keyed by module + decl name → spans/uris.
+      - [x] Add indexer: CLI script `scripts/lsp-build-index.ts` to scan `cnl/**/*.cnl`, canonicalize+lex+parse and serialize minimal symbol info.
+      - [x] LSP server boot: onInitialize load cache (if same workspace hash), schedule background re-index if stale.
+      - [x] Invalidation: listen to file change (didChangeWatchedFiles) and update changed entries; write-through after debounce.
+      - [x] Config: `asterLanguageServer.index.persist` (default true), location override `asterLanguageServer.index.path`.
+      - [ ] Tests: build small fixture workspace, index load/save round-trip, symbol lookup without opening files.
+      - [x] Health: custom request `aster/health` and CLI `npm run lsp:health` to inspect watcher capability and index size.
     - [ ] Broader cross-file rename/refs across the repo (scan-once with index), not limited to open documents.
-    - [ ] Optional: CST-aware inline comment preservation in formatter output (behind a flag).
+      - [x] Add workspace-wide reference finder using persisted index for candidate URIs + on-demand token scan to refine matches.
+      - [x] Rename: build WorkspaceEdit across all candidate files, verify spans with token boundaries to avoid substring collisions.
+      - [ ] Streaming edits: chunk large workspaces, display progress (window/logMessage) and allow cancel.
+      - [ ] Config: `asterLanguageServer.rename.scope: 'open' | 'workspace'` (default 'workspace').
+      - [ ] Tests: multi-file examples; ensure edits are correct and stable.
+    - [x] Optional: CST-aware inline comment preservation in formatter output (behind a flag).
+      - [x] Extend CST builder to collect line comments as structured trivia with (line, text, standalone) and surface via `inlineComments`.
+      - [x] Add `formatCNL(text, { mode: 'normalize', preserveComments: true, preserveStandaloneComments?: boolean })` to re-emit inline and (optionally) standalone comments.
+      - [x] Heuristics: reattach inline EOL comments to non-empty lines; insert standalone comments near header/block or at end.
+      - [x] CLI: `format-examples.js` and `format-file.js` accept `--preserve-comments`.
+    - [x] Tests: golden cases under `test/comments/golden` + runner `scripts/test-comments-golden.ts` (now in CI, blocking).
+
+Comment Preservation (Precise Attachment) — Future Plan
+- [ ] Capture attachment points
+  - [ ] Extend CST to tag comments with nearest token/node role (e.g., after header token, inside block at line N)
+  - [ ] Encode relative position: before/after token, column offset
+- [ ] Map normalize output to CST nodes
+  - [ ] During normalize formatting, emit node boundary metadata (header/body/stmt indices)
+  - [ ] Build a lightweight map from formatted lines back to node roles
+- [ ] Placement algorithm
+  - [ ] For each comment, choose a destination line by matching its role and nearest node boundary
+  - [ ] Preserve ordering of multiple comments targeting the same region
+  - [ ] Fall back to current heuristics when role mapping is ambiguous
+- [ ] Edge cases
+  - [ ] Multi-line blocks with reflowed punctuation at boundaries (e.g., `. :`)
+  - [ ] Consecutive standalone comment runs
+  - [ ] Mixed inline and standalone comments on adjacent lines
+- [ ] Configuration
+  - [ ] `asterLanguageServer.format.preserveStandaloneStrategy`: 'top-bottom' | 'adjacent' | 'off' (default 'top-bottom')
+  - [ ] CLI flags for choosing standalone placement strategy
+- [ ] Additional Goldens
+  - [ ] Examples covering match blocks, nested lambdas, and interop calls with comments
+- [ ] Tests
+  - [ ] Golden suites covering: header comments, inside nested blocks, after returns, mixed comment sequences
+  - [ ] Property tests exercising role mapping stability under trivial content edits
 
 Tests & CI
 - [x] Promote javap interop assertions to blocking after N green runs.
