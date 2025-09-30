@@ -42,3 +42,9 @@ node dist/scripts/emit-core.js cnl/examples/greet.cnl
 
 - See the [Quickstart](./guide/quickstart.md) for build/run instructions, CLI usage, and Truffle/ASM examples.
 - See the [Commands](./guide/commands.md) reference for npm scripts and `aster` CLI subcommands.
+
+## Editor & LSP
+
+- LSP Quick Fix Tutorial: [docs/guide/lsp-tutorial.md](./guide/lsp-tutorial.md)
+- LSP Code Actions overview: [docs/guide/lsp-code-actions.md](./guide/lsp-code-actions.md)
+- Formatting, LSP & CLI: [docs/guide/formatting.md](./guide/formatting.md)

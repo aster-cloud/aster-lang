@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "generatedAt": "2025-09-30T04:07:01.508Z",
+  "root": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture",
+  "files": [
+    {
+      "uri": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture/cnl/bar.cnl",
+      "moduleName": "fixture.bar",
+      "decls": [
+        {
+          "name": "Item",
+          "kind": "Data"
+        },
+        {
+          "name": "idOf",
+          "kind": "Func",
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 1
+            },
+            "end": {
+              "line": 7,
+              "col": 1
+            }
+          },
+          "nameSpan": {
+            "start": {
+              "line": 5,
+              "col": 4
+            },
+            "end": {
+              "line": 7,
+              "col": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "uri": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture/cnl/foo.cnl",
+      "moduleName": "fixture.foo",
+      "decls": [
+        {
+          "name": "User",
+          "kind": "Data"
+        },
+        {
+          "name": "greet",
+          "kind": "Func",
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 1
+            },
+            "end": {
+              "line": 7,
+              "col": 1
+            }
+          },
+          "nameSpan": {
+            "start": {
+              "line": 5,
+              "col": 4
+            },
+            "end": {
+              "line": 7,
+              "col": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

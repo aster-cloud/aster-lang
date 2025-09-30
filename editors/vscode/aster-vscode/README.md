@@ -16,6 +16,12 @@ Install the extension for local development:
 Configuration:
 
 - `aster.langServer.path` (default: `dist/src/lsp/server.js`): override the server entry, relative to workspace root.
+- `asterLanguageServer.index.persist` (default: true): persist a workspace symbol index to `.asteri/lsp-index.json`.
+- `asterLanguageServer.index.path` (optional): override path to the persisted index file.
+- `asterLanguageServer.format.mode` (default: `lossless`): choose `lossless` or `normalize` printing for LSP formatting.
+- `asterLanguageServer.format.reflow` (default: true): allow minimal seam fixes in lossless mode.
+- `asterLanguageServer.rename.scope` (default: `workspace`): limit rename to `open` or allow `workspace`.
+- `asterLanguageServer.diagnostics.workspace` (default: true): enable workspace/diagnostic across open and persisted-indexed files.
 
 ## Capabilities Manifest
 
@@ -37,3 +43,4 @@ Notes:
 
 - This is a minimal client using `stdio` transport. Features depend on server capabilities as they evolve.
 - Language id is `aster` and files with `.cnl` extension are recognized.
+ - Workspace diagnostics toggle can be adjusted in Settings → Extensions → Aster Language Server.

@@ -4,7 +4,9 @@
 
 import { KW } from './tokens.js';
 
-const ARTICLE_RE = /\b(a|an|the)\b/gi;
+// Remove common articles only when followed by whitespace to avoid
+// creating leading comment markers or altering tokens adjacent to punctuation.
+const ARTICLE_RE = /\b(a|an|the)\b(?=\s)/gi;
 
 // Multi-word keyword list ordered by length (desc) to match greedily.
 const MULTI = [

@@ -4,7 +4,7 @@
 
 # Interface: TypeVar
 
-Defined in: [types.ts:570](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L570)
+Defined in: [types.ts:570](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L570)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:570](https://github.com/wontlost-ltd/aster-lang/blob/815e7
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/815e7
 
 > `readonly` **kind**: `"TypeVar"`
 
-Defined in: [types.ts:571](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L571)
+Defined in: [types.ts:571](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L571)
 
 #### Overrides
 
@@ -40,4 +40,4 @@ Defined in: [types.ts:571](https://github.com/wontlost-ltd/aster-lang/blob/815e7
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:572](https://github.com/wontlost-ltd/aster-lang/blob/815e72f7c830da4d8bfa856920fbab32848cf6b4/src/types.ts#L572)
+Defined in: [types.ts:572](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L572)

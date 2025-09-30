@@ -1,0 +1,5 @@
+This module is fixture.bar.
+
+To call, produce Text:
+  Return fixture.foo.greet.
+

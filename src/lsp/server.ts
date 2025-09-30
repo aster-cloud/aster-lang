@@ -29,8 +29,15 @@ import {
   type SemanticTokensLegend,
   type WorkspaceSymbol,
   // SemanticTokenTypes is a const enum of strings; not typed here
-  // DocumentDiagnosticReportKind,
-  // type DocumentDiagnosticReport,
+  DocumentDiagnosticReportKind,
+  type DocumentDiagnosticReport,
+  DocumentDiagnosticRequest,
+  WorkspaceDiagnosticRequest,
+  type WorkspaceDiagnosticReport,
+  type WorkspaceDocumentDiagnosticReport,
+  type InlayHint,
+  InlayHintKind,
+  type InlayHintParams,
   SymbolKind,
   type DocumentSymbol,
   type DocumentSymbolParams,
@@ -133,6 +140,7 @@ let indexPathOverride: string | null = null;
 let hasWatchedFilesCapability = false;
 let watcherRegistered = false;
 const HEALTH_METHOD = 'aster/health';
+let workspaceDiagnosticsEnabled = true;
 
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
@@ -163,7 +171,7 @@ connection.onInitialize((params: InitializeParams) => {
       },
       diagnosticProvider: {
         interFileDependencies: false,
-        workspaceDiagnostics: false,
+        workspaceDiagnostics: true,
       },
       codeActionProvider: {
         codeActionKinds: [CodeActionKind.QuickFix],
@@ -178,6 +186,7 @@ connection.onInitialize((params: InitializeParams) => {
       workspaceSymbolProvider: true,
       documentFormattingProvider: true,
       documentRangeFormattingProvider: true,
+      inlayHintProvider: true,
     },
   };
   if (hasWorkspaceFolderCapability) {
@@ -253,10 +262,11 @@ interface AsterSettings {
   format?: { mode?: 'lossless' | 'normalize'; reflow?: boolean };
   index?: { persist?: boolean; path?: string };
   rename?: { scope?: 'open' | 'workspace' };
+  diagnostics?: { workspace?: boolean };
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
-const defaultSettings: AsterSettings = { maxNumberOfProblems: 1000, format: { mode: 'lossless', reflow: true }, index: { persist: true }, rename: { scope: 'workspace' } };
+const defaultSettings: AsterSettings = { maxNumberOfProblems: 1000, format: { mode: 'lossless', reflow: true }, index: { persist: true }, rename: { scope: 'workspace' }, diagnostics: { workspace: true } };
 let globalSettings: AsterSettings = defaultSettings;
 
 // Cache the settings of all open documents
@@ -270,15 +280,17 @@ connection.onDidChangeConfiguration(change => {
     globalSettings = <AsterSettings>(change.settings.asterLanguageServer || defaultSettings);
   }
 
-  // Revalidate all open text documents
-  documents.all().forEach(validateTextDocument);
+  // Revalidate caches for open documents (pull diagnostics will request when needed)
+  documents.all().forEach(doc => { try { void getOrParse(doc); } catch {} });
   // Update index settings
   getDocumentSettings('').then(s => {
     indexPersistEnabled = s.index?.persist ?? true;
     indexPathOverride = s.index?.path ?? null;
+    workspaceDiagnosticsEnabled = s.diagnostics?.workspace ?? true;
   }).catch(() => {
     indexPersistEnabled = true;
     indexPathOverride = null;
+    workspaceDiagnosticsEnabled = true;
   });
 });
 
@@ -310,7 +322,9 @@ documents.onDidChangeContent(change => {
   if (prev) clearTimeout(prev);
   const handle = setTimeout(() => {
     pendingValidate.delete(uri);
-    void validateTextDocument(change.document);
+    // Diagnostics are now served via pull (textDocument/diagnostic).
+    // We still parse to keep caches warm for fast responses.
+    try { void getOrParse(change.document); } catch {}
   }, 150);
   pendingValidate.set(uri, handle);
   // Update index for open document
@@ -457,6 +471,49 @@ connection.onWorkspaceSymbol(({ query }): WorkspaceSymbol[] => {
         location: toLocation(rec.uri, sp),
       });
     }
+  }
+  return out;
+});
+
+// Document links: module header and dotted Module.member → target module file (if known),
+// and common guide links (e.g., Text.* → interop overloads guide)
+connection.onDocumentLinks(params => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return [];
+  const text = doc.getText();
+  const out: any[] = [];
+  try {
+    const m = text.match(/This module is ([A-Za-z][A-Za-z0-9_.]*)\./);
+    if (m) {
+      const mod = m[1]!;
+      const rec = indexByModule.get(mod);
+      if (rec && ensureUri(rec.uri) !== ensureUri(doc.uri)) {
+        const startOff = (m.index ?? 0) + 'This module is '.length;
+        const endOff = startOff + mod.length;
+        out.push({ range: { start: offsetToPos(text, startOff), end: offsetToPos(text, endOff) }, target: ensureUri(rec.uri) });
+      }
+    }
+    const dotted = /\b([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)\b/g;
+    for (let mm; (mm = dotted.exec(text)); ) {
+      const full = mm[1]!;
+      const dot = full.lastIndexOf('.');
+      const mod = full.slice(0, dot);
+      const rec = indexByModule.get(mod);
+      if (!rec) continue;
+      const s = mm.index!;
+      out.push({ range: { start: offsetToPos(text, s), end: offsetToPos(text, s + mod.length) }, target: ensureUri(rec.uri) });
+    }
+    // Guide link for Text.* helpers: link the 'Text' part to interop-overloads guide
+    const guide = toGuideUri('docs/guide/interop-overloads.md');
+    if (guide) {
+      const reText = /\bText\s*\./g;
+      for (let m2; (m2 = reText.exec(text)); ) {
+        const s = m2.index!;
+        out.push({ range: { start: offsetToPos(text, s), end: offsetToPos(text, s + 4) }, target: guide });
+      }
+    }
+  } catch {
+    // ignore
   }
   return out;
 });
@@ -631,7 +688,7 @@ function endProgress(token: unknown): void {
   }
 }
 
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
+async function computeDiagnostics(textDocument: TextDocument): Promise<Diagnostic[]> {
   void (await getDocumentSettings(textDocument.uri));
   const { text, tokens, ast } = getOrParse(textDocument);
   const diagnostics: Diagnostic[] = [];
@@ -724,9 +781,139 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     }
   }
 
-  // Send the computed diagnostics to VSCode.
-  connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+  try {
+    // Add a gentle warning if the module header is missing; helps enable cross-file features
+    const a = ast ?? parse(tokens);
+    if (!a || !(a as any).name) {
+      diagnostics.push({
+        severity: DiagnosticSeverity.Warning,
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+        message: 'Missing module header. Add "This module is <name>."',
+        source: 'aster',
+      });
+    }
+  } catch {
+    // ignore
+  }
+  return diagnostics;
 }
+
+// LSP 3.17+ pull diagnostics handler
+connection.onRequest(DocumentDiagnosticRequest.type, async (params): Promise<DocumentDiagnosticReport> => {
+  try {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return { kind: DocumentDiagnosticReportKind.Full, items: [] };
+    const items = await computeDiagnostics(doc);
+    return { kind: DocumentDiagnosticReportKind.Full, items };
+  } catch {
+    return { kind: DocumentDiagnosticReportKind.Full, items: [] };
+  }
+});
+
+// Workspace diagnostics (pull): compute diagnostics for all indexed files
+connection.onRequest(WorkspaceDiagnosticRequest.type, async (): Promise<WorkspaceDiagnosticReport> => {
+  if (!workspaceDiagnosticsEnabled) return { items: [] };
+  const results: WorkspaceDocumentDiagnosticReport[] = [];
+  try {
+    for (const rec of indexByUri.values()) {
+      try {
+        const open = documents.get(rec.uri);
+        if (open) {
+          const items = await computeDiagnostics(open);
+          results.push({ uri: ensureUri(rec.uri), version: open.version, kind: DocumentDiagnosticReportKind.Full, items });
+        } else {
+          const fsPath = uriToFsPath(rec.uri) || rec.uri;
+          if (!fsPath || !fs.existsSync(fsPath)) continue;
+          const text = fs.readFileSync(fsPath, 'utf8');
+          const temp = TextDocument.create(ensureUri(rec.uri), 'cnl', 0, text);
+          const items = await computeDiagnostics(temp);
+          results.push({ uri: ensureUri(rec.uri), version: null, kind: DocumentDiagnosticReportKind.Full, items });
+        }
+      } catch {
+        // skip file on error
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { items: results };
+});
+
+// Inlay hints: show literal types and simple let-inferred types
+connection.onRequest('textDocument/inlayHint' as any, async (params: InlayHintParams): Promise<InlayHint[] | null> => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return null;
+  const entry = getOrParse(doc);
+  const { tokens: toks, ast } = entry;
+  const out: InlayHint[] = [];
+  const range = params.range;
+  const within = (line: number, col: number): boolean => {
+    const s = doc.offsetAt(range.start);
+    const e = doc.offsetAt(range.end);
+    const off = doc.offsetAt({ line, character: Math.max(0, col - 1) });
+    return off >= s && off <= e;
+  };
+  try {
+    for (const t of toks as any[]) {
+      if (!t || !t.start) continue;
+      const k = t.kind;
+      let label: string | null = null;
+      if (k === TokenKind.INT) label = 'Int';
+      else if (k === TokenKind.LONG) label = 'Long';
+      else if (k === TokenKind.FLOAT) label = 'Double';
+      else if (k === TokenKind.STRING) label = 'Text';
+      else if (k === TokenKind.BOOL) label = 'Bool';
+      else if (k === TokenKind.NULL) label = 'null';
+      if (label && within(t.start.line - 1, t.start.col)) {
+        out.push({ position: { line: t.start.line - 1, character: t.start.col - 1 }, label, kind: InlayHintKind.Type });
+      }
+    }
+    // Simple let type hints using exprTypeText
+    const a = (ast as AstModule) || (parse(toks) as AstModule);
+    for (const d of a.decls as AstDecl[]) {
+      if (d.kind !== 'Func') continue;
+      const f = d as AstFunc;
+      // Function return type at function name
+      const nsp = ((f as any).nameSpan as Span | undefined) || ((f as any).span as Span | undefined);
+      try {
+        const retTxt = typeText((f as any).retType);
+        if (nsp && retTxt && within(nsp.start.line - 1, nsp.start.col)) {
+          out.push({ position: { line: nsp.start.line - 1, character: Math.max(0, nsp.start.col - 1) }, label: ` -> ${retTxt}`, kind: InlayHintKind.Type });
+        }
+      } catch {}
+      // Parameter type hints
+      for (const p of f.params) {
+        const psp = ((p as any).span as Span | undefined);
+        try {
+          const ptxt = typeText(p.type);
+          if (psp && ptxt && within(psp.start.line - 1, psp.start.col)) {
+            out.push({ position: { line: psp.start.line - 1, character: Math.max(0, psp.start.col - 1) }, label: `: ${ptxt}`, kind: InlayHintKind.Parameter });
+          }
+        } catch {}
+      }
+      const walk = (b: AstBlock): void => {
+        for (const s of b.statements as AstStmt[]) {
+          if (s.kind === 'Let') {
+            const sp = (s as any).span as Span | undefined;
+            const hint = exprTypeText((s as any).expr);
+            if (sp && hint && within(sp.start.line - 1, sp.start.col)) {
+              out.push({ position: { line: sp.start.line - 1, character: Math.max(0, sp.start.col - 1) }, label: `: ${hint}`, kind: InlayHintKind.Type });
+            }
+          } else if (s.kind === 'If') {
+            walk(s.thenBlock as AstBlock);
+            if (s.elseBlock) walk(s.elseBlock as AstBlock);
+          } else if (s.kind === 'Match') {
+            for (const c of s.cases) if (c.body.kind === 'Block') walk(c.body as AstBlock);
+          } else if (s.kind === 'Block') walk(s as unknown as AstBlock);
+        }
+      };
+      if (f.body) walk(f.body);
+    }
+  } catch {
+    // ignore
+  }
+  return out;
+});
 
 connection.onCodeAction(async (params: CodeActionParams): Promise<CodeAction[]> => {
   const doc = documents.get(params.textDocument.uri);
@@ -882,6 +1069,13 @@ import { pathToFileURL } from 'node:url';
 function toFileUri(p: string): string {
   const abs = path.isAbsolute(p) ? p : path.resolve(p);
   return String(pathToFileURL(abs));
+}
+function toGuideUri(rel: string): string | null {
+  try {
+    const p = require('node:path').join(process.cwd(), rel);
+    if (require('node:fs').existsSync(p)) return toFileUri(p);
+    return null;
+  } catch { return null; }
 }
 
 // TODO: upgrade to LSP 3.17+ for document diagnostics when ready
@@ -1201,14 +1395,15 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams): SemanticT
     const builder: number[] = [];
     let prevLine = 0;
     let prevChar = 0;
-    const push = (line0: number, char0: number, length: number, type: number): void => {
+    const push = (line0: number, char0: number, length: number, type: number, modifiers = 0): void => {
       const dl = builder.length === 0 ? line0 : line0 - prevLine;
       const dc = builder.length === 0 ? char0 : line0 === prevLine ? char0 - prevChar : char0;
-      builder.push(dl, dc, Math.max(0, length), type, 0);
+      builder.push(dl, dc, Math.max(0, length), type, modifiers);
       prevLine = line0;
       prevChar = char0;
     };
     const typesIndex = tokenTypeIndexMap();
+    const modsIndex = tokenModIndexMap();
 
     // Token-based coloring: keywords and TYPE_IDENT
     for (const t of toks) {
@@ -1216,35 +1411,39 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams): SemanticT
       const line0 = (t.start.line - 1) | 0;
       const char0 = (t.start.col - 1) | 0;
       const len = Math.max(0, (t.end.col - t.start.col) | 0);
-      if (t.kind === TokenKind.KEYWORD) push(line0, char0, len, typesIndex['keyword'] ?? 0);
-      else if (t.kind === TokenKind.TYPE_IDENT) push(line0, char0, len, typesIndex['type'] ?? 0);
+      if (t.kind === TokenKind.KEYWORD) push(line0, char0, len, typesIndex['keyword'] ?? 0, 0);
+      else if (t.kind === TokenKind.TYPE_IDENT) push(line0, char0, len, typesIndex['type'] ?? 0, 0);
     }
 
     // AST-based: function decl spans, data/enum decl spans, let locals
-    const addSpan = (sp: Span | undefined, type: number): void => {
+    const addSpan = (sp: Span | undefined, type: number, mods = 0): void => {
       if (!sp) return;
       const line0 = sp.start.line - 1;
       const char0 = sp.start.col - 1;
       const len = Math.max(0, sp.end.col - sp.start.col);
-      if (len > 0) push(line0, char0, len, type);
+      if (len > 0) push(line0, char0, len, type, mods);
     };
     for (const d of (ast2.decls as AstDecl[])) {
       if (d.kind === 'Func') {
         addSpan((d as any).span, typesIndex['function'] ?? 0);
         // Prefer highlighting function name itself if available
         const nsp = ((d as any).nameSpan as Span | undefined);
-        if (nsp) addSpan(nsp, typesIndex['function'] ?? 0);
+        if (nsp) addSpan(nsp, typesIndex['function'] ?? 0, 1 << (modsIndex['declaration'] ?? 0));
         const f = d as AstFunc;
         // parameters
-        for (const p of f.params) addSpan(((p as any).span as Span | undefined), typesIndex['parameter'] ?? 0);
+        for (const p of f.params) addSpan(((p as any).span as Span | undefined), typesIndex['parameter'] ?? 0, 1 << (modsIndex['declaration'] ?? 0));
         if (f.body) {
           const lets = collectLetsWithSpan(f.body);
           for (const [, sp] of lets) addSpan(sp, typesIndex['variable'] ?? 0);
         }
       } else if (d.kind === 'Data') {
         addSpan((d as any).span, typesIndex['type'] ?? 0);
+        // fields
+        for (const f of (d as AstData).fields) addSpan(((f as any).span as Span | undefined), typesIndex['property'] ?? 0, 1 << (modsIndex['declaration'] ?? 0));
       } else if (d.kind === 'Enum') {
         addSpan((d as any).span, typesIndex['enum'] ?? 0);
+        const vspans: (Span | undefined)[] = (((d as any).variantSpans as Span[] | undefined) || []);
+        for (const sp of vspans) addSpan(sp, typesIndex['enumMember'] ?? 0, 1 << (modsIndex['declaration'] ?? 0));
       }
     }
     return { data: builder };
@@ -1254,13 +1453,17 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams): SemanticT
 });
 
 const SEM_LEGEND: SemanticTokensLegend = {
-  tokenTypes: ['keyword', 'type', 'function', 'parameter', 'variable', 'enum', 'enumMember'],
-  tokenModifiers: [],
+  tokenTypes: ['keyword', 'type', 'function', 'parameter', 'variable', 'enum', 'enumMember', 'property'],
+  tokenModifiers: ['declaration'],
 };
 const TOKEN_TYPE_INDEX: Record<string, number> = Object.fromEntries(
   SEM_LEGEND.tokenTypes.map((t, i) => [t, i])
 );
 function tokenTypeIndexMap(): Record<string, number> { return TOKEN_TYPE_INDEX; }
+const TOKEN_MOD_INDEX: Record<string, number> = Object.fromEntries(
+  SEM_LEGEND.tokenModifiers.map((t, i) => [t, i])
+);
+function tokenModIndexMap(): Record<string, number> { return TOKEN_MOD_INDEX; }
 
 function collectBlockSymbols(b: AstBlock, parent: DocumentSymbol, doc: TextDocument): void {
   for (const s of b.statements as AstStmt[]) {
@@ -1563,202 +1766,29 @@ function findPatternBindingDetail(fn: AstFunc, name: string, pos: { line: number
   return walkBlock(fn.body);
 }
 
-// Find References: single-file using token scan with simple scoping
-connection.onReferences((params: ReferenceParams) => {
-  const doc = documents.get(params.textDocument.uri);
-  if (!doc) return [];
-  const entry = getOrParse(doc);
-  const { tokens: toks, ast } = entry;
-  try {
-    const ast2 = (ast as AstModule) || (parse(toks) as AstModule);
-    const name = tokenNameAt(toks as any[], params.position);
-    if (!name || name.trim().length === 0) return [];
-
-    const refs: Location[] = [];
-    const hereDecl = findDeclAt(ast2, params.position);
-    const topDecl = (ast2.decls as AstDecl[]).find(d => (d as any).name === name) as AstDecl | undefined;
-    let scope: Span | null = null;
-    if (hereDecl && (hereDecl as any).kind === 'Func') {
-      const f = hereDecl as AstFunc;
-      const isParam = f.params.some(p => p.name === name);
-      const lets = collectLetsWithSpan(f.body as AstBlock | null);
-      const isLocal = lets.has(name);
-      if (isParam || isLocal) scope = (f as any).span as Span | undefined ?? null;
-    }
-    if (!scope && topDecl) scope = (topDecl as any).span as Span | undefined ?? null;
-
-    const includeDecl = params.context?.includeDeclaration ?? true;
-    const spans = (entry.idIndex?.get(name) ?? []) as Span[];
-    for (const tsp of spans) {
-      if (scope && !within(scope, { line: tsp.start.line - 1, character: tsp.start.col - 1 })) continue;
-      refs.push(toLocation(doc.uri, tsp));
-    }
-    if (includeDecl && hereDecl && (hereDecl as any).kind === 'Func') {
-      const lets = collectLetsWithSpan((hereDecl as AstFunc).body as AstBlock | null);
-      const lsp = lets.get(name);
-      if (lsp) refs.push(toLocation(doc.uri, lsp));
-    }
-    if (includeDecl && topDecl) {
-      // Prefer function nameSpan when present
-      const sp = (((topDecl as any).nameSpan as Span | undefined) ?? ((topDecl as any).span as Span));
-      refs.push(toLocation(doc.uri, sp));
-    }
-
-    // Enum variant references: include declaration and all identifier matches
-    const vmap = enumVariantSpanMap(ast2);
-    if (vmap.has(name)) {
-      const declSp = vmap.get(name)!;
-      if (includeDecl) refs.push(toLocation(doc.uri, declSp));
-      // token scan already added occurrences; nothing more specific to do
-    }
-
-    // Data field references: if cursor is on a construct field, collect all matching field initializers for that type
-    const cf = findConstructFieldAt(ast2, params.position);
-    if (cf && cf.field === name) {
-      // Walk AST to find all constructs of same type/field
-      for (const d of ast2.decls as AstDecl[]) {
-        if (d.kind !== 'Func') continue;
-        const f = d as AstFunc;
-        const addFromBlock = (b: AstBlock): void => {
-          for (const s of b.statements as AstStmt[]) {
-            if (s.kind === 'Return') addFromExpr((s as any).expr);
-            else if (s.kind === 'Let' || s.kind === 'Set') addFromExpr((s as any).expr);
-            else if (s.kind === 'If') {
-              addFromExpr(s.cond as any);
-              addFromBlock(s.thenBlock as AstBlock);
-              if (s.elseBlock) addFromBlock(s.elseBlock as AstBlock);
-            } else if (s.kind === 'Match') {
-              addFromExpr(s.expr as any);
-              for (const c of s.cases) if (c.body.kind === 'Block') addFromBlock(c.body as AstBlock);
-            } else if (s.kind === 'Block') addFromBlock(s as unknown as AstBlock);
-          }
-        };
-        const addFromExpr = (e: any): void => {
-          if (!e || !e.kind) return;
-          if (e.kind === 'Construct' && e.typeName === cf.typeName) {
-            for (const fld of e.fields || []) {
-              if (fld.name === cf.field) {
-                const sp = (fld as any).span as Span | undefined;
-                if (sp) refs.push(toLocation(doc.uri, sp));
-              }
-            }
-          } else if (e.kind === 'Call') {
-            addFromExpr(e.target);
-            (e.args || []).forEach(addFromExpr);
-          } else if (e.kind === 'Ok' || e.kind === 'Err' || e.kind === 'Some') addFromExpr(e.expr);
-        };
-        if (f.body) addFromBlock(f.body);
-      }
-      // Include field declaration span
-      const fmap = dataFieldSpanMap(ast2);
-      const key = `${cf.typeName}.${cf.field}`;
-      if (includeDecl && fmap.has(key)) refs.push(toLocation(doc.uri, fmap.get(key)!));
-    }
-    // Cross-file dotted references: Module.member
-    const hereIdx = indexByUri.get(doc.uri);
-    if (hereIdx && topDecl && (topDecl as any).kind !== 'Func') {
-      /* noop */
-    }
-    if (topDecl && hereIdx?.moduleName) {
-      const dotted = `${hereIdx.moduleName}.${(topDecl as any).name}`;
-      for (const rec of indexByUri.values()) {
-        const other = documents.get(rec.uri);
-        if (!other) continue;
-        const otherEntry = getOrParse(other);
-        for (const t of otherEntry.tokens as any[]) {
-          if (!t || !t.start || !t.end) continue;
-          if (!(t.kind === 'IDENT' || t.kind === 'TYPE_IDENT')) continue;
-          if (String(t.value || '') !== dotted) continue;
-          const tsp: Span = { start: { line: t.start.line, col: t.start.col }, end: { line: t.end.line, col: t.end.col } } as any;
-          refs.push(toLocation(rec.uri, tsp));
-        }
-      }
-    }
-    return refs;
-  } catch {
-    return [];
-  }
-});
-
-// Rename: single-file safe rename for top-level decls, params, and lets
-connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
-  const doc = documents.get(params.textDocument.uri);
-  if (!doc) return null;
-  const entry = getOrParse(doc);
-  const { tokens: toks, ast } = entry;
-  const newName = params.newName?.trim();
-  if (!newName || !/^[_A-Za-z][_A-Za-z0-9.]*$/.test(newName)) return null;
-  try {
-    const ast2 = (ast as AstModule) || (parse(toks) as AstModule);
-    const name = tokenNameAt(toks as any[], params.position);
-    if (!name || name === newName) return null;
-
-    const changes: TextEdit[] = [];
-    const hereDecl = findDeclAt(ast2, params.position);
-    const topDecl = (ast2.decls as AstDecl[]).find(d => (d as any).name === name) as AstDecl | undefined;
-    let scope: Span | null = null;
-    if (hereDecl && (hereDecl as any).kind === 'Func') {
-      const f = hereDecl as AstFunc;
-      const isParam = f.params.some(p => p.name === name);
-      const lets = collectLetsWithSpan(f.body as AstBlock | null);
-      const isLocal = lets.has(name);
-      if (isParam || isLocal) scope = (f as any).span as Span | undefined ?? null;
-    }
-    if (!scope && topDecl) scope = (topDecl as any).span as Span | undefined ?? null;
-
-    if (!scope) return null;
-
-    // Replace occurrences in scope using identifier index
-    const spans = (entry.idIndex?.get(name) ?? []) as Span[];
-    for (const tsp of spans) {
-      const pos = { line: tsp.start.line - 1, character: tsp.start.col - 1 };
-      if (scope && !within(scope, pos)) continue;
-      changes.push({
-        range: { start: { line: tsp.start.line - 1, character: tsp.start.col - 1 }, end: { line: tsp.end.line - 1, character: tsp.end.col - 1 } },
-        newText: newName,
-      });
-    }
-    // Include explicit decl spans for lets
-    if (hereDecl && (hereDecl as any).kind === 'Func') {
-      const lets = collectLetsWithSpan((hereDecl as AstFunc).body as AstBlock | null);
-      const lsp = lets.get(name);
-      if (lsp) changes.push({ range: { start: { line: lsp.start.line - 1, character: lsp.start.col - 1 }, end: { line: lsp.end.line - 1, character: lsp.end.col - 1 } }, newText: newName });
-    }
-    if (topDecl) {
-      const sp = (topDecl as any).span as Span;
-      // The decl name occurrence is already covered by token scan
-      void sp;
-    }
-
-    // Cross-file dotted rename: Module.member -> Module.newName in open docs
-    const hereIdx = indexByUri.get(doc.uri);
-    if (topDecl && hereIdx?.moduleName) {
-      const dottedOld = `${hereIdx.moduleName}.${(topDecl as any).name}`;
-      const dottedNew = `${hereIdx.moduleName}.${newName}`;
-      for (const rec of indexByUri.values()) {
-        const other = documents.get(rec.uri);
-        if (!other) continue;
-        const otherEntry = getOrParse(other);
-        for (const t of otherEntry.tokens as any[]) {
-          if (!(t.kind === 'IDENT' || t.kind === 'TYPE_IDENT')) continue;
-          if (String(t.value || '') !== dottedOld) continue;
-          const tsp: Span = { start: { line: t.start.line, col: t.start.col }, end: { line: t.end.line, col: t.end.col } } as any;
-          changes.push({ range: { start: { line: tsp.start.line - 1, character: tsp.start.col - 1 }, end: { line: tsp.end.line - 1, character: tsp.end.col - 1 } }, newText: dottedNew });
-        }
-      }
-    }
-    if (changes.length === 0) return null;
-    return { changes: { [params.textDocument.uri]: changes } };
-  } catch {
-    return null;
-  }
-});
+// (Removed duplicate single-file find-references and rename handlers to favor
+// the workspace-aware implementations earlier in this file.)
 
 // Quick fixes / hints for ambiguous interop calls
 connection.onCodeAction(params => {
   const actions: any[] = [];
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return actions;
+  const fsPath = uriToFsPath(doc.uri) || doc.uri;
+  const suggestModuleFromPath = (): string => {
+    try {
+      const path = require('node:path');
+      const root = process.cwd();
+      const rel = path.relative(root, fsPath);
+      const noExt = rel.replace(/\.[^.]+$/, '');
+      const parts = noExt.split(path.sep).filter(Boolean);
+      // If under cnl/, drop leading segment
+      if (parts[0] === 'cnl') parts.shift();
+      return parts.join('.').replace(/[^A-Za-z0-9_.]/g, '_') || 'main';
+    } catch {
+      return 'main';
+    }
+  };
   for (const d of params.context.diagnostics) {
     if (typeof d.message === 'string' && d.message.startsWith('Ambiguous interop call')) {
       // Advisory hint
@@ -1835,6 +1865,43 @@ connection.onCodeAction(params => {
         });
       }
     }
+    // Quick fix: add missing module header
+    if (typeof d.message === 'string' && d.message.startsWith('Missing module header')) {
+      const mod = suggestModuleFromPath();
+      const header = `This module is ${mod}.\n`;
+      actions.push({
+        title: `Fix: Add module header (This module is ${mod}.)`,
+        kind: 'quickfix',
+        diagnostics: [d],
+        edit: { changes: { [params.textDocument.uri]: [TextEdit.insert({ line: 0, character: 0 }, header)] } },
+      });
+    }
+    // Quick fix: add missing punctuation at end of line for simple statements
+    if (typeof d.message === 'string' && /Expected (':'|\.) at end of line/i.test(d.message)) {
+      const rng = d.range;
+      const isColon = /:/.test(d.message);
+      const ch = isColon ? ':' : '.';
+      actions.push({
+        title: `Fix: add '${ch}' at end of line`,
+        kind: 'quickfix',
+        diagnostics: [d],
+        edit: { changes: { [params.textDocument.uri]: [TextEdit.insert(rng.end, ch)] } },
+      });
+    }
+  }
+  // Bulk numeric overload disambiguation for current selection (no diagnostic required)
+  try {
+    const { tokens: toks } = getOrParse(doc);
+    const edits = computeDisambiguationEdits(toks, params.range as any);
+    if (edits.length > 0) {
+      actions.push({
+        title: 'Fix: Disambiguate numeric overloads in selection',
+        kind: 'quickfix',
+        edit: { changes: { [params.textDocument.uri]: edits } },
+      });
+    }
+  } catch {
+    // ignore
   }
   return actions;
 });

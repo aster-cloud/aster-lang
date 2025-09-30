@@ -57,22 +57,41 @@ LSP & Formatter
 - [x] Formatter prints Start/Wait and preserves strict headers (effects in header).
 - [x] Formatter prints `none` (Maybe/Option) and no longer rewrites it to placeholders.
 - [x] Example formatter (`fmt:examples`) sanitizes legacy placeholders (`<expr>.`) to strict forms when necessary.
-- [x] LSP features: hover/types/effects, go-to-def, find-refs, rename, semantic tokens, quick-fixes; p50 < 30ms on 100 files.
+  - [x] LSP features: hover/types/effects, go-to-def, find-refs, rename, semantic tokens, quick-fixes; p50 < 30ms on 100 files.
   - Follow-ups
-    - [ ] Persisted workspace symbol/index across sessions (disk-backed cache) for cross-file features without opening files.
-      - [ ] Design: JSON index per workspace root under `.asteri/lsp-index.json` keyed by module + decl name → spans/uris.
+    - [x] Persisted workspace symbol/index across sessions (disk-backed cache) for cross-file features without opening files.
+      - [x] Design: JSON index per workspace root under `.asteri/lsp-index.json` keyed by module + decl name → spans/uris.
       - [x] Add indexer: CLI script `scripts/lsp-build-index.ts` to scan `cnl/**/*.cnl`, canonicalize+lex+parse and serialize minimal symbol info.
+      - [x] Server integration: on open/save and via file-watcher, write `.asteri/lsp-index.json`; load on server init; settings `asterLanguageServer.index.persist` and `asterLanguageServer.index.path` supported.
+    - [x] Adopt LSP 3.17 diagnostics
+      - [x] Implement `textDocument/diagnostic` with full report; refactor push path into `computeDiagnostics`.
+      - [x] Keep caches warm on edits; remove duplicate push calls.
+      - [x] Preserve existing quick-fixes and semantic info.
+      - [x] Enable workspace diagnostics and implement `workspace/diagnostic` over the persisted index + open docs.
+    - [x] Inlay hints (initial)
+      - [x] Literal type hints for Int/Long/Double/Text/Bool/null.
+      - [x] Let-inferred type hints using `exprTypeText`.
+    - [x] Additional code actions
+      - [x] Add missing module header (infer from path).
+      - [x] Add missing punctuation at end-of-line when parser expects ':' or '.'.
+      - [x] Bulk numeric overload disambiguation for selection.
+    - [x] Semantic tokens refinements (enum variants, fields; declaration modifier for decls).
+    - [x] Document links (module header and dotted Module.member to module file when indexed; Text.* → interop guide).
       - [x] LSP server boot: onInitialize load cache (if same workspace hash), schedule background re-index if stale.
       - [x] Invalidation: listen to file change (didChangeWatchedFiles) and update changed entries; write-through after debounce.
       - [x] Config: `asterLanguageServer.index.persist` (default true), location override `asterLanguageServer.index.path`.
-      - [ ] Tests: build small fixture workspace, index load/save round-trip, symbol lookup without opening files.
+      - [x] Tests: build small fixture workspace, index load/save round-trip, symbol lookup without opening files (`test:lsp-index`).
       - [x] Health: custom request `aster/health` and CLI `npm run lsp:health` to inspect watcher capability and index size.
     - [ ] Broader cross-file rename/refs across the repo (scan-once with index), not limited to open documents.
       - [x] Add workspace-wide reference finder using persisted index for candidate URIs + on-demand token scan to refine matches.
       - [x] Rename: build WorkspaceEdit across all candidate files, verify spans with token boundaries to avoid substring collisions.
       - [ ] Streaming edits: chunk large workspaces, display progress (window/logMessage) and allow cancel.
-      - [ ] Config: `asterLanguageServer.rename.scope: 'open' | 'workspace'` (default 'workspace').
-      - [ ] Tests: multi-file examples; ensure edits are correct and stable.
+        - [x] Progress/cancel
+        - [ ] Chunking large workspaces
+      - [x] Config: `asterLanguageServer.rename.scope: 'open' | 'workspace'` (default 'workspace').
+    - [x] Tests: multi-file examples; ensure edits are correct and stable.
+      - [x] Added fixture under `test/lsp-multi/` and a deterministic cross-file rename test `scripts/lsp-multi-rename.test.ts`.
+      - [x] Wired into CI via `npm run test:lsp-multi`.
     - [x] Optional: CST-aware inline comment preservation in formatter output (behind a flag).
       - [x] Extend CST builder to collect line comments as structured trivia with (line, text, standalone) and surface via `inlineComments`.
       - [x] Add `formatCNL(text, { mode: 'normalize', preserveComments: true, preserveStandaloneComments?: boolean })` to re-emit inline and (optionally) standalone comments.

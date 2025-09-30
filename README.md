@@ -153,6 +153,31 @@ npm run verify:asm:lambda:cnl
 
 ## Language Server (LSP)
 
+The repo includes a Node-based LSP server and a VS Code client.
+
+- Server entry: `dist/src/lsp/server.js` (run with `--stdio`)
+- VS Code client: see `editors/vscode/aster-vscode`
+
+Features
+- Hover: types/effects, interop previews, return types
+- Go to definition, find references, workspace symbols
+- Rename (open docs; dotted rename across workspace), persisted index for closed files
+- Diagnostics: pull (`textDocument/diagnostic`), optional workspace diagnostics
+- Formatting: lossless and normalize modes, range/document
+- Quick fixes: numeric overload disambiguation, capability header edits (It performs IO/CPU), capability manifest updates, missing module header, punctuation fixes
+
+Settings (VS Code → Aster Language Server)
+- `asterLanguageServer.index.persist` (default true)
+- `asterLanguageServer.index.path` (optional override)
+- `asterLanguageServer.format.mode` (default `lossless`)
+- `asterLanguageServer.format.reflow` (default true)
+- `asterLanguageServer.rename.scope` (default `workspace`)
+- `asterLanguageServer.diagnostics.workspace` (default true)
+
+Tutorials and guides
+- LSP Quick Fix Tutorial: docs/guide/lsp-tutorial.md
+- LSP Code Actions overview: docs/guide/lsp-code-actions.md
+
 ## Truffle Runner
 
 - Use the unified CLI to run Core IR on the Truffle interpreter.

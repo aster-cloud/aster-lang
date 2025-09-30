@@ -29,9 +29,16 @@ printing modes.
   // Choose formatter mode (lossless preserves trivia; normalize is strict)
   "asterLanguageServer.format.mode": "lossless", // or "normalize"
   // Apply minimal seam fixes in lossless mode
-  "asterLanguageServer.format.reflow": true
+"asterLanguageServer.format.reflow": true
 }
 ```
+
+Additional LSP settings:
+
+- `asterLanguageServer.index.persist` (default: true) — persist a workspace index to `.asteri/lsp-index.json`.
+- `asterLanguageServer.index.path` (optional) — override index path.
+- `asterLanguageServer.rename.scope` (default: `workspace`) — limit rename to `open` or allow `workspace`.
+- `asterLanguageServer.diagnostics.workspace` (default: true) — enable workspace diagnostics across indexed files.
 
 ### Commands Provided by the Server
 
@@ -124,6 +131,16 @@ The response has the form:
   "index": { "files": 42, "modules": 39 }
 }
 ```
+
+## LSP Code Actions (Quick Fixes)
+
+The language server offers several helpful Quick Fixes:
+
+- Disambiguate numeric overloads: converts `1`/`2` to `1L`/`2.0` as needed in a selection.
+- Insert capability headers: add or remove “It performs IO/CPU” on `To …` lines based on diagnostics.
+- Update capability manifest: write allow‑list entries (`io`/`cpu`) for a function or module.
+- Add missing module header: inserts `This module is <name>.` inferred from the file path.
+- Add missing punctuation: inserts `:` or `.` at end of line when required by syntax.
 
 ## Examples & CI
 
