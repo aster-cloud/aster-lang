@@ -4,7 +4,7 @@
 
 # Interface: Await
 
-Defined in: [types.ts:205](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L205)
+Defined in: [types.ts:205](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L205)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:205](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` `optional` **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L62)
+Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L62)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/66724e
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L63)
+Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L63)
 
 #### Inherited from
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/66724e
 
 > `readonly` **kind**: `"Await"`
 
-Defined in: [types.ts:206](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L206)
+Defined in: [types.ts:206](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L206)
 
 #### Overrides
 
@@ -52,4 +52,4 @@ Defined in: [types.ts:206](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:207](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L207)
+Defined in: [types.ts:207](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L207)

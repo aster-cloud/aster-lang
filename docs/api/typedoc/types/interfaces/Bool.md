@@ -4,7 +4,7 @@
 
 # Interface: Bool
 
-Defined in: [types.ts:215](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L215)
+Defined in: [types.ts:215](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L215)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:215](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` `optional` **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L62)
+Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L62)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/66724e
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L63)
+Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L63)
 
 #### Inherited from
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/66724e
 
 > `readonly` **kind**: `"Bool"`
 
-Defined in: [types.ts:216](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L216)
+Defined in: [types.ts:216](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L216)
 
 #### Overrides
 
@@ -52,4 +52,4 @@ Defined in: [types.ts:216](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **value**: `boolean`
 
-Defined in: [types.ts:217](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L217)
+Defined in: [types.ts:217](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L217)

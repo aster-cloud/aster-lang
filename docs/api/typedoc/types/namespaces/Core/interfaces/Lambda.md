@@ -4,7 +4,7 @@
 
 # Interface: Lambda
 
-Defined in: [types.ts:524](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L524)
+Defined in: [types.ts:524](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L524)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:524](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **kind**: `"Lambda"`
 
-Defined in: [types.ts:525](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L525)
+Defined in: [types.ts:525](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L525)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:525](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **params**: readonly [`Parameter`](Parameter.md)[]
 
-Defined in: [types.ts:526](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L526)
+Defined in: [types.ts:526](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L526)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [types.ts:526](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **ret**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:527](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L527)
+Defined in: [types.ts:527](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L527)
 
 ***
 
@@ -56,7 +56,7 @@ Defined in: [types.ts:527](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **body**: [`Block`](Block.md)
 
-Defined in: [types.ts:528](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L528)
+Defined in: [types.ts:528](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L528)
 
 ***
 
@@ -64,4 +64,4 @@ Defined in: [types.ts:528](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` `optional` **captures**: readonly `string`[]
 
-Defined in: [types.ts:529](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L529)
+Defined in: [types.ts:529](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L529)

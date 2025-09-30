@@ -39,6 +39,9 @@ Additional LSP settings:
 - `asterLanguageServer.index.path` (optional) — override index path.
 - `asterLanguageServer.rename.scope` (default: `workspace`) — limit rename to `open` or allow `workspace`.
 - `asterLanguageServer.diagnostics.workspace` (default: true) — enable workspace diagnostics across indexed files.
+- `asterLanguageServer.streaming.referencesChunk` (default: 200) — chunk size for streaming references; smaller values increase the frequency of progress updates.
+- `asterLanguageServer.streaming.renameChunk` (default: 200) — chunk size for rename progress updates during large workspace scans.
+- `asterLanguageServer.streaming.logChunks` (default: false) — always log chunk sizes to the LSP output (window/logMessage) to aid debugging/smoke tests.
 
 ### Commands Provided by the Server
 

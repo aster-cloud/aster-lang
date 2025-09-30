@@ -4,7 +4,7 @@
 
 # Interface: FuncType
 
-Defined in: [types.ts:608](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L608)
+Defined in: [types.ts:608](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L608)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:608](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L341)
+Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L341)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **kind**: `"FuncType"`
 
-Defined in: [types.ts:609](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L609)
+Defined in: [types.ts:609](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L609)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:609](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **params**: readonly [`Type`](../type-aliases/Type.md)[]
 
-Defined in: [types.ts:610](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L610)
+Defined in: [types.ts:610](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L610)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [types.ts:610](https://github.com/wontlost-ltd/aster-lang/blob/66724
 
 > `readonly` **ret**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:611](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L611)
+Defined in: [types.ts:611](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L611)

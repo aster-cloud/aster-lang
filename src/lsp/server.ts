@@ -263,10 +263,11 @@ interface AsterSettings {
   index?: { persist?: boolean; path?: string };
   rename?: { scope?: 'open' | 'workspace' };
   diagnostics?: { workspace?: boolean };
+  streaming?: { referencesChunk?: number; renameChunk?: number; logChunks?: boolean };
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
-const defaultSettings: AsterSettings = { maxNumberOfProblems: 1000, format: { mode: 'lossless', reflow: true }, index: { persist: true }, rename: { scope: 'workspace' }, diagnostics: { workspace: true } };
+const defaultSettings: AsterSettings = { maxNumberOfProblems: 1000, format: { mode: 'lossless', reflow: true }, index: { persist: true }, rename: { scope: 'workspace' }, diagnostics: { workspace: true }, streaming: { referencesChunk: 200, renameChunk: 200, logChunks: false } };
 let globalSettings: AsterSettings = defaultSettings;
 
 // Cache the settings of all open documents
@@ -536,6 +537,8 @@ connection.onReferences(async (params: ReferenceParams, token?: any) => {
   const total = indexByUri.size;
   // Progress: begin
   beginProgress((params as any).workDoneToken, 'Aster references');
+  const CHUNK = Math.max(10, settings.streaming?.referencesChunk ?? 200);
+  let batch: Location[] = [];
   for (const rec of indexByUri.values()) {
     if (scope === 'open' && !openUris.has(rec.uri)) continue;
     if (token?.isCancellationRequested) break;
@@ -543,7 +546,18 @@ connection.onReferences(async (params: ReferenceParams, token?: any) => {
       const fsPath = uriToFsPath(rec.uri) || rec.uri;
       const t = fs.readFileSync(fsPath, 'utf8');
       const positions = findTokenPositionsSafe(t, word);
-      for (const p of positions) out.push({ uri: ensureUri(rec.uri), range: { start: offsetToPos(t, p.start), end: offsetToPos(t, p.end) } });
+      for (const p of positions) {
+        const loc = { uri: ensureUri(rec.uri), range: { start: offsetToPos(t, p.start), end: offsetToPos(t, p.end) } } as Location;
+        out.push(loc);
+        batch.push(loc);
+        if (batch.length >= CHUNK) {
+          // Stream a chunk via progress (best-effort)
+          try { (connection as any).sendProgress({ method: '$/progress' }, (params as any).partialResultToken, { kind: 'report', message: `references: +${batch.length}`, items: batch }); } catch {}
+          reportProgress((params as any).workDoneToken, `references: +${batch.length}`);
+          try { if (settings.streaming?.logChunks) connection.console.log(`references chunk: +${batch.length}`); } catch {}
+          batch = [];
+        }
+      }
     } catch {
       continue;
     }
@@ -551,6 +565,11 @@ connection.onReferences(async (params: ReferenceParams, token?: any) => {
     if (processed % 50 === 0) reportProgress((params as any).workDoneToken, `${processed}/${total}`);
   }
   // Progress: end
+  if (batch.length > 0) {
+    try { (connection as any).sendProgress({ method: '$/progress' }, (params as any).partialResultToken, { kind: 'report', message: `references: +${batch.length}`, items: batch }); } catch {}
+    reportProgress((params as any).workDoneToken, `references: +${batch.length}`);
+    try { if (settings.streaming?.logChunks) connection.console.log(`references chunk: +${batch.length}`); } catch {}
+  }
   endProgress((params as any).workDoneToken);
   return out;
 });
@@ -569,6 +588,8 @@ connection.onRenameRequest(async (params: RenameParams, token?: any): Promise<Wo
   let processed = 0;
   const total = indexByUri.size;
   beginProgress((params as any).workDoneToken, 'Aster rename');
+  const CHUNK = Math.max(10, settings.streaming?.renameChunk ?? 200);
+  let editsInChunk = 0;
   for (const rec of indexByUri.values()) {
     if (scope === 'open' && !openUris.has(rec.uri)) continue;
     if (token?.isCancellationRequested) break;
@@ -580,6 +601,11 @@ connection.onRenameRequest(async (params: RenameParams, token?: any): Promise<Wo
       if (positions.length === 0) continue;
       const edits: TextEdit[] = positions.map(p => ({ range: { start: offsetToPos(t, p.start), end: offsetToPos(t, p.end) }, newText: params.newName }));
       changes[uri] = (changes[uri] || []).concat(edits);
+      editsInChunk += edits.length;
+      if (editsInChunk >= CHUNK) {
+        reportProgress((params as any).workDoneToken, `rename: +${editsInChunk}`);
+        editsInChunk = 0;
+      }
     } catch {
       continue;
     }

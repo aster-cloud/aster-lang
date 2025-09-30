@@ -82,12 +82,15 @@ LSP & Formatter
       - [x] Config: `asterLanguageServer.index.persist` (default true), location override `asterLanguageServer.index.path`.
       - [x] Tests: build small fixture workspace, index load/save round-trip, symbol lookup without opening files (`test:lsp-index`).
       - [x] Health: custom request `aster/health` and CLI `npm run lsp:health` to inspect watcher capability and index size.
-    - [ ] Broader cross-file rename/refs across the repo (scan-once with index), not limited to open documents.
+    - [x] Broader cross-file rename/refs across the repo (scan-once with index), not limited to open documents.
       - [x] Add workspace-wide reference finder using persisted index for candidate URIs + on-demand token scan to refine matches.
       - [x] Rename: build WorkspaceEdit across all candidate files, verify spans with token boundaries to avoid substring collisions.
-      - [ ] Streaming edits: chunk large workspaces, display progress (window/logMessage) and allow cancel.
+    - [x] Streaming edits: chunk large workspaces, display progress (window/logMessage) and allow cancel.
+      - [x] References: stream partial result chunks via $/progress; configurable chunk size (`asterLanguageServer.streaming.referencesChunk`).
+      - [x] Rename: chunk processing with frequent progress reports; configurable chunk size (`asterLanguageServer.streaming.renameChunk`).
+      - [x] Cancellation honored during long loops for both.
         - [x] Progress/cancel
-        - [ ] Chunking large workspaces
+        - [x] Chunking large workspaces
       - [x] Config: `asterLanguageServer.rename.scope: 'open' | 'workspace'` (default 'workspace').
     - [x] Tests: multi-file examples; ensure edits are correct and stable.
       - [x] Added fixture under `test/lsp-multi/` and a deterministic cross-file rename test `scripts/lsp-multi-rename.test.ts`.

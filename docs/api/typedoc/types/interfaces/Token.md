@@ -4,7 +4,7 @@
 
 # Interface: Token
 
-Defined in: [types.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L20)
+Defined in: [types.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L20)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/66724e
 
 > `readonly` **kind**: [`TokenKind`](../enumerations/TokenKind.md)
 
-Defined in: [types.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L21)
+Defined in: [types.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L21)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/66724e
 
 > `readonly` **value**: `null` \| `string` \| `number` \| `boolean`
 
-Defined in: [types.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L22)
+Defined in: [types.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L22)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/66724e
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L23)
+Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L23)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/66724e
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/66724e177e514a93a652c8a99bf7c7530d833203/src/types.ts#L24)
+Defined in: [types.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/b07ed78be1381eb6c373a347f3c926ae125b2eb8/src/types.ts#L24)
