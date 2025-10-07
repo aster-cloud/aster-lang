@@ -1,0 +1,30 @@
+{
+  "kind": "Module",
+  "name": "demo.capcaps.bare",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "ping",
+      "params": [],
+      "ret": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
+      "effects": [
+        "IO"
+      ],
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "String",
+              "value": "ok"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

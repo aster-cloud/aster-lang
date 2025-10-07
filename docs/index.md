@@ -22,7 +22,7 @@ Aster is a programming language designed with a human-friendly Controlled Natura
 - Human-feeling syntax with deterministic semantics
 - Non-null by default, Maybe/Option distinction
 - First-class pattern matching and algebraic data types
-- Effect system (IO/CPU) from day one
+- Effect system (IO/CPU) enforced at compile-time
 
 ```text
 To greet user: maybe User, produce Text:

@@ -1,0 +1,7 @@
+This module is test.pii.mixed.
+To get_user_info, produce Result of @pii(L2, email) Text and Text:
+  Let email be "user@example.com".
+  Return Ok(email).
+
+To get_optional_phone, produce @pii(L3, phone) Text?:
+  Return Some("+1-555-0100").

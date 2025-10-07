@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type {Core} from '../types.js';
+// Note: 代码生成包含具体副作用与输出顺序，此处暂不引入访问器改造，保持原有手写遍历以确保行为稳定。
 
 function ensureDir(p: string): void {
   fs.mkdirSync(p, { recursive: true });
@@ -100,95 +101,78 @@ function emitExpr(e: Core.Expression, helpers: EmitHelpers): string {
       if (e.target.kind === 'Name' && e.target.name === 'not' && e.args.length === 1) {
         return `!(${emitExpr(e.args[0]!, helpers)})`;
       }
-      // JVM interop shims (MVP): recognize a few stdlib-style names
       if (e.target.kind === 'Name') {
         const nm = e.target.name;
-        // Text.concat(a,b) -> a + b
         if (nm === 'Text.concat' && e.args.length === 2) {
           const a = emitExpr(e.args[0]!, helpers);
           const b = emitExpr(e.args[1]!, helpers);
           return `(${a} + ${b})`;
         }
-        // Text.contains(h, n) -> h.contains(n)
         if (nm === 'Text.contains' && e.args.length === 2) {
           const h = emitExpr(e.args[0]!, helpers);
           const n = emitExpr(e.args[1]!, helpers);
           return `${h}.contains(${n})`;
         }
-        // Text.equals(a, b) -> Objects.equals(a, b)
         if (nm === 'Text.equals' && e.args.length === 2) {
           const a = emitExpr(e.args[0]!, helpers);
           const b = emitExpr(e.args[1]!, helpers);
           return `java.util.Objects.equals(${a}, ${b})`;
         }
-        // Text.replace(h, t, r) -> h.replace(t, r)
         if (nm === 'Text.replace' && e.args.length === 3) {
           const h = emitExpr(e.args[0]!, helpers);
           const t = emitExpr(e.args[1]!, helpers);
           const r = emitExpr(e.args[2]!, helpers);
           return `${h}.replace(${t}, ${r})`;
         }
-        // Text.split(h, sep) -> Arrays.asList(h.split(sep))
         if (nm === 'Text.split' && e.args.length === 2) {
           const h = emitExpr(e.args[0]!, helpers);
           const s = emitExpr(e.args[1]!, helpers);
           return `java.util.Arrays.asList(${h}.split(${s}))`;
         }
-        // Text.indexOf(h, n) -> h.indexOf(n)
         if (nm === 'Text.indexOf' && e.args.length === 2) {
           const h = emitExpr(e.args[0]!, helpers);
           const n = emitExpr(e.args[1]!, helpers);
           return `${h}.indexOf(${n})`;
         }
-        // Text.startsWith(h, p) -> h.startsWith(p)
         if (nm === 'Text.startsWith' && e.args.length === 2) {
           const h = emitExpr(e.args[0]!, helpers);
           const p = emitExpr(e.args[1]!, helpers);
           return `${h}.startsWith(${p})`;
         }
-        // Text.endsWith(h, s) -> h.endsWith(s)
         if (nm === 'Text.endsWith' && e.args.length === 2) {
           const h = emitExpr(e.args[0]!, helpers);
           const s = emitExpr(e.args[1]!, helpers);
           return `${h}.endsWith(${s})`;
         }
-        // Text.toUpper(h) -> h.toUpperCase()
         if (nm === 'Text.toUpper' && e.args.length === 1) {
           const h = emitExpr(e.args[0]!, helpers);
           return `${h}.toUpperCase()`;
         }
-        // Text.toLower(h) -> h.toLowerCase()
         if (nm === 'Text.toLower' && e.args.length === 1) {
           const h = emitExpr(e.args[0]!, helpers);
           return `${h}.toLowerCase()`;
         }
-        // Text.length(h) -> h.length()
         if (nm === 'Text.length' && e.args.length === 1) {
           const h = emitExpr(e.args[0]!, helpers);
           return `${h}.length()`;
         }
-        // List.length(xs) -> xs.size()
         if (nm === 'List.length' && e.args.length === 1) {
           const xs = emitExpr(e.args[0]!, helpers);
           return `${xs}.size()`;
         }
-        // List.get(xs, i) -> xs.get(i)
         if (nm === 'List.get' && e.args.length === 2) {
           const xs = emitExpr(e.args[0]!, helpers);
           const i = emitExpr(e.args[1]!, helpers);
           return `${xs}.get(${i})`;
         }
-        // List.isEmpty(xs) -> xs.isEmpty()
         if (nm === 'List.isEmpty' && e.args.length === 1) {
           const xs = emitExpr(e.args[0]!, helpers);
           return `${xs}.isEmpty()`;
         }
-        // List.head(xs) -> xs.isEmpty()? null : xs.get(0)
         if (nm === 'List.head' && e.args.length === 1) {
           const xs = emitExpr(e.args[0]!, helpers);
           return `(${xs}.isEmpty() ? null : ${xs}.get(0))`;
         }
-        // Map.get(m, k) -> m.get(k)
         if (nm === 'Map.get' && e.args.length === 2) {
           const m = emitExpr(e.args[0]!, helpers);
           const k = emitExpr(e.args[1]!, helpers);
@@ -209,6 +193,7 @@ interface EmitHelpers {
   enumVariantToEnum: Map<string, string>;
 }
 
+// 保持原始代码生成逻辑：不使用访问器以免影响输出行为
 function emitStatement(
   s: Core.Statement,
   locals: string[],
@@ -231,22 +216,10 @@ function emitStatement(
       return `${indent}if (${cond}) {\n${thenB}${indent}}${elseB}`;
     }
     case 'Match': {
-      // Try optimized enum switch when all cases are enum variants from the same enum
-      const allPatName = s.cases.every(c => c.pattern.kind === 'PatName');
-      const allPatInt = s.cases.every(c => c.pattern.kind === 'PatInt');
-      if (allPatName && s.cases.length > 0) {
-        const enums = new Set<string>();
-        for (const c of s.cases) {
-          const variant = (c.pattern as Core.PatName).name;
-          const en = helpers.enumVariantToEnum.get(variant);
-          if (!en) {
-            enums.clear();
-            break;
-          }
-          enums.add(en);
-        }
-        if (enums.size === 1) {
-          const enName = [...enums][0]!;
+      // 尝试优化为 enum switch 或 int switch（只读分析）
+      const enName = analyzeMatchForEnumSwitch(s, helpers);
+      const allPatInt = analyzeMatchForIntSwitch(s);
+      if (enName) {
           const scrut = emitExpr(s.expr, helpers);
           const lines: string[] = [];
           lines.push(`${indent}{`);
@@ -263,7 +236,6 @@ function emitStatement(
           lines.push(`${indent}  }`);
           lines.push(`${indent}}\n`);
           return lines.join('\n');
-        }
       }
       // Integers: emit a simple switch (string-emitter only)
       if (allPatInt && s.cases.length > 0) {
@@ -319,8 +291,8 @@ function emitStatement(
     case 'Wait':
       // Async not handled in MVP
       return `${indent}// async not implemented in MVP\n`;
+    }
   }
-}
 
 function emitCaseBody(
   b: Core.Return | Core.Block,
@@ -331,6 +303,7 @@ function emitCaseBody(
   if (b.kind === 'Return') return `${indent}return ${emitExpr(b.expr, helpers)};\n`;
   return emitBlock(b, locals, helpers, indent);
 }
+ 
 
 function emitBlock(b: Core.Block, locals: string[], helpers: EmitHelpers, indent = '    '): string {
   return b.statements.map(s => emitStatement(s, locals, helpers, indent)).join('');
@@ -350,6 +323,25 @@ function fieldNameByIndex(typeName: string, helpers: EmitHelpers, idx: number): 
   if (!d) return fieldByIndexName(idx);
   if (idx < 0 || idx >= d.fields.length) return fieldByIndexName(idx);
   return d.fields[idx]!.name;
+}
+
+// 只读分析：是否可用 enum switch 优化（全部 PatName 且来自同一个 Enum）
+function analyzeMatchForEnumSwitch(s: Core.Match, helpers: EmitHelpers): string | null {
+  if (s.cases.length === 0) return null;
+  if (!s.cases.every(c => c.pattern.kind === 'PatName')) return null;
+  const enums = new Set<string>();
+  for (const c of s.cases) {
+    const variant = (c.pattern as Core.PatName).name;
+    const en = helpers.enumVariantToEnum.get(variant);
+    if (!en) return null;
+    enums.add(en);
+  }
+  return enums.size === 1 ? [...enums][0]! : null;
+}
+
+// 只读分析：是否全部是整数模式
+function analyzeMatchForIntSwitch(s: Core.Match): boolean {
+  return s.cases.length > 0 && s.cases.every(c => c.pattern.kind === 'PatInt');
 }
 
 function emitNestedPatBinds(

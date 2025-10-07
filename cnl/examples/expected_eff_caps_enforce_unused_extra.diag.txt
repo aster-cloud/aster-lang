@@ -1,0 +1,2 @@
+INFO: Function 'onlyHttp' declares IO capability 'Sql' but it is not used.
+

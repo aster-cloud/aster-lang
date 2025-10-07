@@ -69,6 +69,7 @@ export const Node = {
     retType,
     body,
   }),
+  Await: (expr: AST.Expression): AST.Await => ({ kind: 'Await', expr }),
 
   // Types
   TypeName: (name: string): AST.TypeName => ({ kind: 'TypeName', name }),
@@ -83,6 +84,16 @@ export const Node = {
     args,
   }),
   TypeVar: (name: string): AST.TypeVar => ({ kind: 'TypeVar', name }),
+  TypePii: (
+    baseType: AST.Type,
+    sensitivity: AST.PiiSensitivityLevel,
+    category: AST.PiiDataCategory
+  ): AST.TypePii => ({
+    kind: 'TypePii',
+    baseType,
+    sensitivity,
+    category,
+  }),
 
   PatternNull: (): AST.PatternNull => ({ kind: 'PatternNull' }),
   PatternCtor: (

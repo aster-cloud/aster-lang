@@ -1,0 +1,3 @@
+This module is demo.capcaps.enforce_missing_ai.
+To bad, produce Text. It performs io [Http]:
+  Return Ai.predict("hello").

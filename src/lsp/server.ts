@@ -38,9 +38,16 @@ import {
   type InlayHint,
   InlayHintKind,
   type InlayHintParams,
+  type SignatureHelp,
+  type SignatureHelpParams,
+  type SignatureInformation,
+  type ParameterInformation,
   SymbolKind,
   type DocumentSymbol,
   type DocumentSymbolParams,
+  type DocumentHighlight,
+  type DocumentHighlightParams,
+  DocumentHighlightKind,
 } from 'vscode-languageserver/node.js';
 
 import { typecheckModule, typecheckModuleWithCapabilities, type TypecheckDiagnostic } from '../typecheck.js';
@@ -177,6 +184,11 @@ connection.onInitialize((params: InitializeParams) => {
         codeActionKinds: [CodeActionKind.QuickFix],
       },
       hoverProvider: true,
+      documentHighlightProvider: true,
+      signatureHelpProvider: {
+        triggerCharacters: ['(', ','],
+        retriggerCharacters: [',', ')'],
+      },
       documentSymbolProvider: true,
       semanticTokensProvider: {
         legend: SEM_LEGEND,
@@ -187,6 +199,11 @@ connection.onInitialize((params: InitializeParams) => {
       documentFormattingProvider: true,
       documentRangeFormattingProvider: true,
       inlayHintProvider: true,
+      // Provider 能力声明（对应已实现的功能）
+      definitionProvider: true,
+      referencesProvider: true,
+      renameProvider: { prepareProvider: true },
+      documentLinkProvider: { resolveProvider: false },
     },
   };
   if (hasWorkspaceFolderCapability) {
@@ -1147,6 +1164,40 @@ connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
   return item;
 });
 
+// 签名提示：根据调用位置返回函数参数信息
+connection.onRequest('textDocument/signatureHelp', async (params: SignatureHelpParams): Promise<SignatureHelp | null> => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return null;
+  const entry = getOrParse(doc);
+  const { tokens: toks, ast } = entry;
+  let moduleAst: AstModule;
+  try {
+    moduleAst = (ast as AstModule) || (parse(toks) as AstModule);
+  } catch {
+    return null;
+  }
+  const callInfo = findCallInfoAt(toks as any[], params.position);
+  if (!callInfo) return null;
+
+  let callee: AstFunc | null = null;
+  if (!callInfo.name.includes('.')) {
+    callee = findFuncDeclByName(moduleAst, callInfo.name);
+  }
+  if (!callee) return null;
+
+  const signature = buildSignatureInformation(callee);
+  const signatures: SignatureInformation[] = [signature];
+  let activeParameter = callInfo.activeParameter;
+  if (signature.parameters && signature.parameters.length > 0) {
+    const limit = signature.parameters.length - 1;
+    activeParameter = Math.min(Math.max(activeParameter, 0), limit);
+  } else {
+    activeParameter = 0;
+  }
+
+  return { signatures, activeSignature: 0, activeParameter };
+});
+
 connection.onHover(async params => {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return null;
@@ -1326,6 +1377,44 @@ connection.onDocumentSymbol((params: DocumentSymbolParams) => {
   }
 });
 
+connection.onDocumentHighlight((params: DocumentHighlightParams) => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return null;
+  const entry = getOrParse(doc);
+  const name = tokenNameAt(entry.tokens as any[], params.position);
+  if (!name) return [];
+
+  const highlights: DocumentHighlight[] = [];
+  const pushSpan = (sp: Span | undefined): void => {
+    if (!sp) return;
+    highlights.push({
+      range: {
+        start: { line: Math.max(0, sp.start.line - 1), character: Math.max(0, sp.start.col - 1) },
+        end: { line: Math.max(0, sp.end.line - 1), character: Math.max(0, sp.end.col - 1) },
+      },
+      kind: DocumentHighlightKind.Text,
+    });
+  };
+
+  const spans = entry.idIndex?.get(name);
+  if (spans && spans.length > 0) {
+    for (const sp of spans) pushSpan(sp);
+  } else {
+    for (const t of entry.tokens as any[]) {
+      if (!t || !t.start || !t.end) continue;
+      if (!(t.kind === 'IDENT' || t.kind === 'TYPE_IDENT')) continue;
+      const value = String(t.value || '');
+      if (value !== name) continue;
+      pushSpan({
+        start: { line: t.start.line, col: t.start.col } as any,
+        end: { line: t.end.line, col: t.end.col } as any,
+      });
+    }
+  }
+
+  return highlights;
+});
+
 function spanOrDoc(span: Span | undefined, doc: TextDocument): Range {
   if (span) {
     return {
@@ -1402,6 +1491,111 @@ function tokenNameAt(tokens: readonly any[], pos: { line: number; character: num
     }
   }
   return null;
+}
+
+function buildSignatureInformation(f: AstFunc): SignatureInformation {
+  const paramLabels = f.params.map(p => `${p.name}: ${typeText(p.type)}`);
+  const info: SignatureInformation = {
+    label: `${f.name}(${paramLabels.join(', ')}) -> ${typeText(f.retType)}`,
+    parameters: paramLabels.map(label => ({ label }) as ParameterInformation),
+  };
+  const effects = (f.effects as string[] | undefined) ?? [];
+  if (effects.length > 0) {
+    info.documentation = `效果：${effects.join(', ')}`;
+  }
+  return info;
+}
+
+function findFuncDeclByName(m: AstModule, name: string): AstFunc | null {
+  for (const d of m.decls as AstDecl[]) {
+    if (d.kind === 'Func' && (d as AstFunc).name === name) {
+      return d as AstFunc;
+    }
+  }
+  return null;
+}
+
+function findCallInfoAt(
+  tokens: readonly any[],
+  pos: { line: number; character: number }
+): { name: string; activeParameter: number } | null {
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (!t || !t.start) continue;
+    if (!(t.kind === TokenKind.IDENT || t.kind === TokenKind.TYPE_IDENT)) continue;
+    let j = i;
+    const parts: string[] = [String(t.value ?? '')];
+    while (
+      tokens[j + 1]?.kind === TokenKind.DOT &&
+      (tokens[j + 2]?.kind === TokenKind.IDENT || tokens[j + 2]?.kind === TokenKind.TYPE_IDENT)
+    ) {
+      parts.push(String(tokens[j + 2].value ?? ''));
+      j += 2;
+    }
+    const lp = tokens[j + 1];
+    if (!lp || lp.kind !== TokenKind.LPAREN) continue;
+    let depth = 1;
+    let k = j + 2;
+    while (k < tokens.length && depth > 0) {
+      const tk = tokens[k];
+      if (tk.kind === TokenKind.LPAREN) depth++;
+      else if (tk.kind === TokenKind.RPAREN) depth--;
+      k++;
+    }
+    if (depth !== 0) continue;
+    const rp = tokens[k - 1];
+    if (!rp) continue;
+    if (comparePositionToCoord(pos, { line: lp.start.line, col: lp.start.col }) < 0) {
+      i = k - 1;
+      continue;
+    }
+    if (comparePositionToCoord(pos, { line: rp.end.line, col: rp.end.col }) > 0) {
+      i = k - 1;
+      continue;
+    }
+    let activeParameter = 0;
+    let commaCount = 0;
+    let hasArgToken = false;
+    let innerDepth = 0;
+    for (let idx = j + 2; idx < k - 1; idx++) {
+      const tk = tokens[idx];
+      if (!tk) continue;
+      if (tk.kind === TokenKind.LPAREN) {
+        innerDepth++;
+      } else if (tk.kind === TokenKind.RPAREN) {
+        if (innerDepth > 0) innerDepth--;
+      } else if (innerDepth === 0 && tk.kind === TokenKind.COMMA) {
+        const cmp = comparePositionToCoord(pos, { line: tk.start.line, col: tk.start.col });
+        if (cmp > 0) activeParameter++;
+        else if (cmp === 0) {
+          activeParameter++;
+          break;
+        } else {
+          break;
+        }
+        commaCount++;
+      } else if (innerDepth === 0) {
+        if (!(tk.kind === TokenKind.NEWLINE || tk.kind === TokenKind.INDENT || tk.kind === TokenKind.DEDENT)) {
+          hasArgToken = true;
+        }
+      }
+    }
+    const totalParams = commaCount + (hasArgToken ? 1 : 0);
+    if (totalParams === 0) activeParameter = 0;
+    else activeParameter = Math.min(activeParameter, Math.max(0, totalParams - 1));
+    return { name: parts.join('.'), activeParameter };
+  }
+  return null;
+}
+
+function comparePositionToCoord(pos: { line: number; character: number }, coord: { line: number; col: number }): number {
+  const line = pos.line + 1;
+  const col = pos.character + 1;
+  if (line < coord.line) return -1;
+  if (line > coord.line) return 1;
+  if (col < coord.col) return -1;
+  if (col > coord.col) return 1;
+  return 0;
 }
 
 // No doc comment extraction in hover; kept minimal

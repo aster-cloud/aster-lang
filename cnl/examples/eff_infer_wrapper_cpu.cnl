@@ -1,0 +1,6 @@
+This module is demo.eff_infer_wrapper_cpu.
+To helperWithCPU with text: Text, produce Text. It performs cpu:
+  Return Cpu.hash(text).
+
+To wrapperWithCPU with input: Text, produce Text. It performs cpu:
+  Return helperWithCPU(input).

@@ -1,5 +1,4 @@
 This module is app.math.
-
 To cmp with x: Int, y: Int, produce Bool:
   Return <(x, y).
 

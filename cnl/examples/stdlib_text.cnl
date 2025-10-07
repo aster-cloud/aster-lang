@@ -1,5 +1,4 @@
 This module is std.text.
-
 To concat with left: Text, right: Text, produce Text:
   Return Text.concat(left, right).
 

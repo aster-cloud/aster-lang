@@ -1,0 +1,3 @@
+ERROR: Function 'bad_func' uses IO capability 'Secrets' but header declares [Http].
+ERROR: Function 'bad_func' uses IO capability 'Sql' but header declares [Http].
+ERROR: Function 'bad_func' uses IO capability 'Time' but header declares [Http].

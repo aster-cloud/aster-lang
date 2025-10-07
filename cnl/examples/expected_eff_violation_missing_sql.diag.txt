@@ -1,0 +1,2 @@
+ERROR: Function 'query_user' uses IO capability 'Sql' but header declares [Http].
+INFO: Function 'query_user' declares IO capability 'Http' but it is not used.

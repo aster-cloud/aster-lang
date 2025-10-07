@@ -3,7 +3,6 @@
 [![CI](https://github.com/wontlost-ltd/aster-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/ci.yml)
 [![Docs](https://github.com/wontlost-ltd/aster-lang/actions/workflows/docs.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/docs.yml)
 [![Release Flow](https://github.com/wontlost-ltd/aster-lang/actions/workflows/release.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/release.yml)
-[![GitHub Releases](https://github.com/wontlost-ltd/aster-lang/actions/workflows/github-release.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/github-release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/wontlost-ltd/aster-lang?display_name=tag)](https://github.com/wontlost-ltd/aster-lang/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/wontlost-ltd/aster-lang?style=social)](https://github.com/wontlost-ltd/aster-lang)
 [![Node >= 22](https://img.shields.io/badge/node-%3E%3D22.0.0-339933?logo=node.js)](#installation--requirements)
@@ -20,7 +19,7 @@ Aster is a pragmatic, safe, and fast programming language with a human‑readabl
 ## Highlights
 
 - Human‑readable CNL with deterministic semantics
-- Algebraic data types, pattern matching, effect annotations (IO/CPU)
+- Algebraic data types, pattern matching, effect annotations (IO/CPU) enforced at compile-time
 - Non‑null by default; explicit Maybe/Option and Result
 - Clean pipeline: canonicalize → lex → parse → lower to Core IR → emit
 - JVM backends: Java source emission and direct bytecode via ASM
@@ -163,6 +162,8 @@ Features
 - Go to definition, find references, workspace symbols
 - Rename (open docs; dotted rename across workspace), persisted index for closed files
 - Diagnostics: pull (`textDocument/diagnostic`), optional workspace diagnostics
+- Diagnostics severity levels: errors (e.g., missing effects), warnings, and info (e.g., @io declared but only CPU-like work).
+
 - Formatting: lossless and normalize modes, range/document
 - Quick fixes: numeric overload disambiguation, capability header edits (It performs IO/CPU), capability manifest updates, missing module header, punctuation fixes
 

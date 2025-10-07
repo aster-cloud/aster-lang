@@ -117,13 +117,22 @@ export const Core = {
     args,
   }),
   TypeVar: (name: string): CoreTypes.TypeVar => ({ kind: 'TypeVar', name }),
+  Pii: (
+    baseType: CoreTypes.Type,
+    sensitivity: 'L1' | 'L2' | 'L3',
+    category: import('./types.js').PiiDataCategory
+  ): CoreTypes.PiiType => ({
+    kind: 'PiiType',
+    baseType,
+    sensitivity,
+    category,
+  }),
 
   // Patterns
   PatNull: (): CoreTypes.PatNull => ({ kind: 'PatNull' }),
-  Await: (expr: CoreTypes.Expression): CoreTypes.Expression => ({
-    kind: 'Call',
-    target: { kind: 'Name', name: 'await' } as CoreTypes.Name,
-    args: [expr],
+  Await: (expr: CoreTypes.Expression): CoreTypes.Await => ({
+    kind: 'Await',
+    expr,
   }),
   PatCtor: (
     typeName: string,

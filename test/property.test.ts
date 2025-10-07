@@ -51,11 +51,11 @@ const testLexerAlwaysEOF = (): void => {
 const testValidIdentifiers = (): void => {
   const validIdent = fc.string({ minLength: 1, maxLength: 20 })
     .filter(s => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(s));
-  
+
   fc.assert(
     fc.property(validIdent, (ident: string) => {
       const tokens = lex(ident);
-      return tokens.length >= 2 && 
+      return tokens.length >= 2 &&
              (tokens[0]?.kind === TokenKind.IDENT || tokens[0]?.kind === TokenKind.TYPE_IDENT) &&
              tokens[tokens.length - 1]?.kind === TokenKind.EOF;
     }),
@@ -71,7 +71,7 @@ const testValidIntegers = (): void => {
       fc.integer({ min: 0, max: 999999 }),
       (num: number) => {
         const tokens = lex(num.toString());
-        return tokens.length >= 2 && 
+        return tokens.length >= 2 &&
                tokens[0]?.kind === TokenKind.INT &&
                tokens[0]?.value === num &&
                tokens[tokens.length - 1]?.kind === TokenKind.EOF;
@@ -86,12 +86,12 @@ const testValidIntegers = (): void => {
 const testStringLiterals = (): void => {
   const validString = fc.string({ minLength: 0, maxLength: 30 })
     .filter(s => !s.includes('"') && !s.includes('\\'));
-  
+
   fc.assert(
     fc.property(validString, (str: string) => {
       const input = `"${str}"`;
       const tokens = lex(input);
-      return tokens.length >= 2 && 
+      return tokens.length >= 2 &&
              tokens[0]?.kind === TokenKind.STRING &&
              tokens[0]?.value === str &&
              tokens[tokens.length - 1]?.kind === TokenKind.EOF;
@@ -99,6 +99,82 @@ const testStringLiterals = (): void => {
     { numRuns: 50 }
   );
   console.log('✓ String literals lex correctly');
+};
+
+// Regression: Start/Wait 关键字应优先于“裸表达式报错”
+// 确保 'Start ... as async ... .', 'Wait for ... .' 解析为语句而非裸表达式
+const testStartWaitPrecedence = (): void => {
+  const src = [
+    'This module is demo.async.',
+    '',
+    'Define User with id: Text.',
+    'Define Dash with profile: Text, timeline: Text.',
+    'Define AuthErr as one of InvalidCreds, Locked.',
+    '',
+    'To fetchDashboard with u: User, produce Result of Dash and AuthErr. It performs io:',
+    '  Start profile as async ProfileSvc.load(u.id).',
+    '  Start timeline as async FeedSvc.timeline(u.id).',
+    '  Wait for profile and timeline.',
+    '  Return Ok(Dash(profile, timeline)).',
+    '',
+  ].join('\n');
+
+  const can = canonicalize(src);
+  const toks = lex(can);
+  let ast: any;
+  try {
+    ast = parse(toks);
+  } catch (e) {
+    throw new Error('Start/Wait should parse as statements without bare-expression error: ' + (e as Error).message);
+  }
+  if (!ast || ast.kind !== 'Module') throw new Error('Expected Module AST');
+  const fn = ast.decls.find((d: any) => d.kind === 'Func');
+  if (!fn) throw new Error('Expected function decl');
+  const stmts = fn.body?.statements ?? [];
+  const kinds = stmts.map((s: any) => s.kind);
+  const expectedSeq = ['Start', 'Start', 'Wait', 'Return'];
+  if (expectedSeq.some((k, i) => kinds[i] !== k)) {
+    throw new Error('Unexpected statement sequence: ' + kinds.join(','));
+  }
+  console.log('✓ Start/Wait precedence over bare-expression error');
+};
+
+// Regression: Wait 支持单名与多名（"a" / "a and b" / "a, b and c"）
+const testWaitSingleAndMultiple = (): void => {
+  const mkSrc = (waitLine: string) => [
+    'This module is demo.wait.',
+    '',
+    'Define User with id: Text.',
+    '',
+    'To f with u: User, produce Int. It performs io:',
+    '  Start taskA as async ProfileSvc.load(u.id).',
+    '  Start taskB as async ProfileSvc.load(u.id).',
+    '  Start taskC as async ProfileSvc.load(u.id).',
+    `  ${waitLine}`,
+    '  Return 1.',
+    '',
+  ].join('\n');
+
+  const cases: Array<{ line: string; expect: string[] }> = [
+    { line: 'Wait for taskA.', expect: ['taskA'] },
+    { line: 'Wait for taskA and taskB.', expect: ['taskA', 'taskB'] },
+    { line: 'Wait for taskA, taskB and taskC.', expect: ['taskA', 'taskB', 'taskC'] },
+  ];
+
+  for (const c of cases) {
+    const can = canonicalize(mkSrc(c.line));
+    const toks = lex(can);
+    const ast: any = parse(toks);
+    const fn = ast.decls.find((d: any) => d.kind === 'Func');
+    if (!fn) throw new Error('Expected function decl');
+    const waitStmt = fn.body.statements.find((s: any) => s.kind === 'Wait');
+    if (!waitStmt) throw new Error('Expected a Wait statement');
+    const names: string[] = waitStmt.names;
+    if (names.length !== c.expect.length || names.some((n, i) => n !== c.expect[i])) {
+      throw new Error(`Wait names mismatch. got=[${names.join(',')}], want=[${c.expect.join(',')}]`);
+    }
+  }
+  console.log('✓ Wait single and multiple names parse correctly');
 };
 
 // Property: Round-trip test for simple valid programs
@@ -116,7 +192,7 @@ const testRoundTrip = (): void => {
       const tokens = lex(can);
       const ast = parse(tokens);
       const core = lowerModule(ast);
-      
+
       // Basic sanity checks
       if (!ast || !core) {
         throw new Error(`Round-trip failed for: ${program}`);
@@ -159,19 +235,25 @@ const testParserErrorHandling = (): void => {
 
 function main(): void {
   console.log('Running property tests...\n');
-  
+
   try {
+    const dumpTokens = (toks: any[]) =>
+      toks
+        .map(t => `${t.value ?? 'null'}:${t.kind}@${t.start?.line}:${t.start?.col}`)
+        .join(' ');
     testCanonicalizerIdempotent();
     testLexerEmptyInput();
     testLexerAlwaysEOF();
     testValidIdentifiers();
     testValidIntegers();
     testStringLiterals();
+    testStartWaitPrecedence();
+    testWaitSingleAndMultiple();
     testRoundTrip();
     // Generics sanity check
     testGenericsBasic();
     testParserErrorHandling();
-    
+
     // LSP analysis small checks
     const src1 = 'This module is demo.x.\nTo f, produce Text:\n  Return Interop.sum(1, 2.0).\n';
     const toks1 = lex(canonicalize(src1));
@@ -179,9 +261,9 @@ function main(): void {
     if (diags1.length === 0) throw new Error('Expected ambiguous call diagnostic');
     const edits1 = computeDisambiguationEdits(toks1 as any, diags1[0]!.range as any);
     if (!edits1.some(e => e.newText.endsWith('.0'))) throw new Error('Expected a .0 edit');
-    // find dotted call range at the position of first IDENT
-    const firstTypeIdentIdx = toks1.findIndex(t => t.kind === TokenKind.TYPE_IDENT);
-    if (firstTypeIdentIdx < 0) throw new Error('No TYPE_IDENT token found');
+    // find dotted call range at the position of the callee qualifier (Interop)
+    const firstTypeIdentIdx = toks1.findIndex(t => (t.kind === TokenKind.TYPE_IDENT || t.kind === TokenKind.IDENT) && t.value === 'Interop');
+    if (firstTypeIdentIdx < 0) throw new Error('No Interop token found');
     const pos = { line: toks1[firstTypeIdentIdx]!.start.line - 1, character: toks1[firstTypeIdentIdx]!.start.col } as any;
     const rangeCall = findDottedCallRangeAt(toks1 as any, pos as any);
     if (!rangeCall) throw new Error('Expected to find dotted call range');
@@ -189,13 +271,15 @@ function main(): void {
     // Nested call: ensure inner and outer are detectable and descriptor preview aligns
     const src2 = 'This module is demo.x.\nTo g, produce Text:\n  Return Interop.sum(Interop.sum(1, 2.0), 3.0).\n';
     const toks2 = lex(canonicalize(src2));
-    // Outer call at TYPE_IDENT
-    const typeIdx2 = toks2.findIndex(t => t.kind === TokenKind.TYPE_IDENT);
+    // Outer call at TYPE_IDENT 'Interop'
+    const typeIdx2 = toks2.findIndex(t => (t.kind === TokenKind.TYPE_IDENT || t.kind === TokenKind.IDENT) && t.value === 'Interop');
+    if (typeIdx2 < 0) throw new Error('No Interop token (outer) found. toks=' + dumpTokens(toks2 as any));
     const posOuter = { line: toks2[typeIdx2]!.start.line - 1, character: toks2[typeIdx2]!.start.col } as any;
     const rangeOuter = findDottedCallRangeAt(toks2 as any, posOuter);
     if (!rangeOuter) throw new Error('Expected outer call range');
-    // Inner call at second TYPE_IDENT
-    const typeIdx3 = toks2.findIndex((t, idx) => t.kind === TokenKind.TYPE_IDENT && idx > typeIdx2);
+    // Inner call at second TYPE_IDENT 'Interop'
+    const typeIdx3 = toks2.findIndex((t, idx) => (t.kind === TokenKind.TYPE_IDENT || t.kind === TokenKind.IDENT) && t.value === 'Interop' && idx > typeIdx2);
+    if (typeIdx3 < 0) throw new Error('No second Interop token (inner) found. toks=' + dumpTokens(toks2 as any));
     const posInner = { line: toks2[typeIdx3]!.start.line - 1, character: toks2[typeIdx3]!.start.col } as any;
     const rangeInner = findDottedCallRangeAt(toks2 as any, posInner);
     if (!rangeInner) throw new Error('Expected inner call range');
@@ -203,7 +287,8 @@ function main(): void {
     // Text.* helpers: descriptor preview checks
     const src3 = 'This module is demo.t.\nTo h, produce Int:\n  Return Text.length("abc").\n';
     const toks3 = lex(canonicalize(src3));
-    const textIdx = toks3.findIndex(t => t.kind === TokenKind.IDENT && t.value === 'Text');
+    const textIdx = toks3.findIndex(t => (t.kind === TokenKind.TYPE_IDENT || t.kind === TokenKind.IDENT) && t.value === 'Text');
+    if (textIdx < 0) throw new Error('No Text token found. toks=' + dumpTokens(toks3 as any));
     const posText = { line: toks3[textIdx]!.start.line - 1, character: toks3[textIdx]!.start.col } as any;
     const info = describeDottedCallAt(toks3 as any, posText as any);
     if (!info) throw new Error('Expected Text.length call info');
@@ -214,7 +299,9 @@ function main(): void {
 
     const src4 = 'This module is demo.t.\nTo j, produce Text:\n  Return Text.concat("a", "b").\n';
     const toks4 = lex(canonicalize(src4));
-    const cidx = toks4.findIndex(t => t.kind === TokenKind.IDENT && t.value === 'concat') - 2; // position on 'Text'
+    const concatIdx = toks4.findIndex(t => t.kind === TokenKind.IDENT && t.value === 'concat');
+    if (concatIdx < 2) throw new Error('concat token not found or too early. toks=' + dumpTokens(toks4 as any));
+    const cidx = concatIdx - 2; // position on 'Text'
     const posConcat = { line: toks4[cidx]!.start.line - 1, character: toks4[cidx]!.start.col } as any;
     const info2 = describeDottedCallAt(toks4 as any, posConcat as any);
     if (!info2) throw new Error('Expected Text.concat call info');
@@ -227,6 +314,7 @@ function main(): void {
     const src5 = 'This module is demo.c.\nTo k, produce Text:\n  Return List.get(xs, 1).\n';
     const toks5 = lex(canonicalize(src5));
     const listIdx = toks5.findIndex(t => (t.kind === TokenKind.TYPE_IDENT && t.value === 'List') || (t.kind === TokenKind.IDENT && t.value === 'List'));
+    if (listIdx < 0) throw new Error('No List token found. toks=' + dumpTokens(toks5 as any));
     const posList = { line: toks5[listIdx]!.start.line - 1, character: toks5[listIdx]!.start.col } as any;
     const infoList = describeDottedCallAt(toks5 as any, posList as any);
     if (!infoList) throw new Error('Expected List.get call info');
@@ -238,6 +326,7 @@ function main(): void {
     const src6 = 'This module is demo.c.\nTo m, produce Text:\n  Return Map.get(mm, kk).\n';
     const toks6 = lex(canonicalize(src6));
     const mapIdx = toks6.findIndex(t => (t.kind === TokenKind.TYPE_IDENT && t.value === 'Map') || (t.kind === TokenKind.IDENT && t.value === 'Map'));
+    if (mapIdx < 0) throw new Error('No Map token found. toks=' + dumpTokens(toks6 as any));
     const posMap = { line: toks6[mapIdx]!.start.line - 1, character: toks6[mapIdx]!.start.col } as any;
     const infoMap = describeDottedCallAt(toks6 as any, posMap as any);
     if (!infoMap) throw new Error('Expected Map.get call info');

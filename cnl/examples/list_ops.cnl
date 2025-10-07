@@ -1,5 +1,4 @@
 This module is demo.list.
-
 To length with xs: List of Text, produce Int:
   Return List.length(xs).
 

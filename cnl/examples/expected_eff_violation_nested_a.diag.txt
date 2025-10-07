@@ -1,0 +1,2 @@
+ERROR: Function 'middle_cpu' with effect 'CPU' cannot call function 'inner_io' with effect 'IO[Http]'.
+ERROR: Pure function 'outer_pure' cannot call function 'middle_cpu' with effect 'CPU'.

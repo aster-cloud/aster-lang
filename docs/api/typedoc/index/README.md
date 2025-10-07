@@ -4,6 +4,19 @@
 
 # index
 
+## Example
+
+```typescript
+import { canonicalize, lex, parse, lowerModule } from '@wontlost-ltd/aster-lang';
+
+const src = `This module is app. To id, produce Int: Return 1.`;
+const canonical = canonicalize(src);  // 规范化源代码
+const tokens = lex(canonical);         // 词法分析
+const ast = parse(tokens);             // 语法分析
+const core = lowerModule(ast);         // 降级到 Core IR
+console.log(core);
+```
+
 ## Variables
 
 - [Node](variables/Node.md)

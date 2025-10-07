@@ -1,0 +1,1 @@
+ERROR: Pure function 'calc' cannot call function 'compute' with effect 'CPU'.

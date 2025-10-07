@@ -1,0 +1,40 @@
+module shop.orders
+
+type Money = Decimal(precision=18, scale=2)
+
+record Item { sku: String, qty: Int, price: Money }
+record Order { id: UUID, items: List[Item], total: Money, email: String, state: State }
+enum State { Created, Reserved, Pending, Cancelled, Completed }
+
+capabilities uses [Sql, Http["https://payments.example"], Email, Time]
+
+fn reserveStock(o: Order) -> Result[Bool, String] uses [Sql] {
+  // skeleton
+}
+
+fn charge(o: Order, amount: Money) -> Result[String, String] uses [Http] {
+  // skeleton
+}
+
+workflow Fulfill(o: Order) uses [Sql, Email, Time, Http] {
+  on start:
+    ensure o.total >= 0
+
+  step reserve = retry(max=5, backoff=exp(500ms)) {
+    match reserveStock(o) {
+      Ok(_)  => continue
+      Err(e) => { notifySupport(e, o); set o.state = Pending; stop }
+    }
+  }
+
+  step pay = {
+    let r = charge(o, o.total)
+    match r {
+      Ok(rcpt) => set o.state = Completed
+      Err(_)   => { compensate reserve; set o.state = Cancelled }
+    }
+  }
+
+  await Time.after(24h)
+  if o.state == Pending { remind(o.email) }
+}

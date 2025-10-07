@@ -1,5 +1,4 @@
 This module is demo.lambdalength.
-
 To lengthOf with s: Text, produce Int:
   Let f be function with t: Text, produce Int:
     Return Text.length(t).

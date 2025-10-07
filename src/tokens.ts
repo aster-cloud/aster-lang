@@ -1,61 +1,13 @@
-// Token kinds and keyword tables for Aster CNL v0 (en-US)
-import { TokenKind, Effect } from './types.js';
+/**
+ * @module tokens
+ *
+ * Token kinds 和关键字定义（向后兼容导出）。
+ *
+ * **注意**：KW 和 Effect 现在从 config/semantic.ts 导出，此文件保持向后兼容。
+ * 新代码应该直接从 types.js（TokenKind）和 config/semantic.js（KW, Effect）导入。
+ */
 
-// Locked v1 lexicon (en-US). Multi-word keywords are space-joined canonical forms.
-export const KW = {
-  MODULE_IS: 'this module is',
-  USE: 'use',
-  AS: 'as',
-  DEFINE: 'define',
-  WITH: 'with',
-  ONE_OF: 'as one of',
-  TO: 'to',
-  PRODUCE: 'produce',
-  PERFORMS: 'it performs',
-  IO: 'io',
-  CPU: 'cpu',
-  LET: 'let',
-  BE: 'be',
-  SET: 'set',
-  TO_WORD: 'to',
-  IF: 'if',
-  OTHERWISE: 'otherwise',
-  MATCH: 'match',
-  WHEN: 'when',
-  RETURN: 'return',
-  WITHIN: 'within',
-  SCOPE: 'scope',
-  START: 'start',
-  ASYNC: 'async',
-  AWAIT: 'await',
-  WAIT_FOR: 'wait for',
-  FOR_EACH: 'for each',
-  IN: 'in',
-  MAYBE: 'maybe',
-  OPTION_OF: 'option of',
-  RESULT_OF: 'result of',
-  OR: 'or',
-  AND: 'and',
-  NULL: 'null',
-  TRUE: 'true',
-  FALSE: 'false',
-  TEXT: 'text',
-  INT: 'int',
-  FLOAT: 'float',
-  BOOL_TYPE: 'bool',
-  OK_OF: 'ok of',
-  ERR_OF: 'err of',
-  SOME_OF: 'some of',
-  NONE: 'none',
-  NOT: 'not',
-  PLUS: 'plus',
-  MINUS: 'minus',
-  TIMES: 'times',
-  DIVIDED_BY: 'divided by',
-  LESS_THAN: 'less than',
-  GREATER_THAN: 'greater than',
-  EQUALS_TO: 'equals to',
-  IS: 'is',
-} as const;
+import { TokenKind } from './types.js';
+import { KW, Effect } from './config/semantic.js';
 
-export { TokenKind, Effect };
+export { TokenKind, KW, Effect };

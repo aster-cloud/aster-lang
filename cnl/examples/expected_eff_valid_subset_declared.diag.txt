@@ -1,0 +1,2 @@
+INFO: Function 'simple_query' declares IO capability 'Http' but it is not used.
+INFO: Function 'simple_query' declares IO capability 'Time' but it is not used.

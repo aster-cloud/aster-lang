@@ -4,7 +4,7 @@
 
 # Interface: Func
 
-Defined in: [types.ts:373](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L373)
+Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L376)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:373](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L341)
+Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L344)
 
 #### Inherited from
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **kind**: `"Func"`
 
-Defined in: [types.ts:374](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L374)
+Defined in: [types.ts:377](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L377)
 
 #### Overrides
 
@@ -40,7 +40,7 @@ Defined in: [types.ts:374](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L375)
+Defined in: [types.ts:378](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L378)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **typeParams**: readonly `string`[]
 
-Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L376)
+Defined in: [types.ts:379](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L379)
 
 ***
 
@@ -56,7 +56,7 @@ Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **params**: readonly [`Parameter`](Parameter.md)[]
 
-Defined in: [types.ts:377](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L377)
+Defined in: [types.ts:380](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L380)
 
 ***
 
@@ -64,7 +64,7 @@ Defined in: [types.ts:377](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **ret**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:378](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L378)
+Defined in: [types.ts:381](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L381)
 
 ***
 
@@ -72,7 +72,7 @@ Defined in: [types.ts:378](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **effects**: readonly [`Effect`](../../../enumerations/Effect.md)[]
 
-Defined in: [types.ts:379](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L379)
+Defined in: [types.ts:382](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L382)
 
 ***
 
@@ -80,4 +80,16 @@ Defined in: [types.ts:379](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **body**: [`Block`](Block.md)
 
-Defined in: [types.ts:380](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L380)
+Defined in: [types.ts:383](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L383)
+
+***
+
+### effectCaps?
+
+> `readonly` `optional` **effectCaps**: `object`
+
+Defined in: [types.ts:384](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L384)
+
+#### io?
+
+> `readonly` `optional` **io**: readonly `string`[]

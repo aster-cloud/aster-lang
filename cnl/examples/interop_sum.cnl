@@ -1,5 +1,4 @@
 This module is demo.interop.sumdemo.
-
 To sumInt, produce Text:
   Return Interop.sum(1, 2).
 

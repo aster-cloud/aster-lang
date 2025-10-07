@@ -1,14 +1,12 @@
-import type { Core } from './types.js';
+import type { Core, TypecheckDiagnostic } from './types.js';
 import { type CapabilityManifest, type CapabilityContext, isAllowed } from './capabilities.js';
+import { inferEffects } from './effect_inference.js';
+import { DefaultCoreVisitor } from './visitor.js';
 // import { DiagnosticBuilder, DiagnosticCode, DiagnosticSeverity } from './diagnostics.js';
-import { IO_PREFIXES, CPU_PREFIXES } from './config/effects.js';
+import { IO_PREFIXES, CPU_PREFIXES, CAPABILITY_PREFIXES } from './config/effects.js';
 
-export interface TypecheckDiagnostic {
-  severity: 'error' | 'warning';
-  message: string;
-  code?: string;
-  data?: unknown;
-}
+// Re-export TypecheckDiagnostic for external use
+export type { TypecheckDiagnostic };
 
 // Internal representation for types during checking
 type UnknownT = { kind: 'Unknown' };
@@ -70,8 +68,19 @@ function tEquals(a: T, b: T): boolean {
         if (!tEquals(aa.params[i] as T, bb.params[i] as T)) return false;
       return tEquals(aa.ret as T, bb.ret as T);
     }
+    case 'PiiType': {
+      const aa = a as Core.PiiType,
+        bb = b as Core.PiiType;
+      return aa.sensitivity === bb.sensitivity &&
+             aa.category === bb.category &&
+             tEquals(aa.baseType as T, bb.baseType as T);
+    }
     default:
-      return true;
+      // 穷尽检查：TypeScript 确保所有类型都已处理
+      // 如果到达这里，说明类型定义与实现不一致
+      const _exhaustiveCheck: never = a;
+      console.warn(`tEquals: 未处理的类型 kind:`, _exhaustiveCheck);
+      return false;
   }
 }
 
@@ -98,6 +107,10 @@ function tToString(t: T): string {
       const ft = t as unknown as Core.FuncType;
       const ps = ft.params.map(tt => tToString(tt as T)).join(', ');
       return `(${ps}) -> ${tToString(ft.ret as T)}`;
+    }
+    case 'PiiType': {
+      const pt = t as Core.PiiType;
+      return `@pii(${pt.sensitivity}, ${pt.category}) ${tToString(pt.baseType as T)}`;
     }
     default:
       return 'Unknown';
@@ -140,6 +153,8 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
       diags.push(...typecheckFunc(ctx, d));
     }
   }
+  const effectDiags = inferEffects(m);
+  diags.push(...effectDiags);
   return diags;
 }
 
@@ -179,29 +194,41 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
     });
   }
 
-  // Effect lints with small registry
+  // Effect enforcement (minimal lattice: ∅ ⊑ CPU ⊑ IO[*])
   const effs = collectEffects(f.body);
   const hasIO = f.effects.some(e => String(e).toLowerCase() === 'io');
   const hasCPU = f.effects.some(e => String(e).toLowerCase() === 'cpu');
+  // Missing IO is an error when IO-like calls are detected
   if (effs.has('io') && !hasIO)
     diags.push({
-      severity: 'warning',
+      severity: 'error',
       message: `Function '${f.name}' may perform I/O but is missing @io effect.`,
       code: 'EFF_MISSING_IO',
       data: { func: f.name },
     });
-  if (!effs.has('io') && hasIO)
+  // Under lattice, IO subsumes CPU: if CPU work is detected, it is satisfied by either @cpu or @io
+  if (effs.has('cpu') && !(hasCPU || hasIO))
+    diags.push({
+      severity: 'error',
+      message: `Function '${f.name}' may perform CPU-bound work but is missing @cpu (or @io) effect.`,
+      code: 'EFF_MISSING_CPU',
+      data: { func: f.name },
+    });
+  // Superfluous annotations:
+  // - If @io is declared but only CPU-like work is found, emit an info (IO subsumes CPU; not harmful).
+  if (!effs.has('io') && hasIO && effs.has('cpu'))
+    diags.push({
+      severity: 'info',
+      message: `Function '${f.name}' declares @io but only CPU-like work found; @io subsumes @cpu and may be unnecessary.`,
+      code: 'EFF_SUPERFLUOUS_IO_CPU_ONLY',
+      data: { func: f.name },
+    });
+  // - If @io is declared but no obvious IO/CPU is found, keep a low-severity warning.
+  if (!effs.has('io') && hasIO && !effs.has('cpu'))
     diags.push({
       severity: 'warning',
       message: `Function '${f.name}' declares @io but no obvious I/O found.`,
       code: 'EFF_SUPERFLUOUS_IO',
-      data: { func: f.name },
-    });
-  if (effs.has('cpu') && !hasCPU)
-    diags.push({
-      severity: 'warning',
-      message: `Function '${f.name}' may perform CPU-bound work but is missing @cpu effect.`,
-      code: 'EFF_MISSING_CPU',
       data: { func: f.name },
     });
   if (!effs.has('cpu') && hasCPU)
@@ -212,6 +239,36 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
       data: { func: f.name },
     });
   // Async discipline: every started task should be waited somewhere in the body
+
+  // Capability-parameterized IO enforcement (feature-gated)
+  if (typeof process !== 'undefined' && process.env && process.env.ASTER_CAP_EFFECTS_ENFORCE === '1') {
+    const capsMeta = (f as unknown as { effectCaps?: { io?: readonly string[] } }).effectCaps;
+    const declared = capsMeta && capsMeta.io ? new Set<string>(capsMeta.io as readonly string[]) : null;
+    if (declared) {
+      const used = collectCapabilities(f.body);
+      for (const cap of used) {
+        if (!declared.has(cap)) {
+          diags.push({
+            severity: 'error',
+            message: `Function '${f.name}' uses IO capability '${cap}' but header declares [${[...declared].join(', ')}].`,
+            code: 'EFF_CAP_MISSING',
+            data: { func: f.name, cap },
+          });
+        }
+      }
+      for (const cap of declared) {
+        if (!used.has(cap)) {
+          diags.push({
+            severity: 'info',
+            message: `Function '${f.name}' declares IO capability '${cap}' but it is not used.`,
+            code: 'EFF_CAP_SUPERFLUOUS',
+            data: { func: f.name, cap },
+          });
+        }
+      }
+    }
+  }
+
   const aw = collectAsync(f.body);
   const notWaited = [...aw.started].filter(n => !aw.waited.has(n));
   if (notWaited.length > 0) {
@@ -321,6 +378,9 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
           findUnknowns(ft.ret);
           break;
         }
+        case 'PiiType':
+          findUnknowns((t as Core.PiiType).baseType);
+          break;
       }
     };
     for (const p of f.params) findUnknowns(p.type);
@@ -341,62 +401,143 @@ function warn(diags: TypecheckDiagnostic[], message: string): void {
 
 function collectEffects(b: Core.Block): Set<'io' | 'cpu'> {
   const effs = new Set<'io' | 'cpu'>();
-  const markFromExpr = (e: Core.Expression): void => {
-    if (e.kind === 'Call') {
-      if (e.target.kind === 'Name') {
+  class EffectsVisitor extends DefaultCoreVisitor<void> {
+    override visitExpression(e: Core.Expression): void {
+      if (e.kind === 'Call' && e.target.kind === 'Name') {
         const n = e.target.name;
-        // simple registry of known IO and CPU calls
-        // configurable prefixes
         if (IO_PREFIXES.some((p: string) => n.startsWith(p))) effs.add('io');
         if (CPU_PREFIXES.some((p: string) => n.startsWith(p))) effs.add('cpu');
       }
-      markFromExpr(e.target);
-      e.args.forEach(markFromExpr);
-    } else if (e.kind === 'Construct') {
-      e.fields.forEach(f => markFromExpr(f.expr));
-    } else if (e.kind === 'Ok' || e.kind === 'Err' || e.kind === 'Some') {
-      markFromExpr(e.expr);
-    }
-  };
-  for (const s of b.statements) {
-    switch (s.kind) {
-      case 'Let':
-        markFromExpr(s.expr);
-        break;
-      case 'Set':
-        markFromExpr(s.expr);
-        break;
-      case 'Return':
-        markFromExpr(s.expr);
-        break;
-      case 'If':
-        markFromExpr(s.cond);
-        collectEffects(s.thenBlock).forEach(e => effs.add(e));
-        if (s.elseBlock) collectEffects(s.elseBlock).forEach(e => effs.add(e));
-        break;
-      case 'Match':
-        markFromExpr(s.expr);
-        for (const c of s.cases) {
-          if (c.body.kind === 'Return') markFromExpr(c.body.expr);
-          else collectEffects(c.body).forEach(e => effs.add(e));
-        }
-        break;
-      case 'Scope': {
-        const nested: Core.Block = { kind: 'Block', statements: s.statements };
-        collectEffects(nested).forEach(e => effs.add(e));
-        break;
-      }
-      case 'Start':
-        markFromExpr(s.expr);
-        break;
-      case 'Wait':
-        // waiting itself isn't IO; no-op
-        break;
-      default:
-        break;
+      super.visitExpression(e, undefined as unknown as void);
     }
   }
+  new EffectsVisitor().visitBlock(b, undefined as unknown as void);
   return effs;
+}
+
+
+function collectCapabilities(b: Core.Block): Set<string> {
+  const caps = new Set<string>();
+  class CapVisitor extends DefaultCoreVisitor<void> {
+    override visitExpression(e: Core.Expression): void {
+      if (e.kind === 'Call' && e.target.kind === 'Name') {
+        const n = e.target.name;
+        for (const [cap, prefixes] of Object.entries(CAPABILITY_PREFIXES)) {
+          if (prefixes.some(p => n.startsWith(p))) caps.add(cap);
+        }
+      }
+      super.visitExpression(e, undefined as unknown as void);
+    }
+  }
+  new CapVisitor().visitBlock(b, undefined as unknown as void);
+  return caps;
+}
+
+class TypecheckVisitor extends DefaultCoreVisitor<{ ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }> {
+  public result: T = tUnknown();
+
+  override visitBlock(b: Core.Block, c: { ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }): void {
+    let last: T = tUnknown();
+    for (const s of b.statements) {
+      this.visitStatement(s, c);
+      last = this.result;
+    }
+    this.result = last;
+  }
+
+  override visitStatement(s: Core.Statement, c: { ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }): void {
+    const { ctx, env, diags } = c;
+    switch (s.kind) {
+      case 'Let': {
+        const t = typeOfExpr(ctx, env, s.expr, diags);
+        env.vars.set(s.name, t);
+        this.result = t;
+        return;
+      }
+      case 'Set': {
+        const t = typeOfExpr(ctx, env, s.expr, diags);
+        const prev = env.vars.get(s.name) || tUnknown();
+        if (!tEquals(prev, t)) {
+          diags.push({ severity: 'error', message: `Type mismatch assigning to '${s.name}': ${tToString(prev)} vs ${tToString(t)}` });
+        }
+        env.vars.set(s.name, t);
+        this.result = t;
+        return;
+      }
+      case 'Return': {
+        this.result = typeOfExpr(ctx, env, s.expr, diags);
+        return;
+      }
+      case 'If': {
+        void typeOfExpr(ctx, env, s.cond, diags);
+        const tThen = typecheckBlock(ctx, cloneEnv(env), s.thenBlock, diags);
+        const tElse = s.elseBlock ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags) : tUnknown();
+        if (isUnknown(tThen)) this.result = tElse;
+        else if (isUnknown(tElse)) this.result = tThen;
+        else {
+          if (!tEquals(tThen, tElse)) diags.push({ severity: 'error', message: `If分支返回类型不一致: then分支 ${tToString(tThen)} vs else分支 ${tToString(tElse)}` });
+          this.result = tThen;
+        }
+        return;
+      }
+      case 'Match': {
+        const et = typeOfExpr(ctx, env, s.expr, diags);
+        let out: T | null = null;
+        let hasNullCase = false;
+        let hasNonNullCase = false;
+        const enumDecl = !isUnknown(et) && et.kind === 'TypeName' ? ctx.enums.get(et.name) : undefined;
+        const seenEnum = new Set<string>();
+        let hasWildcard = false;
+        for (const cse of s.cases) {
+          const t = typecheckCase(ctx, env, cse, et, diags);
+          if (!out) out = t; else if (!tEquals(out, t)) diags.push({ severity: 'error', message: `Match case return types differ: ${tToString(out)} vs ${tToString(t)}` });
+          if (cse.pattern.kind === 'PatNull') hasNullCase = true; else hasNonNullCase = true;
+          if (enumDecl) {
+            if (cse.pattern.kind === 'PatName') {
+              if (enumDecl.variants.includes(cse.pattern.name)) {
+                if (seenEnum.has(cse.pattern.name)) warn(c.diags, `Duplicate enum case '${cse.pattern.name}' in match on ${enumDecl.name}.`);
+                seenEnum.add(cse.pattern.name);
+              } else {
+                hasWildcard = true;
+              }
+            } else if (cse.pattern.kind === 'PatCtor') {
+              if (enumDecl.variants.includes(cse.pattern.typeName)) {
+                if (seenEnum.has(cse.pattern.typeName)) warn(c.diags, `Duplicate enum case '${cse.pattern.typeName}' in match on ${enumDecl.name}.`);
+                seenEnum.add(cse.pattern.typeName);
+              }
+            }
+          }
+        }
+        if (!isUnknown(et) && et.kind === 'Maybe') {
+          if (!(hasNullCase && hasNonNullCase)) {
+            const missing = hasNullCase ? 'non-null value' : hasNonNullCase ? 'null' : 'null and non-null';
+            warn(diags, `Non-exhaustive match on Maybe type; missing ${missing} case.`);
+          }
+        } else if (enumDecl) {
+          if (!hasWildcard) {
+            const missing = enumDecl.variants.filter(v => !seenEnum.has(v));
+            if (missing.length > 0) warn(diags, `Non-exhaustive match on ${enumDecl.name}; missing: ${missing.join(', ')}`);
+          }
+        }
+        this.result = out ?? tUnknown();
+        return;
+      }
+      case 'Scope': {
+        const nested: Core.Block = { kind: 'Block', statements: s.statements };
+        this.result = typecheckBlock(ctx, env, nested, diags);
+        return;
+      }
+      case 'Start': {
+        void typeOfExpr(ctx, env, s.expr, diags);
+        this.result = tUnknown();
+        return;
+      }
+      case 'Wait': {
+        this.result = tUnknown();
+        return;
+      }
+    }
+  }
 }
 
 function typecheckBlock(
@@ -405,133 +546,9 @@ function typecheckBlock(
   b: Core.Block,
   diags: TypecheckDiagnostic[]
 ): T {
-  let last: T = tUnknown();
-  for (const s of b.statements) {
-    last = typecheckStmt(ctx, env, s, diags);
-  }
-  return last;
-}
-
-function typecheckStmt(
-  ctx: ModuleContext,
-  env: Env,
-  s: Core.Statement,
-  diags: TypecheckDiagnostic[]
-): T {
-  switch (s.kind) {
-    case 'Let': {
-      const t = typeOfExpr(ctx, env, s.expr, diags);
-      env.vars.set(s.name, t);
-      return t;
-    }
-    case 'Set': {
-      const t = typeOfExpr(ctx, env, s.expr, diags);
-      const prev = env.vars.get(s.name) || tUnknown();
-      if (!tEquals(prev, t)) {
-        diags.push({
-          severity: 'error',
-          message: `Type mismatch assigning to '${s.name}': ${tToString(prev)} vs ${tToString(t)}`,
-        });
-      }
-      return prev;
-    }
-    case 'Return': {
-      return typeOfExpr(ctx, env, s.expr, diags);
-    }
-    case 'If': {
-      // Evaluate condition (currently allows any type)
-      void typeOfExpr(ctx, env, s.cond, diags);
-      // Allow any condition; in future require Bool
-      const tThen = typecheckBlock(ctx, cloneEnv(env), s.thenBlock, diags);
-      const tElse = s.elseBlock
-        ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags)
-        : tUnknown();
-      return tThen || tElse;
-    }
-    case 'Match': {
-      const et = typeOfExpr(ctx, env, s.expr, diags);
-      // Evaluate each case body type; require all equal (when known)
-      let out: T | null = null;
-
-      // Tracking for exhaustiveness
-      let hasNullCase = false;
-      let hasNonNullCase = false; // any pattern that implies non-null (ctor or variable catch-all)
-
-      // Enum tracking
-      const enumDecl =
-        !isUnknown(et) && et.kind === 'TypeName' ? ctx.enums.get(et.name) : undefined;
-      const seenEnum = new Set<string>();
-      let hasWildcard = false; // variable catch-all for enums
-
-      for (const c of s.cases) {
-        // Case typing
-        const t = typecheckCase(ctx, env, c, et, diags);
-        if (!out) out = t;
-        else if (!tEquals(out, t)) {
-          diags.push({
-            severity: 'error',
-            message: `Match case return types differ: ${tToString(out)} vs ${tToString(t)}`,
-          });
-        }
-
-        // Exhaustiveness bookkeeping
-        if (c.pattern.kind === 'PatNull') hasNullCase = true;
-        else hasNonNullCase = true;
-
-        if (enumDecl) {
-          if (c.pattern.kind === 'PatName') {
-            if (enumDecl.variants.includes(c.pattern.name)) {
-              if (seenEnum.has(c.pattern.name)) {
-                warn(
-                  diags,
-                  `Duplicate enum case '${c.pattern.name}' in match on ${enumDecl.name}.`
-                );
-              }
-              seenEnum.add(c.pattern.name);
-            } else {
-              // variable catch-all
-              hasWildcard = true;
-            }
-          } else if (c.pattern.kind === 'PatCtor') {
-            // Treat bare ctor name as variant name if it matches one
-            if (enumDecl.variants.includes(c.pattern.typeName)) {
-              if (seenEnum.has(c.pattern.typeName)) {
-                warn(
-                  diags,
-                  `Duplicate enum case '${c.pattern.typeName}' in match on ${enumDecl.name}.`
-                );
-              }
-              seenEnum.add(c.pattern.typeName);
-            } else {
-              // Not a variant of this enum; does not contribute to coverage
-            }
-          }
-        }
-      }
-
-      // Exhaustiveness diagnostics
-      if (!isUnknown(et) && et.kind === 'Maybe') {
-        if (!(hasNullCase && hasNonNullCase)) {
-          const missing = hasNullCase
-            ? 'non-null value'
-            : hasNonNullCase
-              ? 'null'
-              : 'null and non-null';
-          warn(diags, `Non-exhaustive match on Maybe type; missing ${missing} case.`);
-        }
-      } else if (enumDecl) {
-        if (!hasWildcard) {
-          const missing = enumDecl.variants.filter(v => !seenEnum.has(v));
-          if (missing.length > 0) {
-            warn(diags, `Non-exhaustive match on ${enumDecl.name}; missing: ${missing.join(', ')}`);
-          }
-        }
-      }
-      return out ?? tUnknown();
-    }
-    default:
-      return tUnknown();
-  }
+  const v = new TypecheckVisitor();
+  v.visitBlock(b, { ctx, env, diags });
+  return v.result;
 }
 
 function typecheckCase(
@@ -633,135 +650,117 @@ function bindPatternNode(
   if (pat.kind === 'PatCtor') bindPatternTypes(ctx, env, pat, et, diags);
 }
 
+// 访问器优先的表达式类型推断（第一阶段：Name/常量/Construct/Ok/Err/Some/None）
+class TypeOfExprVisitor extends DefaultCoreVisitor<{ ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }> {
+  public handled = false;
+  public result: T = tUnknown();
+  override visitExpression(e: Core.Expression, c: { ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }): void {
+    const { ctx, env, diags } = c;
+    switch (e.kind) {
+      case 'Name': {
+        const t = env.vars.get(e.name);
+        if (t) { this.result = t; this.handled = true; return; }
+        for (const en of ctx.enums.values()) {
+          if (en.variants.includes(e.name)) { this.result = { kind: 'TypeName', name: en.name } as Core.TypeName; this.handled = true; return; }
+        }
+        this.result = tUnknown(); this.handled = true; return;
+      }
+      case 'Bool': this.result = { kind: 'TypeName', name: 'Bool' } as Core.TypeName; this.handled = true; return;
+      case 'Int': this.result = { kind: 'TypeName', name: 'Int' } as Core.TypeName; this.handled = true; return;
+      case 'Long': this.result = { kind: 'TypeName', name: 'Long' } as Core.TypeName; this.handled = true; return;
+      case 'Double': this.result = { kind: 'TypeName', name: 'Double' } as Core.TypeName; this.handled = true; return;
+      case 'String': this.result = { kind: 'TypeName', name: 'Text' } as Core.TypeName; this.handled = true; return;
+      case 'Null': this.result = { kind: 'Maybe', type: UNKNOWN_TYPENAME } as T; this.handled = true; return;
+      case 'Ok': {
+        const inner = typeOfExpr(ctx, env, e.expr, diags);
+        this.result = { kind: 'Result', ok: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type), err: UNKNOWN_TYPENAME } as T;
+        this.handled = true; return;
+      }
+      case 'Err': {
+        const inner = typeOfExpr(ctx, env, e.expr, diags);
+        this.result = { kind: 'Result', ok: UNKNOWN_TYPENAME, err: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
+        this.handled = true; return;
+      }
+      case 'Some': {
+        const inner = typeOfExpr(ctx, env, e.expr, diags);
+        this.result = { kind: 'Option', type: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
+        this.handled = true; return;
+      }
+      case 'None': this.result = { kind: 'Option', type: UNKNOWN_TYPENAME } as T; this.handled = true; return;
+      case 'Construct': {
+        const d = ctx.datas.get(e.typeName);
+        if (!d) { this.result = tUnknown(); this.handled = true; return; }
+        const providedFields = new Set<string>();
+        for (const f of e.fields) {
+          providedFields.add(f.name);
+          const field = d.fields.find(ff => ff.name === f.name);
+          if (!field) { diags.push({ severity: 'error', message: `Unknown field '${f.name}' for ${d.name}` }); continue; }
+          const ft = typeOfExpr(ctx, env, f.expr, diags);
+          if (!tEquals(field.type as T, ft)) diags.push({ severity: 'error', message: `Field '${f.name}' expects ${tToString(field.type as T)}, got ${tToString(ft)}` });
+        }
+        for (const field of d.fields) if (!providedFields.has(field.name)) diags.push({ severity: 'error', message: `构造 ${d.name} 缺少必需字段 '${field.name}'` });
+        this.result = { kind: 'TypeName', name: e.typeName } as Core.TypeName; this.handled = true; return;
+      }
+      case 'Await': {
+        // Await<T> 返回 T，即解包 Future/Promise 类型
+        // 当前简化实现：直接返回内部表达式的类型
+        const t = typeOfExpr(ctx, env, e.expr, diags);
+        this.result = t;
+        this.handled = true; return;
+      }
+      case 'Lambda': {
+        const pt = e.params.map(p => p.type) as readonly Core.Type[];
+        const ft: Core.FuncType = { kind: 'FuncType', params: pt, ret: e.ret };
+        this.result = ft as unknown as T;
+        this.handled = true; return;
+      }
+      case 'Call': {
+        // not(x): 简化布尔运算
+        if (e.target.kind === 'Name' && e.target.name === 'not') {
+          if (e.args.length !== 1) diags.push({ severity: 'error', message: `not(...) expects 1 argument` });
+          else void typeOfExpr(ctx, env, e.args[0]!, diags);
+          this.result = { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
+          this.handled = true; return;
+        }
+        // 处理参数类型（副作用：产生必要诊断）
+        for (const a of e.args) void typeOfExpr(ctx, env, a, diags);
+        // 互操作静态调用的数字混用告警
+        if (e.target.kind === 'Name' && e.target.name.includes('.')) {
+          let hasInt = false, hasLong = false, hasDouble = false;
+          for (const a of e.args) {
+            switch (a.kind) {
+              case 'Int': hasInt = true; break;
+              case 'Long': hasLong = true; break;
+              case 'Double': hasDouble = true; break;
+            }
+          }
+          const kinds = (hasInt ? 1 : 0) + (hasLong ? 1 : 0) + (hasDouble ? 1 : 0);
+          if (kinds > 1) diags.push({ severity: 'warning', message: `Ambiguous interop call '${e.target.name}': mixing numeric kinds (Int=${hasInt}, Long=${hasLong}, Double=${hasDouble}). Overload resolution may widen/box implicitly.` });
+        }
+        // await(expr): 类型规则
+        if (e.target.kind === 'Name' && e.target.name === 'await' && e.args.length === 1) {
+          const at = typeOfExpr(ctx, env, e.args[0]!, diags);
+          if (!isUnknown(at) && at.kind === 'Maybe') { this.result = (at.type as T); this.handled = true; return; }
+          if (!isUnknown(at) && at.kind === 'Result') { this.result = (at.ok as T); this.handled = true; return; }
+          diags.push({ severity: 'warning', message: `await expects Maybe<T> or Result<T,E>, got ${tToString(at)}` });
+          this.result = tUnknown(); this.handled = true; return;
+        }
+        this.result = tUnknown(); this.handled = true; return;
+      }
+    }
+    // 未处理的表达式保持 handled=false，用旧实现兜底
+  }
+}
+
 function typeOfExpr(
   ctx: ModuleContext,
   env: Env,
   e: Core.Expression,
   diags: TypecheckDiagnostic[]
 ): T {
-  switch (e.kind) {
-    case 'Name': {
-      // Variable, or enum member reference -> its enum type
-      const t = env.vars.get(e.name);
-      if (t) return t;
-      // enum member lookup across known enums
-      for (const en of ctx.enums.values()) {
-        if (en.variants.includes(e.name)) {
-          return { kind: 'TypeName', name: en.name } as Core.TypeName;
-        }
-      }
-      return tUnknown();
-    }
-    case 'Bool':
-      return { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
-    case 'Int':
-      return { kind: 'TypeName', name: 'Int' } as Core.TypeName;
-    case 'Long':
-      return { kind: 'TypeName', name: 'Long' } as Core.TypeName;
-    case 'Double':
-      return { kind: 'TypeName', name: 'Double' } as Core.TypeName;
-    case 'String':
-      return { kind: 'TypeName', name: 'Text' } as Core.TypeName;
-    case 'Null':
-      return { kind: 'Maybe', type: UNKNOWN_TYPENAME } as T;
-    case 'Ok': {
-      const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return {
-        kind: 'Result',
-        ok: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type),
-        err: UNKNOWN_TYPENAME,
-      } as T;
-    }
-    case 'Err': {
-      const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return {
-        kind: 'Result',
-        ok: UNKNOWN_TYPENAME,
-        err: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type),
-      } as T;
-    }
-    case 'Some': {
-      const inner = typeOfExpr(ctx, env, e.expr, diags);
-      return {
-        kind: 'Option',
-        type: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type),
-      } as T;
-    }
-    case 'None':
-      return { kind: 'Option', type: UNKNOWN_TYPENAME } as T;
-    case 'Lambda': {
-      const pt = e.params.map(p => p.type) as readonly Core.Type[];
-      const ft: Core.FuncType = { kind: 'FuncType', params: pt, ret: e.ret };
-      return ft as unknown as T;
-    }
-    case 'Construct': {
-      const d = ctx.datas.get(e.typeName);
-      if (!d) return tUnknown();
-      // Validate fields by name
-      for (const f of e.fields) {
-        const field = d.fields.find(ff => ff.name === f.name);
-        if (!field) {
-          diags.push({ severity: 'error', message: `Unknown field '${f.name}' for ${d.name}` });
-          continue;
-        }
-        const ft = typeOfExpr(ctx, env, f.expr, diags);
-        if (!tEquals(field.type as T, ft)) {
-          diags.push({
-            severity: 'error',
-            message: `Field '${f.name}' expects ${tToString(field.type as T)}, got ${tToString(ft)}`,
-          });
-        }
-      }
-      return { kind: 'TypeName', name: e.typeName } as Core.TypeName;
-    }
-    case 'Call': {
-      // Unknown calls: assume Bool condition or Unknown; prefer Bool
-      // If call target name is 'not', ensure arg is Bool and return Bool
-      if (e.target.kind === 'Name' && e.target.name === 'not') {
-        if (e.args.length !== 1) {
-          diags.push({ severity: 'error', message: `not(...) expects 1 argument` });
-        } else {
-          void typeOfExpr(ctx, env, e.args[0]!, diags);
-          // Accept any; future: require Bool
-        }
-        return { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
-      }
-      // Otherwise, infer from usage minimally: for now return Unknown
-      for (const a of e.args) {
-        void typeOfExpr(ctx, env, a, diags);
-      }
-      // Interop static call ambiguity diagnostic (numeric mix without clear target info)
-      if (e.target.kind === 'Name' && e.target.name.includes('.')) {
-        let hasInt = false, hasLong = false, hasDouble = false;
-        for (const a of e.args) {
-          switch (a.kind) {
-            case 'Int': hasInt = true; break;
-            case 'Long': hasLong = true; break;
-            case 'Double': hasDouble = true; break;
-          }
-        }
-        const kinds = (hasInt ? 1 : 0) + (hasLong ? 1 : 0) + (hasDouble ? 1 : 0);
-        if (kinds > 1) {
-          diags.push({
-            severity: 'warning',
-            message: `Ambiguous interop call '${e.target.name}': mixing numeric kinds (Int=${hasInt}, Long=${hasLong}, Double=${hasDouble}). Overload resolution may widen/box implicitly.`,
-          });
-        }
-      }
-      // await(expr) typing: await Maybe<T> => T; await Result<T,E> => T; else Unknown
-      if (e.target.kind === 'Name' && e.target.name === 'await' && e.args.length === 1) {
-        const at = typeOfExpr(ctx, env, e.args[0]!, diags);
-        if (!isUnknown(at) && at.kind === 'Maybe') return at.type as T;
-        if (!isUnknown(at) && at.kind === 'Result') return at.ok as T;
-        // Warn on unsafe await usage
-        diags.push({
-          severity: 'warning',
-          message: `await expects Maybe<T> or Result<T,E>, got ${tToString(at)}`,
-        });
-      }
-      return tUnknown();
-    }
-  }
+  const v = new TypeOfExprVisitor();
+  v.visitExpression(e, { ctx, env, diags });
+  return v.result;
 }
 
 function cloneEnv(env: Env): Env {
@@ -850,32 +849,13 @@ function unifyTypes(
 function collectAsync(b: Core.Block): { started: Set<string>; waited: Set<string> } {
   const started = new Set<string>();
   const waited = new Set<string>();
-  const walk = (blk: Core.Block): void => {
-    for (const s of blk.statements) {
-      switch (s.kind) {
-        case 'Start':
-          started.add(s.name);
-          break;
-        case 'Wait':
-          s.names.forEach(n => waited.add(n));
-          break;
-        case 'If':
-          walk(s.thenBlock);
-          if (s.elseBlock) walk(s.elseBlock);
-          break;
-        case 'Match':
-          for (const c of s.cases) {
-            if (c.body.kind !== 'Return') walk(c.body);
-          }
-          break;
-        case 'Scope':
-          walk({ kind: 'Block', statements: s.statements });
-          break;
-        default:
-          break;
-      }
+  class AsyncVisitor extends DefaultCoreVisitor<void> {
+    override visitStatement(s: Core.Statement): void {
+      if (s.kind === 'Start') started.add(s.name);
+      if (s.kind === 'Wait') s.names.forEach(n => waited.add(n));
+      super.visitStatement(s, undefined as unknown as void);
     }
-  };
-  walk(b);
+  }
+  new AsyncVisitor().visitBlock(b, undefined as unknown as void);
   return { started, waited };
 }

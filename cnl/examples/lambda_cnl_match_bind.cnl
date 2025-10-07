@@ -1,5 +1,4 @@
 This module is demo.lambdamatchbind.
-
 Define User with id: Text, name: Text.
 
 To greetUser with u: User, pfx: Text, produce Text:

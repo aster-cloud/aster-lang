@@ -1,0 +1,2 @@
+ERROR: Function 'step2' uses IO capability 'AiModel' but header declares [Time].
+ERROR: Function 'step3' with effect 'CPU' cannot call function 'step2' with effect 'IO[Time]'.

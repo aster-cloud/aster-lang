@@ -6,6 +6,7 @@ readable annotations and a small set of control constructs for concurrency.
 ## Declaring Effects
 
 - Syntax (function header): `It performs IO`, `It performs CPU`, or both.
+- CNL-first capability syntax (accepted; checking planned): `It performs io with Http and Sql and Time.`
 - Examples:
 
 ```
@@ -16,9 +17,12 @@ To checksum with bytes: List of Int, produce Int. It performs CPU:
   Return Crypto.hash(bytes).
 ```
 
-- Effects are advisory in the MVP. The typechecker scans calls using a small
-  registry of prefixes (`src/config/effects.ts`) and emits warnings if a
-  function likely performs I/O or CPU work without declaring it (or vice versa).
+## Enforcement & Diagnostics (implemented)
+
+- Missing effect annotations are compile-time errors.
+- Minimal lattice: `∅ ⊑ CPU ⊑ IO[*]` (declaring `@io` satisfies CPU work).
+- Superfluous annotations: `@io` with only CPU-like work → info; `@cpu` with no CPU-like work → warning.
+- Detection currently uses a small prefix registry (`src/config/effects.ts`).
 
 ## Async Concurrency
 

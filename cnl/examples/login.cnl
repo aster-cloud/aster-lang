@@ -1,5 +1,4 @@
 This module is app.service.
-
 Define User with id: Text, name: Text.
 
 Define AuthErr as one of InvalidCreds, Locked.

@@ -1,3 +1,5 @@
+⚠️ Archived — see `.claude/archive/TODO-legacy.md`
+
 # TODOs: Interop Overloads + CI Promotion
 
 - [x] Core IR: add literal nodes for `Long` and `Double` (e.g., `LongE`, `DoubleE`) and corresponding type names in `Core.TypeName` (e.g., `Long`, `Double`). Wire them through lowering and pretty printer.

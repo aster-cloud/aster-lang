@@ -1,5 +1,4 @@
 This module is demo.policy_demo.
-
 To demonstratePolicyEngine, produce Text:
   Return "Policy engine demonstration: Access granted".
 

@@ -1,5 +1,4 @@
 This module is demo.policy.
-
 Define Action as one of Read, Write, Delete, Admin.
 
 Define Resource as one of Document, User, System.

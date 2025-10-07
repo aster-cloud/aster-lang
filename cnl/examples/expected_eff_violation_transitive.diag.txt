@@ -1,0 +1,4 @@
+ERROR: Function 'mid_files' uses IO capability 'Secrets' but header declares [Files].
+ERROR: Function 'top_http' uses IO capability 'Files' but header declares [Http].
+INFO: Function 'mid_files' declares IO capability 'Files' but it is not used.
+INFO: Function 'top_http' declares IO capability 'Http' but it is not used.

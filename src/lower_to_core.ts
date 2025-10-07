@@ -1,4 +1,24 @@
-import { Core, Effect } from './core_ir.js';
+/**
+ * @module lower_to_core
+ *
+ * AST 到 Core IR 的降级器：将高级 AST 转换为小型、严格的 Core IR。
+ *
+ * **功能**：
+ * - 将 AST 节点转换为 Core IR 节点
+ * - 展开语法糖（如 `User?` → `Maybe of User`）
+ * - 规范化表达式和语句结构
+ * - 保留源代码位置信息（origin）
+ * - 为后续的类型检查和代码生成准备简化的 IR
+ *
+ * **Core IR 设计**：
+ * - 更小的节点集合（相比 AST）
+ * - 显式的作用域节点（Scope）
+ * - 规范化的模式匹配
+ * - 简化的效果标注
+ */
+
+import { Core } from './core_ir.js';
+import { parseEffect, getAllEffects } from './config/semantic.js';
 import type { Span } from './types.js';
 import type {
   Module,
@@ -10,7 +30,40 @@ import type {
   Pattern,
   Type,
 } from './types.js';
+import { DefaultAstVisitor } from './ast_visitor.js';
 
+/**
+ * 将 AST Module 降级为 Core IR Module。
+ *
+ * 这是 Aster 编译管道的第四步，将高级的抽象语法树转换为更简洁、更严格的 Core IR，
+ * 以便进行类型检查和后续的代码生成。
+ *
+ * **降级转换**：
+ * - 展开语法糖（`User?` → `Maybe of User`、`Result of A and B` → 标准 Result 类型）
+ * - 规范化函数体为 Block 和 Statement 序列
+ * - 将模式匹配转换为 Core IR 的 Case 结构
+ * - 保留原始位置信息用于错误报告
+ *
+ * @param ast - AST Module 节点（通过 {@link parse} 生成）
+ * @returns Core IR Module 节点，包含所有声明的规范化表示
+ *
+ * @example
+ * ```typescript
+ * import { canonicalize, lex, parse, lowerModule } from '@wontlost-ltd/aster-lang';
+ *
+ * const src = `This module is app.
+ * To greet, produce Text:
+ *   Return "Hello".
+ * `;
+ *
+ * const ast = parse(lex(canonicalize(src)));
+ * const core = lowerModule(ast);
+ *
+ * console.log(core.kind);  // "Module"
+ * console.log(core.name);  // "app"
+ * // Core IR 是更简洁的表示，适合类型检查和代码生成
+ * ```
+ */
 export function lowerModule(ast: Module): import('./types.js').Core.Module {
   const decls = ast.decls.map(lowerDecl);
   const m = Core.Module(ast.name, decls);
@@ -56,9 +109,21 @@ function lowerFunc(f: Func): import('./types.js').Core.Func {
   const tvars = new Set<string>(f.typeParams ?? []);
   const params = f.params.map(p => ({ name: p.name, type: lowerTypeWithVars(p.type, tvars) }));
   const ret = lowerTypeWithVars(f.retType, tvars);
-  const effects = (f.effects || []).map(e => (e === 'io' ? Effect.IO : Effect.CPU));
+  // 严格校验效果字符串，拒绝未知值
+  const effects = (f.effects || []).map(e => {
+    const effect = parseEffect(e.toLowerCase());
+    if (effect === null) {
+      const validEffects = getAllEffects().join(', ');
+      throw new Error(`未知的 effect '${e}'，有效值为：${validEffects}`);
+    }
+    return effect;
+  });
   const body = f.body ? lowerBlock(f.body) : Core.Block([]);
   const out = Core.Func(f.name, f.typeParams ?? [], params, ret, effects, body);
+  // Pass through capability metadata if present
+  if ((f as any).effectCaps) {
+    (out as any).effectCaps = { ...(f as any).effectCaps };
+  }
   const o = spanToOrigin((f as any).span, (f as any).file ?? null);
   if (o) (out as any).origin = o;
   return out;
@@ -144,8 +209,8 @@ function lowerStmt(s: Statement): import('./types.js').Core.Statement {
         return out;
       }
     default:
-      // For bare expressions evaluated for side-effects in v0: wrap as Return(expr) for now
-      return Core.Return(lowerExpr(s as Expression));
+      // Parser now prohibits bare expressions, so this should never be reached
+      throw new Error(`lowerStmt: 未处理的语句类型 '${(s as any).kind}'`);
   }
 }
 
@@ -258,59 +323,26 @@ function lowerExpr(e: Expression): import('./types.js').Core.Expression {
         if (o) (out as any).origin = o;
         return out;
       }
+    case 'Await':
+      {
+        const out = Core.Await(lowerExpr(e.expr));
+        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     case 'Lambda': {
-      // Naive capture analysis: collect Name identifiers in body that are not params and not dotted
+      // 使用统一 AST 访客进行捕获变量收集
       const paramNames = new Set(e.params.map(p => p.name));
       const names = new Set<string>();
-      const visitExpr = (ex: Expression): void => {
-        switch (ex.kind) {
-          case 'Name':
-            if (!paramNames.has(ex.name) && !ex.name.includes('.')) names.add(ex.name);
-            break;
-          case 'Call':
-            visitExpr(ex.target);
-            ex.args.forEach(visitExpr);
-            break;
-          case 'Construct':
-            ex.fields.forEach(f => visitExpr(f.expr));
-            break;
-          case 'Ok':
-          case 'Err':
-          case 'Some':
-            visitExpr((ex as any).expr);
-            break;
-          default:
-            break;
+      class CaptureVisitor extends DefaultAstVisitor<void> {
+        override visitExpression(ex: Expression): void {
+          if (ex.kind === 'Name' && !paramNames.has(ex.name) && !ex.name.includes('.')) {
+            names.add(ex.name);
+          }
+          super.visitExpression(ex, undefined as unknown as void);
         }
-      };
-      const visitStmt = (s: Statement): void => {
-        switch (s.kind) {
-          case 'Let':
-            visitExpr(s.expr);
-            break;
-          case 'Set':
-            visitExpr(s.expr);
-            break;
-          case 'Return':
-            visitExpr(s.expr);
-            break;
-          case 'If':
-            visitExpr(s.cond);
-            (s.thenBlock.statements || []).forEach(visitStmt);
-            if (s.elseBlock) (s.elseBlock.statements || []).forEach(visitStmt);
-            break;
-          case 'Match':
-            visitExpr(s.expr);
-            s.cases.forEach(c => {
-              if (c.body.kind === 'Return') visitExpr(c.body.expr);
-              else (c.body.statements || []).forEach(visitStmt);
-            });
-            break;
-          default:
-            break;
-        }
-      };
-      (e.body.statements || []).forEach(visitStmt);
+      }
+      new CaptureVisitor().visitBlock(e.body, undefined as unknown as void);
       const captures = Array.from(names);
       const coreParams = e.params.map(p => ({ name: p.name, type: lowerType(p.type) }));
       const ret = lowerType(e.retType);
@@ -418,6 +450,13 @@ function lowerType(t: Type): import('./types.js').Core.Type {
         if (o) (out as any).origin = o;
         return out;
       }
+    case 'TypePii':
+      {
+        const out = Core.Pii(lowerType(t.baseType), t.sensitivity, t.category);
+        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
+        if (o) (out as any).origin = o;
+        return out;
+      }
     default:
       throw new Error(`Unknown type kind: ${(t as { kind: string }).kind}`);
   }
@@ -447,6 +486,8 @@ function lowerTypeWithVars(t: Type, vars: Set<string>): import('./types.js').Cor
       } as import('./types.js').Core.Type;
     case 'TypeVar':
       return { kind: 'TypeVar', name: t.name } as import('./types.js').Core.TypeVar;
+    case 'TypePii':
+      return Core.Pii(lowerTypeWithVars(t.baseType, vars), t.sensitivity, t.category);
     default:
       return lowerType(t);
   }

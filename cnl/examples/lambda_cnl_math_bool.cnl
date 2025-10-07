@@ -1,5 +1,4 @@
 This module is demo.lambdamath.
-
 To compute, produce Int:
   Let inc be function with x: Int, produce Int:
     Return +(x, 1).

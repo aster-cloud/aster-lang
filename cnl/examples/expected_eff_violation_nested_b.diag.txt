@@ -1,0 +1,3 @@
+ERROR: Function 'http_call' uses IO capability 'Sql' but header declares [Http].
+ERROR: Function 'top_level' with effect 'CPU' cannot call function 'http_call' with effect 'IO[Http]'.
+INFO: Function 'http_call' declares IO capability 'Http' but it is not used.

@@ -1,5 +1,4 @@
 This module is demo.rest.
-
 To greet with name: Text, produce Text:
   Return Text.concat("Hello, ", name).
 

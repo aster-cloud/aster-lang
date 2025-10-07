@@ -43,6 +43,13 @@ Examples:
 
 ## Diagnostics
 
+### Effect enforcement note
+
+- Effect declarations are enforced at compile-time.
+- Minimal lattice: ∅ ⊑ CPU ⊑ IO[*] (declaring @io satisfies CPU work).
+- Superfluous @io when only CPU-like work is detected is reported as info; superfluous @cpu with no CPU-like work is a warning.
+
+
 When a function declares an effect that is not allowed by the manifest, the typechecker emits an error like:
 
 ```

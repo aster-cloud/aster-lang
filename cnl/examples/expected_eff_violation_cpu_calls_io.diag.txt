@@ -1,0 +1,1 @@
+ERROR: Function 'process' with effect 'CPU' cannot call function 'fetch_data' with effect 'IO[Http]'.

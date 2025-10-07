@@ -1,0 +1,22 @@
+module etl.customer_sync
+
+capabilities uses [Sql, Http, Time]
+
+record Customer { id: UUID, email: String }
+
+fn fetchRemoteChunk(offset: Int) -> Result[List[Customer], String] uses [Http] { }
+fn upsertBatch(cs: List[Customer]) -> Result[Int, String] uses [Sql] { }
+
+workflow NightlySync() uses [Sql, Http, Time] {
+  on start:
+    let off = 0
+
+  step ingest = retry(max=10, backoff=exp(200ms)) {
+    match fetchRemoteChunk(off) {
+      Ok(cs)  => upsertBatch(cs)
+      Err(_)  => stop
+    }
+  }
+
+  await Time.after(1d)
+}

@@ -147,6 +147,15 @@ async function runOneTypecheckWithCaps(
   }
 }
 
+function parseCapsFromSource(src: string): readonly string[] | null {
+  const can = canonicalize(src);
+  const toks = lex(can);
+  const ast: any = parse(toks);
+  const fn: any = ast?.decls?.[0];
+  const caps = fn?.effectCaps?.io ?? null;
+  return caps ? [...caps] : null;
+}
+
 async function main(): Promise<void> {
   runOneAst('cnl/examples/greet.cnl', 'cnl/examples/expected_greet.ast.json');
   runOneAst('cnl/examples/login.cnl', 'cnl/examples/expected_login.ast.json');
@@ -207,6 +216,28 @@ async function main(): Promise<void> {
   await runOneTypecheck(
     'cnl/examples/bad_generic.cnl',
     'cnl/examples/expected_bad_generic.diag.txt'
+  );
+  // Effect enforcement (missing @io when IO-like calls are present)
+  await runOneTypecheck(
+    'cnl/examples/effect_enforcement.cnl',
+    'cnl/examples/expected_effect_enforcement.diag.txt'
+  );
+  // Effect inference regression tests
+  await runOneTypecheck(
+    'cnl/examples/eff_infer_wrapper_io.cnl',
+    'cnl/examples/expected_eff_infer_wrapper_io.diag.txt'
+  );
+  await runOneTypecheck(
+    'cnl/examples/eff_infer_wrapper_cpu.cnl',
+    'cnl/examples/expected_eff_infer_wrapper_cpu.diag.txt'
+  );
+  await runOneTypecheck(
+    'cnl/examples/eff_infer_transitive.cnl',
+    'cnl/examples/expected_eff_infer_transitive.diag.txt'
+  );
+  await runOneTypecheck(
+    'cnl/examples/eff_infer_mixed.cnl',
+    'cnl/examples/expected_eff_infer_mixed.diag.txt'
   );
   // Match example
   runOneAst('cnl/examples/match_null.cnl', 'cnl/examples/expected_match_null.ast.json');
@@ -288,6 +319,39 @@ async function main(): Promise<void> {
     'cnl/examples/enum_wildcard.cnl',
     'cnl/examples/expected_enum_wildcard_core.json'
   );
+  // PII type system tests
+  runOneAst('cnl/examples/pii_type_basic.cnl', 'cnl/examples/expected_pii_type_basic.ast.json');
+  await runOneCore('cnl/examples/pii_type_basic.cnl', 'cnl/examples/expected_pii_type_basic_core.json');
+  runOneAst('cnl/examples/pii_type_phone.cnl', 'cnl/examples/expected_pii_type_phone.ast.json');
+  await runOneCore('cnl/examples/pii_type_phone.cnl', 'cnl/examples/expected_pii_type_phone_core.json');
+  runOneAst('cnl/examples/pii_type_ssn.cnl', 'cnl/examples/expected_pii_type_ssn.ast.json');
+  await runOneCore('cnl/examples/pii_type_ssn.cnl', 'cnl/examples/expected_pii_type_ssn_core.json');
+  runOneAst('cnl/examples/pii_type_in_function.cnl', 'cnl/examples/expected_pii_type_in_function.ast.json');
+  await runOneCore('cnl/examples/pii_type_in_function.cnl', 'cnl/examples/expected_pii_type_in_function_core.json');
+  runOneAst('cnl/examples/pii_type_in_data.cnl', 'cnl/examples/expected_pii_type_in_data.ast.json');
+  await runOneCore('cnl/examples/pii_type_in_data.cnl', 'cnl/examples/expected_pii_type_in_data_core.json');
+  runOneAst('cnl/examples/pii_type_mixed.cnl', 'cnl/examples/expected_pii_type_mixed.ast.json');
+  await runOneCore('cnl/examples/pii_type_mixed.cnl', 'cnl/examples/expected_pii_type_mixed_core.json');
+  await runOneTypecheck(
+    'cnl/examples/pii_http_violation.cnl',
+    'cnl/examples/expected_pii_http_violation.diag.txt'
+  );
+  await runOneTypecheck(
+    'cnl/examples/pii_http_safe.cnl',
+    'cnl/examples/expected_pii_http_safe.diag.txt'
+  );
+  await runOneTypecheck(
+    'cnl/examples/pii_propagation.cnl',
+    'cnl/examples/expected_pii_propagation.diag.txt'
+  );
+  await runOneTypecheck(
+    'cnl/examples/pii_function_return.cnl',
+    'cnl/examples/expected_pii_function_return.diag.txt'
+  );
+  await runOneTypecheck(
+    'cnl/examples/pii_nested_call.cnl',
+    'cnl/examples/expected_pii_nested_call.diag.txt'
+  );
   // Interop numeric literal kinds (CNL → Core)
   await runOneCore('cnl/examples/interop_sum.cnl', 'cnl/examples/interop_sum_core.json');
   // Capability manifest violation golden (intentional errors)
@@ -301,6 +365,72 @@ async function main(): Promise<void> {
     'cnl/examples/expected_cap_mixed.diag.txt',
     'cnl/examples/capabilities_mixed.json'
   );
+  // Capability list parsing — CNL-first and bracket sugar
+  runOneAst('cnl/examples/eff_caps_parse.cnl', 'cnl/examples/expected_eff_caps_parse.ast.json');
+  await runOneCore('cnl/examples/eff_caps_parse.cnl', 'cnl/examples/expected_eff_caps_parse_core.json');
+  runOneAst('cnl/examples/eff_caps_parse_brackets.cnl', 'cnl/examples/expected_eff_caps_parse_brackets.ast.json');
+  await runOneCore('cnl/examples/eff_caps_parse_brackets.cnl', 'cnl/examples/expected_eff_caps_parse_brackets_core.json');
+
+  // Additional parse goldens: single-cap and bare-IO
+  runOneAst('cnl/examples/eff_caps_parse_single.cnl', 'cnl/examples/expected_eff_caps_parse_single.ast.json');
+  await runOneCore('cnl/examples/eff_caps_parse_single.cnl', 'cnl/examples/expected_eff_caps_parse_single_core.json');
+  runOneAst('cnl/examples/eff_caps_parse_bare.cnl', 'cnl/examples/expected_eff_caps_parse_bare.ast.json');
+  await runOneCore('cnl/examples/eff_caps_parse_bare.cnl', 'cnl/examples/expected_eff_caps_parse_bare_core.json');
+
+  // Enable capability-enforcement flag and run gated typecheck golden (both forms)
+  process.env.ASTER_CAP_EFFECTS_ENFORCE = '1';
+  await runOneTypecheck('cnl/examples/eff_caps_enforce.cnl', 'cnl/examples/expected_eff_caps_enforce.diag.txt');
+  await runOneTypecheck('cnl/examples/eff_caps_enforce_brackets.cnl', 'cnl/examples/expected_eff_caps_enforce_brackets.diag.txt');
+
+  // Additional parse goldens to exercise capability list variants
+  runOneAst('cnl/examples/eff_caps_parse_mixed_brackets_and_and.cnl', 'cnl/examples/expected_eff_caps_parse_mixed_brackets_and_and.ast.json');
+  await runOneCore('cnl/examples/eff_caps_parse_mixed_brackets_and_and.cnl', 'cnl/examples/expected_eff_caps_parse_mixed_brackets_and_and_core.json');
+  runOneAst('cnl/examples/eff_caps_parse_files_secrets.cnl', 'cnl/examples/expected_eff_caps_parse_files_secrets.ast.json');
+  await runOneCore('cnl/examples/eff_caps_parse_files_secrets.cnl', 'cnl/examples/expected_eff_caps_parse_files_secrets_core.json');
+
+  // Smoke: ensure both forms parse and capture identical capability lists
+  {
+    const srcCnl = [
+      'This module is smoke.cnl.',
+      '',
+      'To ping, produce Text. It performs io with Http and Sql and Time:',
+      '  Return "ok".',
+      ''
+    ].join('\n');
+    const srcBracket = [
+      'This module is smoke.cnl.',
+      '',
+      'To ping, produce Text. It performs io [Http, Sql, Time]:',
+      '  Return "ok".',
+      ''
+    ].join('\n');
+    const capsCnl = parseCapsFromSource(srcCnl);
+    const capsBracket = parseCapsFromSource(srcBracket);
+    const expected = ['Http', 'Sql', 'Time'];
+    const ok =
+      Array.isArray(capsCnl) &&
+      Array.isArray(capsBracket) &&
+      JSON.stringify(capsCnl) === JSON.stringify(expected) &&
+      JSON.stringify(capsCnl) === JSON.stringify(capsBracket);
+    if (!ok) {
+      console.error('FAIL: PARSE-SMOKE capability caps (CNL vs bracket)');
+      console.error('CNL caps:', capsCnl);
+      console.error('Bracket caps:', capsBracket);
+      process.exitCode = 1;
+    } else {
+      console.log('OK: PARSE-SMOKE capability caps (CNL vs bracket)');
+    }
+  }
+
+  // Additional enforcement goldens
+  await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_extra.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_extra.diag.txt');
+  await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_ai_model.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_ai_model.diag.txt');
+  await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_files.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_files.diag.txt');
+  await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_files.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_files.diag.txt');
+  await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_secrets.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_secrets.diag.txt');
+  await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_time.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_time.diag.txt');
+
+
 }
 
 main().catch(e => {
