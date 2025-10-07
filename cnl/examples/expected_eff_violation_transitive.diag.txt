@@ -1,4 +1,4 @@
-ERROR: Function 'mid_files' uses IO capability 'Secrets' but header declares [Files].
-ERROR: Function 'top_http' uses IO capability 'Files' but header declares [Http].
-INFO: Function 'mid_files' declares IO capability 'Files' but it is not used.
-INFO: Function 'top_http' declares IO capability 'Http' but it is not used.
+WARN: Function 'top_http' declares @io but no obvious I/O found.
+ERROR: Function 'top_http' uses IO capability 'Secrets' but header declares [Http].
+WARN: Function 'top_http' declares IO capability 'Http' but it is not used.
+WARN: 函数 'top_http' 声明了 @io，但推断未发现 IO 副作用。

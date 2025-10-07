@@ -1,1 +1,2 @@
 ERROR: Function 'mixed' uses IO capability 'Secrets' but header declares [Http, Files].
+INFO: Function 'mixed' declares IO capability 'Files' but it is not used.

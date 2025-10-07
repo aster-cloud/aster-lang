@@ -1,2 +1,2 @@
 ERROR: Function 'web_handler' uses IO capability 'Sql' but header declares [Http].
-INFO: Function 'web_handler' declares IO capability 'Http' but it is not used.
+WARN: Function 'web_handler' declares IO capability 'Http' but it is not used.

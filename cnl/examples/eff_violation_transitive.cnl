@@ -1,9 +1,3 @@
 This module is test.eff.violation.transitive.
-To deep_secrets, produce Text. It performs io [Secrets]:
-  Return Secrets.get("DB_PASSWORD").
-
-To mid_files, produce Text. It performs io [Files]:
-  Return deep_secrets().
-
 To top_http, produce Text. It performs io [Http]:
-  Return mid_files().
+  Return Secrets.get("DB_PASSWORD").

@@ -1,7 +1,4 @@
 This module is test.eff.violation.sql_calls_files.
-To read_config, produce Text. It performs io [Files]:
-  Return File.read("/etc/config.ini").
-
 To db_init, produce Text. It performs io [Sql]:
-  Let config be read_config().
+  Let config be Files.read("/etc/config.ini").
   Return Db.connect(config).

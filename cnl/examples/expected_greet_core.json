@@ -2,21 +2,91 @@
   "kind": "Module",
   "name": "app",
   "decls": [
-    { "kind": "Data", "name": "User", "fields": [
-      { "name": "id", "type": { "kind": "TypeName", "name": "Text" } },
-      { "name": "name", "type": { "kind": "TypeName", "name": "Text" } }
-    ]},
-    { "kind": "Func", "name": "greet",
-      "params": [ { "name": "user", "type": { "kind": "Maybe", "type": { "kind": "TypeName", "name": "User" } } } ],
-      "ret": { "kind": "TypeName", "name": "Text" },
+    {
+      "kind": "Data",
+      "name": "User",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "greet",
+      "params": [
+        {
+          "name": "user",
+          "type": {
+            "kind": "Maybe",
+            "type": {
+              "kind": "TypeName",
+              "name": "User"
+            }
+          }
+        }
+      ],
+      "ret": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [
-        { "kind": "Match", "expr": { "kind": "Name", "name": "user" }, "cases": [
-          { "kind": "Case", "pattern": { "kind": "PatNull" }, "body": { "kind": "Return", "expr": { "kind": "String", "value": "Hi, guest" } } },
-          { "kind": "Case", "pattern": { "kind": "PatCtor", "typeName": "User", "names": ["id","name"] }, "body": { "kind": "Return", "expr": { "kind": "String", "value": "Welcome, {name}" } } }
-        ] }
-      ] }
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Match",
+            "expr": {
+              "kind": "Name",
+              "name": "user"
+            },
+            "cases": [
+              {
+                "kind": "Case",
+                "pattern": {
+                  "kind": "PatNull"
+                },
+                "body": {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "Hi, guest"
+                  }
+                }
+              },
+              {
+                "kind": "Case",
+                "pattern": {
+                  "kind": "PatCtor",
+                  "typeName": "User",
+                  "names": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "body": {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "Welcome, {name}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
-

@@ -58,3 +58,27 @@
 | 2025-10-07 23:05 | shell (npm run typecheck) | - | TypeScript 编译通过，无遗漏调用点 |
 | 2025-10-07 23:08 | shell (npm run test:golden) | - | 102 个黄金用例全部通过 |
 | 2025-10-07 23:11 | shell (npm run test:property) | - | 属性测试全部绿，Start/Wait 语法覆盖 |
+| 2025-10-08 09:59 | sequential-thinking | totalThoughts=6 | 审查 Effect Violation Tests 任务，梳理覆盖与风险 |
+| 2025-10-08 09:59 | code-index__set_project_path | path=/Users/rpang/IdeaProjects/aster-lang | 初始化代码索引以便检索审查文件 |
+| 2025-10-08 10:00 | shell (sed/cat) | cnl/examples/eff_violation_*.cnl | 快速浏览16个效应违规示例与expected输出 |
+| 2025-10-08 10:43 | sequential-thinking | totalThoughts=4 | 调查 Capability Enforcement 前置思考 |
+| 2025-10-08 10:43 | code-index__find_files | pattern=**/operations-log.md | 失败：未设置项目路径 |
+| 2025-10-08 10:43 | code-index__set_project_path | path=. | 设置索引根目录，加载 473 个文件 |
+| 2025-10-08 10:44 | code-index__find_files | pattern=**/operations-log.md | 定位现有操作日志文件（2 个结果） |
+| 2025-10-08 10:44 | shell (cat) | cnl/examples/eff_violation_chain.cnl | 查看链式能力违规示例源码 |
+| 2025-10-08 10:44 | shell (cat) | cnl/examples/eff_violation_files_calls_secrets.cnl | 查看 Files→Secrets 示例源码 |
+| 2025-10-08 10:45 | shell (cat) | cnl/examples/expected_eff_violation_chain.diag.txt | 阅读黄金诊断输出 |
+| 2025-10-08 10:45 | shell (cat) | cnl/examples/expected_eff_violation_files_calls_secrets.diag.txt | 阅读黄金诊断输出 |
+| 2025-10-08 10:45 | shell (cat) | cnl/examples/eff_violation_empty_caps.cnl | 检查空 capability 列表示例 |
+| 2025-10-08 10:45 | shell (cat) | cnl/examples/expected_eff_violation_empty_caps.diag.txt | 确认 expected 输出为空 |
+| 2025-10-08 10:46 | shell (sed) | scripts/golden.ts 320-420 | 了解 golden 测试脚本如何启用 enforcement |
+| 2025-10-08 10:46 | shell (sed) | docs/reference/effects-capabilities.md 60-150 | 阅读能力列表设计文档 |
+| 2025-10-08 10:47 | shell (sed) | src/effect_inference.ts 1-220 | 阅读效果推断与传播实现 |
+| 2025-10-08 10:47 | shell (cat) | package.json | 查看可用测试与构建脚本 |
+| 2025-10-08 10:48 | shell (ls) | dist/scripts/typecheck-cli.js | 确认已构建的类型检查 CLI |
+| 2025-10-08 10:48 | shell (node) | ASTER_CAP_EFFECTS_ENFORCE=1 typecheck eff_violation_files_calls_secrets.cnl | 实测 CLI 仅产生警告 |
+| 2025-10-08 10:48 | shell (node) | ASTER_CAP_EFFECTS_ENFORCE=1 typecheck eff_violation_chain.cnl | 实测 CLI 对缺失 @io 报错 |
+| 2025-10-08 10:48 | shell (node) | ASTER_CAP_EFFECTS_ENFORCE=1 typecheck eff_violation_empty_caps.cnl | 实测 CLI 正常通过 |
+| 2025-10-08 11:28 | sequential-thinking | totalThoughts=1 | 运行测试前梳理执行步骤与风险 |
+| 2025-10-08 11:28 | shell (npm run build) | - | TypeScript 构建与 PEG 编译成功 |
+| 2025-10-08 11:29 | shell (npm run test:golden) | - | 黄金测试套件全绿，包括效应违规用例 |

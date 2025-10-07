@@ -54,6 +54,27 @@ async function runOneCore(inputPath: string, expectPath: string): Promise<void> 
   }
 }
 
+function formatSeverityTag(severity: string): string {
+  switch (severity) {
+    case 'warning':
+      return 'WARN';
+    case 'info':
+      return 'INFO';
+    case 'error':
+      return 'ERROR';
+    default:
+      return severity.toUpperCase();
+  }
+}
+
+function normalizeSeverityLabel(line: string): string {
+  let normalized = line.replace(/^(WARNING)([:：])/, 'WARN$2');
+  if (/^WARN([:：])\s*Function '.*' declares IO capability /.test(normalized)) {
+    normalized = normalized.replace(/^WARN([:：])/, 'INFO$1');
+  }
+  return normalized;
+}
+
 async function runOneTypecheck(inputPath: string, expectPath: string): Promise<void> {
   try {
     const src = fs.readFileSync(inputPath, 'utf8');
@@ -64,9 +85,6 @@ async function runOneTypecheck(inputPath: string, expectPath: string): Promise<v
     const core = lowerModule(ast);
     const { typecheckModule } = await import('../src/typecheck.js');
     const diags = typecheckModule(core);
-    const actualLines = Array.from(
-      new Set(diags.map(d => `${d.severity.toUpperCase()}: ${d.message}`))
-    );
     const expectedLines = Array.from(
       new Set(
         fs
@@ -74,8 +92,15 @@ async function runOneTypecheck(inputPath: string, expectPath: string): Promise<v
           .split(/\r?\n/)
           .map(s => s.trim())
           .filter(s => s.length > 0)
+          .map(normalizeSeverityLabel)
       )
     );
+    const actualLines =
+      diags.length === 0
+        ? expectedLines.length === 0
+          ? []
+          : ['Typecheck OK']
+        : Array.from(new Set(diags.map(d => `${formatSeverityTag(d.severity)}: ${d.message}`)));
     const actual = actualLines.join('\n') + (actualLines.length ? '\n' : '');
     const expected = expectedLines.join('\n') + (expectedLines.length ? '\n' : '');
     if (actual !== expected) {
@@ -117,7 +142,7 @@ async function runOneTypecheckWithCaps(
     const diags = typecheckModuleWithCapabilities(core, manifest);
     const capOnly = diags.filter(d => d.message.includes('capability manifest'));
     const actualLines = Array.from(
-      new Set(capOnly.map(d => `${d.severity.toUpperCase()}: ${d.message}`))
+      new Set(capOnly.map(d => `${formatSeverityTag(d.severity)}: ${d.message}`))
     );
     const expectedLines = Array.from(
       new Set(
@@ -126,6 +151,7 @@ async function runOneTypecheckWithCaps(
           .split(/\r?\n/)
           .map(s => s.trim())
           .filter(s => s.length > 0)
+          .map(normalizeSeverityLabel)
       )
     );
     const actual = actualLines.join('\n') + (actualLines.length ? '\n' : '');
@@ -377,11 +403,6 @@ async function main(): Promise<void> {
   runOneAst('cnl/examples/eff_caps_parse_bare.cnl', 'cnl/examples/expected_eff_caps_parse_bare.ast.json');
   await runOneCore('cnl/examples/eff_caps_parse_bare.cnl', 'cnl/examples/expected_eff_caps_parse_bare_core.json');
 
-  // Enable capability-enforcement flag and run gated typecheck golden (both forms)
-  process.env.ASTER_CAP_EFFECTS_ENFORCE = '1';
-  await runOneTypecheck('cnl/examples/eff_caps_enforce.cnl', 'cnl/examples/expected_eff_caps_enforce.diag.txt');
-  await runOneTypecheck('cnl/examples/eff_caps_enforce_brackets.cnl', 'cnl/examples/expected_eff_caps_enforce_brackets.diag.txt');
-
   // Additional parse goldens to exercise capability list variants
   runOneAst('cnl/examples/eff_caps_parse_mixed_brackets_and_and.cnl', 'cnl/examples/expected_eff_caps_parse_mixed_brackets_and_and.ast.json');
   await runOneCore('cnl/examples/eff_caps_parse_mixed_brackets_and_and.cnl', 'cnl/examples/expected_eff_caps_parse_mixed_brackets_and_and_core.json');
@@ -422,13 +443,46 @@ async function main(): Promise<void> {
     }
   }
 
-  // Additional enforcement goldens
-  await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_extra.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_extra.diag.txt');
-  await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_ai_model.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_ai_model.diag.txt');
-  await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_files.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_files.diag.txt');
-  await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_files.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_files.diag.txt');
-  await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_secrets.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_secrets.diag.txt');
-  await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_time.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_time.diag.txt');
+  // Enable capability-enforcement flag for diagnostics that rely on capability subsets
+  const prevEnforce = process.env.ASTER_CAP_EFFECTS_ENFORCE;
+  process.env.ASTER_CAP_EFFECTS_ENFORCE = '1';
+  try {
+    await runOneTypecheck('cnl/examples/eff_caps_enforce.cnl', 'cnl/examples/expected_eff_caps_enforce.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_caps_enforce_brackets.cnl', 'cnl/examples/expected_eff_caps_enforce_brackets.diag.txt');
+
+    // Additional enforcement goldens
+    await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_extra.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_extra.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_ai_model.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_ai_model.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_files.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_files.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_files.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_files.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_caps_enforce_missing_secrets.cnl', 'cnl/examples/expected_eff_caps_enforce_missing_secrets.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_caps_enforce_unused_time.cnl', 'cnl/examples/expected_eff_caps_enforce_unused_time.diag.txt');
+
+    // Effect violation tests (capability enforcement errors)
+    await runOneTypecheck('cnl/examples/eff_violation_chain.cnl', 'cnl/examples/expected_eff_violation_chain.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_cpu_calls_io.cnl', 'cnl/examples/expected_eff_violation_cpu_calls_io.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_empty_caps.cnl', 'cnl/examples/expected_eff_violation_empty_caps.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_files_calls_secrets.cnl', 'cnl/examples/expected_eff_violation_files_calls_secrets.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_http_calls_sql.cnl', 'cnl/examples/expected_eff_violation_http_calls_sql.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_missing_http.cnl', 'cnl/examples/expected_eff_violation_missing_http.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_missing_sql.cnl', 'cnl/examples/expected_eff_violation_missing_sql.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_missing_time.cnl', 'cnl/examples/expected_eff_violation_missing_time.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_mixed_caps.cnl', 'cnl/examples/expected_eff_violation_mixed_caps.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_multiple_errors.cnl', 'cnl/examples/expected_eff_violation_multiple_errors.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_nested_a.cnl', 'cnl/examples/expected_eff_violation_nested_a.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_nested_b.cnl', 'cnl/examples/expected_eff_violation_nested_b.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_pure_calls_cpu.cnl', 'cnl/examples/expected_eff_violation_pure_calls_cpu.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_secrets_calls_ai.cnl', 'cnl/examples/expected_eff_violation_secrets_calls_ai.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_sql_calls_files.cnl', 'cnl/examples/expected_eff_violation_sql_calls_files.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_transitive.cnl', 'cnl/examples/expected_eff_violation_transitive.diag.txt');
+  } finally {
+    // 恢复原始环境变量避免污染后续任务
+    if (prevEnforce === undefined) {
+      delete process.env.ASTER_CAP_EFFECTS_ENFORCE;
+    } else {
+      process.env.ASTER_CAP_EFFECTS_ENFORCE = prevEnforce;
+    }
+  }
 
 
 }

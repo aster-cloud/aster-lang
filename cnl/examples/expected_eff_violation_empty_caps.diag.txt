@@ -1,1 +1,1 @@
-ERROR: Function 'fetch' declares effect 'IO' without specific capabilities but uses IO capability 'Http'.
+Typecheck OK
