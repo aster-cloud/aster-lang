@@ -156,7 +156,12 @@ export function parse(tokens: readonly Token[]): Module {
       let asName: string | null = null;
       if (ctx.isKeyword(KW.AS)) {
         ctx.nextWord();
-        asName = parseIdent();
+        // 允许别名为普通标识符或类型标识符（如：use Http as H.）
+        if (ctx.at(TokenKind.TYPE_IDENT)) {
+          asName = ctx.next().value as string;
+        } else {
+          asName = parseIdent();
+        }
       }
       expectDot();
       decls.push(Node.Import(name, asName));
@@ -388,7 +393,15 @@ export function parse(tokens: readonly Token[]): Module {
   }
 
   function parseDottedIdent(): string {
-    const parts = [parseIdent()];
+    // 允许点号分隔的标识符首段为普通标识符或类型标识符
+    const parts: string[] = [];
+    if (ctx.at(TokenKind.IDENT)) {
+      parts.push(parseIdent());
+    } else if (ctx.at(TokenKind.TYPE_IDENT)) {
+      parts.push(ctx.next().value as string);
+    } else {
+      Diagnostics.expectedIdentifier(ctx.peek().start).throw();
+    }
     while (
       ctx.at(TokenKind.DOT) &&
       ctx.tokens[ctx.index + 1] &&

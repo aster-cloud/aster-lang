@@ -2,6 +2,7 @@ import type { Core, TypecheckDiagnostic, Origin } from './types.js';
 import { Effect } from './types.js';
 import { getIOPrefixes, getCPUPrefixes } from './config/effect_config.js';
 import { DefaultCoreVisitor } from './visitor.js';
+import { resolveAlias } from './typecheck.js';
 
 // 从配置获取效果推断前缀（模块级，避免重复调用）
 const IO_PREFIXES = getIOPrefixes();
@@ -18,7 +19,7 @@ interface FunctionAnalysis {
   localEffects: Set<Effect>;
 }
 
-export function inferEffects(core: Core.Module): TypecheckDiagnostic[] {
+export function inferEffects(core: Core.Module, imports?: Map<string, string>): TypecheckDiagnostic[] {
   const funcIndex = new Map<string, Core.Func>();
   for (const decl of core.decls) {
     if (decl.kind === 'Func') funcIndex.set(decl.name, decl);
@@ -31,7 +32,7 @@ export function inferEffects(core: Core.Module): TypecheckDiagnostic[] {
 
   // 第一遍：收集局部效果和约束
   for (const func of funcIndex.values()) {
-    const analysis = analyzeFunction(func, funcIndex);
+    const analysis = analyzeFunction(func, funcIndex, imports);
     constraints.push(...analysis.constraints);
 
     const declared = new Set<Effect>(func.effects);
@@ -60,7 +61,7 @@ export function inferEffects(core: Core.Module): TypecheckDiagnostic[] {
   return buildDiagnostics(funcIndex, declaredEffects, inferredEffects, requiredEffects);
 }
 
-function analyzeFunction(func: Core.Func, index: Map<string, Core.Func>): FunctionAnalysis {
+function analyzeFunction(func: Core.Func, index: Map<string, Core.Func>, imports?: Map<string, string>): FunctionAnalysis {
   const constraints: EffectConstraint[] = [];
   const localEffects = new Set<Effect>();
 
@@ -70,9 +71,10 @@ function analyzeFunction(func: Core.Func, index: Map<string, Core.Func>): Functi
       if (e.kind === 'Call') {
         const calleeName = extractFunctionName(e.target);
         if (calleeName) {
-          if (!index.has(calleeName)) recordBuiltinEffect(calleeName, localEffects);
-          if (index.has(calleeName)) {
-            const constraint: EffectConstraint = { caller: func.name, callee: calleeName };
+          const resolvedName = imports ? resolveAlias(calleeName, imports) : calleeName;
+          if (!index.has(resolvedName)) recordBuiltinEffect(resolvedName, localEffects);
+          if (index.has(resolvedName)) {
+            const constraint: EffectConstraint = { caller: func.name, callee: resolvedName };
             const call = e as Core.Call;
             if (call.origin) constraint.location = call.origin as Origin;
             constraints.push(constraint);

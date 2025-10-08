@@ -8,6 +8,7 @@
 
 ### ✨ New Features
 
+- **Alias Import Effect Tracking**: Effect inference now correctly resolves import aliases (e.g., `use Http as H; H.get()` is recognized as IO effect). Implements `resolveAlias` function that maps alias prefixes to actual module names before prefix matching. Parser updated to support uppercase identifiers in `use` statements. Backward compatible with non-alias imports. (#阶段2.3)
 - **Configurable Effect Inference**: Effect inference prefixes (IO_PREFIXES, CPU_PREFIXES) are now configurable via `.aster/effects.json` file or `ASTER_EFFECT_CONFIG` environment variable. Supports fine-grained categorization (io.http, io.sql, io.files, io.secrets, io.time). Implements deep merge with default configuration for partial configs, type validation for array fields (filters non-string elements), and graceful fallback for missing/malformed config files. Includes comprehensive test suite covering 7 edge cases. (#阶段2.2)
 - **Fine-grained Capability types**: Extended Capability system from coarse-grained (io/cpu) to fine-grained (Http/Sql/Time/Files/Secrets/AiModel/CPU). Backward compatible with legacy syntax. Provides more precise permission control and clearer error messages. (#Stage2.1)
 - **Structured logging system**: Added JSON-formatted logging with `LOG_LEVEL` environment variable support, performance metrics tracking, and component-level logging. (#阶段1.4)

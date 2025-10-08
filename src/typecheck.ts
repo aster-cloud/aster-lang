@@ -22,6 +22,19 @@ const CPU_PREFIXES = getCPUPrefixes();
 // Re-export TypecheckDiagnostic for external use
 export type { TypecheckDiagnostic };
 
+/**
+ * 解析导入别名到真实模块前缀
+ * @param name 原始名称（如 "H.get"）
+ * @param imports 别名映射（如 {H: "Http"}）
+ * @returns 解析后的名称（如 "Http.get"）
+ */
+export function resolveAlias(name: string, imports: Map<string, string>): string {
+  if (!name.includes('.')) return name;
+  const [prefix, ...rest] = name.split('.');
+  const resolved = imports.get(prefix!);
+  return resolved ? `${resolved}.${rest.join('.')}` : name;
+}
+
 // Internal representation for types during checking
 type UnknownT = { kind: 'Unknown' };
 type T = Core.Type | UnknownT;
@@ -176,7 +189,7 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
         diags.push(...typecheckFunc(ctx, d));
       }
     }
-    const effectDiags = inferEffects(m);
+    const effectDiags = inferEffects(m, ctx.imports);
     diags.push(...effectDiags);
     const duration = performance.now() - startTime;
     const baseMeta = { moduleName, errorCount: diags.length };
@@ -259,7 +272,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
   }
 
   // Effect enforcement (minimal lattice: ∅ ⊑ CPU ⊑ IO[*])
-  const effs = collectEffects(f.body);
+  const effs = collectEffects(ctx, f.body);
   const hasIO = f.effects.some(e => String(e).toLowerCase() === 'io');
   const hasCPU = f.effects.some(e => String(e).toLowerCase() === 'cpu');
   // Missing IO is an error when IO-like calls are detected
@@ -465,14 +478,15 @@ function warn(diags: TypecheckDiagnostic[], message: string): void {
   diags.push({ severity: 'warning', message });
 }
 
-function collectEffects(b: Core.Block): Set<'io' | 'cpu'> {
+function collectEffects(ctx: ModuleContext, b: Core.Block): Set<'io' | 'cpu'> {
   const effs = new Set<'io' | 'cpu'>();
   class EffectsVisitor extends DefaultCoreVisitor<void> {
     override visitExpression(e: Core.Expression): void {
       if (e.kind === 'Call' && e.target.kind === 'Name') {
-        const n = e.target.name;
-        if (IO_PREFIXES.some((p: string) => n.startsWith(p))) effs.add('io');
-        if (CPU_PREFIXES.some((p: string) => n.startsWith(p))) effs.add('cpu');
+        const rawName = e.target.name;
+        const resolvedName = resolveAlias(rawName, ctx.imports);
+        if (IO_PREFIXES.some((p: string) => resolvedName.startsWith(p))) effs.add('io');
+        if (CPU_PREFIXES.some((p: string) => resolvedName.startsWith(p))) effs.add('cpu');
       }
       super.visitExpression(e, undefined as unknown as void);
     }

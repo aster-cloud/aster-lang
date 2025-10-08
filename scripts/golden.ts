@@ -270,6 +270,10 @@ async function main(): Promise<void> {
     'cnl/examples/eff_custom_prefix.cnl',
     'cnl/examples/expected_eff_custom_prefix.diag.txt'
   );
+  await runOneTypecheck(
+    'cnl/examples/eff_alias_import.cnl',
+    'cnl/examples/expected_eff_alias_import.diag.txt'
+  );
   // Match example
   runOneAst('cnl/examples/match_null.cnl', 'cnl/examples/expected_match_null.ast.json');
   await runOneCore('cnl/examples/match_null.cnl', 'cnl/examples/expected_match_null_core.json');

@@ -1,0 +1,19 @@
+This module is test.eff.alias_import.
+
+Use Http as H.
+
+Use Db as D.
+
+To fetch_with_alias, produce Text:
+  Return H.get("/api/data").
+
+To query_with_alias, produce Text:
+  Return D.query("SELECT * FROM users").
+
+To mixed_alias_and_direct, produce Text:
+  Let x be H.get("/api").
+  Let y be Http.post("/api").
+  Return x.
+
+To declared_effect_with_alias, produce Text. It performs io:
+  Return H.get("/api/data").

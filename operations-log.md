@@ -585,3 +585,17 @@
 2025-10-08 23:05 NZST - 运行 `ls`、`ls test` 和 `rg -n "expected_eff"` 了解测试资产分布与黄金用例。
 2025-10-08 23:05 NZST - 使用 `apply_patch` 新建 `.claude/context-initial.json`，整理阶段2.2 结构化快速扫描报告。
 2025-10-08 23:05 NZST - 使用 `apply_patch` 更新 `operations-log.md`，记录阶段2.2 上下文收集操作（本条记该操作）。
+## 2025-10-08T11:44:19Z — 上下文收集：别名导入效果追踪（Codex）
+
+- 工具：rg/sed/nl（代码检索与定位）；apply_patch（写入报告）
+- 动作：
+  - 扫描 Import/Parser/AST/Core/Typecheck/Effect Inference 相关文件
+  - 提取关键实现片段与行号
+  - 生成结构化报告 `.claude/context-initial.json`
+- 关键输出：`.claude/context-initial.json`
+- 观察摘要：
+  - Import 支持 `use X as Y.`，AST/Core 含 `asName`
+  - typecheck 建立 `imports` 映射，但效果收集未使用
+  - 效果前缀匹配基于原始名称字符串，未解析别名
+  - examples 未覆盖 alias 导入场景
+2025-10-09 01:00 NZDT - 修正解析器 parseDottedIdent 允许首段 TYPE_IDENT，并在 `use` 语句的 `as` 别名位置接受 TYPE_IDENT（支持 `use Http as H.`）。新增/确认用例：`cnl/examples/eff_alias_import.cnl`；创建期望文件 `cnl/examples/expected_eff_alias_import.diag.txt`（为空）。执行 `npm run test:golden` → 全部通过（115/115）。
