@@ -4,11 +4,13 @@
 
 # Interface: Await
 
-Defined in: [types.ts:333](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L333)
+Defined in: [types.ts:333](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L333)
+
+Await 表达式基础接口。
 
 ## Extends
 
-- `BaseAwait`\<[`Origin`](../../../interfaces/Origin.md), [`Expression`](../type-aliases/Expression.md)\>
+- [`BaseAwait`](../../../base/interfaces/BaseAwait.md)\<[`Origin`](../../../interfaces/Origin.md), [`Expression`](../type-aliases/Expression.md)\>
 
 ## Properties
 
@@ -16,11 +18,11 @@ Defined in: [types.ts:333](https://github.com/wontlost-ltd/aster-lang/blob/8bf32
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L32)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L32)
 
 #### Inherited from
 
-`Base.BaseAwait.span`
+[`BaseAwait`](../../../base/interfaces/BaseAwait.md).[`span`](../../../base/interfaces/BaseAwait.md#span)
 
 ***
 
@@ -28,11 +30,11 @@ Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L33)
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L33)
 
 #### Inherited from
 
-`Base.BaseAwait.origin`
+[`BaseAwait`](../../../base/interfaces/BaseAwait.md).[`origin`](../../../base/interfaces/BaseAwait.md#origin)
 
 ***
 
@@ -40,11 +42,11 @@ Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L34)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L34)
 
 #### Inherited from
 
-`Base.BaseAwait.file`
+[`BaseAwait`](../../../base/interfaces/BaseAwait.md).[`file`](../../../base/interfaces/BaseAwait.md#file)
 
 ***
 
@@ -52,11 +54,11 @@ Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **kind**: `"Await"`
 
-Defined in: [types/base.ts:369](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L369)
+Defined in: [types/base.ts:369](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L369)
 
 #### Inherited from
 
-`Base.BaseAwait.kind`
+[`BaseAwait`](../../../base/interfaces/BaseAwait.md).[`kind`](../../../base/interfaces/BaseAwait.md#kind)
 
 ***
 
@@ -64,8 +66,8 @@ Defined in: [types/base.ts:369](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types/base.ts:370](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L370)
+Defined in: [types/base.ts:370](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L370)
 
 #### Inherited from
 
-`Base.BaseAwait.expr`
+[`BaseAwait`](../../../base/interfaces/BaseAwait.md).[`expr`](../../../base/interfaces/BaseAwait.md#expr-1)

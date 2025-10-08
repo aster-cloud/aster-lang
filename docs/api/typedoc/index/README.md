@@ -17,14 +17,9 @@ const core = lowerModule(ast);         // 降级到 Core IR
 console.log(core);
 ```
 
-## Enumerations
-
-- [Effect](enumerations/Effect.md)
-
 ## Variables
 
 - [Node](variables/Node.md)
-- [KW](variables/KW.md)
 
 ## References
 
@@ -58,9 +53,21 @@ Re-exports [Core](../core_ir/variables/Core.md)
 
 ***
 
+### Effect
+
+Re-exports [Effect](../config/semantic/enumerations/Effect.md)
+
+***
+
 ### TokenKind
 
 Re-exports [TokenKind](../types/enumerations/TokenKind.md)
+
+***
+
+### KW
+
+Re-exports [KW](../config/semantic/variables/KW.md)
 
 ***
 

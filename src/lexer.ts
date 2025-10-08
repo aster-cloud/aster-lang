@@ -41,7 +41,7 @@ function isDigit(ch: string): boolean {
  * - 标点符号：`.`, `,`, `:`, `(`, `)`, `{`, `}` 等
  * - 特殊 token：`INDENT`, `DEDENT`, `NEWLINE`, `EOF`
  *
- * @param input - 规范化后的 CNL 源代码（应先通过 {@link canonicalize} 处理）
+ * @param input - 规范化后的 CNL 源代码（应先通过 canonicalizer.canonicalize 处理）
  * @returns Token 数组，每个 token 包含类型、值和位置信息
  *
  * @throws {DiagnosticError} 当遇到非法字符或缩进错误时抛出

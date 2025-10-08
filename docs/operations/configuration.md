@@ -36,23 +36,45 @@
 | `CI_DEBUG` | 否 | 未设置 | CI 流程调试开关，控制部分 LSP smoke 脚本 | `CI_DEBUG=1` | 仅在排查时使用 |
 
 ## 2. 能力 manifest 格式
-- 环境变量 `ASTER_CAPS` 指向 JSON 文件，示例结构：
+- 环境变量 `ASTER_CAPS` 指向 JSON 文件。
+- Manifest 更新后需重启 CLI/LSP 进程或重新运行 `npm run typecheck` 以重新加载。
+
+### 2.1 细粒度能力示例
+- 细粒度能力 manifest 示例：
   ```json
   {
     "allow": {
-      "io": ["demo.service.*", "demo.service.fetch"],
-      "cpu": ["*"]
-    },
-    "deny": {
-      "io": ["demo.service.legacy*"],
-      "cpu": []
+      "Http": ["api.example.com/*"],
+      "Sql": ["db.query*"],
+      "Files": ["*"]
     }
   }
   ```
-- 规则：
-  - `deny` 优先级高于 `allow`。
-  - 支持通配符：`*`、`module.*`、`module.func`、`module.func*`。
-  - Manifest 更新后需重启 CLI/LSP 进程或重新运行 `npm run typecheck` 以重新加载。
+- 支持同时配置 `deny`，仍然遵循 `deny` 优先于 `allow` 的规则。
+- 通配符规则保持不变：`*`、`module.*`、`module.func`、`module.func*`。
+
+### 2.2 Legacy 语法兼容
+- 旧版 manifest 仍然兼容，可继续使用原有粗粒度能力：
+  ```json
+  {
+    "allow": {
+      "io": ["*"],
+      "cpu": ["*"]
+    }
+  }
+  ```
+- 粗粒度 `io` 等价于同时授予 `Http` 与 `Sql` 类能力，`cpu` 语法保持原状。
+
+### 2.3 能力类型速查表
+| 能力 | 描述 |
+| --- | --- |
+| Http | HTTP 网络请求 |
+| Sql | 数据库查询 |
+| Time | 时间相关操作 |
+| Files | 文件系统操作 |
+| Secrets | 密钥和敏感数据访问 |
+| AiModel | AI 模型调用 |
+| CPU | CPU 密集型计算 |
 
 ## 3. 配置验证方法
 1. 健康检查脚本：

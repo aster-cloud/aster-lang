@@ -8,6 +8,7 @@
 
 ### ✨ New Features
 
+- **Fine-grained Capability types**: Extended Capability system from coarse-grained (io/cpu) to fine-grained (Http/Sql/Time/Files/Secrets/AiModel/CPU). Backward compatible with legacy syntax. Provides more precise permission control and clearer error messages. (#Stage2.1)
 - **Structured logging system**: Added JSON-formatted logging with `LOG_LEVEL` environment variable support, performance metrics tracking, and component-level logging. (#阶段1.4)
 - **Error ID system**: Introduced centralized error codes (E1xxx-E9xxx) for better error tracking and diagnostics. (#快速胜利项)
 - **Health check script**: Added `scripts/health-check.ts` to validate critical environment variables before deployment. (#快速胜利项)

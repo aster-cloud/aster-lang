@@ -156,7 +156,8 @@
         "Sql",
         "Time",
         "Files",
-        "Secrets"
+        "Secrets",
+        "AiModel"
       ],
       "effectCapsExplicit": false
     }

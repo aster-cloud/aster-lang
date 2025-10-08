@@ -7,7 +7,9 @@
     "src/parser.ts",
     "src/lower_to_core.ts",
     "src/core_ir.ts",
-    "src/types.ts"
+    "src/types.ts",
+    "src/types/base.ts",
+    "src/config/semantic.ts"
   ],
   "plugin": [
     "typedoc-plugin-markdown"

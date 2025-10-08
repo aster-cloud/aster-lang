@@ -21,3 +21,12 @@
 - 执行者：Codex
 - 指令与结果：
   - `ASTER_CAP_EFFECTS_ENFORCE=1 npm run test:golden` → 通过，所有 eff_violation/eff_caps_enforce/pii 黄金测试均输出细粒度 capability 文案，其余 AST/Core 黄金测试保持成功。
+
+## 2025-10-08 Capability v2 收尾验证
+- 日期：2025-10-08 16:56 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run typecheck` → 通过（tsc --noEmit，确认 TypeScript 侧无回归）。
+  - `npm run test:golden` → 通过（黄金测试与格式化流程完整执行）。
+  - `npm run build` → 通过（生成 PEG 解析器）。
+  - `node dist/scripts/typecheck-cli.js test/capability-v2.cnl` → 通过但提示 `mixed` 无直接 IO 操作；用于验证 legacy `@io` 与细粒度 `Http`/`Files`/`Secrets` 注解可被解析。

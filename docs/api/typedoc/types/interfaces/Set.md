@@ -4,11 +4,13 @@
 
 # Interface: Set
 
-Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L100)
+Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L100)
+
+Set 赋值基础接口。
 
 ## Extends
 
-- `BaseSet`\<[`Span`](Span.md), [`Expression`](../type-aliases/Expression.md)\>
+- [`BaseSet`](../base/interfaces/BaseSet.md)\<[`Span`](Span.md), [`Expression`](../type-aliases/Expression.md)\>
 
 ## Properties
 
@@ -16,11 +18,11 @@ Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/8bf32
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L32)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L32)
 
 #### Inherited from
 
-`Base.BaseSet.span`
+[`BaseSet`](../base/interfaces/BaseSet.md).[`span`](../base/interfaces/BaseSet.md#span)
 
 ***
 
@@ -28,11 +30,11 @@ Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L33)
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L33)
 
 #### Inherited from
 
-`Base.BaseSet.origin`
+[`BaseSet`](../base/interfaces/BaseSet.md).[`origin`](../base/interfaces/BaseSet.md#origin)
 
 ***
 
@@ -40,11 +42,11 @@ Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L34)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L34)
 
 #### Inherited from
 
-`Base.BaseSet.file`
+[`BaseSet`](../base/interfaces/BaseSet.md).[`file`](../base/interfaces/BaseSet.md#file)
 
 ***
 
@@ -52,11 +54,11 @@ Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **kind**: `"Set"`
 
-Defined in: [types/base.ts:128](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L128)
+Defined in: [types/base.ts:128](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L128)
 
 #### Inherited from
 
-`Base.BaseSet.kind`
+[`BaseSet`](../base/interfaces/BaseSet.md).[`kind`](../base/interfaces/BaseSet.md#kind)
 
 ***
 
@@ -64,7 +66,7 @@ Defined in: [types/base.ts:128](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:129](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L129)
+Defined in: [types/base.ts:129](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L129)
 
 #### Inherited from
 
@@ -76,8 +78,8 @@ Defined in: [types/base.ts:129](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types/base.ts:130](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L130)
+Defined in: [types/base.ts:130](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L130)
 
 #### Inherited from
 
-`Base.BaseSet.expr`
+[`BaseSet`](../base/interfaces/BaseSet.md).[`expr`](../base/interfaces/BaseSet.md#expr-1)

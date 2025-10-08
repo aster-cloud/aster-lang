@@ -4,11 +4,13 @@
 
 # Interface: Data
 
-Defined in: [types.ts:79](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L79)
+Defined in: [types.ts:79](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L79)
+
+Data 类型声明基础接口。
 
 ## Extends
 
-- `BaseData`\<[`Span`](Span.md), [`Type`](../type-aliases/Type.md)\>
+- [`BaseData`](../base/interfaces/BaseData.md)\<[`Span`](Span.md), [`Type`](../type-aliases/Type.md)\>
 
 ## Properties
 
@@ -16,11 +18,11 @@ Defined in: [types.ts:79](https://github.com/wontlost-ltd/aster-lang/blob/8bf329
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L32)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L32)
 
 #### Inherited from
 
-`Base.BaseData.span`
+[`BaseData`](../base/interfaces/BaseData.md).[`span`](../base/interfaces/BaseData.md#span)
 
 ***
 
@@ -28,11 +30,11 @@ Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L33)
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L33)
 
 #### Inherited from
 
-`Base.BaseData.origin`
+[`BaseData`](../base/interfaces/BaseData.md).[`origin`](../base/interfaces/BaseData.md#origin)
 
 ***
 
@@ -40,11 +42,11 @@ Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L34)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L34)
 
 #### Inherited from
 
-`Base.BaseData.file`
+[`BaseData`](../base/interfaces/BaseData.md).[`file`](../base/interfaces/BaseData.md#file)
 
 ***
 
@@ -52,11 +54,11 @@ Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **kind**: `"Data"`
 
-Defined in: [types/base.ts:54](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L54)
+Defined in: [types/base.ts:54](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L54)
 
 #### Inherited from
 
-`Base.BaseData.kind`
+[`BaseData`](../base/interfaces/BaseData.md).[`kind`](../base/interfaces/BaseData.md#kind)
 
 ***
 
@@ -64,7 +66,7 @@ Defined in: [types/base.ts:54](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:55](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L55)
+Defined in: [types/base.ts:55](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L55)
 
 #### Inherited from
 
@@ -74,10 +76,10 @@ Defined in: [types/base.ts:55](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 ### fields
 
-> `readonly` **fields**: readonly `BaseField`\<[`Type`](../type-aliases/Type.md)\>[]
+> `readonly` **fields**: readonly [`BaseField`](../base/interfaces/BaseField.md)\<[`Type`](../type-aliases/Type.md)\>[]
 
-Defined in: [types/base.ts:56](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L56)
+Defined in: [types/base.ts:56](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L56)
 
 #### Inherited from
 
-`Base.BaseData.fields`
+[`BaseData`](../base/interfaces/BaseData.md).[`fields`](../base/interfaces/BaseData.md#fields)

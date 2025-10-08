@@ -4,11 +4,13 @@
 
 # Interface: Import
 
-Defined in: [types.ts:233](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L233)
+Defined in: [types.ts:233](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L233)
+
+Import 声明基础接口。
 
 ## Extends
 
-- `BaseImport`\<[`Origin`](../../../interfaces/Origin.md)\>
+- [`BaseImport`](../../../base/interfaces/BaseImport.md)\<[`Origin`](../../../interfaces/Origin.md)\>
 
 ## Properties
 
@@ -16,11 +18,11 @@ Defined in: [types.ts:233](https://github.com/wontlost-ltd/aster-lang/blob/8bf32
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L32)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L32)
 
 #### Inherited from
 
-`Base.BaseImport.span`
+[`BaseImport`](../../../base/interfaces/BaseImport.md).[`span`](../../../base/interfaces/BaseImport.md#span)
 
 ***
 
@@ -28,11 +30,11 @@ Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L33)
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L33)
 
 #### Inherited from
 
-`Base.BaseImport.origin`
+[`BaseImport`](../../../base/interfaces/BaseImport.md).[`origin`](../../../base/interfaces/BaseImport.md#origin)
 
 ***
 
@@ -40,11 +42,11 @@ Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L34)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L34)
 
 #### Inherited from
 
-`Base.BaseImport.file`
+[`BaseImport`](../../../base/interfaces/BaseImport.md).[`file`](../../../base/interfaces/BaseImport.md#file)
 
 ***
 
@@ -52,11 +54,11 @@ Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **kind**: `"Import"`
 
-Defined in: [types/base.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L45)
+Defined in: [types/base.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L45)
 
 #### Inherited from
 
-`Base.BaseImport.kind`
+[`BaseImport`](../../../base/interfaces/BaseImport.md).[`kind`](../../../base/interfaces/BaseImport.md#kind)
 
 ***
 
@@ -64,11 +66,11 @@ Defined in: [types/base.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:46](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L46)
+Defined in: [types/base.ts:46](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L46)
 
 #### Inherited from
 
-`Base.BaseImport.name`
+[`BaseImport`](../../../base/interfaces/BaseImport.md).[`name`](../../../base/interfaces/BaseImport.md#name)
 
 ***
 
@@ -76,8 +78,8 @@ Defined in: [types/base.ts:46](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **asName**: `null` \| `string`
 
-Defined in: [types/base.ts:47](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L47)
+Defined in: [types/base.ts:47](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L47)
 
 #### Inherited from
 
-`Base.BaseImport.asName`
+[`BaseImport`](../../../base/interfaces/BaseImport.md).[`asName`](../../../base/interfaces/BaseImport.md#asname)

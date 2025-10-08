@@ -4,11 +4,13 @@
 
 # Interface: Construct
 
-Defined in: [types.ts:321](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L321)
+Defined in: [types.ts:321](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L321)
+
+构造器表达式基础接口。
 
 ## Extends
 
-- `BaseConstruct`\<[`Origin`](../../../interfaces/Origin.md), [`ConstructField`](ConstructField.md)\>
+- [`BaseConstruct`](../../../base/interfaces/BaseConstruct.md)\<[`Origin`](../../../interfaces/Origin.md), [`ConstructField`](ConstructField.md)\>
 
 ## Properties
 
@@ -16,11 +18,11 @@ Defined in: [types.ts:321](https://github.com/wontlost-ltd/aster-lang/blob/8bf32
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L32)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L32)
 
 #### Inherited from
 
-`Base.BaseConstruct.span`
+[`BaseConstruct`](../../../base/interfaces/BaseConstruct.md).[`span`](../../../base/interfaces/BaseConstruct.md#span)
 
 ***
 
@@ -28,11 +30,11 @@ Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L33)
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L33)
 
 #### Inherited from
 
-`Base.BaseConstruct.origin`
+[`BaseConstruct`](../../../base/interfaces/BaseConstruct.md).[`origin`](../../../base/interfaces/BaseConstruct.md#origin)
 
 ***
 
@@ -40,11 +42,11 @@ Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L34)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L34)
 
 #### Inherited from
 
-`Base.BaseConstruct.file`
+[`BaseConstruct`](../../../base/interfaces/BaseConstruct.md).[`file`](../../../base/interfaces/BaseConstruct.md#file)
 
 ***
 
@@ -52,11 +54,11 @@ Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **kind**: `"Construct"`
 
-Defined in: [types/base.ts:321](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L321)
+Defined in: [types/base.ts:321](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L321)
 
 #### Inherited from
 
-`Base.BaseConstruct.kind`
+[`BaseConstruct`](../../../base/interfaces/BaseConstruct.md).[`kind`](../../../base/interfaces/BaseConstruct.md#kind)
 
 ***
 
@@ -64,11 +66,11 @@ Defined in: [types/base.ts:321](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types/base.ts:322](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L322)
+Defined in: [types/base.ts:322](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L322)
 
 #### Inherited from
 
-`Base.BaseConstruct.typeName`
+[`BaseConstruct`](../../../base/interfaces/BaseConstruct.md).[`typeName`](../../../base/interfaces/BaseConstruct.md#typename)
 
 ***
 
@@ -76,8 +78,8 @@ Defined in: [types/base.ts:322](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **fields**: readonly [`ConstructField`](ConstructField.md)[]
 
-Defined in: [types/base.ts:323](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L323)
+Defined in: [types/base.ts:323](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L323)
 
 #### Inherited from
 
-`Base.BaseConstruct.fields`
+[`BaseConstruct`](../../../base/interfaces/BaseConstruct.md).[`fields`](../../../base/interfaces/BaseConstruct.md#fields)

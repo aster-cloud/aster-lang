@@ -94,7 +94,7 @@ export function getAllEffects(): string[] {
 /**
  * 已知的 IO 操作前缀（用于 effect 推断）。
  *
- * 当函数调用以这些前缀开头时，推断为 @io effect。
+ * 当函数调用以这些前缀开头时，推断为 `@io` effect。
  * 例如：`Http.get()`, `Db.query()`
  */
 export const IO_PREFIXES: readonly string[] = [
@@ -110,7 +110,7 @@ export const IO_PREFIXES: readonly string[] = [
 /**
  * 已知的 CPU 密集型操作前缀（用于 effect 推断）。
  *
- * 当函数调用以这些前缀开头时，推断为 @cpu effect。
+ * 当函数调用以这些前缀开头时，推断为 `@cpu` effect。
  */
 export const CPU_PREFIXES: readonly string[] = [
   // 可以在此添加 CPU 密集型调用前缀
@@ -132,7 +132,7 @@ export enum CapabilityKind {
   FILES = 'Files',
   SECRETS = 'Secrets',
   AI_MODEL = 'AiModel',
-  CPU = 'cpu',
+  CPU = 'Cpu',
 }
 
 /**

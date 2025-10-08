@@ -81,4 +81,4 @@
 
 ### Effect
 
-Re-exports [Effect](../index/enumerations/Effect.md)
+Re-exports [Effect](../config/semantic/enumerations/Effect.md)

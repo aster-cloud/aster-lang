@@ -26,6 +26,7 @@ export function parseLegacyCapability(cap: 'io' | 'cpu'): CapabilityKind[] {
       CapabilityKind.TIME,
       CapabilityKind.FILES,
       CapabilityKind.SECRETS,
+      CapabilityKind.AI_MODEL,
     ];
   }
   return [CapabilityKind.CPU];
@@ -47,6 +48,7 @@ export function normalizeManifest(raw: any): CapabilityManifest {
         allow[CapabilityKind.TIME] = patterns;
         allow[CapabilityKind.FILES] = patterns;
         allow[CapabilityKind.SECRETS] = patterns;
+        allow[CapabilityKind.AI_MODEL] = patterns;
       } else if (key === 'cpu') {
         allow[CapabilityKind.CPU] = raw.allow.cpu;
       } else if (isCapabilityKind(key)) {

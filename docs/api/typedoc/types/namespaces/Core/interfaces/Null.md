@@ -4,11 +4,13 @@
 
 # Interface: Null
 
-Defined in: [types.ts:312](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L312)
+Defined in: [types.ts:312](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L312)
+
+Null 字面量基础接口。
 
 ## Extends
 
-- `BaseNull`\<[`Origin`](../../../interfaces/Origin.md)\>
+- [`BaseNull`](../../../base/interfaces/BaseNull.md)\<[`Origin`](../../../interfaces/Origin.md)\>
 
 ## Properties
 
@@ -16,11 +18,11 @@ Defined in: [types.ts:312](https://github.com/wontlost-ltd/aster-lang/blob/8bf32
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L32)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L32)
 
 #### Inherited from
 
-`Base.BaseNull.span`
+[`BaseNull`](../../../base/interfaces/BaseNull.md).[`span`](../../../base/interfaces/BaseNull.md#span)
 
 ***
 
@@ -28,11 +30,11 @@ Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L33)
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L33)
 
 #### Inherited from
 
-`Base.BaseNull.origin`
+[`BaseNull`](../../../base/interfaces/BaseNull.md).[`origin`](../../../base/interfaces/BaseNull.md#origin)
 
 ***
 
@@ -40,11 +42,11 @@ Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L34)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L34)
 
 #### Inherited from
 
-`Base.BaseNull.file`
+[`BaseNull`](../../../base/interfaces/BaseNull.md).[`file`](../../../base/interfaces/BaseNull.md#file)
 
 ***
 
@@ -52,8 +54,8 @@ Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` **kind**: `"Null"`
 
-Defined in: [types/base.ts:295](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types/base.ts#L295)
+Defined in: [types/base.ts:295](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types/base.ts#L295)
 
 #### Inherited from
 
-`Base.BaseNull.kind`
+[`BaseNull`](../../../base/interfaces/BaseNull.md).[`kind`](../../../base/interfaces/BaseNull.md#kind)

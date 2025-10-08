@@ -44,7 +44,7 @@ import { DefaultAstVisitor } from './ast_visitor.js';
  * - 将模式匹配转换为 Core IR 的 Case 结构
  * - 保留原始位置信息用于错误报告
  *
- * @param ast - AST Module 节点（通过 {@link parse} 生成）
+ * @param ast - AST Module 节点（通过 parser.parse 生成）
  * @returns Core IR Module 节点，包含所有声明的规范化表示
  *
  * @example

@@ -4,7 +4,7 @@
 
 # Interface: Token
 
-Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L23)
+Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L23)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/8bf329
 
 > `readonly` **kind**: [`TokenKind`](../enumerations/TokenKind.md)
 
-Defined in: [types.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L24)
+Defined in: [types.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L24)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/8bf329
 
 > `readonly` **value**: `null` \| `string` \| `number` \| `boolean`
 
-Defined in: [types.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L25)
+Defined in: [types.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L25)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/8bf329
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L26)
+Defined in: [types.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L26)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/8bf329
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:27](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/types.ts#L27)
+Defined in: [types.ts:27](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/types.ts#L27)

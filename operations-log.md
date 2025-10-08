@@ -416,3 +416,10 @@
 2025-10-08 16:33 NZDT - 执行 `npm run build` 成功，生成最新 dist 产物验证 TypeScript 编译通过。
 2025-10-08 16:33 NZDT - 执行 `npm run typecheck` 成功，确认类型检查无误。
 2025-10-08 16:34 NZDT - 使用 `apply_patch` 更新 `docs/testing.md`，记录构建与类型检查验证结果。
+2025-10-08 17:10 NZDT - 使用 `sequential-thinking__sequentialthinking` 工具三次梳理阶段2.1审查任务，明确需核查的 Capability 相关文件与关注点。
+2025-10-08 17:10 NZDT - 执行 `sed -n '120,170p' src/config/semantic.ts`、`sed -n '1,220p' src/capabilities.ts`、`sed -n '620,700p' src/parser.ts`、`sed -n '320,360p' src/parser.ts`、`sed -n '1,80p' src/typecheck.ts`、`sed -n '180,260p' src/typecheck.ts`、`sed -n '300,360p' src/typecheck.ts`、`sed -n '460,520p' src/typecheck.ts` 收集代码片段，支持细粒度 Capability 审查分析。
+2025-10-08 17:10 NZDT - 执行 `rg -n "collectCapabilities" src/typecheck.ts`、`rg -n "effectCapsExplicit" src/parser.ts`、`ls`、`tail -n 20 operations-log.md`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M:%S %Z'`，核对相关符号位置并获取日志上下文。
+2025-10-08 17:11 NZDT - 调用 `code-index__set_project_path`、`code-index__build_deep_index`、`code-index__get_file_summary(src/capabilities.ts)`，补充索引摘要以支撑 Capability 审查。
+2025-10-08 17:13 NZDT - 再次使用 `sequential-thinking__sequentialthinking` 工具四次，完成五层审查要点梳理并锁定兼容性风险。
+2025-10-08 17:13 NZDT - 使用 `apply_patch` 更新 `.claude/review-report.md`，写入阶段2.1 Capability 扩展审查结论。
+2025-10-08 17:13 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，同步登记审查阶段操作记录（本条记该操作）。

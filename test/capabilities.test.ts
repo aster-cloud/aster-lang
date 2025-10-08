@@ -24,9 +24,10 @@ function testParseLegacyIo(): void {
     CapabilityKind.TIME,
     CapabilityKind.FILES,
     CapabilityKind.SECRETS,
+    CapabilityKind.AI_MODEL,
   ];
   assertArrayEqual(caps, expected, 'parseLegacyCapability(io) 结果不符');
-  console.log('✓ parseLegacyCapability("io") 返回 5 个 IO 能力');
+  console.log('✓ parseLegacyCapability("io") 返回 6 个 IO 能力（包含 AI_MODEL）');
 }
 
 function testParseLegacyCpu(): void {
@@ -44,6 +45,7 @@ function testNormalizeLegacyManifest(): void {
     CapabilityKind.TIME,
     CapabilityKind.FILES,
     CapabilityKind.SECRETS,
+    CapabilityKind.AI_MODEL,
   ];
   for (const cap of ioCaps) {
     assert(
@@ -55,7 +57,7 @@ function testNormalizeLegacyManifest(): void {
     manifest.allow[CapabilityKind.CPU] === undefined,
     'normalizeManifest 不应为 legacy io 添加 CPU'
   );
-  console.log('✓ normalizeManifest 展开 legacy io allow 配置');
+  console.log('✓ normalizeManifest 展开 legacy io allow 配置（包含 AI_MODEL）');
 }
 
 function testNormalizeFineGrainedManifest(): void {

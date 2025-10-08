@@ -1,4 +1,4 @@
-[**@wontlost-ltd/aster-lang**](../../README.md)
+[**@wontlost-ltd/aster-lang**](../../../README.md)
 
 ***
 
@@ -6,7 +6,7 @@
 
 > `const` **KW**: `object`
 
-Defined in: [config/semantic.ts:193](https://github.com/wontlost-ltd/aster-lang/blob/8bf329d1fd6e1197e3663ef108b86ba479c90b37/src/config/semantic.ts#L193)
+Defined in: [config/semantic.ts:194](https://github.com/wontlost-ltd/aster-lang/blob/890200b8635ab0860bf1f19ed73954e8649bba2a/src/config/semantic.ts#L194)
 
 Aster CNL 关键字定义（v1 lexicon, en-US）。
 
