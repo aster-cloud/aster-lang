@@ -1,2 +1,1 @@
-INFO: Function 'okHttp' declares IO capability 'Time' but it is not used.
-
+INFO: Function 'okHttp' declares Time capability but it is not used.

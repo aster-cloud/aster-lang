@@ -1,11 +1,17 @@
 import { performance } from 'node:perf_hooks';
 import type { Core, TypecheckDiagnostic } from './types.js';
-import { type CapabilityManifest, type CapabilityContext, isAllowed } from './capabilities.js';
-import type { CapabilityKind } from './config/semantic.js';
+import {
+  type CapabilityManifest,
+  type CapabilityContext,
+  isAllowed,
+  normalizeManifest,
+  parseLegacyCapability,
+} from './capabilities.js';
+import { CapabilityKind, inferCapabilityFromName } from './config/semantic.js';
 import { inferEffects } from './effect_inference.js';
 import { DefaultCoreVisitor } from './visitor.js';
 // import { DiagnosticBuilder, DiagnosticCode, DiagnosticSeverity } from './diagnostics.js';
-import { IO_PREFIXES, CPU_PREFIXES, CAPABILITY_PREFIXES } from './config/effects.js';
+import { IO_PREFIXES, CPU_PREFIXES } from './config/effects.js';
 import { ENFORCE_CAPABILITIES } from './config/runtime.js';
 import { createLogger, logPerformance } from './utils/logger.js';
 
@@ -191,16 +197,41 @@ export function typecheckModuleWithCapabilities(
   m: Core.Module,
   manifest: CapabilityManifest | null
 ): TypecheckDiagnostic[] {
+  const normalizedManifest = manifest ? normalizeManifest(manifest) : null;
   const diags = typecheckModule(m);
   const capCtx: CapabilityContext = { moduleName: m.name ?? '' };
+  if (!normalizedManifest) return diags;
+
   for (const d of m.decls) {
     if (d.kind !== 'Func') continue;
-    const effs = new Set(d.effects.map(e => String(e).toLowerCase()));
-    if (effs.has('io') && !isAllowed('io', d.name, capCtx, manifest)) {
-      diags.push({ severity: 'error', message: `Function '${d.name}' declares @io but capability manifest does not allow it for module '${m.name}'.`, code: 'CAP_IO_NOT_ALLOWED', data: { func: d.name, module: m.name, cap: 'io' } });
+
+    const declaredCaps = new Set<CapabilityKind>();
+    for (const eff of d.effects) {
+      const effName = String(eff).toLowerCase();
+      if (effName === 'io') {
+        for (const cap of parseLegacyCapability('io')) declaredCaps.add(cap);
+      } else if (effName === 'cpu') {
+        declaredCaps.add(CapabilityKind.CPU);
+      }
     }
-    if (effs.has('cpu') && !isAllowed('cpu', d.name, capCtx, manifest)) {
-      diags.push({ severity: 'error', message: `Function '${d.name}' declares @cpu but capability manifest does not allow it for module '${m.name}'.`, code: 'CAP_CPU_NOT_ALLOWED', data: { func: d.name, module: m.name, cap: 'cpu' } });
+
+    const meta = d as unknown as { effectCaps?: readonly CapabilityKind[]; effectCapsExplicit?: boolean };
+    if (meta.effectCapsExplicit && Array.isArray(meta.effectCaps)) {
+      for (const cap of meta.effectCaps) declaredCaps.add(cap);
+    }
+
+    const usedCaps = collectCapabilities(d.body);
+    for (const cap of usedCaps.keys()) declaredCaps.add(cap);
+
+    for (const cap of declaredCaps) {
+      if (!isAllowed(cap, d.name, capCtx, normalizedManifest)) {
+        diags.push({
+          severity: 'error',
+          message: `Function '${d.name}' requires ${cap} capability but manifest for module '${m.name ?? ''}' denies it.`,
+          code: 'CAPABILITY_NOT_ALLOWED',
+          data: { func: d.name, module: m.name, cap },
+        });
+      }
     }
   }
   return diags;
@@ -276,13 +307,14 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
     if (declaredCaps && declaredCaps.length > 0) {
       const declared = new Set<CapabilityKind>(declaredCaps);
       const used = collectCapabilities(f.body);
-      for (const cap of used) {
+      for (const [cap, callSites] of used) {
         if (!declared.has(cap)) {
+          const declaredList = [...declared].join(', ');
           diags.push({
             severity: 'error',
-            message: `Function '${f.name}' uses IO capability '${cap}' but header declares [${[...declared].join(', ')}].`,
+            message: `Function '${f.name}' uses ${cap} capability but header declares [${declaredList}].`,
             code: 'EFF_CAP_MISSING',
-            data: { func: f.name, cap },
+            data: { func: f.name, cap, calls: callSites },
           });
         }
       }
@@ -290,7 +322,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
         if (!used.has(cap)) {
           diags.push({
             severity: 'info',
-            message: `Function '${f.name}' declares IO capability '${cap}' but it is not used.`,
+            message: `Function '${f.name}' declares ${cap} capability but it is not used.`,
             code: 'EFF_CAP_SUPERFLUOUS',
             data: { func: f.name, cap },
           });
@@ -446,14 +478,20 @@ function collectEffects(b: Core.Block): Set<'io' | 'cpu'> {
 }
 
 
-function collectCapabilities(b: Core.Block): Set<CapabilityKind> {
-  const caps = new Set<CapabilityKind>();
+function collectCapabilities(b: Core.Block): Map<CapabilityKind, string[]> {
+  const caps = new Map<CapabilityKind, string[]>();
   class CapVisitor extends DefaultCoreVisitor<void> {
     override visitExpression(e: Core.Expression): void {
       if (e.kind === 'Call' && e.target.kind === 'Name') {
         const n = e.target.name;
-        for (const [cap, prefixes] of Object.entries(CAPABILITY_PREFIXES)) {
-          if (prefixes.some(p => n.startsWith(p))) caps.add(cap as CapabilityKind);
+        const inferred = inferCapabilityFromName(n);
+        if (inferred) {
+          const items = caps.get(inferred);
+          if (items) {
+            items.push(n);
+          } else {
+            caps.set(inferred, [n]);
+          }
         }
       }
       super.visitExpression(e, undefined as unknown as void);

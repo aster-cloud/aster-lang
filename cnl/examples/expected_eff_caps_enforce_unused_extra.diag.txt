@@ -1,2 +1,1 @@
-INFO: Function 'onlyHttp' declares IO capability 'Sql' but it is not used.
-
+INFO: Function 'onlyHttp' declares Sql capability but it is not used.

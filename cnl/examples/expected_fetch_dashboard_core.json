@@ -84,8 +84,16 @@
             "name": "profile",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "ProfileSvc.load" },
-              "args": [ { "kind": "Name", "name": "u.id" } ]
+              "target": {
+                "kind": "Name",
+                "name": "ProfileSvc.load"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "u.id"
+                }
+              ]
             }
           },
           {
@@ -93,24 +101,58 @@
             "name": "timeline",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "FeedSvc.timeline" },
-              "args": [ { "kind": "Name", "name": "u.id" } ]
+              "target": {
+                "kind": "Name",
+                "name": "FeedSvc.timeline"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "u.id"
+                }
+              ]
             }
           },
-          { "kind": "Wait", "names": [ "profile", "timeline" ] },
+          {
+            "kind": "Wait",
+            "names": [
+              "profile",
+              "timeline"
+            ]
+          },
           {
             "kind": "Return",
             "expr": {
               "kind": "Ok",
               "expr": {
                 "kind": "Call",
-                "target": { "kind": "Name", "name": "Dash" },
-                "args": [ { "kind": "Name", "name": "profile" }, { "kind": "Name", "name": "timeline" } ]
+                "target": {
+                  "kind": "Name",
+                  "name": "Dash"
+                },
+                "args": [
+                  {
+                    "kind": "Name",
+                    "name": "profile"
+                  },
+                  {
+                    "kind": "Name",
+                    "name": "timeline"
+                  }
+                ]
               }
             }
           }
         ]
-      }
+      },
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets"
+      ],
+      "effectCapsExplicit": false
     }
   ]
 }

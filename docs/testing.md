@@ -8,3 +8,16 @@
   - `npm run test` → 通过（黄金测试、属性测试全部成功，输出结构化 JSON 日志）。
   - `LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.cnl` → 通过，输出 INFO 级日志与性能指标。
   - `ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.cnl` → 通过，输出与上次一致。
+
+## 2025-10-08 Typecheck 能力验证
+- 日期：2025-10-08 16:33 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（tsc 完成编译并生成 PEG 解析器）。
+  - `npm run typecheck` → 通过（tsc --noEmit 确认类型检查无误）。
+
+## 2025-10-08 黄金测试细粒度能力更新
+- 日期：2025-10-08 16:45 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `ASTER_CAP_EFFECTS_ENFORCE=1 npm run test:golden` → 通过，所有 eff_violation/eff_caps_enforce/pii 黄金测试均输出细粒度 capability 文案，其余 AST/Core 黄金测试保持成功。

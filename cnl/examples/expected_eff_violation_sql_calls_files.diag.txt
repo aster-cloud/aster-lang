@@ -1,1 +1,1 @@
-ERROR: Function 'db_init' uses IO capability 'Files' but header declares [Sql].
+ERROR: Function 'db_init' uses Files capability but header declares [Sql].

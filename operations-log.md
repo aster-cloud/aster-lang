@@ -1,3 +1,14 @@
+# 2025-10-08 16:45 NZDT 细粒度能力黄金测试更新
+
+- 执行者：Codex
+- 工具调用：
+  - `ASTER_CAP_EFFECTS_ENFORCE=1 npm run test:golden 2>&1 | tee golden-test-results.txt` → 收集旧黄金测试失败，确认 IO 文案变更导致诊断不匹配。
+  - `node dist/scripts/update-eff-violation-expected.js` → 批量刷新既有 eff_violation 诊断期望，写入细粒度 capability 文案。
+  - `node - <<'EOF' ...`（解析/降级脚本）→ 生成新的 AST/Core 预期文件，补充 `effectCaps` 与 `effectCapsExplicit` 字段。
+  - `ASTER_CAP_EFFECTS_ENFORCE=1 node dist/scripts/typecheck-cli.js … > expected_*.diag.txt` → 为新增样例生成期望诊断文本。
+  - `node - <<'EOF' ...`（批量更新 eff_caps_enforce*/pii 测试）→ 生成细粒度 capability 诊断期望。
+  - `ASTER_CAP_EFFECTS_ENFORCE=1 npm run test:golden` → 最终验证黄金测试全部通过（含新增 3 项，细粒度文案齐全）。
+
 # 操作日志（Phase 2 - 统一 IR/AST 遍历器）
 
 - 时间（NZST）：$TS
@@ -398,3 +409,10 @@
 2025-10-08 16:05 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录二次构建命令（本条记该操作）。
 2025-10-08 16:06 NZDT - 执行 `node dist/test/capabilities.test.js` 成功，四项兼容性测试全部通过。
 2025-10-08 16:06 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录兼容性测试通过（本条记该操作）。
+2025-10-08 16:33 NZDT - 使用 `sequential-thinking__sequentialthinking` 工具分析 Typecheck 能力验证需求，明确改动范围。
+2025-10-08 16:33 NZDT - 调用 `code-index__set_project_path` 与 `code-index__build_deep_index` 建立索引，准备检索 `src/typecheck.ts`。
+2025-10-08 16:33 NZDT - 使用 `code-index__get_file_summary` 获取 `src/typecheck.ts` 结构概览，定位需更新函数。
+2025-10-08 16:33 NZDT - 使用 `apply_patch` 更新 `src/typecheck.ts`，引入 manifest 归一化与 capability 细粒度校验逻辑。
+2025-10-08 16:33 NZDT - 执行 `npm run build` 成功，生成最新 dist 产物验证 TypeScript 编译通过。
+2025-10-08 16:33 NZDT - 执行 `npm run typecheck` 成功，确认类型检查无误。
+2025-10-08 16:34 NZDT - 使用 `apply_patch` 更新 `docs/testing.md`，记录构建与类型检查验证结果。

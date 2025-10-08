@@ -25,13 +25,12 @@
           }
         ]
       },
-      "effectCaps": {
-        "io": [
-          "Http",
-          "Sql",
-          "Time"
-        ]
-      }
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time"
+      ],
+      "effectCapsExplicit": true
     }
   ]
 }

@@ -24,7 +24,15 @@
             }
           }
         ]
-      }
+      },
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets"
+      ],
+      "effectCapsExplicit": false
     }
   ]
 }

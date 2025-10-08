@@ -25,11 +25,10 @@
           }
         ]
       },
-      "effectCaps": {
-        "io": [
-          "Http"
-        ]
-      }
+      "effectCaps": [
+        "Http"
+      ],
+      "effectCapsExplicit": true
     }
   ]
 }
