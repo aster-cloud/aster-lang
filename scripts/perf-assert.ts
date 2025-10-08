@@ -1,15 +1,9 @@
 #!/usr/bin/env node
 import { performance } from 'node:perf_hooks';
+import { p50 } from './perf-utils.js';
 import { canonicalize } from '../src/canonicalizer.js';
 import { lex } from '../src/lexer.js';
 import { parse } from '../src/parser.js';
-
-function p50(ns: number[]): number {
-  if (ns.length === 0) return 0;
-  const a = [...ns].sort((x, y) => x - y);
-  const mid = Math.floor(a.length / 2);
-  return a.length % 2 ? a[mid]! : (a[mid - 1]! + a[mid]!) / 2;
-}
 
 const text = [
   'This module is demo.perfassert.',

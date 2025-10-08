@@ -1,0 +1,686 @@
+#!/usr/bin/env node
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import { pathToFileURL } from 'node:url';
+import { performance } from 'node:perf_hooks';
+
+import { p50, p95, p99 } from './perf-utils.js';
+import { LSPClient } from './lsp-client-helper.js';
+
+type Position = { line: number; character: number };
+
+type ProjectDefinition = {
+  name: string;
+  files: Map<string, string>;
+  entryRelativePath: string;
+  hoverPosition: Position;
+  completionPosition: Position;
+};
+
+type ProjectMetrics = {
+  files: number;
+  lines: number;
+  initialize_ms: number;
+  hover: { p50: number; p95: number; p99: number };
+  completion: { p50: number; p95: number; p99: number };
+  diagnostics: { p50: number; p95: number; p99: number };
+};
+
+type DiagnosticsSampleOptions = {
+  client: LSPClient;
+  uri: string;
+  text: string;
+  iterations: number;
+};
+
+const REQUEST_TIMEOUT_MS = resolveTimeout(process.env.LSP_PERF_TIMEOUT_MS, 5_000);
+const DIAGNOSTIC_TIMEOUT_MS = resolveTimeout(process.env.LSP_PERF_DIAG_TIMEOUT_MS, 5_000);
+const ITERATIONS = resolveIterationCount(process.env.LSP_PERF_ITERATIONS, 100);
+const DIAGNOSTIC_ITERATIONS = resolveIterationCount(process.env.LSP_PERF_DIAG_ITERATIONS, 20);
+const DEBUG = process.env.LSP_PERF_DEBUG === '1';
+
+function resolveIterationCount(raw: string | undefined, fallback: number): number {
+  if (!raw) return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.floor(parsed);
+}
+
+function resolveTimeout(raw: string | undefined, fallback: number): number {
+  if (!raw) return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.floor(parsed);
+}
+
+async function main(): Promise<void> {
+  const report: Record<string, unknown> = {
+    timestamp: new Date().toISOString(),
+    node_version: process.version,
+    projects: {},
+  };
+
+  const scenarios = await Promise.all([
+    prepareSmallProject(),
+    prepareMediumProject(),
+    prepareLargeProject(),
+  ]);
+
+  for (const scenario of scenarios) {
+    const metrics = await measureScenario(scenario);
+    (report.projects as Record<string, ProjectMetrics>)[scenario.name] = metrics;
+  }
+
+  console.log(JSON.stringify(report, null, 2));
+}
+
+async function measureScenario(definition: ProjectDefinition): Promise<ProjectMetrics> {
+  const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), `aster-perf-${definition.name}-`));
+  const client = new LSPClient();
+
+  try {
+    await writeProjectFiles(workspaceRoot, definition.files);
+    const entryPath = path.join(workspaceRoot, definition.entryRelativePath);
+    const entryUri = pathToFileURL(entryPath).href;
+    const entryText = definition.files.get(definition.entryRelativePath);
+    if (entryText === undefined) {
+      throw new Error(`找不到入口文件内容：${definition.entryRelativePath}`);
+    }
+
+    client.spawn('dist/src/lsp/server.js');
+
+    const initializeStart = performance.now();
+    await withTimeout(
+      client.request('initialize', {
+        processId: process.pid,
+        rootUri: pathToFileURL(workspaceRoot).href,
+        capabilities: {
+          textDocument: {
+            hover: { contentFormat: ['markdown', 'plaintext'] },
+            completion: { completionItem: { snippetSupport: false } },
+          },
+        },
+      }),
+      REQUEST_TIMEOUT_MS,
+      'initialize',
+    );
+    client.notify('initialized', {});
+    const initializeMs = performance.now() - initializeStart;
+
+    client.notify('textDocument/didOpen', {
+      textDocument: {
+        uri: entryUri,
+        languageId: 'cnl',
+        version: 1,
+        text: entryText,
+      },
+    });
+
+    const diagnosticsSamples = await collectDiagnosticsSamples({
+      client,
+      uri: entryUri,
+      text: entryText,
+      iterations: DIAGNOSTIC_ITERATIONS,
+    });
+
+    await warmupRequest(client, 'textDocument/hover', { textDocument: { uri: entryUri }, position: definition.hoverPosition });
+    await warmupRequest(client, 'textDocument/completion', {
+      textDocument: { uri: entryUri },
+      position: definition.completionPosition,
+    });
+
+    const hoverLatencies: number[] = [];
+    for (let i = 0; i < ITERATIONS; i++) {
+      const t0 = performance.now();
+      try {
+        await withTimeout(
+          client.request('textDocument/hover', {
+            textDocument: { uri: entryUri },
+            position: definition.hoverPosition,
+          }),
+          REQUEST_TIMEOUT_MS,
+          'textDocument/hover',
+        );
+        hoverLatencies.push(performance.now() - t0);
+      } catch (err) {
+        if (DEBUG) {
+          console.warn(
+            `[${definition.name}] hover 请求失败（迭代 ${i + 1}）:`,
+            err instanceof Error ? err.message : err,
+          );
+        }
+        hoverLatencies.push(REQUEST_TIMEOUT_MS);
+      }
+    }
+
+    const completionLatencies: number[] = [];
+    for (let i = 0; i < ITERATIONS; i++) {
+      const t0 = performance.now();
+      try {
+        await withTimeout(
+          client.request('textDocument/completion', {
+            textDocument: { uri: entryUri },
+            position: definition.completionPosition,
+          }),
+          REQUEST_TIMEOUT_MS,
+          'textDocument/completion',
+        );
+        completionLatencies.push(performance.now() - t0);
+      } catch (err) {
+        if (DEBUG) {
+          console.warn(
+            `[${definition.name}] completion 请求失败（迭代 ${i + 1}）:`,
+            err instanceof Error ? err.message : err,
+          );
+        }
+        completionLatencies.push(REQUEST_TIMEOUT_MS);
+      }
+    }
+
+    try {
+      await withTimeout(client.request('shutdown'), REQUEST_TIMEOUT_MS, 'shutdown');
+    } catch {
+      // 忽略关闭阶段超时，确保后续清理继续执行
+    } finally {
+      client.notify('exit');
+    }
+
+    return {
+      files: definition.files.size,
+      lines: countLines(definition.files),
+      initialize_ms: initializeMs,
+      hover: {
+        p50: p50(hoverLatencies),
+        p95: p95(hoverLatencies),
+        p99: p99(hoverLatencies),
+      },
+      completion: {
+        p50: p50(completionLatencies),
+        p95: p95(completionLatencies),
+        p99: p99(completionLatencies),
+      },
+      diagnostics: {
+        p50: p50(diagnosticsSamples),
+        p95: p95(diagnosticsSamples),
+        p99: p99(diagnosticsSamples),
+      },
+    };
+  } finally {
+    client.close();
+    await fs.rm(workspaceRoot, { recursive: true, force: true });
+  }
+}
+
+async function writeProjectFiles(root: string, files: Map<string, string>): Promise<void> {
+  for (const [relativePath, content] of files) {
+    const absPath = path.join(root, relativePath);
+    await fs.mkdir(path.dirname(absPath), { recursive: true });
+    await fs.writeFile(absPath, content, 'utf8');
+  }
+}
+
+async function collectDiagnosticsSamples(options: DiagnosticsSampleOptions): Promise<number[]> {
+  const { client, uri, text, iterations } = options;
+  const samples: number[] = [];
+  let version = 1;
+
+  const initialStart = performance.now();
+  try {
+    await waitForDiagnostics(client, uri, DIAGNOSTIC_TIMEOUT_MS);
+    samples.push(performance.now() - initialStart);
+  } catch {
+    // 如果初始诊断缺失则继续采样后续迭代
+  }
+
+  for (let i = 0; i < iterations; i++) {
+    const start = performance.now();
+    version += 1;
+    client.notify('textDocument/didChange', {
+      textDocument: { uri, version },
+      contentChanges: [{ text }],
+    });
+    try {
+      await waitForDiagnostics(client, uri, DIAGNOSTIC_TIMEOUT_MS);
+      samples.push(performance.now() - start);
+    } catch {
+      // 超时样本忽略
+    }
+  }
+
+  if (samples.length === 0) samples.push(0);
+  return samples;
+}
+
+async function waitForDiagnostics(client: LSPClient, uri: string, timeoutMs: number): Promise<void> {
+  const deadline = performance.now() + timeoutMs;
+  while (performance.now() < deadline) {
+    const remaining = Math.max(1, deadline - performance.now());
+    const message = await withTimeout(client.recv(), remaining, '等待诊断通知');
+    if (isDiagnosticsForUri(message, uri)) return;
+  }
+  throw new Error('诊断通知超时');
+}
+
+function isDiagnosticsForUri(message: unknown, uri: string): boolean {
+  if (!message || typeof message !== 'object') return false;
+  const payload = message as { method?: unknown; params?: unknown };
+  if (payload.method !== 'textDocument/publishDiagnostics') return false;
+  const params = payload.params as { uri?: unknown };
+  return typeof params?.uri === 'string' && params.uri === uri;
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} 超时（>${timeoutMs}ms）`)), timeoutMs);
+    promise
+      .then(value => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(err => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
+function countLines(files: Map<string, string>): number {
+  let total = 0;
+  for (const text of files.values()) {
+    if (text.length === 0) {
+      total += 1;
+      continue;
+    }
+    total += text.split(/\r?\n/).length;
+  }
+  return total;
+}
+
+async function prepareSmallProject(): Promise<ProjectDefinition> {
+  const greetPath = path.resolve('cnl/examples/greet.cnl');
+  const text = await fs.readFile(greetPath, 'utf8');
+  const files = new Map<string, string>();
+  files.set('examples/greet.cnl', text);
+
+  return {
+    name: 'small',
+    files,
+    entryRelativePath: 'examples/greet.cnl',
+    hoverPosition: locatePosition(text, 'greet', 1),
+    completionPosition: locatePosition(text, 'Return ', 7),
+  };
+}
+
+async function prepareMediumProject(): Promise<ProjectDefinition> {
+  const modules = generateMediumProject(40, 42);
+  const files = new Map<string, string>();
+  for (const [moduleName, content] of modules) {
+    const relPath = moduleName.split('.').join('/') + '.cnl';
+    files.set(relPath, content);
+  }
+  const entryModule = 'benchmark.medium.common';
+  const entryPath = entryModule.split('.').join('/') + '.cnl';
+  const entryText = files.get(entryPath);
+  if (!entryText) throw new Error('中型项目缺少入口模块 benchmark.medium.common');
+
+  return {
+    name: 'medium',
+    files,
+    entryRelativePath: entryPath,
+    hoverPosition: locatePosition(entryText, 'buildRequestId', 2),
+    completionPosition: locatePosition(entryText, 'Return base.', 7),
+  };
+}
+
+async function prepareLargeProject(): Promise<ProjectDefinition> {
+  const moduleName = 'benchmark.test';
+  const content = generateLargeProgram(50);
+  const relativePath = moduleName.split('.').join('/') + '.cnl';
+  const files = new Map<string, string>();
+  files.set(relativePath, content);
+
+  return {
+    name: 'large',
+    files,
+    entryRelativePath: relativePath,
+    hoverPosition: locatePosition(content, 'process0', 3),
+    completionPosition: locatePosition(content, 'Return Active.', 8),
+  };
+}
+
+function locatePosition(text: string, search: string, offset = 0): Position {
+  const index = text.indexOf(search);
+  if (index === -1) throw new Error(`在文本中找不到片段：${search}`);
+  const targetIndex = index + offset;
+  const untilTarget = text.slice(0, targetIndex);
+  const line = untilTarget.split(/\r?\n/).length - 1;
+  const lastLineBreak = untilTarget.lastIndexOf('\n');
+  const character = targetIndex - (lastLineBreak + 1);
+  return { line, character };
+}
+
+function generateLargeProgram(size: number): string {
+  const lines = [
+    'This module is benchmark.test.',
+    '',
+    'Define User with id: Text and name: Text and email: Text.',
+    'Define Status as one of Active or Inactive or Pending.',
+    '',
+  ];
+
+  for (let i = 0; i < size; i++) {
+    lines.push(`To process${i} with user: User, produce Status:`);
+    lines.push(`  Let id be user.id.`);
+    lines.push(`  Let name be user.name.`);
+    lines.push(`  If name,:`);
+    lines.push(`    Return Active.`);
+    lines.push(`  Return Inactive.`);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function generateMediumProject(moduleCount = 40, baseSeed = 42): Map<string, string> {
+  const modules = new Map<string, string>();
+  modules.set('benchmark.medium.common', generateCommonModule());
+
+  const random = createSeededRandom(baseSeed);
+  for (let i = 1; i < moduleCount; i++) {
+    const moduleName = `benchmark.medium.module${i}`;
+    const needsImport = random() < 0.3;
+    modules.set(moduleName, generateBusinessModule(moduleName, baseSeed + i * 17, needsImport));
+  }
+
+  return modules;
+}
+
+function generateCommonModule(): string {
+  const lines = [
+    'This module is benchmark.medium.common.',
+    '',
+    'Define LogLevel as one of Info or Warn or Error or Debug.',
+    'Define HttpMethod as one of Get or Post or Put or Delete.',
+    '',
+    'Define RequestContext with requestId: Text and path: Text and method: Text and retries: Number.',
+    'Define ResponseContext with status: Number and payload: Text and success: Boolean.',
+    '',
+    'To buildRequestId with prefix: Text and id: Number, produce Text:',
+    '  Let base be prefix.',
+    '  If base,:',
+    '    Return base.',
+    '  Return "req-default".',
+    '',
+    'To defaultLogLevel, produce LogLevel:',
+    '  Return Info.',
+    '',
+    'To ensureSuccess with response: ResponseContext, produce Boolean:',
+    '  Let flag be response.success.',
+    '  If flag,:',
+    '    Return true.',
+    '  Return false.',
+    '',
+    'To renderPath with ctx: RequestContext, produce Text:',
+    '  Let path be ctx.path.',
+    '  If path,:',
+    '    Return path.',
+    '  Return "/".',
+    '',
+    'To emitLog with message: Text and level: LogLevel, produce Text. It performs io:',
+    '  Let text be message.',
+    '  If text,:',
+    '    Return text.',
+    '  Return "log".',
+    '',
+  ];
+
+  return lines.join('\n');
+}
+
+function generateBusinessModule(name: string, seed: number, needsImport: boolean): string {
+  const rand = createSeededRandom(seed);
+  const recordTemplates = getRecordTemplates();
+  const sumTemplates = getSumTemplates();
+
+  const records = [] as { name: string; fields: { name: string; type: string }[] }[];
+  const sums = [] as { name: string; variants: string[] }[];
+
+  const lines: string[] = [];
+  lines.push(`This module is ${name}.`);
+  lines.push('');
+
+  if (needsImport) {
+    lines.push('Use benchmark.medium.common.');
+    lines.push('');
+  }
+
+  const recordCount = 2 + Math.floor(rand() * 2);
+  const sumCount = 1 + Math.floor(rand() * 2);
+
+  for (let i = 0; i < recordCount; i++) {
+    const template = recordTemplates[(seed + i) % recordTemplates.length]!;
+    const typeName = `${template.base}${seed}${i}`;
+    const fieldParts = template.fields.map(field => `${field.name}: ${field.type}`);
+    lines.push(`Define ${typeName} with ${fieldParts.join(' and ')}.`);
+    lines.push('');
+    records.push({ name: typeName, fields: template.fields });
+  }
+
+  for (let i = 0; i < sumCount; i++) {
+    const template = sumTemplates[(seed + i * 3) % sumTemplates.length]!;
+    const typeName = `${template.base}${seed}${i}`;
+    lines.push(`Define ${typeName} as one of ${template.variants.join(' or ')}.`);
+    lines.push('');
+    sums.push({ name: typeName, variants: template.variants });
+  }
+
+  const functionCount = 8 + Math.floor(rand() * 5);
+  let effectCounter = 0;
+
+  for (let i = 0; i < functionCount; i++) {
+    const effectful = i % 10 === 0;
+    if (effectful) {
+      effectCounter++;
+      lines.push(...generateEffectfulFunction(seed, i));
+    } else {
+      lines.push(...generateRoutineFunction(records, sums, seed, i));
+    }
+    lines.push('');
+  }
+
+  if (effectCounter === 0 && functionCount > 0) {
+    lines.splice(lines.length - 1, 0, ...generateEffectfulFunction(seed, functionCount));
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function generateEffectfulFunction(seed: number, fnIndex: number): string[] {
+  const functionName = `fetch${seed}${fnIndex}`;
+  return [
+    `To ${functionName} with resource: Text, produce Text. It performs io:`,
+    '  Let value be resource.',
+    '  If value,:',
+    '    Return value.',
+    '  Return "unavailable".',
+  ];
+}
+
+function generateRoutineFunction(
+  records: { name: string; fields: { name: string; type: string }[] }[],
+  sums: { name: string; variants: string[] }[],
+  seed: number,
+  fnIndex: number,
+): string[] {
+  const parts: string[] = [];
+
+  if (records.length === 0) {
+    records.push({
+      name: `TempRecord${seed}${fnIndex}`,
+      fields: [
+        { name: 'id', type: 'Text' },
+        { name: 'name', type: 'Text' },
+        { name: 'flag', type: 'Boolean' },
+      ],
+    });
+  }
+  if (sums.length === 0) {
+    sums.push({
+      name: `TempSum${seed}${fnIndex}`,
+      variants: ['Alpha', 'Beta', 'Gamma'],
+    });
+  }
+
+  const recordA = records[fnIndex % records.length]!;
+  const recordB = records[(fnIndex + 1) % records.length]!;
+  const sum = sums[fnIndex % sums.length]!;
+  const primaryVariant = sum.variants[fnIndex % sum.variants.length] ?? sum.variants[0] ?? 'Alpha';
+  const secondaryVariant = sum.variants[(fnIndex + 1) % sum.variants.length] ?? primaryVariant;
+  const textFieldA = getTextField(recordA);
+  const textFieldB = getTextField(recordB);
+  const booleanFieldA = getBooleanField(recordA);
+
+  const signatureVariants = fnIndex % 4;
+  switch (signatureVariants) {
+    case 0: {
+      const functionName = `format${seed}${fnIndex}`;
+      parts.push(
+        `To ${functionName} with item: ${recordA.name}, produce Text:`,
+        `  Let value be item.${textFieldA}.`,
+        '  If value,:',
+        '    Return value.',
+        '  Return "unknown".',
+      );
+      return parts;
+    }
+    case 1: {
+      const functionName = `evaluate${seed}${fnIndex}`;
+      parts.push(
+        `To ${functionName} with item: ${recordA.name} and status: ${sum.name}, produce ${sum.name}:`,
+        `  Let active be item.${booleanFieldA}.`,
+        '  If active,:',
+        '    Let current be status.',
+        '    If current,:',
+        '      Return current.',
+        `    Return ${primaryVariant}.`,
+        `  Return ${secondaryVariant}.`,
+      );
+      return parts;
+    }
+    case 2: {
+      const functionName = `compare${seed}${fnIndex}`;
+      parts.push(
+        `To ${functionName} with left: ${recordA.name} and right: ${recordB.name}, produce Boolean:`,
+        `  Let first be left.${textFieldA}.`,
+        `  Let second be right.${textFieldB}.`,
+        '  If first,:',
+        '    If second,:',
+        '      Return true.',
+        '  Return false.',
+      );
+      return parts;
+    }
+    default: {
+      const functionName = `current${seed}${fnIndex}`;
+      parts.push(
+        `To ${functionName}, produce Text:`,
+        `  Let mark be "${recordA.name}-${fnIndex}".`,
+        '  If mark,:',
+        `    Return mark.`,
+        '  Return "constant".',
+      );
+      return parts;
+    }
+  }
+}
+
+function getTextField(record: { fields: { name: string; type: string }[] }): string {
+  const item = record.fields.find(field => field.type === 'Text');
+  return item ? item.name : record.fields[0]?.name ?? 'id';
+}
+
+function getBooleanField(record: { fields: { name: string; type: string }[] }): string {
+  const item = record.fields.find(field => field.type === 'Boolean');
+  return item ? item.name : record.fields[record.fields.length - 1]?.name ?? 'isActive';
+}
+
+function createSeededRandom(seed: number): () => number {
+  let state = Math.abs(seed) % 233280;
+  return () => {
+    state = (state * 9301 + 49297) % 233280;
+    return state / 233280;
+  };
+}
+
+type RecordTemplate = { base: string; fields: { name: string; type: string }[] };
+type SumTemplate = { base: string; variants: string[] };
+
+function getRecordTemplates(): RecordTemplate[] {
+  return [
+    {
+      base: 'User',
+      fields: [
+        { name: 'id', type: 'Text' },
+        { name: 'name', type: 'Text' },
+        { name: 'email', type: 'Text' },
+        { name: 'isActive', type: 'Boolean' },
+      ],
+    },
+    {
+      base: 'Config',
+      fields: [
+        { name: 'endpoint', type: 'Text' },
+        { name: 'timeout', type: 'Number' },
+        { name: 'retries', type: 'Number' },
+        { name: 'enabled', type: 'Boolean' },
+      ],
+    },
+    {
+      base: 'Request',
+      fields: [
+        { name: 'path', type: 'Text' },
+        { name: 'method', type: 'Text' },
+        { name: 'payload', type: 'Text' },
+        { name: 'attempts', type: 'Number' },
+      ],
+    },
+    {
+      base: 'Profile',
+      fields: [
+        { name: 'nickname', type: 'Text' },
+        { name: 'createdAt', type: 'Text' },
+        { name: 'score', type: 'Number' },
+        { name: 'verified', type: 'Boolean' },
+      ],
+    },
+  ];
+}
+
+function getSumTemplates(): SumTemplate[] {
+  return [
+    { base: 'Status', variants: ['Ready', 'Busy', 'Error', 'Pending'] },
+    { base: 'ErrorKind', variants: ['Network', 'Timeout', 'Invalid', 'Unknown'] },
+    { base: 'ResultFlag', variants: ['Ok', 'Retry', 'Fail'] },
+    { base: 'Mode', variants: ['Live', 'Test', 'Maintenance'] },
+  ];
+}
+
+async function warmupRequest(client: LSPClient, method: string, params: Record<string, unknown>): Promise<void> {
+  try {
+    await withTimeout(client.request(method, params), REQUEST_TIMEOUT_MS * 4, `${method} (warmup)`);
+  } catch (err) {
+    if (DEBUG) {
+      console.warn(
+        `[warmup] ${method} 失败:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+}
+
+main().catch(err => {
+  console.error('perf-lsp-e2e 执行失败：', err);
+  process.exit(1);
+});

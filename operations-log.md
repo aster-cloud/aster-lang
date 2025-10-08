@@ -1,3 +1,18 @@
+# 2025-10-09 09:39 NZDT Task 1 性能统计工具抽取
+
+- 执行者：Codex
+- 触发：主AI指令执行 Task 1 创建性能统计共用工具模块
+
+## 操作记录
+- 工具：sequential-thinking → 解析任务目标、风险与步骤
+- 工具：apply_patch → 新增 `scripts/perf-utils.ts` 实现 percentile/p50/p95/p99
+- 工具：apply_patch → 调整 `scripts/perf-assert.ts` 与 `scripts/perf-lsp.ts` 移除重复 p50 并导入共用函数
+- 命令：`npm run build`、`npm run perf:lsp:assert`、`npm run perf:lsp` → 全部成功
+
+## 观察
+- 构建与性能脚本输出正常，未出现阈值告警
+- 公用模块具备扩展空间，可复用更多百分位统计
+
 # 2025-10-09 07:50 NZDT 阶段2.3 边界测试补充
 
 - 执行者：Claude Code
@@ -653,3 +668,24 @@ await runOneTypecheck(
   - 效果前缀匹配基于原始名称字符串，未解析别名
   - examples 未覆盖 alias 导入场景
 2025-10-09 01:00 NZDT - 修正解析器 parseDottedIdent 允许首段 TYPE_IDENT，并在 `use` 语句的 `as` 别名位置接受 TYPE_IDENT（支持 `use Http as H.`）。新增/确认用例：`cnl/examples/eff_alias_import.cnl`；创建期望文件 `cnl/examples/expected_eff_alias_import.diag.txt`（为空）。执行 `npm run test:golden` → 全部通过（115/115）。
+2025-10-09 09:52 NZDT - 使用 `sequential-thinking__sequentialthinking` 工具梳理 Medium 规模项目生成器需求与风险。
+2025-10-09 09:52 NZDT - 调用 `code-index__set_project_path` 与 `code-index__find_files`，定位 `test/benchmark.ts` 以便扩展生成逻辑。
+2025-10-09 09:52 NZDT - 使用 `apply_patch` 更新 `test/benchmark.ts`，实现 Medium 项目生成器及相关辅助函数。
+2025-10-09 09:53 NZDT - 执行 `npm run build` 成功，验证新增生成器 TypeScript 编译通过。
+2025-10-09 10:02 NZDT - 使用 `sequential-thinking__sequentialthinking` 梳理 Task 4 LSP 端到端延迟测量目标与风险。
+2025-10-09 10:02 NZDT - 执行 `ls scripts`、`sed -n '1,200p' scripts/perf-utils.ts`、`sed -n '1,200p' scripts/lsp-client-helper.ts`、`sed -n '1,200p' test/benchmark.ts` 收集依赖工具与生成器实现细节。
+2025-10-09 10:02 NZDT - 执行 `rg "generateLargeProgram" -n test/benchmark.ts`、`sed -n '320,520p' test/benchmark.ts` 深入确认大型程序模板与辅助函数定义。
+2025-10-09 10:02 NZDT - 使用 `apply_patch` 新建并多次更新 `scripts/perf-lsp-e2e.ts`，实现 LSP 延迟采集脚本与项目生成逻辑。
+2025-10-09 10:02 NZDT - 执行 `npm run build` 验证新增脚本编译通过并生成最新产物。
+2025-10-09 10:47 NZDT - 使用 `apply_patch` 多轮更新 `scripts/perf-lsp-e2e.ts`，加入请求超时兜底、诊断采样容错、暖机逻辑与环境变量配置；同步调整 `scripts/lsp-client-helper.ts` 以兼容连续 JSON 消息解析。
+2025-10-09 10:47 NZDT - 多次执行 `npm run build`、`node dist/scripts/perf-lsp-e2e.js`（含不同迭代与超时参数）验证脚本行为，记录 hover 请求在 5 秒超时阈值下未返回的测试结果。
+2025-10-09 10:55 NZDT - 使用 `sequential-thinking__sequentialthinking` 两次梳理 Task 5 执行策略、依赖与风险。
+2025-10-09 10:55 NZDT - 执行 `ls`、`sed -n '1,200p' scripts/perf-utils.ts`、`sed -n '1,200p' test/benchmark.ts`、`rg "generateLargeProgram" -n`、`sed -n '320,440p' test/benchmark.ts` 收集性能工具和生成器实现细节。
+2025-10-09 10:55 NZDT - 执行 `sed -n '1,200p' scripts/perf-lsp-e2e.ts`、`sed -n '200,420p' scripts/perf-lsp-e2e.ts`、`tail -n 40 operations-log.md` 核对 LSP 输出结构与日志格式。
+2025-10-09 10:55 NZDT - 使用 `apply_patch` 新建并调整 `scripts/perf-benchmark.ts`，实现编译与 LSP 性能整合脚本及阈值逻辑。
+2025-10-09 10:55 NZDT - 执行 `npm run build` 验证新增脚本通过 TypeScript 编译与 PEG 生成流程。
+2025-10-09 11:00 NZDT - 执行 `node dist/scripts/perf-benchmark.js`（超时 5 分钟）发现 `test/benchmark.ts` 顶层执行干扰新脚本运行。
+2025-10-09 11:01 NZDT - 执行 `sed -n '440,520p' test/benchmark.ts`、`sed -n '120,320p' test/benchmark.ts`、`sed -n '260,520p' scripts/perf-benchmark.ts`、`sed -n '520,760p' scripts/perf-benchmark.ts` 对比生成器实现与补丁结果。
+2025-10-09 11:02 NZDT - 使用 `apply_patch` 再次更新 `scripts/perf-benchmark.ts`，内嵌 Medium 项目生成器并清理残留符号。
+2025-10-09 11:02 NZDT - 执行 `npm run build` 验证最新改动编译通过。
+2025-10-09 11:08 NZDT - 再次执行 `node dist/scripts/perf-benchmark.js` 成功生成报告（LSP hover 超时触发阈值失败，脚本按预期返回非零退出）。
