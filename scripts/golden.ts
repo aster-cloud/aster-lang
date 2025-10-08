@@ -443,9 +443,11 @@ async function main(): Promise<void> {
     }
   }
 
-  // Enable capability-enforcement flag for diagnostics that rely on capability subsets
+  // 确保能力校验未被显式关闭，以便涵盖所有相关黄金用例
   const prevEnforce = process.env.ASTER_CAP_EFFECTS_ENFORCE;
-  process.env.ASTER_CAP_EFFECTS_ENFORCE = '1';
+  if (prevEnforce === '0') {
+    process.env.ASTER_CAP_EFFECTS_ENFORCE = '1';
+  }
   try {
     await runOneTypecheck('cnl/examples/eff_caps_enforce.cnl', 'cnl/examples/expected_eff_caps_enforce.diag.txt');
     await runOneTypecheck('cnl/examples/eff_caps_enforce_brackets.cnl', 'cnl/examples/expected_eff_caps_enforce_brackets.diag.txt');

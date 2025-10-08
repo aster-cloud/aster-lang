@@ -288,3 +288,51 @@
 2025-10-08 12:44 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录最新时间。
 2025-10-08 12:45 NZST - 执行 `git status -sb`，确认当前工作区变更（仅新增审核报告与日志更新，其他差异为既有改动）。
 2025-10-08 12:45 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，同步时间戳。
+2025-10-08 13:36 NZST - 调用 `sequential-thinking` 工具梳理快速胜利项任务范围与风险。
+2025-10-08 13:37 NZST - 执行 `ls scripts`，获取脚本目录基线清单。
+2025-10-08 13:37 NZST - 执行 `find scripts -maxdepth 1 -name '*.ts' | sort`，整理 TypeScript 脚本列表。
+2025-10-08 13:37 NZST - 执行 `sed -n '1,160p' scripts/typecheck-cli.ts`，分析 typecheck 脚本结构与 env 读取方式。
+2025-10-08 13:38 NZST - 执行 `sed -n '1,160p' scripts/lsp-health.ts`，了解健康检查脚本输出模式。
+2025-10-08 13:38 NZST - 执行 `cat package.json`，读取完整 npm 配置与脚本定义。
+2025-10-08 13:38 NZST - 执行 `jq -r '.scripts.ci' package.json`，提取 CI 主脚本串联内容。
+2025-10-08 13:38 NZST - 执行 `sed -n '1,200p' src/typecheck.ts`，回顾类型检查诊断生成方式。
+2025-10-08 13:39 NZST - 执行 `rg "throw" src/typecheck.ts`，确认类型检查阶段未直接抛出异常。
+2025-10-08 13:39 NZST - 执行 `sed -n '1,200p' src/parser.ts`，定位解析阶段错误处理链式调用。
+2025-10-08 13:39 NZST - 执行 `rg -n "process\\.env" src scripts`，枚举环境变量使用场景。
+2025-10-08 13:40 NZST - 执行 `ls -a .github`，确认 GitHub 配置目录存在。
+2025-10-08 13:40 NZST - 执行 `ls -a .github/workflows`，查看已配置的工作流。
+2025-10-08 13:40 NZST - 执行 `sed -n '220,320p' src/typecheck.ts`，抽取能力校验诊断示例。
+2025-10-08 13:40 NZST - 执行 `sed -n '1,160p' src/utils/errors.ts`，验证错误工具文件是否已存在（结果：文件缺失）。
+2025-10-08 13:41 NZST - 执行 `python3 - <<'PY' ...`，输出 scripts 目录 TypeScript 文件的 JSON 列表。
+2025-10-08 13:41 NZST - 执行 `test -f .claude/context-initial.json && cat .claude/context-initial.json`，确认上下文文件是否已存在。
+2025-10-08 13:41 NZST - 执行 `TZ=Pacific/Auckland date -u +'%Y-%m-%dT%H:%M:%S%z'`，获取 UTC 形式时间戳（用于比对）。
+2025-10-08 13:41 NZST - 执行 `TZ=Pacific/Auckland date +'%Y-%m-%dT%H:%M:%S%z'`，生成无冒号的本地 ISO 时间。
+2025-10-08 13:41 NZST - 执行 `TZ=Pacific/Auckland date +'%Y-%m-%dT%H:%M:%S%:z'`，尝试输出带冒号时区（失败，输出格式异常）。
+2025-10-08 13:41 NZST - 执行 `python3 - <<'PY' ... zoneinfo`，获得带时区的 ISO 时间戳。
+2025-10-08 13:42 NZST - 使用 `apply_patch` 新增 `.claude/context-initial.json`，汇总快速胜利项所需上下文。
+2025-10-08 14:14 NZST - 调用 `sequential-thinking` 梳理 capability enforcement 上下文收集步骤与风险。
+2025-10-08 14:14 NZST - 调用 `code-index__set_project_path`、`code-index__find_files` 建立索引并定位 `src/typecheck.ts`。
+2025-10-08 14:14 NZST - 调用 `code-index__build_deep_index` 与 `code-index__get_file_summary` 读取 `src/typecheck.ts` 概览。
+2025-10-08 14:15 NZST - 执行 `rg -n "ASTER_CAP_EFFECTS_ENFORCE" src/typecheck.ts` 与 `sed -n '200,320p'`/`'419,470p'`，收集环境变量判定与 `collectCapabilities` 实现。
+2025-10-08 14:15 NZST - 执行 `rg -n "ASTER_CAP_EFFECTS_ENFORCE"`、`sed -n '430,500p' scripts/golden.ts`，梳理黄金测试环境变量配置。
+2025-10-08 14:15 NZST - 执行 `rg -n "capability" test src scripts cnl`，汇总 capability 相关测试与示例文件。
+2025-10-08 14:16 NZST - 执行 `sed -n '1,120p' scripts/health-check.ts`，确认健康检查脚本仅在缺失环境变量时给出警告。
+2025-10-08 14:17 NZST - 使用 `apply_patch` 新增 `.claude/context-capability-enforcement.json`，整理能力校验默认开启改造所需上下文与方案评估。
+2025-10-08 14:31 NZST - 调用 `sequential-thinking` 评估泛型类型检查修复任务的阶段风险与执行顺序。
+2025-10-08 14:31 NZST - 执行 `sed -n '760,820p' src/typecheck.ts`，确认 `unifyTypes` 当前诊断级别为 warning。
+2025-10-08 14:32 NZST - 使用 `apply_patch` 将 `unifyTypes` 中类型变量冲突诊断从 warning 提升为 error。
+2025-10-08 14:32 NZST - 执行 `npm run typecheck`，确认阶段A修改未破坏类型检查编译（命令正常完成）。
+2025-10-08 14:36 NZST - 执行 `npm run test:golden`，阶段A修改后黄金测试全部通过（未发现新增诊断差异）。
+2025-10-08 14:55 NZDT - 调用 `sequential-thinking` 梳理运维文档补充任务（阶段1.5）范围与风险。
+2025-10-08 14:55 NZDT - 通过 `ls` 与 `find docs -maxdepth 2 -type d` 快速盘点仓库根目录与现有文档结构，确认缺少 operations 目录。
+2025-10-08 14:55 NZDT - 设置 code-index 项目路径并使用 `code-index__find_files`/`code-index__search_code_advanced` 定位 `scripts/health-check.ts`、`src/config/runtime.ts` 等配置来源。
+2025-10-08 14:55 NZDT - 执行 `rg "process\\.env"` 汇总环境变量清单，辅助后续配置文档编制。
+2025-10-08 14:56 NZDT - 读取 `.github/workflows/*.yml`、`package.json`、`README.md`、`tsconfig.json`，整理部署与构建流程信息。
+2025-10-08 14:56 NZDT - 使用 `apply_patch` 新建 `.claude/context-operations.json`，记录部署/配置/文档现状，作为运维文档撰写输入。
+2025-10-08 14:57 NZDT - 执行 `mkdir -p docs/operations` 初始化运维文档目录。
+2025-10-08 14:57 NZDT - 通过 `apply_patch` 创建 `docs/operations/deployment.md`，梳理环境要求、构建与发布流程及上线检查表。
+2025-10-08 14:57 NZDT - 通过 `apply_patch` 创建 `docs/operations/configuration.md`，整理环境变量、manifest 格式与配置验证方法。
+2025-10-08 14:57 NZDT - 通过 `apply_patch` 创建 `docs/operations/rollback.md`，定义回滚策略、验证步骤与紧急流程。
+2025-10-08 14:57 NZDT - 通过 `apply_patch` 创建 `docs/operations/troubleshooting.md`，汇总常见错误、结构化日志与排障技巧。
+2025-10-08 14:58 NZDT - 通过 `apply_patch` 创建 `docs/operations.md` 运维索引，汇总四大文档入口与重点提示。
+2025-10-08 14:59 NZDT - 修订 `docs/operations/deployment.md` 与 `docs/operations/configuration.md`，补充 `npm run emit:class -- <path>` 的参数分隔写法以确保命令可执行。

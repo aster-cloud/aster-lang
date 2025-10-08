@@ -14,6 +14,7 @@ import type {
     Type,
 } from './types.js';
 import {Diagnostics} from './diagnostics.js';
+import {createLogger} from './utils/logger.js';
 
 export interface ParserContext {
   readonly tokens: readonly Token[];
@@ -40,6 +41,8 @@ export interface ParserContext {
   withTypeScope<T>(names: Iterable<string>, body: () => T): T;
 }
 
+const parserLogger = createLogger('parser');
+
 export function parse(tokens: readonly Token[]): Module {
   const ctx: ParserContext = {
     tokens,
@@ -54,8 +57,7 @@ export function parse(tokens: readonly Token[]): Module {
       depth: 0,
       log: (message: string): void => {
         if (!ctx.debug.enabled) return;
-        const indent = '  '.repeat(ctx.debug.depth);
-        console.log(`${indent}[parseType] ${message}`);
+        parserLogger.debug(`[parseType] ${message}`, { depth: ctx.debug.depth });
       },
     },
     peek: (offset: number = 0): Token => {

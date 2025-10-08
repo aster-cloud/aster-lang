@@ -1,0 +1,19 @@
+# Dependabot 自动依赖更新配置：保持 npm 与 GitHub Actions 每周同步
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    # 提示：npm 生态更新会自动触发流水线验证，注意合并节奏
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    # 提示：Actions 变动需关注权限范围，合并前请复核 workflow 运行记录

@@ -1,9 +1,12 @@
+import { performance } from 'node:perf_hooks';
 import type { Core, TypecheckDiagnostic } from './types.js';
 import { type CapabilityManifest, type CapabilityContext, isAllowed } from './capabilities.js';
 import { inferEffects } from './effect_inference.js';
 import { DefaultCoreVisitor } from './visitor.js';
 // import { DiagnosticBuilder, DiagnosticCode, DiagnosticSeverity } from './diagnostics.js';
 import { IO_PREFIXES, CPU_PREFIXES, CAPABILITY_PREFIXES } from './config/effects.js';
+import { ENFORCE_CAPABILITIES } from './config/runtime.js';
+import { createLogger, logPerformance } from './utils/logger.js';
 
 // Re-export TypecheckDiagnostic for external use
 export type { TypecheckDiagnostic };
@@ -21,66 +24,72 @@ function tUnknown(): T {
 }
 
 const UNKNOWN_TYPENAME: Core.TypeName = { kind: 'TypeName', name: 'Unknown' };
+const typecheckLogger = createLogger('typecheck');
 
 function tEquals(a: T, b: T): boolean {
   if (isUnknown(a) || isUnknown(b)) return true;
-  if (a.kind !== b.kind) return false;
-  switch (a.kind) {
+  const aa = a as Core.Type;
+  const bb = b as Core.Type;
+  if (aa.kind === 'TypeVar' && bb.kind === 'TypeVar') {
+    return aa.name === bb.name;
+  }
+  if (aa.kind === 'TypeVar' || bb.kind === 'TypeVar') return false;
+  if (aa.kind !== bb.kind) return false;
+  switch (aa.kind) {
     case 'TypeName': {
-      const an = (a as Core.TypeName).name;
-      const bn = (b as Core.TypeName).name;
+      const an = aa.name;
+      const bn = (bb as Core.TypeName).name;
       if (an === 'Unknown' || bn === 'Unknown') return true;
       return an === bn;
     }
-    case 'TypeVar':
-      // Permissive equality for preview; assume compatible
-      return true;
     case 'TypeApp': {
-      const aa = a as Core.TypeApp,
-        bb = b as Core.TypeApp;
-      if (aa.base !== bb.base) return false;
-      if (aa.args.length !== bb.args.length) return false;
-      for (let i = 0; i < aa.args.length; i++)
-        if (!tEquals(aa.args[i] as T, bb.args[i] as T)) return false;
+      const aApp = aa as Core.TypeApp;
+      const bApp = bb as Core.TypeApp;
+      if (aApp.base !== bApp.base) return false;
+      if (aApp.args.length !== bApp.args.length) return false;
+      for (let i = 0; i < aApp.args.length; i++)
+        if (!tEquals(aApp.args[i] as T, bApp.args[i] as T)) return false;
       return true;
     }
     case 'Maybe':
-      return tEquals((a as Core.Maybe).type as T, (b as Core.Maybe).type as T);
+      return tEquals((aa as Core.Maybe).type as T, (bb as Core.Maybe).type as T);
     case 'Option':
-      return tEquals((a as Core.Option).type as T, (b as Core.Option).type as T);
+      return tEquals((aa as Core.Option).type as T, (bb as Core.Option).type as T);
     case 'Result': {
-      const aa = a as Core.Result,
-        bb = b as Core.Result;
-      return tEquals(aa.ok as T, bb.ok as T) && tEquals(aa.err as T, bb.err as T);
+      const aRes = aa as Core.Result;
+      const bRes = bb as Core.Result;
+      return tEquals(aRes.ok as T, bRes.ok as T) && tEquals(aRes.err as T, bRes.err as T);
     }
     case 'List':
-      return tEquals((a as Core.List).type as T, (b as Core.List).type as T);
+      return tEquals((aa as Core.List).type as T, (bb as Core.List).type as T);
     case 'Map': {
-      const aa = a as Core.Map,
-        bb = b as Core.Map;
-      return tEquals(aa.key as T, bb.key as T) && tEquals(aa.val as T, bb.val as T);
+      const aMap = aa as Core.Map;
+      const bMap = bb as Core.Map;
+      return tEquals(aMap.key as T, bMap.key as T) && tEquals(aMap.val as T, bMap.val as T);
     }
     case 'FuncType': {
-      const aa = a as unknown as Core.FuncType,
-        bb = b as unknown as Core.FuncType;
-      if (aa.params.length !== bb.params.length) return false;
-      for (let i = 0; i < aa.params.length; i++)
-        if (!tEquals(aa.params[i] as T, bb.params[i] as T)) return false;
-      return tEquals(aa.ret as T, bb.ret as T);
+      const aFunc = aa as unknown as Core.FuncType;
+      const bFunc = bb as unknown as Core.FuncType;
+      if (aFunc.params.length !== bFunc.params.length) return false;
+      for (let i = 0; i < aFunc.params.length; i++)
+        if (!tEquals(aFunc.params[i] as T, bFunc.params[i] as T)) return false;
+      return tEquals(aFunc.ret as T, bFunc.ret as T);
     }
     case 'PiiType': {
-      const aa = a as Core.PiiType,
-        bb = b as Core.PiiType;
-      return aa.sensitivity === bb.sensitivity &&
-             aa.category === bb.category &&
-             tEquals(aa.baseType as T, bb.baseType as T);
+      const aPii = aa as Core.PiiType;
+      const bPii = bb as Core.PiiType;
+      return aPii.sensitivity === bPii.sensitivity &&
+             aPii.category === bPii.category &&
+             tEquals(aPii.baseType as T, bPii.baseType as T);
     }
-    default:
+    default: {
       // 穷尽检查：TypeScript 确保所有类型都已处理
       // 如果到达这里，说明类型定义与实现不一致
-      const _exhaustiveCheck: never = a;
-      console.warn(`tEquals: 未处理的类型 kind:`, _exhaustiveCheck);
+      const unknownType = aa as Core.Type;
+      // const _exhaustiveCheck: never = unknownType as never;
+      typecheckLogger.warn('tEquals: 未处理的类型 kind', { value: unknownType });
       return false;
+    }
   }
 }
 
@@ -128,34 +137,53 @@ interface ModuleContext {
 }
 
 export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
-  const diags: TypecheckDiagnostic[] = [];
-  const ctx: ModuleContext = { datas: new Map(), enums: new Map(), imports: new Map() };
-  // Collect imports (MVP: warn on duplicate aliases)
-  for (const d of m.decls) {
-    if (d.kind === 'Import') {
-      const alias = d.asName ?? d.name;
-      if (ctx.imports.has(alias)) {
-        diags.push({
-          severity: 'warning',
-          message: `Duplicate import alias '${alias}'.`,
-        });
-      } else {
-        ctx.imports.set(alias, d.name);
+  const moduleName = m.name ?? '<anonymous>';
+  const startTime = performance.now();
+  typecheckLogger.info('开始类型检查模块', { moduleName });
+  try {
+    const diags: TypecheckDiagnostic[] = [];
+    const ctx: ModuleContext = { datas: new Map(), enums: new Map(), imports: new Map() };
+    for (const d of m.decls) {
+      if (d.kind === 'Import') {
+        const alias = d.asName ?? d.name;
+        if (ctx.imports.has(alias)) {
+          diags.push({
+            severity: 'warning',
+            message: `Duplicate import alias '${alias}'.`,
+          });
+        } else {
+          ctx.imports.set(alias, d.name);
+        }
       }
     }
-  }
-  for (const d of m.decls) {
-    if (d.kind === 'Data') ctx.datas.set(d.name, d);
-    if (d.kind === 'Enum') ctx.enums.set(d.name, d);
-  }
-  for (const d of m.decls) {
-    if (d.kind === 'Func') {
-      diags.push(...typecheckFunc(ctx, d));
+    for (const d of m.decls) {
+      if (d.kind === 'Data') ctx.datas.set(d.name, d);
+      if (d.kind === 'Enum') ctx.enums.set(d.name, d);
     }
+    for (const d of m.decls) {
+      if (d.kind === 'Func') {
+        diags.push(...typecheckFunc(ctx, d));
+      }
+    }
+    const effectDiags = inferEffects(m);
+    diags.push(...effectDiags);
+    const duration = performance.now() - startTime;
+    const baseMeta = { moduleName, errorCount: diags.length };
+    logPerformance({
+      component: 'typecheck',
+      operation: '模块类型检查',
+      duration,
+      metadata: baseMeta,
+    });
+    typecheckLogger.info('类型检查完成', {
+      ...baseMeta,
+      duration_ms: duration,
+    });
+    return diags;
+  } catch (error) {
+    typecheckLogger.error('类型检查失败', error as Error, { moduleName });
+    throw error;
   }
-  const effectDiags = inferEffects(m);
-  diags.push(...effectDiags);
-  return diags;
 }
 
 export function typecheckModuleWithCapabilities(
@@ -241,7 +269,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
   // Async discipline: every started task should be waited somewhere in the body
 
   // Capability-parameterized IO enforcement (feature-gated)
-  if (typeof process !== 'undefined' && process.env && process.env.ASTER_CAP_EFFECTS_ENFORCE === '1') {
+  if (ENFORCE_CAPABILITIES) {
     const capsMeta = (f as unknown as { effectCaps?: { io?: readonly string[] } }).effectCaps;
     const declared = capsMeta && capsMeta.io ? new Set<string>(capsMeta.io as readonly string[]) : null;
     if (declared) {
@@ -783,7 +811,7 @@ function unifyTypes(
       subst.set(tv, actual as Core.Type);
     } else if (!tEquals(bound as T, actual)) {
       diags.push({
-        severity: 'warning',
+        severity: 'error',
         message: `Type variable '${tv}' inferred inconsistently: ${tToString(bound as T)} vs ${tToString(actual)}`,
       });
     }

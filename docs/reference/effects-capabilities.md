@@ -71,7 +71,7 @@ The prefixes that map call sites to capabilities live in:
 - src/config/effects.ts → CAPABILITY_PREFIXES
   - Example mappings: Http → ['Http.'], Sql → ['Db.', 'Sql.'], Time → ['Time.', 'Clock.'], Files → ['Files.', 'Fs.'], Secrets → ['Secrets.'], AiModel → ['Ai.']
 
-This table is used under ASTER_CAP_EFFECTS_ENFORCE=1 to check that used capabilities are a subset of those declared in the function header.
+默认会基于该表执行能力子集校验，可通过设置环境变量 ASTER_CAP_EFFECTS_ENFORCE=0 禁用；设置为 1 可显式保持开启。
 
 ### Mixed-form header example
 
@@ -102,22 +102,19 @@ Status:
 - Pass through `effectCaps` from AST to Core.Func unchanged.
 - No changes to current Effect enum or downstream emitters.
 
-## Typechecker (feature-gated, planned)
+## Typechecker
 
-- Default behavior (today):
-  - Enforce minimal lattice only (missing effects → errors; IO ⊒ CPU).
-  - If `effectCaps` present, do not enforce capabilities yet; no diagnostics solely for caps presence.
+- 默认行为（ASTER_CAP_EFFECTS_ENFORCE 未设置或不为 `'0'`）：
+  - 维持最小效应格检查（缺失效应报错；IO ⊒ CPU）。
+  - 依据 `src/config/effects.ts` 中的映射收集函数体使用到的能力前缀（如 `Http`: ["Http.", "Fetch."], `Sql`: ["Db.", "Jdbc."], `Time`: ["Time.", "Clock."] 等）。
+  - 当函数头声明 `@io` 能力列表时校验 `usedCaps ⊆ declaredCaps`；未声明列表时视为不受限。
+  - 诊断类别：
+    - 缺失能力：错误（`EFF_CAP_MISSING`）
+    - 头部多余能力：信息（`EFF_CAP_SUPERFLUOUS`）
 
-- Gated behavior (future; `ASTER_CAP_EFFECTS_ENFORCE=1`):
-  - Define a mapping from callsite prefixes to capability tags in `src/config/effects.ts`:
-    - e.g., `Http`: ["Http.", "Fetch."]
-    - `Sql`: ["Db.", "Jdbc."]
-    - `Time`: ["Time.", "Clock."]
-  - Collect used capability tags in function body from the mapping.
-  - Check that `usedCaps ⊆ declaredCaps` when `@io` has a list; else if `@io` without list → unconstrained, allow all.
-  - Diagnostics:
-    - Missing capability: error (code `EFF_CAP_MISSING`)
-    - Superfluous capability in header: info (code `EFF_CAP_SUPERFLUOUS`)
+- 禁用行为（ASTER_CAP_EFFECTS_ENFORCE=`'0'`）：
+  - 仅执行最小效应格检查。
+  - `effectCaps` 元数据仍会传递，但不会触发能力子集校验。
 
 ### Subsumption and join (future)
 - Within IO, treat capability sets with subset ordering:
@@ -129,8 +126,8 @@ Status:
 
 - `ASTER_CAP_EFFECTS=1`
   - Enable parsing and IR emission of `effectCaps` (safe; default can be ON).
-- `ASTER_CAP_EFFECTS_ENFORCE=1`
-  - Enable capability subset checks in the typechecker (default OFF until stable).
+- `ASTER_CAP_EFFECTS_ENFORCE=0`
+  - 显式禁用类型检查阶段的能力子集校验（默认保持启用）。
 
 ## Migration & compatibility
 
@@ -150,4 +147,3 @@ Status:
 - Canonical names and casing for capability tags (Http vs HTTP).
 - Extensibility for parameterized capabilities (e.g., Http[method=POST]).
 - Interactions with effect polymorphism (`with E`) when E contains IO rows.
-
