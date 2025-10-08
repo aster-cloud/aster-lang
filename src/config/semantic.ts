@@ -132,6 +132,7 @@ export enum CapabilityKind {
   FILES = 'Files',
   SECRETS = 'Secrets',
   AI_MODEL = 'AiModel',
+  CPU = 'cpu',
 }
 
 /**

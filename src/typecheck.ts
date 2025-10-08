@@ -1,6 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import type { Core, TypecheckDiagnostic } from './types.js';
 import { type CapabilityManifest, type CapabilityContext, isAllowed } from './capabilities.js';
+import type { CapabilityKind } from './config/semantic.js';
 import { inferEffects } from './effect_inference.js';
 import { DefaultCoreVisitor } from './visitor.js';
 // import { DiagnosticBuilder, DiagnosticCode, DiagnosticSeverity } from './diagnostics.js';
@@ -270,9 +271,10 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
 
   // Capability-parameterized IO enforcement (feature-gated)
   if (ENFORCE_CAPABILITIES) {
-    const capsMeta = (f as unknown as { effectCaps?: { io?: readonly string[] } }).effectCaps;
-    const declared = capsMeta && capsMeta.io ? new Set<string>(capsMeta.io as readonly string[]) : null;
-    if (declared) {
+    const meta = f as unknown as { effectCaps?: readonly CapabilityKind[]; effectCapsExplicit?: boolean };
+    const declaredCaps = meta.effectCapsExplicit ? meta.effectCaps : undefined;
+    if (declaredCaps && declaredCaps.length > 0) {
+      const declared = new Set<CapabilityKind>(declaredCaps);
       const used = collectCapabilities(f.body);
       for (const cap of used) {
         if (!declared.has(cap)) {
@@ -444,14 +446,14 @@ function collectEffects(b: Core.Block): Set<'io' | 'cpu'> {
 }
 
 
-function collectCapabilities(b: Core.Block): Set<string> {
-  const caps = new Set<string>();
+function collectCapabilities(b: Core.Block): Set<CapabilityKind> {
+  const caps = new Set<CapabilityKind>();
   class CapVisitor extends DefaultCoreVisitor<void> {
     override visitExpression(e: Core.Expression): void {
       if (e.kind === 'Call' && e.target.kind === 'Name') {
         const n = e.target.name;
         for (const [cap, prefixes] of Object.entries(CAPABILITY_PREFIXES)) {
-          if (prefixes.some(p => n.startsWith(p))) caps.add(cap);
+          if (prefixes.some(p => n.startsWith(p))) caps.add(cap as CapabilityKind);
         }
       }
       super.visitExpression(e, undefined as unknown as void);

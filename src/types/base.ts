@@ -16,7 +16,7 @@
  */
 
 import type { Span, Origin } from '../types.js';
-import type { Effect } from '../config/semantic.js';
+import type { Effect, CapabilityKind } from '../config/semantic.js';
 
 // ============================================================
 // 基础节点接口
@@ -97,7 +97,7 @@ export interface BaseFunc<S = Span | Origin, E = string[] | readonly Effect[], T
   readonly typeParams: readonly string[];
   readonly params: readonly BaseParameter<T>[];
   readonly effects?: E;
-  readonly effectCaps?: { readonly io?: readonly string[] };
+  readonly effectCaps?: readonly CapabilityKind[];
 }
 
 /**

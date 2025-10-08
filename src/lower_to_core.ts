@@ -121,8 +121,12 @@ function lowerFunc(f: Func): import('./types.js').Core.Func {
   const body = f.body ? lowerBlock(f.body) : Core.Block([]);
   const out = Core.Func(f.name, f.typeParams ?? [], params, ret, effects, body);
   // Pass through capability metadata if present
-  if ((f as any).effectCaps) {
-    (out as any).effectCaps = { ...(f as any).effectCaps };
+  const caps = (f as any).effectCaps as readonly import('./config/semantic.js').CapabilityKind[] | undefined;
+  if (caps && caps.length > 0) {
+    (out as any).effectCaps = [...caps];
+    if ((f as any).effectCapsExplicit !== undefined) {
+      (out as any).effectCapsExplicit = (f as any).effectCapsExplicit;
+    }
   }
   const o = spanToOrigin((f as any).span, (f as any).file ?? null);
   if (o) (out as any).origin = o;

@@ -17,6 +17,7 @@ import type {
   ConstructField,
 } from './types.js';
 import { DefaultAstVisitor } from './ast_visitor.js';
+import type { CapabilityKind } from './config/semantic.js';
 
 export function formatCNL(
   text: string,
@@ -345,15 +346,12 @@ function formatFunc(f: Func): string {
 }
 
 function formatEffectCaps(f: Func): string {
-  const caps = (f as any).effectCaps as { io?: readonly string[] } | undefined;
-  if (!caps) return '';
+  const caps = (f as any).effectCaps as readonly CapabilityKind[] | undefined;
+  const isExplicit = Boolean((f as any).effectCapsExplicit);
+  if (!caps || caps.length === 0) return '';
+  if (!isExplicit) return '';
   if (!f.effects || f.effects.length === 0) return '';
-  // Only IO has capability parameters for now
-  if (f.effects.includes('io') && caps.io && caps.io.length > 0) {
-    // Deterministic order as written in AST
-    return ` [${(caps.io as string[]).join(', ')}]`;
-  }
-  return '';
+  return ` [${(caps as readonly string[]).join(', ')}]`;
 }
 
 function formatEffects(effs: readonly string[]): string {

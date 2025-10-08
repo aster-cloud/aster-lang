@@ -336,3 +336,65 @@
 2025-10-08 14:57 NZDT - 通过 `apply_patch` 创建 `docs/operations/troubleshooting.md`，汇总常见错误、结构化日志与排障技巧。
 2025-10-08 14:58 NZDT - 通过 `apply_patch` 创建 `docs/operations.md` 运维索引，汇总四大文档入口与重点提示。
 2025-10-08 14:59 NZDT - 修订 `docs/operations/deployment.md` 与 `docs/operations/configuration.md`，补充 `npm run emit:class -- <path>` 的参数分隔写法以确保命令可执行。
+2025-10-08 15:37 NZST - 调用 `sequential-thinking` 梳理阶段2能力系统上下文收集任务的范围与步骤。
+2025-10-08 15:37 NZST - 调用 `code-index__set_project_path` 初始化索引，随后使用 `code-index__find_files`/`code-index__search_code_advanced` 检索 capability 相关类型与前缀配置。
+2025-10-08 15:38 NZST - 执行 `nl -ba src/capabilities.ts`、`nl -ba src/config/semantic.ts | sed -n '1,220p'`，提取能力枚举、前缀映射及 Effect 枚举定义。
+2025-10-08 15:38 NZST - 执行 `nl -ba src/typecheck.ts | sed -n '180,340p'` 与 `sed -n '430,520p'`，收集 manifest 校验与效果/能力推断核心实现。
+2025-10-08 15:39 NZST - 执行 `nl -ba src/lsp/server.ts | sed -n '730,830p'`、`nl -ba scripts/typecheck-cli.ts`，记录 manifest 解析与加载路径。
+2025-10-08 15:39 NZST - 读取 `cnl/examples/eff_violation_*.cnl` 及对应 `expected_*.diag.txt`，采样三组黄金用例内容。
+2025-10-08 15:40 NZST - 执行 `nl -ba scripts/golden.ts | sed -n '1,520p'`，确认 golden 框架中 capability enforcement 用例执行方式。
+2025-10-08 15:40 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'` 获取文档时间戳。
+2025-10-08 15:47 NZDT - 调用 MCP 工具 `sequential-thinking` 分析任务 78dafcf7-fa65-4175-bbea-9b8b6efa5850 的类型调整范围与潜在风险。
+2025-10-08 15:47 NZDT - 执行 `ls` 复核仓库根目录结构，确认目标文件位于 `src/`。
+2025-10-08 15:47 NZDT - 执行 `sed -n '110,170p' src/config/semantic.ts` 检视 CapabilityKind 枚举与前缀映射现状。
+2025-10-08 15:47 NZDT - 执行 `sed -n '1,200p' src/capabilities.ts` 获取现有 Capability 类型别名与 manifest 定义。
+2025-10-08 15:47 NZDT - 执行 `sed -n '1,160p' operations-log.md` 回顾既有日志确保追加记录连续性。
+2025-10-08 15:47 NZDT - 执行 `TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"` 获取最新 NZDT 时间戳用于记录。
+2025-10-08 15:47 NZDT - 使用 `apply_patch` 更新 `src/config/semantic.ts`，新增 CapabilityKind.CPU 枚举值。
+2025-10-08 15:47 NZDT - 使用 `apply_patch` 向 `src/capabilities.ts` 注入 CapabilityKind 导入语句。
+2025-10-08 15:48 NZDT - 再次使用 `apply_patch` 调整 `src/capabilities.ts`：将 Capability 类型改为枚举、更新 manifest 键类型并新增 `isCapabilityKind` 守卫函数。
+2025-10-08 15:48 NZDT - 执行 `tail -n 20 operations-log.md` 校验日志追加位置。
+2025-10-08 15:48 NZDT - 执行 `TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"` 记录最新时间戳以便后续操作。
+2025-10-08 15:48 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，追加本阶段工具调用记录。
+2025-10-08 15:48 NZDT - 执行 `git diff --stat` 获取当前改动统计，确认仅触及目标文件外加既有脏改。
+2025-10-08 15:48 NZDT - 执行 `TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"` 记录日志时间戳。
+2025-10-08 15:48 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，补记 git diff 与时间戳命令。
+2025-10-08 15:49 NZDT - 执行 `nl -ba src/config/semantic.ts | sed -n '120,150p'` 获取新增枚举行号用于报告引用。
+2025-10-08 15:49 NZDT - 执行 `nl -ba src/capabilities.ts | sed -n '1,160p'` 确认可导入、类型守卫与签名更新的位置。
+2025-10-08 15:49 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录上述行号查询命令。
+2025-10-08 15:56 NZDT - 调用 MCP 工具 `sequential-thinking`（3 次）梳理任务理解、风险与执行步骤，结论：先查 `src/capabilities.ts` 类型定义，再实现函数并补测。
+2025-10-08 15:56 NZDT - 执行 `rg --files --iglob 'operations-log.md'`（工作目录 `/Users/rpang/IdeaProjects/aster-lang`）以定位需记录的日志文件。
+2025-10-08 15:56 NZDT - 执行 `sed -n '1,200p' operations-log.md`（工作目录 `/Users/rpang/IdeaProjects/aster-lang`）核对既有条目格式。
+2025-10-08 15:56 NZDT - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'` 获取 NZDT 时间戳供后续记录使用。
+2025-10-08 15:57 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，追加工具调用记录（本条目记录该操作）。
+2025-10-08 15:57 NZDT - 执行 `sed -n '1,200p' src/capabilities.ts` 查看文件当前内容，确认待实现函数缺失。
+2025-10-08 15:57 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录读取 `src/capabilities.ts` 命令。
+2025-10-08 15:58 NZDT - 使用 `apply_patch` 更新 `src/capabilities.ts`，新增 `parseLegacyCapability` 与 `normalizeManifest` 实现。
+2025-10-08 15:58 NZDT - 使用 `apply_patch` 再次更新 `src/capabilities.ts`，细化 `normalizeManifest` 中的类型断言，避免裸 `any`。
+2025-10-08 15:58 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，补记上述两次源码修改（本条记录该操作）。
+2025-10-08 15:59 NZDT - 执行 `rg "enum CapabilityKind" -n src` 查找枚举定义位置。
+2025-10-08 15:59 NZDT - 执行 `sed -n '128,200p' src/config/semantic.ts` 检查 `CapabilityKind` 枚举取值。
+2025-10-08 15:59 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录枚举查询命令。
+2025-10-08 16:00 NZDT - 使用 `apply_patch` 新增 `test/capabilities.test.ts`，编写向后兼容单元测试。
+2025-10-08 16:00 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，登记测试文件创建操作（本条记录该操作）。
+2025-10-08 16:00 NZDT - 使用 `apply_patch` 调整 `test/capabilities.test.ts` 中断言函数类型，改用 `CapabilityKind[]`。
+2025-10-08 16:00 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录断言类型调整（本条目记录该操作）。
+2025-10-08 16:01 NZDT - 执行 `npm run build`（失败），TypeScript 报错：`CapabilityManifest.deny` 只读不可赋值、`parseLegacyCapability` 调用签名不匹配、测试文件缺少 `CapabilityKind` 导出与索引类型为 `any`。
+2025-10-08 16:01 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录构建失败详情（本条记该操作）。
+2025-10-08 16:02 NZDT - 使用 `apply_patch` 更新 `src/capabilities.ts`，改用可变中间对象构建 manifest 以避免写入只读属性。
+2025-10-08 16:02 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录 manifest 构建方式调整（本条记该操作）。
+2025-10-08 16:02 NZDT - 使用 `apply_patch` 更新 `src/capabilities.ts`，允许 `isAllowed` 接受 legacy `'io'/'cpu'` 并加入多 capability 检查。
+2025-10-08 16:02 NZDT - 使用 `apply_patch` 修正 `isAllowed` 返回值，确保匹配成功时返回 true。
+2025-10-08 16:02 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，登记 `isAllowed` 调整及返回值修复（本条记该操作）。
+2025-10-08 16:03 NZDT - 使用 `apply_patch` 更新 `test/capabilities.test.ts`，改为从 `src/config/semantic.ts` 导入 `CapabilityKind`。
+2025-10-08 16:03 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录测试导入调整（本条记该操作）。
+2025-10-08 16:04 NZDT - 执行 `npm run build` 成功，完成 TypeScript 编译与 PEG 生成。
+2025-10-08 16:04 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，登记构建成功记录（本条记该操作）。
+2025-10-08 16:04 NZDT - 执行 `node dist/test/capabilities.test.js`（失败），报错 `ERR_MODULE_NOT_FOUND`：dist 目录未生成 `src/config/semantic.js`。
+2025-10-08 16:04 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录测试执行失败（本条记该操作）。
+2025-10-08 16:05 NZDT - 使用 `apply_patch` 更新 `src/capabilities.ts`，为 `./config/semantic.js` 补全扩展名，修复 ESM 解析错误。
+2025-10-08 16:05 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，登记 import 扩展名修复（本条记该操作）。
+2025-10-08 16:05 NZDT - 执行 `npm run build` 成功，再次生成 dist 产物。
+2025-10-08 16:05 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录二次构建命令（本条记该操作）。
+2025-10-08 16:06 NZDT - 执行 `node dist/test/capabilities.test.js` 成功，四项兼容性测试全部通过。
+2025-10-08 16:06 NZDT - 使用 `apply_patch` 更新 `operations-log.md`，记录兼容性测试通过（本条记该操作）。

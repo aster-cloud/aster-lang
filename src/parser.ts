@@ -1,5 +1,7 @@
 import {KW, TokenKind} from './tokens.js';
 import {Node} from './ast.js';
+import {parseLegacyCapability, isCapabilityKind} from './capabilities.js';
+import {CapabilityKind} from './config/semantic.js';
 import type {
     Block,
     Case,
@@ -332,15 +334,16 @@ export function parse(tokens: readonly Token[]): Module {
       ctx.currentTypeVars = savedTypeVars;
 
       // Separate base effects from capabilities
-      const { baseEffects, effectCaps } = separateEffectsAndCaps(effects);
+      const { baseEffects, effectCaps, hasExplicitCaps } = separateEffectsAndCaps(effects);
 
       const fn = Node.Func(name, typeParams, params, retType, baseEffects, body);
       (fn as any).span = { start: toTok.start, end: endTok.end };
       // Record function name span for precise navigation/highlighting
       ;(fn as any).nameSpan = { start: nameTok.start, end: (ctx.tokens[ctx.index - 1] || nameTok).end };
       // Attach capability metadata if present
-      if (Object.keys(effectCaps).length > 0) {
+      if (effectCaps.length > 0) {
         (fn as any).effectCaps = effectCaps;
+        (fn as any).effectCapsExplicit = hasExplicitCaps;
       }
       decls.push(fn);
     } else if (ctx.at(TokenKind.NEWLINE) || ctx.at(TokenKind.DEDENT) || ctx.at(TokenKind.INDENT)) {
@@ -615,30 +618,47 @@ export function parse(tokens: readonly Token[]): Module {
     return effs;
   }
 
-  function separateEffectsAndCaps(effects: string[]): { baseEffects: string[], effectCaps: Record<string, string[]> } {
+  function separateEffectsAndCaps(effects: string[]): { baseEffects: string[], effectCaps: CapabilityKind[], hasExplicitCaps: boolean } {
     const baseEffects: string[] = [];
-    const capabilities: string[] = [];
+    const rawCaps: string[] = [];
     const baseEffectSet = new Set(['io', 'cpu', 'pure']);
 
     for (const eff of effects) {
-      if (baseEffectSet.has(eff.toLowerCase())) {
-        baseEffects.push(eff.toLowerCase());
-      } else {
-        capabilities.push(eff);
+      const lower = eff.toLowerCase();
+      if (baseEffectSet.has(lower)) {
+        baseEffects.push(lower);
+        continue;
+      }
+      rawCaps.push(eff);
+    }
+
+    const effectCaps: CapabilityKind[] = [];
+    const seenCaps = new Set<CapabilityKind>();
+    const appendCaps = (caps: readonly CapabilityKind[]): void => {
+      for (const cap of caps) {
+        if (seenCaps.has(cap)) continue;
+        seenCaps.add(cap);
+        effectCaps.push(cap);
+      }
+    };
+
+    if (rawCaps.length > 0) {
+      for (const capText of rawCaps) {
+        if (isCapabilityKind(capText)) {
+          appendCaps([capText as CapabilityKind]);
+          continue;
+        }
+        error(`Unknown capability '${capText}'`);
+      }
+    } else {
+      for (const eff of baseEffects) {
+        if (eff === 'io' || eff === 'cpu') {
+          appendCaps(parseLegacyCapability(eff));
+        }
       }
     }
 
-    // Group capabilities under base effects
-    const effectCaps: Record<string, string[]> = {};
-    if (baseEffects.length > 0 && capabilities.length > 0) {
-      // Associate capabilities with the first base effect
-      const firstEffect = baseEffects[0];
-      if (firstEffect) {
-        effectCaps[firstEffect] = capabilities;
-      }
-    }
-
-    return { baseEffects, effectCaps };
+    return { baseEffects, effectCaps, hasExplicitCaps: rawCaps.length > 0 };
   }
 
   function parseType(): Type {

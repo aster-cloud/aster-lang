@@ -178,8 +178,9 @@ function parseCapsFromSource(src: string): readonly string[] | null {
   const toks = lex(can);
   const ast: any = parse(toks);
   const fn: any = ast?.decls?.[0];
-  const caps = fn?.effectCaps?.io ?? null;
-  return caps ? [...caps] : null;
+  if (!fn?.effectCapsExplicit) return null;
+  const caps = fn.effectCaps as readonly string[] | undefined;
+  return caps && caps.length > 0 ? [...caps] : null;
 }
 
 async function main(): Promise<void> {
