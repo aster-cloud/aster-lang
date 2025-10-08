@@ -1,3 +1,57 @@
+# 2025-10-09 07:50 NZDT 阶段2.3 边界测试补充
+
+- 执行者：Claude Code
+- 触发：用户要求补充边界测试用例
+
+## 补充内容
+
+### 1. 增强版别名导入测试
+- **文件**：`cnl/examples/eff_alias_import.cnl`
+- **内容**：
+  - 多别名混用测试（Http as H, Db as D, Time as T）
+  - 别名与直接导入混用（H.get + Http.get）
+  - 已声明效果的别名调用（declared_effect_with_alias）
+- **期望输出**：6条错误（3条英文+3条中文），验证别名解析正确
+
+### 2. 未映射别名边界测试
+- **文件**：`cnl/examples/eff_alias_unmapped.cnl`
+- **测试场景**：
+  - 未定义别名调用（X.get - 未声明导入）
+  - 正常别名调用（H.get - 已声明导入Http as H）
+  - 不存在的模块前缀（UnknownModule.method）
+- **期望输出**：2条错误，仅检测到已声明别名的效果违规
+
+### 3. CPU前缀别名测试
+- **决策**：暂不实现
+- **原因**：`CPU_PREFIXES` 在 `src/config/semantic.ts:115-117` 为空数组
+- **备注**：基础设施已就位，待CPU前缀配置后自动生效
+
+## 测试注册
+
+在 `scripts/golden.ts:277-280` 注册：
+```typescript
+await runOneTypecheck(
+  'cnl/examples/eff_alias_unmapped.cnl',
+  'cnl/examples/expected_eff_alias_unmapped.diag.txt'
+);
+```
+
+## 验证结果
+
+- ✅ 117个黄金测试全部通过（115个原有 + 2个新增别名测试）
+- ✅ 完整CI测试套件通过（npm run ci）
+- ✅ 别名解析覆盖所有关键场景：
+  - 多别名混用 ✓
+  - 别名与直接调用混用 ✓
+  - 未映射别名边界行为 ✓
+  - 已声明效果的别名验证 ✓
+
+## 最终状态
+
+阶段2.3（别名导入效果追踪）完整交付，包括核心功能和全面边界测试覆盖。
+
+---
+
 # 2025-10-09 00:30 NZDT 阶段2.2 修复（P0问题修复）
 
 - 执行者：Claude Code
