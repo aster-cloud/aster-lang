@@ -127,7 +127,7 @@ This improves stability and avoids repeated reflection during development. It is
 
 ## Examples
 
-```cnl
+```text
 This module is demo.examples.
 
 To demoSum, produce Text:
@@ -137,7 +137,7 @@ To demoSum2, produce Text:
   Return Interop.sum(1, 2.0). // widens to (DD)
 ```
 
-```cnl
+```text
 To pickKinds, produce Text:
   Return Interop.pick(1L). // (J)
 ```

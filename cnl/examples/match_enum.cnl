@@ -1,4 +1,5 @@
 This module is demo.matchenum.
+
 Define Err as one of NotFound, Invalid.
 
 To explain with e: Err, produce Text:

@@ -4,6 +4,6 @@
 
 # Type Alias: Type
 
-> **Type** = [`TypeName`](../interfaces/TypeName.md) \| [`Maybe`](../interfaces/Maybe.md) \| [`Option`](../interfaces/Option.md) \| [`Result`](../interfaces/Result.md) \| [`List`](../interfaces/List.md) \| [`Map`](../interfaces/Map.md) \| [`TypeApp`](../interfaces/TypeApp.md) \| [`TypeVar`](../interfaces/TypeVar.md) \| [`FuncType`](../interfaces/FuncType.md)
+> **Type** = [`TypeName`](../interfaces/TypeName.md) \| [`Maybe`](../interfaces/Maybe.md) \| [`Option`](../interfaces/Option.md) \| [`Result`](../interfaces/Result.md) \| [`List`](../interfaces/List.md) \| [`Map`](../interfaces/Map.md) \| [`TypeApp`](../interfaces/TypeApp.md) \| [`TypeVar`](../interfaces/TypeVar.md) \| [`FuncType`](../interfaces/FuncType.md) \| [`PiiType`](../interfaces/PiiType.md)
 
-Defined in: [types.ts:567](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L567)
+Defined in: [types.ts:336](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L336)

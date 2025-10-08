@@ -4,35 +4,59 @@
 
 # Interface: PatCtor
 
-Defined in: [types.ts:457](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L457)
+Defined in: [types.ts:277](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L277)
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- `BasePatternCtor`\<[`Origin`](../../../interfaces/Origin.md), [`Pattern`](../type-aliases/Pattern.md)\>
 
 ## Properties
 
-### origin?
+### span?
 
-> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+> `readonly` `optional` **span**: `undefined`
 
-Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L344)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L32)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+`Base.BasePatternCtor.span`
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L33)
+
+#### Inherited from
+
+`Base.BasePatternCtor.origin`
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `null` \| `string`
+
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L34)
+
+#### Inherited from
+
+`Base.BasePatternCtor.file`
 
 ***
 
 ### kind
 
-> `readonly` **kind**: `"PatCtor"`
+> `readonly` **kind**: `"PatternCtor"` \| `"PatCtor"`
 
-Defined in: [types.ts:458](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L458)
+Defined in: [types/base.ts:217](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L217)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+`Base.BasePatternCtor.kind`
 
 ***
 
@@ -40,7 +64,11 @@ Defined in: [types.ts:458](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:459](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L459)
+Defined in: [types/base.ts:218](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L218)
+
+#### Inherited from
+
+`Base.BasePatternCtor.typeName`
 
 ***
 
@@ -48,7 +76,11 @@ Defined in: [types.ts:459](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:460](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L460)
+Defined in: [types/base.ts:219](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L219)
+
+#### Inherited from
+
+`Base.BasePatternCtor.names`
 
 ***
 
@@ -56,4 +88,8 @@ Defined in: [types.ts:460](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` `optional` **args**: readonly [`Pattern`](../type-aliases/Pattern.md)[]
 
-Defined in: [types.ts:461](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L461)
+Defined in: [types/base.ts:220](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L220)
+
+#### Inherited from
+
+`Base.BasePatternCtor.args`

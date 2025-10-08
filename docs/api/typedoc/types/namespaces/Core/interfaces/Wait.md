@@ -4,23 +4,47 @@
 
 # Interface: Wait
 
-Defined in: [types.ts:404](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L404)
+Defined in: [types.ts:255](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L255)
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- `BaseWait`\<[`Origin`](../../../interfaces/Origin.md)\>
 
 ## Properties
 
-### origin?
+### span?
 
-> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+> `readonly` `optional` **span**: `undefined`
 
-Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L344)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L32)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+`Base.BaseWait.span`
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L33)
+
+#### Inherited from
+
+`Base.BaseWait.origin`
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `null` \| `string`
+
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L34)
+
+#### Inherited from
+
+`Base.BaseWait.file`
 
 ***
 
@@ -28,11 +52,11 @@ Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **kind**: `"Wait"`
 
-Defined in: [types.ts:405](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L405)
+Defined in: [types/base.ts:198](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L198)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+`Base.BaseWait.kind`
 
 ***
 
@@ -40,4 +64,8 @@ Defined in: [types.ts:405](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:406](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L406)
+Defined in: [types/base.ts:199](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L199)
+
+#### Inherited from
+
+`Base.BaseWait.names`

@@ -1,4 +1,5 @@
 This module is demo.lambdamixed.
+
 To demo with pfx: Text, produce Text:
   Let f be function with x: Text, produce Text:
     Return Text.concat(pfx, x).

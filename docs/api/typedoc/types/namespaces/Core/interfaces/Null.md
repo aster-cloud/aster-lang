@@ -4,23 +4,47 @@
 
 # Interface: Null
 
-Defined in: [types.ts:518](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L518)
+Defined in: [types.ts:312](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L312)
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- `BaseNull`\<[`Origin`](../../../interfaces/Origin.md)\>
 
 ## Properties
 
-### origin?
+### span?
 
-> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+> `readonly` `optional` **span**: `undefined`
 
-Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L344)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L32)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+`Base.BaseNull.span`
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L33)
+
+#### Inherited from
+
+`Base.BaseNull.origin`
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `null` \| `string`
+
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L34)
+
+#### Inherited from
+
+`Base.BaseNull.file`
 
 ***
 
@@ -28,8 +52,8 @@ Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **kind**: `"Null"`
 
-Defined in: [types.ts:519](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L519)
+Defined in: [types/base.ts:295](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L295)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+`Base.BaseNull.kind`

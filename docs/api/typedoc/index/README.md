@@ -17,6 +17,10 @@ const core = lowerModule(ast);         // 降级到 Core IR
 console.log(core);
 ```
 
+## Enumerations
+
+- [Effect](enumerations/Effect.md)
+
 ## Variables
 
 - [Node](variables/Node.md)
@@ -54,12 +58,6 @@ Re-exports [Core](../core_ir/variables/Core.md)
 
 ***
 
-### Effect
-
-Re-exports [Effect](../types/enumerations/Effect.md)
-
-***
-
 ### TokenKind
 
 Re-exports [TokenKind](../types/enumerations/TokenKind.md)
@@ -90,9 +88,15 @@ Re-exports [Token](../types/interfaces/Token.md)
 
 ***
 
+### TypecheckDiagnostic
+
+Re-exports [TypecheckDiagnostic](../types/interfaces/TypecheckDiagnostic.md)
+
+***
+
 ### AstNode
 
-Re-exports [AstNode](../types/interfaces/AstNode.md)
+Re-exports [AstNode](../types/type-aliases/AstNode.md)
 
 ***
 
@@ -339,6 +343,24 @@ Re-exports [None](../types/interfaces/None.md)
 ### Type
 
 Re-exports [Type](../types/type-aliases/Type.md)
+
+***
+
+### PiiSensitivityLevel
+
+Re-exports [PiiSensitivityLevel](../types/type-aliases/PiiSensitivityLevel.md)
+
+***
+
+### PiiDataCategory
+
+Re-exports [PiiDataCategory](../types/type-aliases/PiiDataCategory.md)
+
+***
+
+### TypePii
+
+Re-exports [TypePii](../types/interfaces/TypePii.md)
 
 ***
 

@@ -4,23 +4,47 @@
 
 # Interface: Match
 
-Defined in: [types.ts:439](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L439)
+Defined in: [types.ts:269](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L269)
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- `BaseMatch`\<[`Origin`](../../../interfaces/Origin.md), [`Expression`](../type-aliases/Expression.md), [`Case`](Case.md)\>
 
 ## Properties
 
-### origin?
+### span?
 
-> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+> `readonly` `optional` **span**: `undefined`
 
-Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L344)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L32)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+`Base.BaseMatch.span`
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L33)
+
+#### Inherited from
+
+`Base.BaseMatch.origin`
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `null` \| `string`
+
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L34)
+
+#### Inherited from
+
+`Base.BaseMatch.file`
 
 ***
 
@@ -28,11 +52,11 @@ Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **kind**: `"Match"`
 
-Defined in: [types.ts:440](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L440)
+Defined in: [types/base.ts:171](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L171)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+`Base.BaseMatch.kind`
 
 ***
 
@@ -40,7 +64,11 @@ Defined in: [types.ts:440](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:441](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L441)
+Defined in: [types/base.ts:172](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L172)
+
+#### Inherited from
+
+`Base.BaseMatch.expr`
 
 ***
 
@@ -48,4 +76,8 @@ Defined in: [types.ts:441](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **cases**: readonly [`Case`](Case.md)[]
 
-Defined in: [types.ts:442](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L442)
+Defined in: [types/base.ts:173](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L173)
+
+#### Inherited from
+
+`Base.BaseMatch.cases`

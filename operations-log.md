@@ -206,3 +206,85 @@
 2025-10-08 11:26 NZST - 使用 `apply_patch` 扩展 `normalizeSeverityLabel`，将 “Function declares IO capability … but it is not used.” 的 `WARN` 前缀规范化为 `INFO`，保持与 CLI 生成的 expected 对齐。
 2025-10-08 11:26 NZST - 运行 `npm run build`，同步最新脚本至 `dist/`，输出 `Built headers PEG parser → dist/peg/headers-parser.js`。
 2025-10-08 11:27 NZST - 执行 `npm run test:golden`，全部通过，effect violation 诊断与 expected 保持一致。
+2025-10-08 12:33 NZST - 执行 `ls`，了解项目顶层目录结构，为企业级审核收集上下文。
+2025-10-08 12:33 NZST - 执行 `head -n 40 operations-log.md`，确认既有日志格式与记录方式。
+2025-10-08 12:33 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，获取新西兰时区当前时间用于后续记录。
+2025-10-08 12:34 NZST - 调用 MCP 工具 `code-index__set_project_path`，索引项目 480 个文件并启用 ripgrep 检索。
+2025-10-08 12:34 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新新西兰时区时间戳。
+2025-10-08 12:34 NZST - 调用 MCP 工具 `code-index__build_deep_index`，重新索引项目文件（共 480 个）。
+2025-10-08 12:34 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录最新时间戳。
+2025-10-08 12:34 NZST - 执行 `rg --files src | head`，快速查看核心源码目录的部分文件列表。
+2025-10-08 12:34 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，同步时间戳备用。
+2025-10-08 12:34 NZST - 执行 `sed -n '1,160p' README.md`，了解项目定位与高层架构描述。
+2025-10-08 12:34 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新记录时间。
+2025-10-08 12:35 NZST - 执行 `sed -n '1,200p' DESIGN.md`，获取体系结构与战略规划背景。
+2025-10-08 12:35 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新时间戳。
+2025-10-08 12:35 NZST - 执行 `sed -n '1,200p' src/parser.ts`，审阅解析器上下文初始化与主循环实现。
+2025-10-08 12:35 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新时间记录。
+2025-10-08 12:35 NZST - 执行 `rg --files src | grep lexer`，定位词法分析器源码文件。
+2025-10-08 12:35 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新时戳。
+2025-10-08 12:35 NZST - 执行 `sed -n '1,200p' src/lexer.ts`，检查词法分析器结构与错误处理。
+2025-10-08 12:35 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录时间。
+2025-10-08 12:35 NZST - 执行 `sed -n '1,200p' src/typecheck.ts`，了解类型检查器的等价性判断与效果校验流程。
+2025-10-08 12:35 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新记录时刻。
+2025-10-08 12:36 NZST - 调用 MCP 工具 `code-index__get_file_summary`（`src/formatter.ts`），提取格式化器结构化概要。
+2025-10-08 12:36 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录最新时间。
+2025-10-08 12:36 NZST - 执行 `cat package.json`，审查构建、测试脚本与依赖清单。
+2025-10-08 12:36 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新时间记录。
+2025-10-08 12:36 NZST - 执行 `ls test`，了解测试目录结构与覆盖范围。
+2025-10-08 12:36 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新时间。
+2025-10-08 12:36 NZST - 执行 `ls docs`，梳理文档体系目录。
+2025-10-08 12:36 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新日志时间。
+2025-10-08 12:37 NZST - 执行 `sed -n '1,160p' docs/index.md`，了解官方文档主页与导航结构。
+2025-10-08 12:37 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录最新时间。
+2025-10-08 12:37 NZST - 执行 `rg --files src | grep capabilities`，定位能力模型实现文件。
+2025-10-08 12:37 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新记录时间。
+2025-10-08 12:37 NZST - 执行 `sed -n '1,200p' src/capabilities.ts`，评估能力清单校验逻辑与匹配规则。
+2025-10-08 12:37 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新时刻。
+2025-10-08 12:37 NZST - 执行 `sed -n '1,200p' src/diagnostics.ts`，检查诊断框架与错误枚举设计。
+2025-10-08 12:37 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录时间。
+2025-10-08 12:37 NZST - 调用 MCP 工具 `code-index__get_file_summary`（`src/lsp/server.ts`），快速了解 LSP 服务端规模与依赖。
+2025-10-08 12:37 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新日志。
+2025-10-08 12:37 NZST - 执行 `sed -n '1,200p' test/property.test.ts`，评估属性测试覆盖的范围与断言。
+2025-10-08 12:37 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新时间记录。
+2025-10-08 12:38 NZST - 执行 `sed -n '1,200p' src/index.ts`，确认公共 API 暴露的编译管道入口。
+2025-10-08 12:38 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新参考时间。
+2025-10-08 12:38 NZST - 执行 `rg --no-heading --line-number "TODO" src`，扫描源码中的 TODO 留言。
+2025-10-08 12:38 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新时间记录。
+2025-10-08 12:38 NZST - 执行 `sed -n '1,200p' src/tokens.ts`，了解 TokenKind 与关键字导出。
+2025-10-08 12:38 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新时间戳。
+2025-10-08 12:38 NZST - 执行 `sed -n '1,200p' src/types.ts`，了解 AST 类型与敏感数据标注设计。
+2025-10-08 12:38 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录时间点。
+2025-10-08 12:38 NZST - 执行 `sed -n '1,200p' src/effect_inference.ts`，审阅效果推断与诊断生成逻辑。
+2025-10-08 12:38 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新时间。
+2025-10-08 12:39 NZST - 执行 `sed -n '1,200p' src/config/effects.ts`，确认效果前缀配置仅为语义模块重导出。
+2025-10-08 12:39 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录当期时间。
+2025-10-08 12:39 NZST - 执行 `sed -n '1,200p' src/config/semantic.ts`，审阅效果与能力前缀的配置与验证逻辑。
+2025-10-08 12:39 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，同步最新时间。
+2025-10-08 12:39 NZST - 执行 `nl -ba src/typecheck.ts | sed -n '1,200p'`，定位类型检查器问题的精确行号。
+2025-10-08 12:39 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录时间。
+2025-10-08 12:40 NZST - 执行 `nl -ba src/typecheck.ts | sed -n '360,460p'`，确认效果收集逻辑及能力推断实现行号。
+2025-10-08 12:40 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，生成对应时间戳。
+2025-10-08 12:40 NZST - 执行 `nl -ba src/capabilities.ts | sed -n '1,160p'`，定位能力清单匹配函数的具体行号。
+2025-10-08 12:40 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录日志时间。
+2025-10-08 12:40 NZST - 执行 `nl -ba src/lexer.ts | sed -n '1,200p'`，采集词法器相关代码的行号信息。
+2025-10-08 12:40 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，同步时间。
+2025-10-08 12:41 NZST - 执行 `rg --line-number "audit-ci" -n`，确认依赖审计工具是否在脚本中被调用。
+2025-10-08 12:41 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录时间戳。
+2025-10-08 12:41 NZST - 执行 `nl -ba src/typecheck.ts | sed -n '220,320p'`，确认能力校验与异步检查逻辑的位置。
+2025-10-08 12:41 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，同步时间。
+2025-10-08 12:41 NZST - 执行 `rg --files docs | grep -i operations`，检索是否存在运维指南或相关文档。
+2025-10-08 12:41 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新记录时间。
+2025-10-08 12:42 NZST - 执行 `ls .claude`，确认现有审计与上下文文档存放情况。
+2025-10-08 12:42 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新时间戳。
+2025-10-08 12:42 NZST - 执行 `rg --line-number "audit" package.json`，验证 CI 阶段是否包含依赖安全扫描。
+2025-10-08 12:42 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，刷新记录时间。
+2025-10-08 12:42 NZST - 执行 `rg --line-number "perf:lsp:assert" package.json`，检查性能断言脚本配置。
+2025-10-08 12:42 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，更新时间。
+2025-10-08 12:43 NZST - 执行 `rg --line-number "rollback" docs`，未找到回滚相关文档。
+2025-10-08 12:43 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录时间。
+2025-10-08 12:43 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，获取写入审核报告所需的精确时间戳。
+2025-10-08 12:44 NZST - 使用 `apply_patch` 新增 `.claude/enterprise-readiness-audit.md`，输出企业级审核报告。
+2025-10-08 12:44 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，记录最新时间。
+2025-10-08 12:45 NZST - 执行 `git status -sb`，确认当前工作区变更（仅新增审核报告与日志更新，其他差异为既有改动）。
+2025-10-08 12:45 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'`，同步时间戳。

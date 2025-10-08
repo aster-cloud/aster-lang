@@ -282,7 +282,11 @@ class AstFormatterVisitor extends DefaultAstVisitor<void> {
     return this.out.join('\n');
   }
   override visitModule(m: Module, _ctx: void): void {
-    if (m.name) this.out.push(`This module is ${m.name}.`);
+    if (m.name) {
+      this.out.push(`This module is ${m.name}.`);
+      // 在模块头和第一个declaration之间添加空行
+      if (m.decls.length > 0) this.out.push('');
+    }
     for (const d of m.decls) this.visitDeclaration(d, undefined as unknown as void);
   }
   override visitDeclaration(d: Declaration, _ctx: void): void {

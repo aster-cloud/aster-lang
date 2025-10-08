@@ -4,23 +4,35 @@
 
 # Interface: List
 
-Defined in: [types.ts:323](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L323)
+Defined in: [types.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L221)
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- `BaseList`\<[`Span`](Span.md), [`Type`](../type-aliases/Type.md)\>
 
 ## Properties
 
 ### span?
 
-> `readonly` `optional` **span**: [`Span`](Span.md)
+> `readonly` `optional` **span**: `undefined`
 
-Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L64)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L32)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+`Base.BaseList.span`
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L33)
+
+#### Inherited from
+
+`Base.BaseList.origin`
 
 ***
 
@@ -28,11 +40,11 @@ Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/026c79
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L65)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L34)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+`Base.BaseList.file`
 
 ***
 
@@ -40,11 +52,11 @@ Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/026c79
 
 > `readonly` **kind**: `"List"`
 
-Defined in: [types.ts:324](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L324)
+Defined in: [types/base.ts:431](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L431)
 
-#### Overrides
+#### Inherited from
 
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
+`Base.BaseList.kind`
 
 ***
 
@@ -52,4 +64,8 @@ Defined in: [types.ts:324](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:325](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L325)
+Defined in: [types/base.ts:432](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L432)
+
+#### Inherited from
+
+`Base.BaseList.type`

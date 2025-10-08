@@ -40,19 +40,19 @@ Aster 源代码使用 UTF-8 编码。词法分析器自动跳过 UTF-8 BOM（字
 ### 1.4 标识符
 
 **标识符语法**（EBNF）：
-```ebnf
+```text
 Identifier     ::= IdentStart IdentContinue*
 IdentStart     ::= [A-Za-z]
 IdentContinue  ::= [A-Za-z0-9]
 ```
 
 **类型标识符**（首字母大写）：
-```ebnf
+```text
 TypeIdentifier ::= [A-Z] IdentContinue*
 ```
 
 **点分标识符**（用于模块名和完全限定名）：
-```ebnf
+```text
 DottedIdent    ::= Identifier ('.' Identifier)*
 ```
 
@@ -84,29 +84,29 @@ Performs    Io          Cpu         It
 ### 1.6 字面量
 
 **整数字面量**：
-```ebnf
+```text
 IntLiteral ::= [0-9]+
 ```
 示例：`0`, `42`, `1000`
 
 **浮点字面量**：
-```ebnf
+```text
 DoubleLiteral ::= [0-9]+ '.' [0-9]+
 ```
 示例：`3.14`, `0.5`, `2.718`
 
 **布尔字面量**：
-```ebnf
+```text
 BoolLiteral ::= 'true' | 'false'
 ```
 
 **空字面量**：
-```ebnf
+```text
 NullLiteral ::= 'null'
 ```
 
 **文本字面量（字符串）**：
-```ebnf
+```text
 TextLiteral ::= '"' StringChar* '"'
 StringChar  ::= [^"\n] | '\"' | '\n' | '\t' | '\\'
 ```
@@ -135,7 +135,7 @@ StringChar  ::= [^"\n] | '\"' | '\n' | '\t' | '\\'
 
 ### 2.1 模块结构
 
-```ebnf
+```text
 Module       ::= ModuleDecl? Declaration*
 
 ModuleDecl   ::= 'This module is' DottedIdent '.'
@@ -157,7 +157,7 @@ To greet with user: User?, produce Text: ...
 
 ### 2.2 导入声明
 
-```ebnf
+```text
 Import       ::= 'Use' DottedIdent ('as' Identifier)? '.'
 ```
 
@@ -170,7 +170,7 @@ Use demo.auth as Auth.
 ### 2.3 数据类型声明
 
 **记录类型**（Product Type）：
-```ebnf
+```text
 DataDecl     ::= 'Define' TypeIdent 'with' FieldList '.'
 FieldList    ::= Field (',' Field)*
 Field        ::= Identifier ':' Type
@@ -183,7 +183,7 @@ Define Point with x: Int, y: Int.
 ```
 
 **枚举类型**（Sum Type）：
-```ebnf
+```text
 EnumDecl     ::= 'Define' TypeIdent 'as one of' VariantList '.'
 VariantList  ::= TypeIdent (',' TypeIdent)*
 ```
@@ -196,7 +196,7 @@ Define Color as one of Red, Green, Blue.
 
 ### 2.4 函数声明
 
-```ebnf
+```text
 FuncDecl     ::= 'To' Identifier TypeParams? ParamList? ',' 'produce' Type Effect? Body
 
 TypeParams   ::= 'of' TypeIdent ('and' TypeIdent)*
@@ -230,7 +230,7 @@ To fetchDashboard with u: User, produce Result of Dash and AuthErr. It performs 
 
 ### 2.5 类型表达式
 
-```ebnf
+```text
 Type         ::= TypeName
                | TypeVar
                | TypeApp
@@ -266,7 +266,7 @@ Map of Text and Int           # Map 类型
 
 ### 2.6 语句
 
-```ebnf
+```text
 Statement    ::= LetStmt
                | ReturnStmt
                | IfStmt
@@ -301,7 +301,7 @@ Wait for profile and timeline.
 
 ### 2.7 表达式
 
-```ebnf
+```text
 Expression   ::= PrimaryExpr
                | CallExpr
                | FieldAccessExpr
@@ -344,7 +344,7 @@ MapEntry     ::= Expression ':' Expression
 
 ### 2.8 模式匹配
 
-```ebnf
+```text
 Pattern      ::= NullPattern
                | IntPattern
                | NamePattern

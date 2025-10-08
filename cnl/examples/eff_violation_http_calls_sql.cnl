@@ -1,3 +1,4 @@
 This module is test.eff.violation.http_calls_sql.
+
 To web_handler, produce Text. It performs io [Http]:
   Return Db.query("SELECT 1").

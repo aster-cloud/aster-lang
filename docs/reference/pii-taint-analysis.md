@@ -156,7 +156,7 @@ function mergeTaints(a: TaintSet, b: TaintSet): TaintSet {
 
 ### 4.2 污点源识别算法
 
-```pseudocode
+```text
 function identifySources(module: Core.Module): TaintEnv {
   let env: TaintEnv = {}
 
@@ -220,7 +220,7 @@ env = {
 
 ### 5.1 基本传播规则
 
-```pseudocode
+```text
 function propagateTaint(expr: Core.Expr, env: TaintEnv): TaintSet {
   switch expr.kind {
     case 'Name':
@@ -305,7 +305,7 @@ function union(a: TaintSet, b: TaintSet): TaintSet {
 
 ### 5.2 语句级污点传播
 
-```pseudocode
+```text
 function propagateStmt(stmt: Core.Statement, env: TaintEnv): TaintEnv {
   switch stmt.kind {
     case 'Let':
@@ -387,7 +387,7 @@ greeting + "\n" + contact：
 
 ### 6.2 Sink 检测算法
 
-```pseudocode
+```text
 function detectSinks(module: Core.Module, env: TaintEnv): SinkViolation[] {
   let violations: SinkViolation[] = []
 
@@ -464,7 +464,7 @@ const DB_WRITE_PATTERNS = [
 
 对于 HTTP 调用，检查 URL 是否使用 HTTPS：
 
-```pseudocode
+```text
 function isSecureHttp(call: Core.Call): boolean {
   // 检查第一个参数（URL）是否以 https:// 开头
   if call.args.length > 0 {
@@ -515,7 +515,7 @@ function detectHttpSink(call: Core.Call, taint: TaintSet): SinkViolation? {
 ### 7.2 保守假设
 
 **函数调用**：
-```pseudocode
+```text
 // 保守假设：返回值继承所有参数污点
 taint(f(x, y, z)) = union(taint(x), taint(y), taint(z))
 
@@ -523,7 +523,7 @@ taint(f(x, y, z)) = union(taint(x), taint(y), taint(z))
 ```
 
 **容器操作**：
-```pseudocode
+```text
 // 保守假设：整个容器被污染
 taint([x, y, z]) = union(taint(x), taint(y), taint(z))
 
@@ -531,7 +531,7 @@ taint([x, y, z]) = union(taint(x), taint(y), taint(z))
 ```
 
 **控制流**：
-```pseudocode
+```text
 // 保守假设：所有分支的并集
 taint(if cond then x else y) = union(taint(x), taint(y))
 
@@ -541,7 +541,7 @@ taint(if cond then x else y) = union(taint(x), taint(y))
 ### 7.3 误报控制策略
 
 **白名单（Allowlist）**：
-```pseudocode
+```text
 // 允许特定函数处理 PII（如加密、脱敏）
 const SANITIZER_FUNCTIONS = [
   'Crypto.hash',
@@ -561,7 +561,7 @@ function propagateTaint(call: Core.Call, env: TaintEnv): TaintSet {
 ```
 
 **敏感级别过滤**：
-```pseudocode
+```text
 // 只报告 L2/L3 的问题，忽略 L1
 function shouldReport(taint: Taint): boolean {
   return taint.sensitivity == 'L2' || taint.sensitivity == 'L3'
@@ -569,7 +569,7 @@ function shouldReport(taint: Taint): boolean {
 ```
 
 **用户标注**：
-```pseudocode
+```text
 // 允许开发者标注安全审计过的代码
 // @safe-pii: 该函数已通过安全审计
 To send_verified with data: @pii(L2, email) Text, produce Result. @safe-pii:
@@ -597,7 +597,7 @@ WARNING: PII data 'name' (L1) used in string concatenation
 **改进方案**：
 识别"脱敏函数"（如 `Text.length`, `List.size`）并移除污点：
 
-```pseudocode
+```text
 const SANITIZING_FUNCTIONS = [
   'Text.length',
   'List.size',
@@ -617,7 +617,7 @@ const SANITIZING_FUNCTIONS = [
 
 ### 8.2 诊断生成算法
 
-```pseudocode
+```text
 function generateDiagnostics(violations: SinkViolation[]): Diagnostic[] {
   let diagnostics: Diagnostic[] = []
 

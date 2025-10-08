@@ -4,7 +4,11 @@
 
 # Interface: Field
 
-Defined in: [types.ts:365](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L365)
+Defined in: [types.ts:237](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L237)
+
+## Extends
+
+- `BaseField`\<[`Type`](../type-aliases/Type.md)\>
 
 ## Properties
 
@@ -12,7 +16,11 @@ Defined in: [types.ts:365](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:366](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L366)
+Defined in: [types/base.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L65)
+
+#### Inherited from
+
+`Base.BaseField.name`
 
 ***
 
@@ -20,4 +28,8 @@ Defined in: [types.ts:366](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:367](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L367)
+Defined in: [types/base.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L66)
+
+#### Inherited from
+
+`Base.BaseField.type`

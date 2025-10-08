@@ -4,23 +4,47 @@
 
 # Interface: Lambda
 
-Defined in: [types.ts:252](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L252)
+Defined in: [types.ts:159](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L159)
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- `BaseLambda`\<[`Span`](Span.md), [`Type`](../type-aliases/Type.md), [`Block`](Block.md)\>
 
 ## Properties
 
+### retType
+
+> `readonly` **retType**: [`Type`](../type-aliases/Type.md)
+
+Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L160)
+
+#### Overrides
+
+`Base.BaseLambda.retType`
+
+***
+
 ### span?
 
-> `readonly` `optional` **span**: [`Span`](Span.md)
+> `readonly` `optional` **span**: `undefined`
 
-Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L64)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L32)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+`Base.BaseLambda.span`
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L33)
+
+#### Inherited from
+
+`Base.BaseLambda.origin`
 
 ***
 
@@ -28,11 +52,11 @@ Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/026c79
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L65)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L34)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+`Base.BaseLambda.file`
 
 ***
 
@@ -40,27 +64,23 @@ Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/026c79
 
 > `readonly` **kind**: `"Lambda"`
 
-Defined in: [types.ts:253](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L253)
+Defined in: [types/base.ts:311](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L311)
 
-#### Overrides
+#### Inherited from
 
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
+[`Lambda`](../namespaces/Core/interfaces/Lambda.md).[`kind`](../namespaces/Core/interfaces/Lambda.md#kind)
 
 ***
 
 ### params
 
-> `readonly` **params**: readonly [`Parameter`](Parameter.md)[]
+> `readonly` **params**: readonly `BaseParameter`\<[`Type`](../type-aliases/Type.md)\>[]
 
-Defined in: [types.ts:254](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L254)
+Defined in: [types/base.ts:312](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L312)
 
-***
+#### Inherited from
 
-### retType
-
-> `readonly` **retType**: [`Type`](../type-aliases/Type.md)
-
-Defined in: [types.ts:255](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L255)
+`Base.BaseLambda.params`
 
 ***
 
@@ -68,4 +88,8 @@ Defined in: [types.ts:255](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **body**: [`Block`](Block.md)
 
-Defined in: [types.ts:256](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L256)
+Defined in: [types/base.ts:314](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L314)
+
+#### Inherited from
+
+`Base.BaseLambda.body`

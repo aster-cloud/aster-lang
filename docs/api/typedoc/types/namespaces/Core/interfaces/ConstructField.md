@@ -4,7 +4,11 @@
 
 # Interface: ConstructField
 
-Defined in: [types.ts:542](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L542)
+Defined in: [types.ts:323](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L323)
+
+## Extends
+
+- `BaseConstructField`\<[`Expression`](../type-aliases/Expression.md)\>
 
 ## Properties
 
@@ -12,7 +16,11 @@ Defined in: [types.ts:542](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:543](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L543)
+Defined in: [types/base.ts:330](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L330)
+
+#### Inherited from
+
+`Base.BaseConstructField.name`
 
 ***
 
@@ -20,4 +28,8 @@ Defined in: [types.ts:543](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:544](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L544)
+Defined in: [types/base.ts:331](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L331)
+
+#### Inherited from
+
+`Base.BaseConstructField.expr`

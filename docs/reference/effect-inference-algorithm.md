@@ -128,7 +128,7 @@ type EffectExpr =
 
 ### 4.2 约束收集算法
 
-```pseudocode
+```text
 function collectEffectConstraints(module: Core.Module): Constraint[] {
   let constraints: Constraint[] = []
 
@@ -303,7 +303,7 @@ eff(get_profile) ⊇ eff(fetch_user)
 
 约束求解使用 Worklist 算法计算最小不动点：
 
-```pseudocode
+```text
 function solveConstraints(constraints: Constraint[]): EffectEnv {
   // 初始化效果环境：所有函数初始为 ∅
   let env: Map<String, EffectSet> = {}
@@ -458,7 +458,7 @@ eff(process_users) ⊇ map[E=IO[Http]]
 
 ### 6.3 效果参数推断算法
 
-```pseudocode
+```text
 function instantiateEffectParams(
   genericFunc: Func,
   args: Expr[],
@@ -537,7 +537,7 @@ eff(get_all_users) ⊇ map[E=IO[Http]] = IO[Http]
 
 ### 7.2 诊断生成算法
 
-```pseudocode
+```text
 function generateDiagnostics(
   module: Core.Module,
   inferredEnv: EffectEnv

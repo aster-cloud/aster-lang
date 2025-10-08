@@ -11,7 +11,6 @@
 ## Enumerations
 
 - [TokenKind](enumerations/TokenKind.md)
-- [Effect](enumerations/Effect.md)
 
 ## Interfaces
 
@@ -19,7 +18,7 @@
 - [Span](interfaces/Span.md)
 - [Origin](interfaces/Origin.md)
 - [Token](interfaces/Token.md)
-- [AstNode](interfaces/AstNode.md)
+- [TypecheckDiagnostic](interfaces/TypecheckDiagnostic.md)
 - [Module](interfaces/Module.md)
 - [Import](interfaces/Import.md)
 - [Data](interfaces/Data.md)
@@ -56,6 +55,7 @@
 - [Err](interfaces/Err.md)
 - [Some](interfaces/Some.md)
 - [None](interfaces/None.md)
+- [TypePii](interfaces/TypePii.md)
 - [TypeName](interfaces/TypeName.md)
 - [TypeVar](interfaces/TypeVar.md)
 - [TypeApp](interfaces/TypeApp.md)
@@ -68,8 +68,17 @@
 
 ## Type Aliases
 
+- [AstNode](type-aliases/AstNode.md)
 - [Declaration](type-aliases/Declaration.md)
 - [Statement](type-aliases/Statement.md)
 - [Pattern](type-aliases/Pattern.md)
 - [Expression](type-aliases/Expression.md)
 - [Type](type-aliases/Type.md)
+- [PiiSensitivityLevel](type-aliases/PiiSensitivityLevel.md)
+- [PiiDataCategory](type-aliases/PiiDataCategory.md)
+
+## References
+
+### Effect
+
+Re-exports [Effect](../index/enumerations/Effect.md)

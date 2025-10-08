@@ -1,4 +1,5 @@
 This module is demo.text.
+
 To join with left: Text, right: Text, produce Text:
   Return Text.concat(left, right).
 

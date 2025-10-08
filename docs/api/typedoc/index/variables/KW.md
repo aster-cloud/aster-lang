@@ -6,7 +6,12 @@
 
 > `const` **KW**: `object`
 
-Defined in: [tokens.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/tokens.ts#L5)
+Defined in: [config/semantic.ts:193](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/config/semantic.ts#L193)
+
+Aster CNL 关键字定义（v1 lexicon, en-US）。
+
+多词关键字使用空格连接的规范形式（canonical form）。
+例如：'this module is', 'as one of', 'wait for'
 
 ## Type Declaration
 

@@ -4,87 +4,19 @@
 
 # Interface: Func
 
-Defined in: [types.ts:97](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L97)
+Defined in: [types.ts:85](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L85)
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- `BaseFunc`\<[`Span`](Span.md), readonly `string`[], [`Type`](../type-aliases/Type.md)\>
 
 ## Properties
-
-### span?
-
-> `readonly` `optional` **span**: [`Span`](Span.md)
-
-Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L64)
-
-#### Inherited from
-
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
-
-***
-
-### file?
-
-> `readonly` `optional` **file**: `null` \| `string`
-
-Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L65)
-
-#### Inherited from
-
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
-
-***
-
-### kind
-
-> `readonly` **kind**: `"Func"`
-
-Defined in: [types.ts:98](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L98)
-
-#### Overrides
-
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
-
-***
-
-### name
-
-> `readonly` **name**: `string`
-
-Defined in: [types.ts:99](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L99)
-
-***
-
-### typeParams
-
-> `readonly` **typeParams**: readonly `string`[]
-
-Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L100)
-
-***
-
-### params
-
-> `readonly` **params**: readonly [`Parameter`](Parameter.md)[]
-
-Defined in: [types.ts:101](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L101)
-
-***
 
 ### retType
 
 > `readonly` **retType**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:102](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L102)
-
-***
-
-### effects
-
-> `readonly` **effects**: readonly `string`[]
-
-Defined in: [types.ts:103](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L103)
+Defined in: [types.ts:86](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L86)
 
 ***
 
@@ -92,7 +24,103 @@ Defined in: [types.ts:103](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **body**: `null` \| [`Block`](Block.md)
 
-Defined in: [types.ts:104](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L104)
+Defined in: [types.ts:87](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L87)
+
+***
+
+### span?
+
+> `readonly` `optional` **span**: `undefined`
+
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L32)
+
+#### Inherited from
+
+`Base.BaseFunc.span`
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L33)
+
+#### Inherited from
+
+`Base.BaseFunc.origin`
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `null` \| `string`
+
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L34)
+
+#### Inherited from
+
+`Base.BaseFunc.file`
+
+***
+
+### kind
+
+> `readonly` **kind**: `"Func"`
+
+Defined in: [types/base.ts:95](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L95)
+
+#### Inherited from
+
+[`Func`](../namespaces/Core/interfaces/Func.md).[`kind`](../namespaces/Core/interfaces/Func.md#kind)
+
+***
+
+### name
+
+> `readonly` **name**: `string`
+
+Defined in: [types/base.ts:96](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L96)
+
+#### Inherited from
+
+[`Func`](../namespaces/Core/interfaces/Func.md).[`name`](../namespaces/Core/interfaces/Func.md#name)
+
+***
+
+### typeParams
+
+> `readonly` **typeParams**: readonly `string`[]
+
+Defined in: [types/base.ts:97](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L97)
+
+#### Inherited from
+
+[`Func`](../namespaces/Core/interfaces/Func.md).[`typeParams`](../namespaces/Core/interfaces/Func.md#typeparams)
+
+***
+
+### params
+
+> `readonly` **params**: readonly `BaseParameter`\<[`Type`](../type-aliases/Type.md)\>[]
+
+Defined in: [types/base.ts:98](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L98)
+
+#### Inherited from
+
+`Base.BaseFunc.params`
+
+***
+
+### effects?
+
+> `readonly` `optional` **effects**: readonly `string`[]
+
+Defined in: [types/base.ts:99](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L99)
+
+#### Inherited from
+
+`Base.BaseFunc.effects`
 
 ***
 
@@ -100,8 +128,12 @@ Defined in: [types.ts:104](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` `optional` **effectCaps**: `object`
 
-Defined in: [types.ts:105](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L105)
+Defined in: [types/base.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L100)
 
 #### io?
 
 > `readonly` `optional` **io**: readonly `string`[]
+
+#### Inherited from
+
+`Base.BaseFunc.effectCaps`

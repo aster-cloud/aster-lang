@@ -6,7 +6,6 @@
 
 ## Interfaces
 
-- [CoreNode](interfaces/CoreNode.md)
 - [Module](interfaces/Module.md)
 - [Import](interfaces/Import.md)
 - [Data](interfaces/Data.md)
@@ -43,6 +42,8 @@
 - [Err](interfaces/Err.md)
 - [Some](interfaces/Some.md)
 - [None](interfaces/None.md)
+- [Await](interfaces/Await.md)
+- [PiiType](interfaces/PiiType.md)
 - [TypeName](interfaces/TypeName.md)
 - [TypeVar](interfaces/TypeVar.md)
 - [TypeApp](interfaces/TypeApp.md)
@@ -55,6 +56,7 @@
 
 ## Type Aliases
 
+- [CoreNode](type-aliases/CoreNode.md)
 - [Declaration](type-aliases/Declaration.md)
 - [Statement](type-aliases/Statement.md)
 - [Pattern](type-aliases/Pattern.md)

@@ -6,7 +6,7 @@
 
 > **lex**(`input`): [`Token`](../../types/interfaces/Token.md)[]
 
-Defined in: [lexer.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/lexer.ts#L67)
+Defined in: [lexer.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/lexer.ts#L65)
 
 对规范化的 CNL 源代码进行词法分析，生成 Token 流。
 

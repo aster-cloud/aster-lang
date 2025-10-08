@@ -4,6 +4,19 @@ export default defineConfig({
   title: 'Aster Language',
   description: 'A pragmatic, safe, fast language with a human CNL surface',
   base: '/',
+  markdown: {
+    // 配置 Shiki 语法高亮主题
+    theme: {
+      light: 'github-light',
+      dark: 'github-dark',
+    },
+  },
+  vite: {
+    build: {
+      // 增加 chunk size warning 阈值到 1000kb
+      chunkSizeWarningLimit: 1000,
+    },
+  },
   themeConfig: {
     logo: '/logo.svg',
     nav: [

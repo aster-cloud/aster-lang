@@ -1,4 +1,5 @@
 This module is std.io.
+
 To print with msg: Text, produce Text. It performs io:
   Return IO.print(msg).
 

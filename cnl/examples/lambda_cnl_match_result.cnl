@@ -1,4 +1,5 @@
 This module is demo.lambdamatchresult.
+
 To fromResult with r: Result of Text and Text, produce Text:
   Let f be function with x: Result of Text and Text, produce Text:
     Match x:

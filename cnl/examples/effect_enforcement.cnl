@@ -1,3 +1,4 @@
 This module is demo.effects.
+
 To missingIO, produce Text:
   Return IO.print("x").

@@ -1,4 +1,5 @@
 This module is test.eff.violation.cpu_calls_io.
+
 To fetch_data, produce Text. It performs io [Http]:
   Return Http.get("/api/data").
 

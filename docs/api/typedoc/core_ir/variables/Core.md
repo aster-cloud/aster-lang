@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -106,7 +106,7 @@ readonly [`Parameter`](../../types/namespaces/Core/interfaces/Parameter.md)[]
 
 ##### effects
 
-readonly [`Effect`](../../types/enumerations/Effect.md)[]
+readonly [`Effect`](../../index/enumerations/Effect.md)[]
 
 ##### body
 
@@ -586,6 +586,28 @@ readonly [`Type`](../../types/namespaces/Core/type-aliases/Type.md)[]
 
 [`TypeVar`](../../types/namespaces/Core/interfaces/TypeVar.md)
 
+### Pii()
+
+> **Pii**: (`baseType`, `sensitivity`, `category`) => [`PiiType`](../../types/namespaces/Core/interfaces/PiiType.md)
+
+#### Parameters
+
+##### baseType
+
+[`Type`](../../types/namespaces/Core/type-aliases/Type.md)
+
+##### sensitivity
+
+`"L1"` | `"L2"` | `"L3"`
+
+##### category
+
+[`PiiDataCategory`](../../types/type-aliases/PiiDataCategory.md)
+
+#### Returns
+
+[`PiiType`](../../types/namespaces/Core/interfaces/PiiType.md)
+
 ### PatNull()
 
 > **PatNull**: () => [`PatNull`](../../types/namespaces/Core/interfaces/PatNull.md)
@@ -596,7 +618,7 @@ readonly [`Type`](../../types/namespaces/Core/type-aliases/Type.md)[]
 
 ### Await()
 
-> **Await**: (`expr`) => [`Expression`](../../types/namespaces/Core/type-aliases/Expression.md)
+> **Await**: (`expr`) => [`Await`](../../types/namespaces/Core/interfaces/Await.md)
 
 #### Parameters
 
@@ -606,7 +628,7 @@ readonly [`Type`](../../types/namespaces/Core/type-aliases/Type.md)[]
 
 #### Returns
 
-[`Expression`](../../types/namespaces/Core/type-aliases/Expression.md)
+[`Await`](../../types/namespaces/Core/interfaces/Await.md)
 
 ### PatCtor()
 

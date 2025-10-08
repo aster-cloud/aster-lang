@@ -12,4 +12,4 @@
 
 ### Effect
 
-Re-exports [Effect](../types/enumerations/Effect.md)
+Re-exports [Effect](../index/enumerations/Effect.md)

@@ -6,7 +6,7 @@
 
 > **lowerModule**(`ast`): [`Module`](../../types/namespaces/Core/interfaces/Module.md)
 
-Defined in: [lower\_to\_core.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/lower_to_core.ts#L65)
+Defined in: [lower\_to\_core.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/lower_to_core.ts#L67)
 
 将 AST Module 降级为 Core IR Module。
 

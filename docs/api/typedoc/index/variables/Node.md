@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/ast.ts#L4)
+Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/ast.ts#L4)
 
 ## Type Declaration
 
@@ -470,6 +470,20 @@ readonly [`Parameter`](../../types/interfaces/Parameter.md)[]
 
 [`Lambda`](../../types/interfaces/Lambda.md)
 
+### Await()
+
+> **Await**: (`expr`) => [`Await`](../../types/interfaces/Await.md)
+
+#### Parameters
+
+##### expr
+
+[`Expression`](../../types/type-aliases/Expression.md)
+
+#### Returns
+
+[`Await`](../../types/interfaces/Await.md)
+
 ### TypeName()
 
 > **TypeName**: (`name`) => [`TypeName`](../../types/interfaces/TypeName.md)
@@ -593,6 +607,28 @@ readonly [`Type`](../../types/type-aliases/Type.md)[]
 #### Returns
 
 [`TypeVar`](../../types/interfaces/TypeVar.md)
+
+### TypePii()
+
+> **TypePii**: (`baseType`, `sensitivity`, `category`) => [`TypePii`](../../types/interfaces/TypePii.md)
+
+#### Parameters
+
+##### baseType
+
+[`Type`](../../types/type-aliases/Type.md)
+
+##### sensitivity
+
+[`PiiSensitivityLevel`](../../types/type-aliases/PiiSensitivityLevel.md)
+
+##### category
+
+[`PiiDataCategory`](../../types/type-aliases/PiiDataCategory.md)
+
+#### Returns
+
+[`TypePii`](../../types/interfaces/TypePii.md)
 
 ### PatternNull()
 

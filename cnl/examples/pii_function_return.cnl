@@ -1,4 +1,5 @@
 This module is test.pii.function_return.
+
 To get_email, produce Text:
   Return "user@example.com".
 

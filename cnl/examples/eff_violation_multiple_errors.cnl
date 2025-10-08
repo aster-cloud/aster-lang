@@ -1,4 +1,5 @@
 This module is test.eff.violation.multiple_errors.
+
 To bad_func, produce Text. It performs io [Http]:
   Let secret be Secrets.get("KEY").
   Let data be Db.query("SELECT 1").

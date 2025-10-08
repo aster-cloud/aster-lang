@@ -1,4 +1,5 @@
 This module is app.
+
 Define User with id: Text, name: Text.
 
 To greet with user: User?, produce Text:

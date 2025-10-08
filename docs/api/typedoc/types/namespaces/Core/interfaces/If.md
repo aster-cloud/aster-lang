@@ -4,23 +4,47 @@
 
 # Interface: If
 
-Defined in: [types.ts:432](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L432)
+Defined in: [types.ts:267](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types.ts#L267)
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- `BaseIf`\<[`Origin`](../../../interfaces/Origin.md), [`Expression`](../type-aliases/Expression.md), [`Block`](Block.md)\>
 
 ## Properties
 
-### origin?
+### span?
 
-> `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
+> `readonly` `optional` **span**: `undefined`
 
-Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L344)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L32)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+`Base.BaseIf.span`
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L33)
+
+#### Inherited from
+
+`Base.BaseIf.origin`
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `null` \| `string`
+
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L34)
+
+#### Inherited from
+
+`Base.BaseIf.file`
 
 ***
 
@@ -28,11 +52,11 @@ Defined in: [types.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **kind**: `"If"`
 
-Defined in: [types.ts:433](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L433)
+Defined in: [types/base.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L161)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+`Base.BaseIf.kind`
 
 ***
 
@@ -40,7 +64,11 @@ Defined in: [types.ts:433](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **cond**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:434](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L434)
+Defined in: [types/base.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L162)
+
+#### Inherited from
+
+`Base.BaseIf.cond`
 
 ***
 
@@ -48,7 +76,11 @@ Defined in: [types.ts:434](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **thenBlock**: [`Block`](Block.md)
 
-Defined in: [types.ts:435](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L435)
+Defined in: [types/base.ts:163](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L163)
+
+#### Inherited from
+
+`Base.BaseIf.thenBlock`
 
 ***
 
@@ -56,4 +88,8 @@ Defined in: [types.ts:435](https://github.com/wontlost-ltd/aster-lang/blob/026c7
 
 > `readonly` **elseBlock**: `null` \| [`Block`](Block.md)
 
-Defined in: [types.ts:436](https://github.com/wontlost-ltd/aster-lang/blob/026c79a6dbb38388284062b92af40be318ffbb13/src/types.ts#L436)
+Defined in: [types/base.ts:164](https://github.com/wontlost-ltd/aster-lang/blob/f2b08094a4f9f64a0177a5c0498280a96fec6f93/src/types/base.ts#L164)
+
+#### Inherited from
+
+`Base.BaseIf.elseBlock`
