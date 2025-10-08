@@ -1,7 +1,11 @@
 import type { Core, TypecheckDiagnostic, Origin } from './types.js';
 import { Effect } from './types.js';
-import { IO_PREFIXES, CPU_PREFIXES } from './config/effects.js';
+import { getIOPrefixes, getCPUPrefixes } from './config/effect_config.js';
 import { DefaultCoreVisitor } from './visitor.js';
+
+// 从配置获取效果推断前缀（模块级，避免重复调用）
+const IO_PREFIXES = getIOPrefixes();
+const CPU_PREFIXES = getCPUPrefixes();
 
 export interface EffectConstraint {
   caller: string;

@@ -11,9 +11,13 @@ import { CapabilityKind, inferCapabilityFromName } from './config/semantic.js';
 import { inferEffects } from './effect_inference.js';
 import { DefaultCoreVisitor } from './visitor.js';
 // import { DiagnosticBuilder, DiagnosticCode, DiagnosticSeverity } from './diagnostics.js';
-import { IO_PREFIXES, CPU_PREFIXES } from './config/effects.js';
+import { getIOPrefixes, getCPUPrefixes } from './config/effect_config.js';
 import { ENFORCE_CAPABILITIES } from './config/runtime.js';
 import { createLogger, logPerformance } from './utils/logger.js';
+
+// 从配置获取效果推断前缀（模块级，避免重复调用）
+const IO_PREFIXES = getIOPrefixes();
+const CPU_PREFIXES = getCPUPrefixes();
 
 // Re-export TypecheckDiagnostic for external use
 export type { TypecheckDiagnostic };

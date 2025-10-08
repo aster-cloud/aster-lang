@@ -15,6 +15,86 @@ Supported effects:
 - `IO`
 - `CPU`
 
+## Effect Inference Configuration
+
+The effect inference system automatically detects effects based on function call prefixes. You can customize which prefixes trigger which effects.
+
+### Default Configuration
+
+By default, the following prefixes are recognized:
+
+**IO Effects:**
+- `IO.` - General I/O operations
+- `Http.` - HTTP requests
+- `Db.` - Database operations
+- `AuthRepo.`, `ProfileSvc.`, `FeedSvc.` - Service calls
+- `UUID.randomUUID` - Random generation (secrets)
+
+**CPU Effects:**
+- Currently empty (effects propagate through call chains)
+
+### Custom Configuration
+
+Create a `.aster/effects.json` file in your project root to customize effect inference:
+
+```json
+{
+  "patterns": {
+    "io": {
+      "http": ["Http.", "MyHttpClient.", "fetch."],
+      "sql": ["Db.", "MyORM.", "Sql."],
+      "files": ["Files.", "Fs."],
+      "secrets": ["UUID.randomUUID", "Secrets.", "vault."],
+      "time": ["Time.", "Date.", "Clock."]
+    },
+    "cpu": ["Math.", "crypto."],
+    "ai": ["AI.", "OpenAI."]
+  }
+}
+```
+
+**Fine-grained categorization:**
+- `io.http` - HTTP/network operations
+- `io.sql` - Database queries
+- `io.files` - File system access
+- `io.secrets` - Secret/credential access
+- `io.time` - Time-dependent operations
+
+### Environment Variable
+
+Override the default config location using `ASTER_EFFECT_CONFIG`:
+
+```bash
+ASTER_EFFECT_CONFIG=/path/to/custom-effects.json npx tsx scripts/typecheck-cli.ts myfile.cnl
+```
+
+### Configuration Fallback
+
+If the config file doesn't exist or fails to load, the system falls back to the default configuration silently. This ensures backward compatibility.
+
+### Example: Custom HTTP Client
+
+If your project uses a custom HTTP client library:
+
+```json
+{
+  "patterns": {
+    "io": {
+      "http": ["MyApi.", "HttpService."]
+    }
+  }
+}
+```
+
+Then functions calling `MyApi.get()` will automatically be inferred as requiring `@io` effect:
+
+```
+To fetch_data, produce Text:
+  Return MyApi.get("/users").  // Inferred as IO
+```
+
+Without declaring `It performs io`, this will trigger a typecheck error.
+
 ## Capability manifest
 
 Enable checks by setting `ASTER_CAPS` to a JSON manifest file.

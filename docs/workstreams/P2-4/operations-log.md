@@ -209,3 +209,36 @@
 | 2025-10-08 14:55 | apply_patch | 新增 structured-logging-verification.md | 记录自动化与手动验证结果 |
 | 2025-10-08 14:56 | apply_patch | 新增 docs/testing.md | 登记结构化日志验证的测试结果 |
 | 2025-10-08 14:56 | shell (git status) | --short | 确认当前工作区已存在大量历史改动 |
+| 2025-10-09 00:05 | sequential-thinking | totalThoughts=6 | 阶段2.2 审查任务思考分解 |
+| 2025-10-09 00:05 | code-index__find_files | pattern=**/operations-log.md | 失败：未设置项目根目录 |
+| 2025-10-09 00:05 | code-index__set_project_path | path=. | 设置索引根目录 557 个文件 |
+| 2025-10-09 00:05 | code-index__find_files | pattern=**/operations-log.md | 获取阶段操作日志列表 |
+| 2025-10-09 00:06 | shell (sed -n) | docs/workstreams/P2-4/operations-log.md 1-120 | 查看既有日志记录 |
+| 2025-10-09 00:06 | shell (nl) | src/config/effect_config.ts | 阅读新配置模块实现 |
+| 2025-10-09 00:06 | shell (nl) | src/config/effects.ts | 检查兼容层改动 |
+| 2025-10-09 00:06 | shell (nl) | src/effect_inference.ts | 审查效果推断逻辑变更 |
+| 2025-10-09 00:06 | shell (rg) | "collectEffects" src/typecheck.ts | 定位类型检查收集逻辑 |
+| 2025-10-09 00:06 | shell (sed -n) | src/typecheck.ts 420-520 | 阅读 collectEffects 具体实现 |
+| 2025-10-09 00:06 | shell (sed -n) | src/typecheck.ts 1-140 | 确认模块级前缀加载方式 |
+| 2025-10-09 00:06 | shell (cat) | .aster/effects.example.json | 查看示例配置内容 |
+| 2025-10-09 00:06 | shell (cat) | cnl/examples/eff_custom_prefix.cnl | 阅读测试用例 |
+| 2025-10-09 00:06 | shell (rg) | "eff_custom_prefix" scripts/golden.ts | 查找黄金测试注册 |
+| 2025-10-09 00:06 | shell (sed -n) | scripts/golden.ts 240-320 | 审查黄金测试段落 |
+| 2025-10-09 00:06 | shell (cat) | cnl/examples/expected_eff_custom_prefix.diag.txt | 查看预期诊断输出 |
+| 2025-10-09 00:06 | shell (rg) | "IO_PREFIXES" src/config/semantic.ts | 验证默认前缀集合 |
+| 2025-10-09 00:06 | shell (sed -n) | src/config/semantic.ts 100-140 | 对比默认配置内容 |
+| 2025-10-09 00:07 | shell (rg) | "customPatterns" -g*.ts | 确认字段引用情况 |
+| 2025-10-09 00:07 | shell (TZ=Pacific/Auckland date) | '+%Y-%m-%d %H:%M' | 记录 NZST 时间戳 |
+| 2025-10-09 00:07 | shell (ls) | .claude | 查看现有审查文档 |
+| 2025-10-09 00:07 | shell (sed -n) | .claude/review-report.md 1-120 | 了解当前报告结构 |
+| 2025-10-09 00:07 | shell (TZ=Pacific/Auckland date) | '+%Y-%m-%d %H:%M' | 更新写作时间戳 |
+| 2025-10-09 00:07 | apply_patch | 更新 .claude/review-report.md | 写入阶段2.2审查报告 |
+| 2025-10-09 00:07 | shell (tail) | docs/workstreams/P2-4/operations-log.md -n 20 | 确认追加位置 |
+| 2025-10-09 00:07 | apply_patch | 更新 docs/workstreams/P2-4/operations-log.md | 记录阶段2.2工具调用 |
+| 2025-10-09 00:18 | sequential-thinking | totalThoughts=1 | 阶段2.2 修复版复审任务快速思考 |
+| 2025-10-09 00:18 | shell (cat) | .claude/review-report.md | 查看上一轮审查报告内容 |
+| 2025-10-09 00:18 | shell (sed -n) | src/config/effect_config.ts 1-220 | 审查 mergeWithDefault 与加载逻辑 |
+| 2025-10-09 00:18 | shell (cat) | .aster/README.md | 核对文档更新与测试说明 |
+| 2025-10-09 00:18 | shell (node) | const obj=null; console.log(obj.prop?.foo); | 验证可选链在根对象为 null 时的行为 |
+| 2025-10-09 00:18 | shell (TZ=Pacific/Auckland date) | '+%Y-%m-%d %H:%M NZDT' | 获取复审报告时间戳 |
+| 2025-10-09 00:18 | apply_patch | 更新 .claude/review-report.md | 写入修复版复审结论 |
