@@ -1,0 +1,107 @@
+{
+  "name": "aster-vscode",
+  "displayName": "Aster Language",
+  "description": "VSCode 语言支持扩展：语法高亮、LSP 集成、代码补全、跳转定义、错误检查",
+  "version": "0.1.0",
+  "publisher": "wontlost",
+  "author": "WontLost Ltd",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wontlost-ltd/aster-lang"
+  },
+  "keywords": [
+    "aster",
+    "cnl",
+    "controlled natural language",
+    "lsp",
+    "language-server"
+  ],
+  "engines": {
+    "vscode": ">=1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:aster",
+    "onCommand:aster.startLanguageServer"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "aster",
+        "aliases": [
+          "Aster Lang",
+          "Aster"
+        ],
+        "extensions": [
+          ".aster",
+          ".astr"
+        ],
+        "filenames": [
+          "Asterfile"
+        ],
+        "firstLine": "^\\s*#!.*\\baster\\b",
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "icon.png",
+          "dark": "icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "aster",
+        "scopeName": "source.aster",
+        "path": "./syntaxes/aster.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "aster",
+        "path": "./snippets/aster.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "aster.startLanguageServer",
+        "title": "Aster: Start Language Server"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Aster",
+      "properties": {
+        "aster.langServer.path": {
+          "type": "string",
+          "default": "dist/src/lsp/server.js",
+          "description": "Path to Aster LSP entry (relative to workspace root)."
+        }
+      }
+    }
+  },
+  "icon": "icon.png",
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "pretest": "npm run compile",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vscode/vsce": "^3.6.2",
+    "eslint": "^8.0.0",
+    "sharp": "^0.34.4",
+    "typescript": "^5.3.0"
+  }
+}
