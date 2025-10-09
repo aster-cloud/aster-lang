@@ -352,7 +352,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
   const notWaited = [...aw.started].filter(n => !aw.waited.has(n));
   if (notWaited.length > 0) {
     diags.push({
-      severity: 'warning',
+      severity: 'error',
       message: `Started async tasks not waited: ${notWaited.join(', ')}`,
     });
   }

@@ -4,7 +4,7 @@
 
 # Interface: ParserContext
 
-Defined in: [parser.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L21)
+Defined in: [parser.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L21)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [parser.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > `readonly` **tokens**: readonly [`Token`](../../types/interfaces/Token.md)[]
 
-Defined in: [parser.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L22)
+Defined in: [parser.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L22)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [parser.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **index**: `number`
 
-Defined in: [parser.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L23)
+Defined in: [parser.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L23)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [parser.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **moduleName**: `null` \| `string`
 
-Defined in: [parser.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L24)
+Defined in: [parser.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L24)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [parser.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **declaredTypes**: `Set`\<`string`\>
 
-Defined in: [parser.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L25)
+Defined in: [parser.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L25)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [parser.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **currentTypeVars**: `Set`\<`string`\>
 
-Defined in: [parser.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L26)
+Defined in: [parser.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L26)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [parser.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **collectedEffects**: `null` \| `string`[]
 
-Defined in: [parser.ts:27](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L27)
+Defined in: [parser.ts:27](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L27)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [parser.ts:27](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **effectSnapshots**: (`null` \| `string`[])[]
 
-Defined in: [parser.ts:28](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L28)
+Defined in: [parser.ts:28](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L28)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [parser.ts:28](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **debug**: `object`
 
-Defined in: [parser.ts:29](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L29)
+Defined in: [parser.ts:29](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L29)
 
 #### enabled
 
@@ -98,7 +98,7 @@ Defined in: [parser.ts:29](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **peek**(`offset?`): [`Token`](../../types/interfaces/Token.md)
 
-Defined in: [parser.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L30)
+Defined in: [parser.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L30)
 
 #### Parameters
 
@@ -116,7 +116,7 @@ Defined in: [parser.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **next**(): [`Token`](../../types/interfaces/Token.md)
 
-Defined in: [parser.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L31)
+Defined in: [parser.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L31)
 
 #### Returns
 
@@ -128,7 +128,7 @@ Defined in: [parser.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **at**(`kind`, `value?`): `boolean`
 
-Defined in: [parser.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L32)
+Defined in: [parser.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L32)
 
 #### Parameters
 
@@ -150,7 +150,7 @@ Defined in: [parser.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **expect**(`kind`, `message`): [`Token`](../../types/interfaces/Token.md)
 
-Defined in: [parser.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L33)
+Defined in: [parser.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L33)
 
 #### Parameters
 
@@ -172,7 +172,7 @@ Defined in: [parser.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **isKeyword**(`kw`): `boolean`
 
-Defined in: [parser.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L34)
+Defined in: [parser.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L34)
 
 #### Parameters
 
@@ -190,7 +190,7 @@ Defined in: [parser.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **isKeywordSeq**(`words`): `boolean`
 
-Defined in: [parser.ts:35](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L35)
+Defined in: [parser.ts:35](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L35)
 
 #### Parameters
 
@@ -208,7 +208,7 @@ Defined in: [parser.ts:35](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **nextWord**(): [`Token`](../../types/interfaces/Token.md)
 
-Defined in: [parser.ts:36](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L36)
+Defined in: [parser.ts:36](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L36)
 
 #### Returns
 
@@ -220,7 +220,7 @@ Defined in: [parser.ts:36](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **nextWords**(`words`): `void`
 
-Defined in: [parser.ts:37](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L37)
+Defined in: [parser.ts:37](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L37)
 
 #### Parameters
 
@@ -238,7 +238,7 @@ Defined in: [parser.ts:37](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **consumeIndent**(): `void`
 
-Defined in: [parser.ts:38](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L38)
+Defined in: [parser.ts:38](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L38)
 
 #### Returns
 
@@ -250,7 +250,7 @@ Defined in: [parser.ts:38](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **consumeNewlines**(): `void`
 
-Defined in: [parser.ts:39](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L39)
+Defined in: [parser.ts:39](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L39)
 
 #### Returns
 
@@ -262,7 +262,7 @@ Defined in: [parser.ts:39](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **pushEffect**(`effects`): `void`
 
-Defined in: [parser.ts:40](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L40)
+Defined in: [parser.ts:40](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L40)
 
 #### Parameters
 
@@ -280,7 +280,7 @@ Defined in: [parser.ts:40](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **snapshotEffects**(): `null` \| `string`[]
 
-Defined in: [parser.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L41)
+Defined in: [parser.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L41)
 
 #### Returns
 
@@ -292,7 +292,7 @@ Defined in: [parser.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **restoreEffects**(`snapshot`): `void`
 
-Defined in: [parser.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L42)
+Defined in: [parser.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L42)
 
 #### Parameters
 
@@ -310,7 +310,7 @@ Defined in: [parser.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/15ace
 
 > **withTypeScope**\<`T`\>(`names`, `body`): `T`
 
-Defined in: [parser.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/15ace69b6555ae75e14d12eefd375a82640f05b8/src/parser.ts#L43)
+Defined in: [parser.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/parser.ts#L43)
 
 #### Type Parameters
 

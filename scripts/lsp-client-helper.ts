@@ -1,11 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 
-type PendingRequest = {
-  resolve: (value: unknown) => void;
-  reject: (reason: Error) => void;
-};
-
-type PendingReceiver = {
+type PendingCallback = {
   resolve: (value: unknown) => void;
   reject: (reason: Error) => void;
 };
@@ -15,9 +10,9 @@ export class LSPClient {
   private server: ChildProcessWithoutNullStreams | null = null;
   private messageId = 0;
   private buffer = '';
-  private pendingRequests = new Map<number, PendingRequest>();
+  private pendingRequests = new Map<number, PendingCallback>();
   private pendingMessages: unknown[] = [];
-  private pendingReceivers: PendingReceiver[] = [];
+  private pendingReceivers: PendingCallback[] = [];
   private closed = false;
 
   /** 启动 LSP 服务器进程 */

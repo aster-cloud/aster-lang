@@ -1,3 +1,19 @@
+# 2025-10-09 11:48 NZDT P2-4 项目生成器抽取
+
+- 执行者：Codex
+- 触发：主AI指令执行 P2-4 重构（生成器去重）
+
+## 操作记录
+- 工具：sequential-thinking__sequentialthinking → 梳理提取范围、风险与实施顺序
+- 工具：code-index__set_project_path、code-index__build_deep_index、code-index__get_file_summary → 建立索引并确认 `test/benchmark.ts` 函数分布
+- 工具：apply_patch → 新增 `test/generators.ts` 并抽取全部生成器函数与类型
+- 工具：apply_patch → 更新 `test/benchmark.ts`、`scripts/perf-lsp-e2e.ts`、`scripts/perf-benchmark.ts` 改为导入共用模块
+- 命令：`npm run build`、`npm run bench` → 验证编译与性能基准执行通过
+
+## 观察
+- 三个脚本现共享 `test/generators.ts`，无重复实现
+- `npm run bench` 输出与基线一致，功能保持稳定
+
 # 2025-10-09 09:39 NZDT Task 1 性能统计工具抽取
 
 - 执行者：Codex
