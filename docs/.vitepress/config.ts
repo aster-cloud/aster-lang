@@ -13,8 +13,8 @@ export default defineConfig({
   },
   vite: {
     build: {
-      // 增加 chunk size warning 阈值到 1000kb
-      chunkSizeWarningLimit: 1000,
+      // 增加 chunk size warning 阈值到 2000kb 以避免大型文档库的警告
+      chunkSizeWarningLimit: 2000,
     },
   },
   themeConfig: {

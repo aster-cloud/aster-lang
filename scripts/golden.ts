@@ -140,10 +140,10 @@ async function runOneTypecheckWithCaps(
     const { typecheckModuleWithCapabilities } = await import('../src/typecheck.js');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     const diags = typecheckModuleWithCapabilities(core, manifest);
-    const capOnly = diags.filter(d => d.message.includes('capability manifest'));
+    const capOnly = diags.filter(d => d.message.includes('capability') && d.message.includes('manifest'));
     const actualLines = Array.from(
       new Set(capOnly.map(d => `${formatSeverityTag(d.severity)}: ${d.message}`))
-    );
+    ).sort();
     const expectedLines = Array.from(
       new Set(
         fs
@@ -153,7 +153,7 @@ async function runOneTypecheckWithCaps(
           .filter(s => s.length > 0)
           .map(normalizeSeverityLabel)
       )
-    );
+    ).sort();
     const actual = actualLines.join('\n') + (actualLines.length ? '\n' : '');
     const expected = expectedLines.join('\n') + (expectedLines.length ? '\n' : '');
     if (actual !== expected) {

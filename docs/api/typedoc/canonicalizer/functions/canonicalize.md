@@ -6,7 +6,7 @@
 
 > **canonicalize**(`input`): `string`
 
-Defined in: [canonicalizer.ts:80](https://github.com/wontlost-ltd/aster-lang/blob/515b722332297ca0ad587cf979b44d7363fdedd5/src/canonicalizer.ts#L80)
+Defined in: [canonicalizer.ts:80](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d13bd22d37eb9544faeb630305db5f50636/src/canonicalizer.ts#L80)
 
 规范化 CNL 源代码为标准格式。
 

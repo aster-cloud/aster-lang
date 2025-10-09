@@ -47,11 +47,8 @@ export class Logger {
     };
 
     const output = JSON.stringify(entry);
-    if (level >= LogLevel.ERROR) {
-      console.error(output);
-    } else {
-      console.log(output);
-    }
+    // Always output to stderr to avoid polluting stdout (LSP uses stdio)
+    console.error(output);
   }
 }
 

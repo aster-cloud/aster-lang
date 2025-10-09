@@ -1,0 +1,313 @@
+import type { Diagnostic, Connection } from 'vscode-languageserver/node.js';
+import {
+  DiagnosticSeverity,
+  DocumentDiagnosticRequest,
+  type DocumentDiagnosticReport,
+  DocumentDiagnosticReportKind,
+  WorkspaceDiagnosticRequest,
+  type WorkspaceDiagnosticReport,
+  type WorkspaceDocumentDiagnosticReport,
+} from 'vscode-languageserver/node.js';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { promises as fs, existsSync } from 'node:fs';
+import { getAllModules } from './index.js';
+import {
+  typecheckModule,
+  typecheckModuleWithCapabilities,
+  type TypecheckDiagnostic,
+} from '../typecheck.js';
+import { parse } from '../parser.js';
+import { lowerModule } from '../lower_to_core.js';
+import { DiagnosticError } from '../diagnostics.js';
+import { collectSemanticDiagnostics } from './analysis.js';
+import type { CapabilityManifest } from '../capabilities.js';
+
+/**
+ * 表示诊断模块的配置选项。
+ */
+export interface DiagnosticConfig {
+  /**
+   * 是否支持诊断关联信息功能。
+   */
+  relatedInformationSupported: boolean;
+  /**
+   * 是否启用工作区级诊断。
+   */
+  workspaceDiagnosticsEnabled: boolean;
+  /**
+   * 能力清单文件的绝对路径，可为空表示未配置。
+   */
+  capabilityManifestPath: string | null;
+}
+
+let diagnosticConfig: DiagnosticConfig = {
+  relatedInformationSupported: false,
+  workspaceDiagnosticsEnabled: true,
+  capabilityManifestPath: process.env.ASTER_CAPS || null,
+};
+
+let manifestCache: {
+  path: string;
+  data: CapabilityManifest | null;
+} | null = null;
+
+/**
+ * 异步加载能力清单文件。
+ * @returns 成功时返回清单数据，失败或未配置时返回 null。
+ */
+export async function loadCapabilityManifest(): Promise<CapabilityManifest | null> {
+  const path = diagnosticConfig.capabilityManifestPath;
+  if (!path) return null;
+
+  if (manifestCache?.path === path) {
+    return manifestCache.data;
+  }
+
+  try {
+    const content = await fs.readFile(path, 'utf8');
+    const data = JSON.parse(content) as CapabilityManifest;
+    manifestCache = { path, data };
+    return data;
+  } catch (error) {
+    console.log('Failed to load capability manifest:', error);
+    manifestCache = { path, data: null };
+    return null;
+  }
+}
+
+/**
+ * 清空能力清单缓存，下次诊断时重新加载。
+ */
+export function invalidateManifestCache(): void {
+  manifestCache = null;
+}
+
+/**
+ * 更新诊断模块的运行配置。
+ * @param config 新配置对象（部分更新）。
+ */
+export function setDiagnosticConfig(config: Partial<DiagnosticConfig>): void {
+  diagnosticConfig = { ...diagnosticConfig, ...config };
+  if (config.capabilityManifestPath !== undefined) {
+    invalidateManifestCache();
+  }
+}
+
+/**
+ * 计算指定文档的诊断信息。
+ * @param textDocument 目标文档。
+ * @param getOrParse 获取缓存的解析结果函数。
+ * @returns 诊断列表。
+ */
+export async function computeDiagnostics(
+  textDocument: TextDocument,
+  getOrParse: (doc: TextDocument) => { text: string; tokens: readonly any[]; ast: any }
+): Promise<Diagnostic[]> {
+  const { tokens, ast } = getOrParse(textDocument);
+  const diagnostics: Diagnostic[] = [];
+
+  try {
+    const parsed = ast ?? parse(tokens);
+
+    // 运行语义检查（包含互操作、空值和 PII 流检查）
+    try {
+      const core = lowerModule(parsed);
+      diagnostics.push(...collectSemanticDiagnostics(tokens, core));
+
+      // 类型检查
+      const manifest = await loadCapabilityManifest();
+      const tdiags: TypecheckDiagnostic[] = manifest
+        ? typecheckModuleWithCapabilities(core, manifest)
+        : typecheckModule(core);
+
+      for (const td of tdiags) {
+        const d: Diagnostic = {
+          severity:
+            td.severity === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 0 },
+          },
+          message: td.message,
+          source: 'aster-typecheck',
+        };
+        if (td.code !== null && td.code !== undefined) (d as any).code = td.code as string;
+        if (td.data !== null && td.data !== undefined) (d as any).data = td.data as any;
+        diagnostics.push(d);
+      }
+    } catch {
+      // 忽略类型检查失败；解析错误在下方处理
+    }
+  } catch (error) {
+    if (error instanceof DiagnosticError) {
+      const diag = error.diagnostic;
+      const diagnostic: Diagnostic = {
+        severity:
+          diag.severity === 'error'
+            ? DiagnosticSeverity.Error
+            : diag.severity === 'warning'
+              ? DiagnosticSeverity.Warning
+              : diag.severity === 'info'
+                ? DiagnosticSeverity.Information
+                : DiagnosticSeverity.Hint,
+        range: {
+          start: { line: diag.span.start.line - 1, character: diag.span.start.col - 1 },
+          end: { line: diag.span.end.line - 1, character: diag.span.end.col - 1 },
+        },
+        message: diag.message,
+        source: 'aster',
+        code: diag.code,
+      };
+
+      if (diag.relatedInformation && diagnosticConfig.relatedInformationSupported) {
+        diagnostic.relatedInformation = diag.relatedInformation.map(info => ({
+          location: {
+            uri: textDocument.uri,
+            range: {
+              start: { line: info.span.start.line - 1, character: info.span.start.col - 1 },
+              end: { line: info.span.end.line - 1, character: info.span.end.col - 1 },
+            },
+          },
+          message: info.message,
+        }));
+      }
+
+      diagnostics.push(diagnostic);
+    } else {
+      // 通用错误的后备处理
+      const diagnostic: Diagnostic = {
+        severity: DiagnosticSeverity.Error,
+        range: {
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 0 },
+        },
+        message: error instanceof Error ? error.message : String(error),
+        source: 'aster',
+      };
+      diagnostics.push(diagnostic);
+    }
+  }
+
+  try {
+    // 如果缺少模块头，添加温和的警告
+    const a = ast ?? parse(tokens);
+    if (!a || !(a as any).name) {
+      diagnostics.push({
+        severity: DiagnosticSeverity.Warning,
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+        message: 'Missing module header. Add "This module is <name>."',
+        source: 'aster',
+      });
+    }
+  } catch {
+    // 忽略
+  }
+
+  return diagnostics;
+}
+
+const BATCH_SIZE = 5;
+
+/**
+ * 将 URI 转换为文件系统路径。
+ * @param uri 文档 URI。
+ * @returns 成功时返回路径，失败时返回 null。
+ */
+function uriToFsPath(uri: string): string | null {
+  try {
+    if (uri.startsWith('file://')) return new URL(uri).pathname;
+  } catch {}
+  return null;
+}
+
+/**
+ * 批次并行计算工作区内所有文档的诊断。
+ * @param modules 模块列表。
+ * @param documents 文档管理器。
+ * @param getOrParse 获取缓存解析结果的函数。
+ * @returns 工作区诊断报告列表。
+ */
+async function computeWorkspaceDiagnostics(
+  modules: Array<{ uri: string }>,
+  documents: { get(uri: string): TextDocument | undefined },
+  getOrParse: (doc: TextDocument) => { text: string; tokens: readonly any[]; ast: any }
+): Promise<WorkspaceDocumentDiagnosticReport[]> {
+  if (!diagnosticConfig.workspaceDiagnosticsEnabled) {
+    return [];
+  }
+
+  const results: WorkspaceDocumentDiagnosticReport[] = [];
+
+  for (let i = 0; i < modules.length; i += BATCH_SIZE) {
+    const batch = modules.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (rec) => {
+        try {
+          let doc = documents.get(rec.uri);
+          if (!doc) {
+            const fsPath = uriToFsPath(rec.uri);
+            if (!fsPath || !existsSync(fsPath)) return null;
+            const text = await fs.readFile(fsPath, 'utf8');
+            doc = TextDocument.create(rec.uri, 'cnl', 0, text);
+          }
+          const items = await computeDiagnostics(doc, getOrParse);
+          return {
+            uri: rec.uri,
+            version: documents.get(rec.uri)?.version || null,
+            kind: DocumentDiagnosticReportKind.Full,
+            items,
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
+    results.push(...(batchResults.filter(r => r !== null) as WorkspaceDocumentDiagnosticReport[]));
+  }
+
+  return results;
+}
+
+/**
+ * 注册诊断相关的 LSP 请求处理器。
+ * @param connection LSP 连接对象。
+ * @param documents 文档管理器。
+ * @param getOrParse 获取缓存解析结果的函数。
+ */
+export function registerDiagnosticHandlers(
+  connection: Connection,
+  documents: { get(uri: string): TextDocument | undefined },
+  getOrParse: (doc: TextDocument) => { text: string; tokens: readonly any[]; ast: any }
+): void {
+  // LSP 3.17+ pull diagnostics handler
+  connection.onRequest(
+    DocumentDiagnosticRequest.type,
+    async (params): Promise<DocumentDiagnosticReport> => {
+      try {
+        const doc = documents.get(params.textDocument.uri);
+        if (!doc) {
+          return { kind: DocumentDiagnosticReportKind.Full, items: [] };
+        }
+        const items = await computeDiagnostics(doc, getOrParse);
+        return { kind: DocumentDiagnosticReportKind.Full, items };
+      } catch (error) {
+        console.error(error);
+        return { kind: DocumentDiagnosticReportKind.Full, items: [] };
+      }
+    }
+  );
+
+  // Workspace diagnostics (pull): 批次并行计算所有索引文件的诊断
+  connection.onRequest(
+    WorkspaceDiagnosticRequest.type,
+    async (): Promise<WorkspaceDiagnosticReport> => {
+      try {
+        const modules = getAllModules();
+        const items = await computeWorkspaceDiagnostics(modules, documents, getOrParse);
+        return { items };
+      } catch {
+        return { items: [] };
+      }
+    }
+  );
+}

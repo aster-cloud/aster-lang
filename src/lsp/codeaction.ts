@@ -1,0 +1,359 @@
+/**
+ * LSP CodeAction 模块
+ * 提供代码动作和快速修复功能
+ */
+
+import type { Connection, CodeAction, CodeActionParams, Range } from 'vscode-languageserver/node.js';
+import { CodeActionKind, TextEdit } from 'vscode-languageserver/node.js';
+import type { TextDocument } from 'vscode-languageserver-textdocument';
+import { computeDisambiguationEdits } from './analysis.js';
+import { loadCapabilityManifest } from './diagnostics.js';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+/**
+ * 注册 CodeAction 相关的 LSP 处理器
+ * @param connection LSP 连接对象
+ * @param documents 文档管理器，提供 get 方法按 URI 获取文档
+ * @param getOrParse 文档解析函数，返回文本、词法标记和 AST
+ * @param uriToFsPath URI 转文件系统路径函数
+ */
+export function registerCodeActionHandlers(
+  connection: Connection,
+  documents: { get(uri: string): TextDocument | undefined },
+  getOrParse: (doc: TextDocument) => { text: string; tokens: readonly any[]; ast: any },
+  uriToFsPath: (u: string) => string | null
+): void {
+  // 第一个 CodeAction 处理器：能力声明和效果相关的 Quick Fix
+  connection.onCodeAction(async (params: CodeActionParams): Promise<CodeAction[]> => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return [];
+    const text = doc.getText();
+    const actions: CodeAction[] = [];
+    const capsPath = process.env.ASTER_CAPS || '';
+
+    for (const d of params.context.diagnostics) {
+      const code = (d.code as string) || '';
+
+      // 处理缺失的 IO/CPU 效果声明
+      if (code === 'EFF_MISSING_IO' || code === 'EFF_MISSING_CPU') {
+        const cap = code.endsWith('IO') ? 'IO' : 'CPU';
+        const func = ((d as any).data?.func as string) || extractFuncNameFromMessage(d.message);
+        const edit = headerInsertEffectEdit(text, func, cap);
+        if (edit) actions.push({
+          title: `Add It performs ${cap} to '${func}'`,
+          kind: CodeActionKind.QuickFix,
+          edit: { changes: { [params.textDocument.uri]: [edit] } },
+          diagnostics: [d],
+        });
+      }
+
+      // 处理多余的 IO/CPU 效果声明
+      if (code === 'EFF_SUPERFLUOUS_IO' || code === 'EFF_SUPERFLUOUS_CPU') {
+        const cap = code.endsWith('IO') ? 'IO' : 'CPU';
+        const func = ((d as any).data?.func as string) || extractFuncNameFromMessage(d.message);
+        const edit = headerRemoveEffectEdit(text, func);
+        if (edit) actions.push({
+          title: `Remove It performs ${cap} from '${func}'`,
+          kind: CodeActionKind.QuickFix,
+          edit: { changes: { [params.textDocument.uri]: [edit] } },
+          diagnostics: [d],
+        });
+      }
+
+      // 处理能力清单相关的 Quick Fix
+      if ((code === 'CAP_IO_NOT_ALLOWED' || code === 'CAP_CPU_NOT_ALLOWED') && capsPath) {
+        const cap = code === 'CAP_IO_NOT_ALLOWED' ? 'io' : 'cpu';
+        const func = ((d as any).data?.func as string) || extractFuncNameFromMessage(d.message);
+        const mod = ((d as any).data?.module as string) || extractModuleName(text) || '';
+        const fqn = mod ? `${mod}.${func}` : func;
+
+        try {
+          const manifest = await loadCapabilityManifest();
+          if (!manifest) continue;
+          const man: any = manifest; // Cast to any for capability manipulation
+          const uri = toFileUri(capsPath);
+
+          // Offer: allow for specific function (ensure FQN)
+          {
+            const manFn = structuredClone(man);
+            const textFn = ensureCapabilityAllow(manFn, cap, fqn);
+            actions.push({
+              title: `Allow ${cap.toUpperCase()} for ${fqn} in manifest`,
+              kind: CodeActionKind.QuickFix,
+              edit: { changes: { [uri]: [TextEdit.replace(fullDocRange(), textFn)] } },
+              diagnostics: [d],
+            });
+          }
+
+          // Offer: allow for entire module (module.*)
+          if (mod) {
+            const modWildcard = `${mod}.*`;
+            const manMod = structuredClone(man);
+            const textMod = ensureCapabilityAllow(manMod, cap, modWildcard);
+            actions.push({
+              title: `Allow ${cap.toUpperCase()} for ${mod}.* in manifest`,
+              kind: CodeActionKind.QuickFix,
+              edit: { changes: { [uri]: [TextEdit.replace(fullDocRange(), textMod)] } },
+              diagnostics: [d],
+            });
+
+            // If module.* is already present, offer to narrow to function-only (remove module.*)
+            const arr: string[] = Array.isArray(man.allow?.[cap]) ? man.allow[cap] : [];
+            if (arr.includes(modWildcard)) {
+              const manNarrow = structuredClone(man);
+              const textNarrow = swapCapabilityAllow(manNarrow, cap, modWildcard, fqn);
+              actions.push({
+                title: `Narrow ${cap.toUpperCase()} from ${mod}.* to ${fqn}`,
+                kind: CodeActionKind.QuickFix,
+                edit: { changes: { [uri]: [TextEdit.replace(fullDocRange(), textNarrow)] } },
+                diagnostics: [d],
+              });
+            }
+
+            // If function is already present, offer to broaden to module.* (remove fqn)
+            if (arr.includes(fqn)) {
+              const manBroad = structuredClone(man);
+              const textBroad = swapCapabilityAllow(manBroad, cap, fqn, modWildcard);
+              actions.push({
+                title: `Broaden ${cap.toUpperCase()} from ${fqn} to ${mod}.*`,
+                kind: CodeActionKind.QuickFix,
+                edit: { changes: { [uri]: [TextEdit.replace(fullDocRange(), textBroad)] } },
+                diagnostics: [d],
+              });
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // 处理 Interop 数值重载歧义
+      if (typeof d.message === 'string' && d.message.startsWith('Ambiguous interop call')) {
+        // Advisory hint
+        actions.push({
+          title: 'Hint: Disambiguate numeric overload (use 1L or 1.0) — see Guide: JVM Interop Overloads',
+          kind: 'quickfix' as any,
+          diagnostics: [d],
+        });
+
+        // Compute concrete edits from current document content
+        try {
+          const { tokens: toks } = getOrParse(doc);
+          const edits = computeDisambiguationEdits(toks, d.range);
+          if (edits.length > 0) {
+            actions.push({
+              title: 'Fix: Make numeric literals unambiguous',
+              kind: 'quickfix' as any,
+              diagnostics: [d],
+              edit: {
+                changes: {
+                  [params.textDocument.uri]: edits,
+                },
+              },
+            });
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Quick fix for nullability: replace null with "" for Text.* calls
+      if (typeof d.message === 'string' && d.message.startsWith('Nullability:')) {
+        const m = d.message.match(/parameter\s+(\d+)\s+of\s+'([^']+)'/);
+        const paramIdx = m ? Math.max(1, parseInt(m[1] || '1', 10)) : 1;
+        const dotted = m ? m[2] || '' : '';
+        const replacement = suggestNullReplacement(dotted, paramIdx);
+
+        if (replacement !== 'null') {
+          actions.push({
+            title: `Fix: Replace null with ${replacement}`,
+            kind: 'quickfix' as any,
+            diagnostics: [d],
+            edit: {
+              changes: {
+                [params.textDocument.uri]: [
+                  {
+                    range: d.range,
+                    newText: replacement,
+                  },
+                ],
+              },
+            },
+          });
+        }
+      }
+
+      // Quick fix: add missing module header
+      if (typeof d.message === 'string' && d.message.startsWith('Missing module header')) {
+        const fsPath = uriToFsPath(doc.uri) || doc.uri;
+        const mod = suggestModuleFromPath(fsPath);
+        const header = `This module is ${mod}.\n`;
+        actions.push({
+          title: `Fix: Add module header (This module is ${mod}.)`,
+          kind: 'quickfix' as any,
+          diagnostics: [d],
+          edit: { changes: { [params.textDocument.uri]: [TextEdit.insert({ line: 0, character: 0 }, header)] } },
+        });
+      }
+
+      // Quick fix: add missing punctuation at end of line
+      if (typeof d.message === 'string' && /Expected (':'|\.) at end of line/i.test(d.message)) {
+        const rng = d.range;
+        const isColon = /:/.test(d.message);
+        const ch = isColon ? ':' : '.';
+        actions.push({
+          title: `Fix: add '${ch}' at end of line`,
+          kind: 'quickfix' as any,
+          diagnostics: [d],
+          edit: { changes: { [params.textDocument.uri]: [TextEdit.insert(rng.end, ch)] } },
+        });
+      }
+    }
+
+    // Bulk numeric overload disambiguation for current selection (no diagnostic required)
+    try {
+      const { tokens: toks } = getOrParse(doc);
+      const edits = computeDisambiguationEdits(toks, params.range as any);
+      if (edits.length > 0) {
+        actions.push({
+          title: 'Fix: Disambiguate numeric overloads in selection',
+          kind: 'quickfix' as any,
+          edit: { changes: { [params.textDocument.uri]: edits } },
+        });
+      }
+    } catch {
+      // ignore
+    }
+
+    return actions;
+  });
+}
+
+/**
+ * 辅助函数：从诊断消息中提取函数名
+ */
+function extractFuncNameFromMessage(msg: string): string {
+  const m = msg.match(/Function '([^']+)'/);
+  return m?.[1] ?? '';
+}
+
+/**
+ * 辅助函数：从文本中提取模块名
+ */
+function extractModuleName(text: string): string | null {
+  const m = text.match(/This module is ([A-Za-z][A-Za-z0-9_.]*)\./);
+  return m?.[1] ?? null;
+}
+
+/**
+ * 辅助函数：在函数头部插入效果声明
+ */
+function headerInsertEffectEdit(text: string, func: string, cap: 'IO' | 'CPU'): TextEdit | null {
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    if (/^To\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line)) {
+      if (/It performs/i.test(line)) return null;
+      const withEff = line.replace(/(:|\.)\s*$/, `. It performs ${cap}:`);
+      return TextEdit.replace({ start: { line: i, character: 0 }, end: { line: i, character: line.length } }, withEff);
+    }
+  }
+  return null;
+}
+
+/**
+ * 辅助函数：从函数头部移除效果声明
+ */
+function headerRemoveEffectEdit(text: string, func: string): TextEdit | null {
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    if (/^To\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line) && /It performs/i.test(line)) {
+      const cleaned = line.replace(/\. It performs (IO|CPU):/i, ':');
+      return TextEdit.replace({ start: { line: i, character: 0 }, end: { line: i, character: line.length } }, cleaned);
+    }
+  }
+  return null;
+}
+
+/**
+ * 辅助函数：确保能力清单中包含指定项
+ */
+function ensureCapabilityAllow(man: any, cap: string, entry: string): string {
+  const allow = (man.allow = man.allow || {});
+  const arr: string[] = (allow[cap] = Array.isArray(allow[cap]) ? allow[cap] : []);
+  if (!arr.includes(entry)) arr.push(entry);
+  return JSON.stringify(man, null, 2) + '\n';
+}
+
+/**
+ * 辅助函数：交换能力清单项
+ */
+function swapCapabilityAllow(man: any, cap: string, removeEntry: string, addEntry: string): string {
+  const allow = (man.allow = man.allow || {});
+  const arr: string[] = (allow[cap] = Array.isArray(allow[cap]) ? allow[cap] : []);
+  const idx = arr.indexOf(removeEntry);
+  if (idx >= 0) arr.splice(idx, 1);
+  if (!arr.includes(addEntry)) arr.push(addEntry);
+  return JSON.stringify(man, null, 2) + '\n';
+}
+
+/**
+ * 辅助函数：文件路径转 file:// URI
+ */
+function toFileUri(p: string): string {
+  const abs = path.isAbsolute(p) ? p : path.resolve(p);
+  return String(pathToFileURL(abs));
+}
+
+/**
+ * 辅助函数：返回全文档范围
+ */
+function fullDocRange(): Range {
+  return { start: { line: 0, character: 0 }, end: { line: Number.MAX_SAFE_INTEGER, character: 0 } };
+}
+
+/**
+ * 辅助函数：根据调用和参数索引建议 null 的替代值
+ */
+function suggestNullReplacement(dotted: string, paramIdx: number): string {
+  // Text helpers
+  if (dotted === 'Text.split') return paramIdx === 2 ? '" "' : '""'; // h, sep
+  if (dotted === 'Text.startsWith') return '""'; // param 1 or 2
+  if (dotted === 'Text.endsWith') return '""';   // param 1 or 2
+  if (dotted === 'Text.indexOf') return paramIdx === 2 ? '" "' : '""'; // h, needle
+  if (dotted === 'Text.contains') return '""';
+  if (dotted === 'Text.replace') return '""';    // any of 1/2/3
+  if (dotted === 'Text.toUpper' || dotted === 'Text.toLower' || dotted === 'Text.length') return '""';
+  if (dotted === 'Text.concat') return '""';
+  // Collections / Interop defaults
+  if (dotted === 'List.get' && paramIdx === 2) return '0';
+  if (dotted === 'Map.get' && paramIdx === 2) return '""';
+  if (dotted === 'Map.containsKey' && paramIdx === 2) return '""';
+  if (dotted === 'Set.contains' && paramIdx === 2) return '""';
+  if (dotted === 'Set.add' && paramIdx === 2) return '""';
+  if (dotted === 'Set.remove' && paramIdx === 2) return '""';
+  if (dotted === 'aster.runtime.Interop.sum') return '0';
+  if (dotted === 'aster.runtime.Interop.pick') return '""';
+  // fallback for Text.*
+  if (dotted.startsWith('Text.')) return '""';
+  return 'null';
+}
+
+/**
+ * 辅助函数：从文件路径推断模块名
+ */
+function suggestModuleFromPath(fsPath: string): string {
+  try {
+    const root = process.cwd();
+    const rel = path.relative(root, fsPath);
+    const noExt = rel.replace(/\.[^.]+$/, '');
+    const parts = noExt.split(path.sep).filter(Boolean);
+    // If under cnl/, drop leading segment
+    if (parts[0] === 'cnl') parts.shift();
+    return parts.join('.').replace(/[^A-Za-z0-9_.]/g, '_') || 'main';
+  } catch {
+    return 'main';
+  }
+}

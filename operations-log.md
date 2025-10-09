@@ -705,3 +705,19 @@ await runOneTypecheck(
 2025-10-09 11:02 NZDT - 使用 `apply_patch` 再次更新 `scripts/perf-benchmark.ts`，内嵌 Medium 项目生成器并清理残留符号。
 2025-10-09 11:02 NZDT - 执行 `npm run build` 验证最新改动编译通过。
 2025-10-09 11:08 NZDT - 再次执行 `node dist/scripts/perf-benchmark.js` 成功生成报告（LSP hover 超时触发阈值失败，脚本按预期返回非零退出）。
+
+# 2025-10-09 14:11 NZDT LSP 服务器索引模块切换
+
+- 执行者：Codex
+- 触发：主AI指令更新 server.ts 使用新的索引接口
+
+## 操作记录
+- 工具：sequential-thinking__sequentialthinking → 分析任务范围、风险与步骤
+- 命令：`sed -n '1,200p' src/lsp/server.ts`、`sed -n '200,400p' src/lsp/server.ts` → 获取索引相关旧实现
+- 工具：apply_patch → 多轮更新 `src/lsp/server.ts` 引入新索引接口、移除旧状态
+- 命令：`npm run build` → 验证 TypeScript 编译通过
+
+## 观察
+- 已使用 `src/lsp/index.ts` 提供的接口替代 indexByUri/indexByModule 逻辑
+- references/workspaceSymbol/diagnostics 处理逻辑均改为依赖新模块
+
