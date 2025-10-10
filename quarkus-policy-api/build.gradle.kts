@@ -1,0 +1,62 @@
+plugins {
+    id("java")
+    id("io.quarkus") version "3.17.5"
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+dependencies {
+    // Quarkus BOM (Bill of Materials) for dependency management
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.17.5"))
+
+    // Quarkus核心依赖 - REST endpoints
+    implementation("io.quarkus:quarkus-rest")
+    implementation("io.quarkus:quarkus-rest-jackson")
+
+    // OpenAPI & Health checks
+    implementation("io.quarkus:quarkus-smallrye-openapi")
+    implementation("io.quarkus:quarkus-smallrye-health")
+
+    // Metrics
+    implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
+
+    // Aster运行时和编译后的策略
+    implementation(project(":aster-runtime"))
+    implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
+
+    // 测试依赖
+    testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation("io.rest-assured:rest-assured")
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+    options.compilerArgs.addAll(listOf("-parameters", "-Xlint:all", "-Werror"))
+}
+
+tasks.withType<Test> {
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+}
+
+// 确保在编译前生成Aster JAR（包含loan policy）
+val generateAsterJar by tasks.registering(Exec::class) {
+    workingDir = rootProject.projectDir
+    commandLine = if (System.getProperty("os.name").lowercase().contains("win")) {
+        listOf("cmd", "/c", "npm", "run", "emit:class", "cnl/stdlib/finance/loan.cnl", "&&", "npm", "run", "jar:jvm")
+    } else {
+        listOf("sh", "-c", "npm run emit:class cnl/stdlib/finance/loan.cnl && npm run jar:jvm")
+    }
+}
+
+tasks.named("compileJava") {
+    dependsOn(generateAsterJar)
+}

@@ -24,7 +24,8 @@ public final class Main {
     Map<String, Map<String, Character>> funcHints,
     java.util.Map<String, java.util.List<String>> methodCache,
     Path cachePath,
-    java.util.Map<String, String> stringPool
+    java.util.Map<String, String> stringPool,
+    Map<String, CoreModel.Func> functionSchemas
   ) {}
 
   static void addOriginAnnotation(ClassVisitor cv, CoreModel.Origin o) {
@@ -161,7 +162,14 @@ public final class Main {
     } catch (Exception ex) {
       System.err.println("WARN: failed to load method-cache.json: " + ex.getMessage());
     }
-    var ctx = new Ctx(out, enumMap, dataSchema, enumVariants, new java.util.concurrent.atomic.AtomicInteger(0), hints, methodCache, cachePath, new java.util.LinkedHashMap<>());
+    // Build function schemas map
+    Map<String, CoreModel.Func> functionSchemas = new java.util.LinkedHashMap<>();
+    for (var d : module.decls) {
+      if (d instanceof CoreModel.Func fn) {
+        functionSchemas.put(fn.name, fn);
+      }
+    }
+    var ctx = new Ctx(out, enumMap, dataSchema, enumVariants, new java.util.concurrent.atomic.AtomicInteger(0), hints, methodCache, cachePath, new java.util.LinkedHashMap<>(), functionSchemas);
     String pkgName = (module.name == null || module.name.isEmpty()) ? "app" : module.name;
     for (var d : module.decls) {
       if (d instanceof CoreModel.Data data) emitData(ctx, pkgName, data);
@@ -329,7 +337,7 @@ public final class Main {
     if (fn.body != null && fn.body.statements != null && !fn.body.statements.isEmpty()) {
       // slot plan: params in [0..N-1], temp locals start at N
     Map<String, Character> fnHints = ctx.funcHints.getOrDefault(pkg + "." + fn.name, java.util.Collections.emptyMap());
-    java.util.function.Function<CoreModel.Expr, Character> classify = (expr) -> classifyNumeric(expr, intLocals, longLocals, doubleLocals);
+    java.util.function.Function<CoreModel.Expr, Character> classify = (expr) -> classifyNumeric(expr, intLocals, longLocals, doubleLocals, ctx);
     for (var st : fn.body.statements) {
         var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
         if (st instanceof CoreModel.Let let) {
@@ -973,14 +981,62 @@ public final class Main {
         return;
 
       }
-      // Enum constant with enum prefix like AuthErr.InvalidCreds
+      // Field access: obj.field (e.g., applicant.age)
       int dot = n.name.lastIndexOf('.');
-      if (dot > 0 && currentPkg != null) {
-        var cls = n.name.substring(0, dot);
-        var constName = n.name.substring(dot+1);
-        var owner = toInternal(currentPkg, cls);
-        mv.visitFieldInsn(GETSTATIC, owner, constName, internalDesc(owner));
-        return;
+      if (dot > 0) {
+        var objName = n.name.substring(0, dot);
+        var fieldName = n.name.substring(dot+1);
+
+        // Check if objName is a local variable/parameter
+        if (env != null && env.containsKey(objName)) {
+          // This is field access: load the object, then get the field
+          var objSlot = env.get(objName);
+          mv.visitVarInsn(ALOAD, objSlot);
+
+          // Determine the owner class from the object
+          // For now, we need to infer the type - this is a simplified approach
+          // that assumes the object type matches the field access pattern
+          // In a full implementation, we'd need type information from Core IR
+
+          // Try to find the data type by checking dataSchema
+          // We'll need to search for a type that has this field
+          String ownerClass = null;
+          char fieldTypeDesc = 'L'; // default to object reference
+
+          for (var entry : ctx.dataSchema.entrySet()) {
+            var dataType = entry.getValue();
+            for (var field : dataType.fields) {
+              if (field.name.equals(fieldName)) {
+                ownerClass = toInternal(currentPkg, entry.getKey());
+                // Determine field type descriptor
+                if (field.type instanceof CoreModel.TypeName tn) {
+                  if (tn.name.equals("Int")) fieldTypeDesc = 'I';
+                  else if (tn.name.equals("Bool")) fieldTypeDesc = 'Z';
+                  else if (tn.name.equals("Long")) fieldTypeDesc = 'J';
+                  else if (tn.name.equals("Double")) fieldTypeDesc = 'D';
+                  else if (tn.name.equals("Text")) fieldTypeDesc = 'L';
+                }
+                break;
+              }
+            }
+            if (ownerClass != null) break;
+          }
+
+          if (ownerClass != null) {
+            String fieldDesc = (fieldTypeDesc == 'L') ? "Ljava/lang/String;" : String.valueOf(fieldTypeDesc);
+            mv.visitFieldInsn(GETFIELD, ownerClass, fieldName, fieldDesc);
+            return;
+          }
+        }
+
+        // Enum constant with enum prefix like AuthErr.InvalidCreds
+        if (currentPkg != null) {
+          var cls = n.name.substring(0, dot);
+          var constName = n.name.substring(dot+1);
+          var owner = toInternal(currentPkg, cls);
+          mv.visitFieldInsn(GETSTATIC, owner, constName, internalDesc(owner));
+          return;
+        }
       }
       mv.visitInsn(ACONST_NULL); return;
     }
@@ -1010,6 +1066,21 @@ public final class Main {
           emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
           emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
           mv.visitJumpInsn(IF_ICMPLT, lTrue);
+          mv.visitInsn(ICONST_0);
+          mv.visitJumpInsn(GOTO, lEnd);
+          mv.visitLabel(lTrue);
+          mv.visitInsn(ICONST_1);
+          mv.visitLabel(lEnd);
+          return;
+        }
+      }
+      if (Objects.equals(name, ">")) {
+        // IGT -> Z
+        if (c.args.size() == 2) {
+          var lTrue = new Label(); var lEnd = new Label();
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          mv.visitJumpInsn(IF_ICMPGT, lTrue);
           mv.visitInsn(ICONST_0);
           mv.visitJumpInsn(GOTO, lEnd);
           mv.visitLabel(lTrue);
@@ -1170,6 +1241,50 @@ public final class Main {
       }
     }
     if (e instanceof CoreModel.Call cgen) {
+      // Check if this is a call to a user-defined function (target is a simple Name)
+      if (cgen.target instanceof CoreModel.Name targetName) {
+        String funcName = targetName.name;
+        // Check if it's a function in the current package
+        if (ctx.functionSchemas.containsKey(funcName) && currentPkg != null) {
+          CoreModel.Func funcSchema = ctx.functionSchemas.get(funcName);
+          String ownerInternal = toInternal(currentPkg, funcName + "_fn");
+
+          // Build method descriptor from function schema
+          StringBuilder mdesc = new StringBuilder("(");
+          int ar = (cgen.args == null) ? 0 : cgen.args.size();
+
+          for (int i = 0; i < ar && i < funcSchema.params.size(); i++) {
+            CoreModel.Param param = funcSchema.params.get(i);
+            String paramDesc = "Ljava/lang/Object;"; // default
+
+            if (param.type instanceof CoreModel.TypeName tn) {
+              if (tn.name.equals("Int")) paramDesc = "I";
+              else if (tn.name.equals("Bool")) paramDesc = "Z";
+              else if (tn.name.equals("Long")) paramDesc = "J";
+              else if (tn.name.equals("Double")) paramDesc = "D";
+              else if (tn.name.equals("Text")) paramDesc = "Ljava/lang/String;";
+            }
+
+            emitExpr(ctx, mv, cgen.args.get(i), paramDesc, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+            mdesc.append(paramDesc);
+          }
+
+          // Return type
+          String retDesc = "Ljava/lang/Object;";
+          if (funcSchema.ret instanceof CoreModel.TypeName rtn) {
+            if (rtn.name.equals("Int")) retDesc = "I";
+            else if (rtn.name.equals("Bool")) retDesc = "Z";
+            else if (rtn.name.equals("Long")) retDesc = "J";
+            else if (rtn.name.equals("Double")) retDesc = "D";
+            else if (rtn.name.equals("Text")) retDesc = "Ljava/lang/String;";
+          }
+          mdesc.append(")").append(retDesc);
+
+          mv.visitMethodInsn(INVOKESTATIC, ownerInternal, funcName, mdesc.toString(), false);
+          return;
+        }
+      }
+
       // Generic function value call: target is a closure implementing FnN
       int ar = (cgen.args == null) ? 0 : cgen.args.size();
       emitExpr(ctx, mv, cgen.target, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
@@ -1217,14 +1332,46 @@ public final class Main {
       var internal = cons.typeName.contains(".") ? cons.typeName.replace('.', '/') : (currentPkg == null ? cons.typeName : toInternal(currentPkg, cons.typeName));
       mv.visitTypeInsn(NEW, internal);
       mv.visitInsn(DUP);
-      // Assume all fields are reference types except simple ints/bools (MVP)
+
+      // Determine field types from dataSchema
+      CoreModel.Data dataType = ctx.dataSchema.get(cons.typeName);
       var descSb = new StringBuilder("(");
+
       for (var f : cons.fields) {
-        String exp = "Ljava/lang/Object;";
-        if (Objects.equals(f.name, "id") || Objects.equals(f.name, "name")) exp = "Ljava/lang/String;";
-        emitExpr(ctx, mv, f.expr, exp, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
-        descSb.append(exp);
+        // Find the field type from the dataSchema
+        String fieldDesc = "Ljava/lang/Object;"; // default
+        char primitiveType = 'L'; // default to object reference
+
+        if (dataType != null) {
+          for (var schemaField : dataType.fields) {
+            if (schemaField.name.equals(f.name)) {
+              if (schemaField.type instanceof CoreModel.TypeName tn) {
+                if (tn.name.equals("Int")) {
+                  primitiveType = 'I';
+                  fieldDesc = "I";
+                } else if (tn.name.equals("Bool")) {
+                  primitiveType = 'Z';
+                  fieldDesc = "Z";
+                } else if (tn.name.equals("Long")) {
+                  primitiveType = 'J';
+                  fieldDesc = "J";
+                } else if (tn.name.equals("Double")) {
+                  primitiveType = 'D';
+                  fieldDesc = "D";
+                } else if (tn.name.equals("Text")) {
+                  fieldDesc = "Ljava/lang/String;";
+                }
+              }
+              break;
+            }
+          }
+        }
+
+        // Emit the expression with the appropriate expected type
+        emitExpr(ctx, mv, f.expr, fieldDesc, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+        descSb.append(fieldDesc);
       }
+
       descSb.append(")V");
       mv.visitMethodInsn(INVOKESPECIAL, internal, "<init>", descSb.toString(), false);
       return;
@@ -1831,6 +1978,27 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     if (v == 1.0d) { mv.visitInsn(DCONST_1); return; }
     mv.visitLdcInsn(Double.valueOf(v));
   }
+  // Overload with Ctx to support user-defined function return type classification
+  static Character classifyNumeric(CoreModel.Expr e, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals, Ctx ctx) {
+    // Try basic classification first
+    Character basic = classifyNumeric(e, intLocals, longLocals, doubleLocals);
+    if (basic != null) return basic;
+
+    // Check for user-defined function calls
+    if (ctx != null && e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name targetName) {
+      String funcName = targetName.name;
+      if (ctx.functionSchemas().containsKey(funcName)) {
+        CoreModel.Func funcSchema = ctx.functionSchemas().get(funcName);
+        if (funcSchema.ret instanceof CoreModel.TypeName rtn) {
+          if (rtn.name.equals("Int") || rtn.name.equals("Bool")) return 'I';
+          if (rtn.name.equals("Long")) return 'J';
+          if (rtn.name.equals("Double")) return 'D';
+        }
+      }
+    }
+    return null;
+  }
+
   static Character classifyNumeric(CoreModel.Expr e, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals) {
     if (e instanceof CoreModel.DoubleE) return 'D';
     if (e instanceof CoreModel.LongE) return 'J';

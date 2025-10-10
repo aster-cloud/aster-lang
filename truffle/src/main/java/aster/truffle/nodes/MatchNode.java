@@ -92,6 +92,18 @@ public final class MatchNode extends Node {
     }
   }
 
+  // Int pattern match: 匹配整数字面量
+  public static final class PatIntNode extends PatternNode {
+    private final int value;
+    public PatIntNode(int value) { this.value = value; }
+    @Override public boolean matchesAndBind(Object s, Env env) {
+      if (s instanceof Integer i) return value == i.intValue();
+      if (s instanceof Long l) return value == l.longValue();
+      if (s instanceof Double d) return value == d.doubleValue();
+      return false;
+    }
+  }
+
   public static final class CaseNode extends Node {
     @Child private PatternNode pat;
     @Child private Node body;

@@ -25,3 +25,7 @@ include ':examples:rest-jvm'
 project(':examples:rest-jvm').projectDir = file('examples/rest-jvm')
 include ':examples:policy-jvm'
 project(':examples:policy-jvm').projectDir = file('examples/policy-jvm')
+
+// Phase 1: Quarkus Policy API
+include ':quarkus-policy-api'
+project(':quarkus-policy-api').projectDir = file('quarkus-policy-api')

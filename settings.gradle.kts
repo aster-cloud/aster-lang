@@ -3,6 +3,10 @@ include(":aster-asm-emitter")
 include(":aster-runtime")
 project(":aster-runtime").projectDir = file("aster-runtime")
 
+// Native Image 主项目
+include(":aster-lang-native")
+project(":aster-lang-native").projectDir = file("aster-lang-native")
+
 // Examples: include all JVM/native example projects
 include(":examples:hello-native")
 project(":examples:hello-native").projectDir = file("examples/hello-native")
@@ -24,3 +28,7 @@ include(":examples:rest-jvm")
 project(":examples:rest-jvm").projectDir = file("examples/rest-jvm")
 include(":examples:policy-jvm")
 project(":examples:policy-jvm").projectDir = file("examples/policy-jvm")
+
+// Phase 1: Quarkus Policy API
+include(":quarkus-policy-api")
+project(":quarkus-policy-api").projectDir = file("quarkus-policy-api")

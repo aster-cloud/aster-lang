@@ -230,7 +230,7 @@ export function parseFuncDecl(
 
   // 如果没有显式声明类型参数，尝试从类型使用中推断
   if (typeParams.length === 0) {
-    const BUILTINS = new Set(['Int', 'Bool', 'Text', 'Double', 'Float', 'Option', 'Result', 'List', 'Map']);
+    const BUILTINS = new Set(['Int', 'Bool', 'Text', 'Long', 'Double', 'Number', 'Float', 'Option', 'Result', 'List', 'Map']);
     const found = new Set<string>();
 
     const visitType = (t: Type): void => {

@@ -98,7 +98,7 @@ Position Aster as the **definitive language for auditable, business-critical wor
 ### Core Components
 
 #### 1. Enhanced Compiler (Node.js/TypeScript)
-**Current State:** MVP with CNL → Core IR → JVM bytecode
+**Current State:** CNL → Core IR → JVM bytecode
 **Required Enhancements:**
 - **Effect System Enforcement** (Phase 0, Completed): Compile-time errors for missing effects; minimal lattice IO ⊒ CPU
 - **Workflow Semantics** (Phase 2): Add `workflow`, `compensate`, `retry` as first-class constructs
@@ -207,7 +207,7 @@ Position Aster as the **definitive language for auditable, business-critical wor
 ## Phase-by-Phase Implementation Plan
 
 ### Phase 0: Foundation Hardening (Months 1-3, 2 engineers)
-**Goal:** Stabilize existing MVP and establish production-grade infrastructure
+**Goal:** Stabilize existing projct and establish production-grade infrastructure
 
 #### Deliverables
 - [ ] **Effect System Enforcement**
@@ -247,7 +247,7 @@ Position Aster as the **definitive language for auditable, business-critical wor
   - **Acceptance:** End-to-end test shows zero duplicates under at-least-once delivery and retries
   - **Effort:** 3 person-weeks
 
-- [ ] **Tamper-Evident Audit Log (MVP)**
+- [ ] **Tamper-Evident Audit Log**
   - [ ] Hash-chain audit entries with per-deployment signing key
   - [ ] Export verifiable audit bundles; optional transparency log anchoring (Sigstore/Rekor)
   - **Acceptance:** Verifier tool detects any alteration in `policy_audit` records and proofs validate
@@ -275,7 +275,7 @@ Position Aster as the **definitive language for auditable, business-critical wor
 
 ---
 
-### Phase 1: Business Rules & Policy Engine MVP (Months 4-6, 2-3 engineers)
+### Phase 1: Business Rules & Policy Engine (Months 4-6, 2-3 engineers)
 **Goal:** Ship production-ready policy engine for FinTech/InsurTech use cases
 
 #### Deliverables
@@ -325,7 +325,7 @@ Position Aster as the **definitive language for auditable, business-critical wor
 
 ---
 
-### Phase 2: Workflow Orchestration MVP (Months 7-12, 3 engineers)
+### Phase 2: Workflow Orchestration (Months 7-12, 3 engineers)
 **Goal:** Ship durable workflow engine with saga/compensation support
 
 #### Deliverables
@@ -883,7 +883,7 @@ aster-pm update
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| **Phase 1 delays** | Medium | High | Cut visual editor, ship CLI-only MVP |
+| **Phase 1 delays** | Medium | High | Cut visual editor, ship CLI-only |
 | **Phase 2 complexity** | High | Critical | Partner with Temporal, use their runtime initially |
 | **Phase 3 compliance gaps** | Medium | High | Hire compliance expert, validate with real audits |
 | **Phase 4 community adoption** | High | Medium | Invest in docs, tutorials, conference talks |
@@ -1060,7 +1060,7 @@ aster-pm update
 ### 3-Month Milestones
 - [ ] Phase 0 complete (foundation hardened)
 - [ ] 1 pilot customer signed (FinTech or InsurTech)
-- [ ] Phase 1 started (policy engine MVP)
+- [ ] Phase 1 started (policy engine)
 
 ### 6-Month Milestones
 - [ ] Phase 1 complete (policy engine shipped)
@@ -1080,6 +1080,6 @@ aster-pm update
 
 ---
 
-**This roadmap is a living document.** Update quarterly based on customer feedback, technical discoveries, and market conditions. Prioritize ruthlessly: **ship MVPs early, iterate based on real-world usage, and focus on the five killer app domains.**
+**This roadmap is a living document.** Update quarterly based on customer feedback, technical discoveries, and market conditions. Prioritize ruthlessly: **ship early, iterate based on real-world usage, and focus on the five killer app domains.**
 
 

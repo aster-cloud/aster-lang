@@ -4,20 +4,29 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
 
+/**
+ * 函数调用节点
+ * 支持：
+ * 1. Lambda/closure调用
+ * 2. Builtin函数调用（通过Builtins注册表）
+ */
 public final class CallNode extends Node {
   @Child private Node target;
   @Children private final Node[] args;
+
   public CallNode(Node target, List<Node> args) {
     this.target = target;
     this.args = args.toArray(new Node[0]);
   }
+
   public Object execute(VirtualFrame frame) {
     Profiler.inc("call");
     Object t = Exec.exec(target, frame);
     if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
       System.err.println("DEBUG: call target=" + t + " (" + (t==null?"null":t.getClass().getName()) + ")");
     }
-    // Lambda/closure call
+
+    // 1. Lambda/closure call
     if (t instanceof LambdaValue lv) {
       Object[] av = new Object[args.length];
       for (int i = 0; i < args.length; i++) av[i] = Exec.exec(args[i], frame);
@@ -26,23 +35,22 @@ public final class CallNode extends Node {
       }
       return lv.apply(av, frame);
     }
-    String name = (t instanceof String) ? (String)t : (t instanceof NameNode ? null : null);
-    // For Name targets, Loader will usually wrap target as LiteralNode of the name
-    if (target instanceof NameNode) {
-      // Resolve name literal from environment? fallthrough
+
+    // 2. Builtin function call
+    String name = (t instanceof String) ? (String)t : null;
+    if (name != null && aster.truffle.runtime.Builtins.has(name)) {
+      Object[] av = new Object[args.length];
+      for (int i = 0; i < args.length; i++) av[i] = Exec.exec(args[i], frame);
+      try {
+        Object result = aster.truffle.runtime.Builtins.call(name, av);
+        if (result != null) return result;
+      } catch (aster.truffle.runtime.Builtins.BuiltinException e) {
+        // 转换为运行时异常
+        throw new RuntimeException("Builtin call failed: " + name, e);
+      }
     }
-    if (t instanceof String) name = (String)t;
-    Object[] av = new Object[args.length];
-    for (int i = 0; i < args.length; i++) av[i] = Exec.exec(args[i], frame);
-    if ("not".equals(name) && av.length == 1) return !Exec.toBool(av[0]);
-    if ("Text.concat".equals(name) && av.length == 2) return String.valueOf(av[0]) + String.valueOf(av[1]);
-    if ("Text.toUpper".equals(name) && av.length == 1) return String.valueOf(av[0]).toUpperCase();
-    if ("Text.startsWith".equals(name) && av.length == 2) return String.valueOf(av[0]).startsWith(String.valueOf(av[1]));
-    if ("Text.indexOf".equals(name) && av.length == 2) return String.valueOf(av[0]).indexOf(String.valueOf(av[1]));
-    if ("List.length".equals(name) && av.length == 1 && av[0] instanceof java.util.List<?> l) return l.size();
-    if ("List.get".equals(name) && av.length == 2 && av[0] instanceof java.util.List<?> l && av[1] instanceof Number n) return l.get(n.intValue());
-    if ("await".equals(name) && av.length == 1) return av[0];
+
+    // 3. Unknown call target - return null
     return null;
   }
-
 }

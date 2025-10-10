@@ -150,7 +150,10 @@ public final class Loader {
     if (e instanceof CoreModel.StringE s) return new LiteralNode(s.value);
     if (e instanceof CoreModel.Bool b) return new LiteralNode(b.value);
     if (e instanceof CoreModel.IntE i) return new LiteralNode(Integer.valueOf(i.value));
+    if (e instanceof CoreModel.LongE l) return new LiteralNode(Long.valueOf(l.value));
+    if (e instanceof CoreModel.DoubleE d) return new LiteralNode(Double.valueOf(d.value));
     if (e instanceof CoreModel.NullE) return new LiteralNode(null);
+    if (e instanceof CoreModel.AwaitE aw) return new aster.truffle.nodes.AwaitNode(buildExpr(aw.expr));
     if (e instanceof CoreModel.Lambda lam) {
       java.util.List<String> params = new java.util.ArrayList<>();
       if (lam.params != null) for (var p : lam.params) params.add(p.name);
@@ -200,6 +203,7 @@ public final class Loader {
   private aster.truffle.nodes.MatchNode.PatternNode buildPatternNode(CoreModel.Pattern p) {
     if (p instanceof CoreModel.PatNull) return new aster.truffle.nodes.MatchNode.PatNullNode();
     if (p instanceof CoreModel.PatName pn) return new aster.truffle.nodes.MatchNode.PatNameNode(pn.name);
+    if (p instanceof CoreModel.PatInt pi) return new aster.truffle.nodes.MatchNode.PatIntNode(pi.value);
     if (p instanceof CoreModel.PatCtor pc) {
       java.util.List<aster.truffle.nodes.MatchNode.PatternNode> args = new java.util.ArrayList<>();
       if (pc.args != null) for (var a : pc.args) args.add(buildPatternNode(a));

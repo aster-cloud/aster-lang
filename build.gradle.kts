@@ -1,5 +1,8 @@
 // Root build file to orchestrate example compilation with generated Aster jar.
 
+// 应用确定性构建配置
+apply(from = "gradle/reproducible-builds.gradle.kts")
+
 val generateAsterJarRoot by tasks.registering(Exec::class) {
   workingDir = projectDir
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))

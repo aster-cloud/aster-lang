@@ -29,7 +29,7 @@
 
 ---
 
-### Phase 1: Business Rules & Policy Engine MVP (Months 4-6)
+### Phase 1: Business Rules & Policy Engine (Months 4-6)
 **Goal:** Ship production-ready policy engine for FinTech/InsurTech  
 **Deliverables:**
 - Policy engine runtime (Quarkus + REST API)
@@ -42,7 +42,7 @@
 
 ---
 
-### Phase 2: Workflow Orchestration MVP (Months 7-12)
+### Phase 2: Workflow Orchestration (Months 7-12)
 **Goal:** Ship durable workflow engine with saga/compensation support  
 **Deliverables:**
 - Workflow language extensions (`workflow`, `step`, `compensate`, `retry`)

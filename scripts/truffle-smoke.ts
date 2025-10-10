@@ -56,7 +56,7 @@ async function main(): Promise<void> {
   }
   const merged = (res.out + '\n' + res.err).toString();
   const lines = merged.trim().split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-  const lastNumeric = [...lines].reverse().find(l => /^-?\d+$/.test(l));
+  const lastNumeric = [...lines].reverse().find(l => /^-?\d+(\.\d+)?$/.test(l));
   const actual = (lastNumeric ?? lines[lines.length - 1] ?? '').trim();
   if (actual === expected) {
     console.log(`OK: ${path.basename(corePath as string)} => ${expected}`);
