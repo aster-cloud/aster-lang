@@ -6,7 +6,9 @@
 
 > **parse**(`tokens`): [`Module`](../../types/interfaces/Module.md)
 
-Defined in: [parser.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/7ffb3deb1dde9d3c5b570d525974d66eda9f80cb/src/parser.ts#L24)
+Defined in: [parser.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/44608e5a094893bf06e67cc4c9ca2750d8578ae7/src/parser.ts#L25)
+
+解析标记流生成 AST
 
 ## Parameters
 
@@ -14,6 +16,10 @@ Defined in: [parser.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/7ffb3
 
 readonly [`Token`](../../types/interfaces/Token.md)[]
 
+词法标记数组
+
 ## Returns
 
 [`Module`](../../types/interfaces/Module.md)
+
+模块 AST

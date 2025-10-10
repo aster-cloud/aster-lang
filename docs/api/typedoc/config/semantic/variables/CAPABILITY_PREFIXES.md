@@ -6,7 +6,7 @@
 
 > `const` **CAPABILITY\_PREFIXES**: `Record`\<`string`, readonly `string`[]\>
 
-Defined in: [config/semantic.ts:144](https://github.com/wontlost-ltd/aster-lang/blob/7ffb3deb1dde9d3c5b570d525974d66eda9f80cb/src/config/semantic.ts#L144)
+Defined in: [config/semantic.ts:144](https://github.com/wontlost-ltd/aster-lang/blob/44608e5a094893bf06e67cc4c9ca2750d8578ae7/src/config/semantic.ts#L144)
 
 Capability 到调用前缀的映射表。
 
