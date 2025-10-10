@@ -16,6 +16,7 @@
  */
 
 import * as fs from 'node:fs';
+import { ConfigService } from './config-service.js';
 
 // ============================================================
 // 配置接口定义
@@ -180,8 +181,8 @@ export function loadEffectConfig(): EffectInferenceConfig {
     return cachedConfig;
   }
 
-  // 确定配置文件路径（环境变量优先）
-  const configPath = process.env.ASTER_EFFECT_CONFIG || '.aster/effects.json';
+  // 从 ConfigService 获取配置文件路径
+  const configPath = ConfigService.getInstance().effectConfigPath;
 
   try {
     // 尝试读取配置文件（参考 src/lsp/server.ts:752-755 的模式）

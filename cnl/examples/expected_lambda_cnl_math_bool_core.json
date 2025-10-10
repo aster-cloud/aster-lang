@@ -28,6 +28,10 @@
                   }
                 }
               ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Int"
+              },
               "ret": {
                 "kind": "TypeName",
                 "name": "Int"
@@ -115,6 +119,10 @@
                   }
                 }
               ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Bool"
+              },
               "ret": {
                 "kind": "TypeName",
                 "name": "Bool"

@@ -89,6 +89,24 @@ Re-exports [Origin](../types/interfaces/Origin.md)
 
 ***
 
+### AstMetadata
+
+Re-exports [AstMetadata](../types/interfaces/AstMetadata.md)
+
+***
+
+### EffectCapable
+
+Re-exports [EffectCapable](../types/interfaces/EffectCapable.md)
+
+***
+
+### CapabilityKind
+
+Re-exports [CapabilityKind](../types/type-aliases/CapabilityKind.md)
+
+***
+
 ### Token
 
 Re-exports [Token](../types/interfaces/Token.md)

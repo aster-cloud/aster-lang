@@ -1,3 +1,5 @@
+import { ConfigService } from '../config/config-service.js';
+
 export enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -67,19 +69,6 @@ export function logPerformance(metrics: PerformanceMetrics): void {
   });
 }
 
-/**
- * 解析LOG_LEVEL环境变量为LogLevel枚举值
- * @param raw 原始环境变量值
- * @returns 解析后的LogLevel，默认INFO
- */
-function parseLogLevel(raw: string | undefined): LogLevel {
-  if (!raw) return LogLevel.INFO;
-  const upper = raw.toUpperCase();
-  return upper in LogLevel
-    ? (LogLevel[upper as keyof typeof LogLevel] as LogLevel)
-    : LogLevel.INFO;
-}
-
 export function createLogger(component: string): Logger {
-  return new Logger(component, parseLogLevel(process.env.LOG_LEVEL));
+  return new Logger(component, ConfigService.getInstance().logLevel);
 }

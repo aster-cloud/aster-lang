@@ -6,6 +6,7 @@ import type {
   Expression,
   Pattern,
   Type,
+  Core,
 } from './types.js';
 
 /**
@@ -22,6 +23,107 @@ export interface AstVisitor<Ctx, R = void> {
   visitExpression(e: Expression, ctx: Ctx): R;
   visitPattern?(p: Pattern, ctx: Ctx): R;
   visitType?(t: Type, ctx: Ctx): R;
+}
+
+/**
+ * 统一的 Core.Type 遍历器接口。
+ *
+ * 用于遍历 Core.Type 树结构，支持自定义访问逻辑。
+ * 子类可覆写特定 visit 方法并通过 visitType 继续遍历。
+ */
+export interface TypeVisitor<Ctx, R = void> {
+  visitType(t: Core.Type, ctx: Ctx): R;
+  visitTypeVar?(v: Core.TypeVar, ctx: Ctx): R;
+  visitTypeName?(n: Core.TypeName, ctx: Ctx): R;
+  visitMaybe?(m: Core.Maybe, ctx: Ctx): R;
+  visitOption?(o: Core.Option, ctx: Ctx): R;
+  visitResult?(r: Core.Result, ctx: Ctx): R;
+  visitList?(l: Core.List, ctx: Ctx): R;
+  visitMap?(m: Core.Map, ctx: Ctx): R;
+  visitTypeApp?(a: Core.TypeApp, ctx: Ctx): R;
+  visitFuncType?(f: Core.FuncType, ctx: Ctx): R;
+  visitPiiType?(p: Core.PiiType, ctx: Ctx): R;
+}
+
+/**
+ * TypeVisitor 的默认实现，执行深度优先递归遍历。
+ *
+ * 子类可覆写特定的 visitXxx 方法来定制行为，
+ * 并通过调用 this.visitType() 继续遍历子类型。
+ */
+export class DefaultTypeVisitor<Ctx> implements TypeVisitor<Ctx, void> {
+  visitType(t: Core.Type, ctx: Ctx): void {
+    switch (t.kind) {
+      case 'TypeVar':
+        return this.visitTypeVar?.(t as Core.TypeVar, ctx);
+      case 'TypeName':
+        return this.visitTypeName?.(t as Core.TypeName, ctx);
+      case 'Maybe':
+        return this.visitMaybe?.(t as Core.Maybe, ctx);
+      case 'Option':
+        return this.visitOption?.(t as Core.Option, ctx);
+      case 'Result':
+        return this.visitResult?.(t as Core.Result, ctx);
+      case 'List':
+        return this.visitList?.(t as Core.List, ctx);
+      case 'Map':
+        return this.visitMap?.(t as Core.Map, ctx);
+      case 'TypeApp':
+        return this.visitTypeApp?.(t as Core.TypeApp, ctx);
+      case 'FuncType':
+        return this.visitFuncType?.(t as unknown as Core.FuncType, ctx);
+      case 'PiiType':
+        return this.visitPiiType?.(t as Core.PiiType, ctx);
+    }
+  }
+
+  // 默认实现递归遍历子类型
+  visitTypeVar?(_v: Core.TypeVar, _ctx: Ctx): void {
+    // TypeVar 是叶节点，无子类型
+  }
+
+  visitTypeName?(_n: Core.TypeName, _ctx: Ctx): void {
+    // TypeName 是叶节点，无子类型
+  }
+
+  visitMaybe?(m: Core.Maybe, ctx: Ctx): void {
+    this.visitType(m.type, ctx);
+  }
+
+  visitOption?(o: Core.Option, ctx: Ctx): void {
+    this.visitType(o.type, ctx);
+  }
+
+  visitResult?(r: Core.Result, ctx: Ctx): void {
+    this.visitType(r.ok, ctx);
+    this.visitType(r.err, ctx);
+  }
+
+  visitList?(l: Core.List, ctx: Ctx): void {
+    this.visitType(l.type, ctx);
+  }
+
+  visitMap?(m: Core.Map, ctx: Ctx): void {
+    this.visitType(m.key, ctx);
+    this.visitType(m.val, ctx);
+  }
+
+  visitTypeApp?(a: Core.TypeApp, ctx: Ctx): void {
+    for (const arg of a.args) {
+      this.visitType(arg, ctx);
+    }
+  }
+
+  visitFuncType?(f: Core.FuncType, ctx: Ctx): void {
+    for (const param of f.params) {
+      this.visitType(param, ctx);
+    }
+    this.visitType(f.ret, ctx);
+  }
+
+  visitPiiType?(p: Core.PiiType, ctx: Ctx): void {
+    this.visitType(p.baseType, ctx);
+  }
 }
 
 export class DefaultAstVisitor<Ctx> implements AstVisitor<Ctx, void> {

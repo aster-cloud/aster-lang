@@ -4,7 +4,7 @@
 
 # Interface: Token
 
-Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d13bd22d37eb9544faeb630305db5f50636/src/types.ts#L23)
+Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/7ffb3deb1dde9d3c5b570d525974d66eda9f80cb/src/types.ts#L64)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d
 
 > `readonly` **kind**: [`TokenKind`](../enumerations/TokenKind.md)
 
-Defined in: [types.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d13bd22d37eb9544faeb630305db5f50636/src/types.ts#L24)
+Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/7ffb3deb1dde9d3c5b570d525974d66eda9f80cb/src/types.ts#L65)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d
 
 > `readonly` **value**: `null` \| `string` \| `number` \| `boolean`
 
-Defined in: [types.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d13bd22d37eb9544faeb630305db5f50636/src/types.ts#L25)
+Defined in: [types.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/7ffb3deb1dde9d3c5b570d525974d66eda9f80cb/src/types.ts#L66)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d13bd22d37eb9544faeb630305db5f50636/src/types.ts#L26)
+Defined in: [types.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/7ffb3deb1dde9d3c5b570d525974d66eda9f80cb/src/types.ts#L67)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [types.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:27](https://github.com/wontlost-ltd/aster-lang/blob/2ffe1d13bd22d37eb9544faeb630305db5f50636/src/types.ts#L27)
+Defined in: [types.ts:68](https://github.com/wontlost-ltd/aster-lang/blob/7ffb3deb1dde9d3c5b570d525974d66eda9f80cb/src/types.ts#L68)

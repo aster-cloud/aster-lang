@@ -49,6 +49,10 @@
                   }
                 }
               ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Text"
+              },
               "ret": {
                 "kind": "TypeName",
                 "name": "Text"

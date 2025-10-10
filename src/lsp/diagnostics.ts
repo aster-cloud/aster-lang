@@ -21,6 +21,7 @@ import { lowerModule } from '../lower_to_core.js';
 import { DiagnosticError } from '../diagnostics.js';
 import { collectSemanticDiagnostics } from './analysis.js';
 import type { CapabilityManifest } from '../capabilities.js';
+import { ConfigService } from '../config/config-service.js';
 
 /**
  * 表示诊断模块的配置选项。
@@ -43,7 +44,7 @@ export interface DiagnosticConfig {
 let diagnosticConfig: DiagnosticConfig = {
   relatedInformationSupported: false,
   workspaceDiagnosticsEnabled: true,
-  capabilityManifestPath: process.env.ASTER_CAPS || null,
+  capabilityManifestPath: ConfigService.getInstance().capsManifestPath,
 };
 
 let manifestCache: {

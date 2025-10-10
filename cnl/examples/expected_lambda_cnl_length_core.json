@@ -36,6 +36,10 @@
                   }
                 }
               ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Int"
+              },
               "ret": {
                 "kind": "TypeName",
                 "name": "Int"

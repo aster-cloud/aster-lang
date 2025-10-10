@@ -8,5 +8,6 @@
  *
  * 注意：为保证生产环境安全，建议保持默认开启
  */
-export const ENFORCE_CAPABILITIES =
-  process.env.ASTER_CAP_EFFECTS_ENFORCE !== '0';
+import { ConfigService } from './config-service.js';
+
+export const ENFORCE_CAPABILITIES = ConfigService.getInstance().effectsEnforce;

@@ -50,6 +50,10 @@
                   }
                 }
               ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Bool"
+              },
               "ret": {
                 "kind": "TypeName",
                 "name": "Bool"

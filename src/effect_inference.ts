@@ -1,7 +1,7 @@
 import type { Core, TypecheckDiagnostic, Origin } from './types.js';
 import { Effect } from './types.js';
 import { getIOPrefixes, getCPUPrefixes } from './config/effect_config.js';
-import { DefaultCoreVisitor } from './visitor.js';
+import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
 import { resolveAlias } from './typecheck.js';
 
 // 从配置获取效果推断前缀（模块级，避免重复调用）
@@ -66,8 +66,8 @@ function analyzeFunction(func: Core.Func, index: Map<string, Core.Func>, imports
   const localEffects = new Set<Effect>();
 
   // 使用统一的 Core 访客遍历函数体，收集调用与内建效果
-  class CallScanVisitor extends DefaultCoreVisitor<void> {
-    override visitExpression(e: Core.Expression): void {
+  class CallScanVisitor extends DefaultCoreVisitor {
+    override visitExpression(e: Core.Expression, context: import('./visitor.js').VisitorContext): void {
       if (e.kind === 'Call') {
         const calleeName = extractFunctionName(e.target);
         if (calleeName) {
@@ -82,11 +82,11 @@ function analyzeFunction(func: Core.Func, index: Map<string, Core.Func>, imports
         }
       }
       // 继续默认递归
-      super.visitExpression(e, undefined as unknown as void);
+      super.visitExpression(e, context);
     }
   }
 
-  if (func.body) new CallScanVisitor().visitBlock(func.body, undefined as unknown as void);
+  if (func.body) new CallScanVisitor().visitBlock(func.body, createVisitorContext());
 
   return { constraints, localEffects };
 }

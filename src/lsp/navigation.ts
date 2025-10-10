@@ -10,8 +10,17 @@ import type {
   Location,
   WorkspaceEdit,
   DocumentSymbol,
-  DocumentSymbolParams
+  DocumentSymbolParams,
+  ProgressToken
 } from 'vscode-languageserver/node.js';
+
+/**
+ * LSP 参数类型扩展，包含 progress token 字段
+ */
+interface ParamsWithProgress {
+  workDoneToken?: ProgressToken;
+  partialResultToken?: ProgressToken;
+}
 import { SymbolKind } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { typeText } from './completion.js';
@@ -28,6 +37,16 @@ import { parse } from '../parser.js';
 import { canonicalize } from '../canonicalizer.js';
 import { lex } from '../lexer.js';
 import { TokenKind } from '../tokens.js';
+import {
+  getSpan,
+  getNameSpan,
+  getVariantSpans,
+  getStatements,
+  isAstFunc,
+  isAstData,
+  isAstEnum,
+  isAstBlock,
+} from './type-guards.js';
 import type {
   Module as AstModule,
   Declaration as AstDecl,
@@ -201,8 +220,7 @@ function within(span: Span | undefined, pos: { line: number; character: number }
   const s = span.start, e = span.end;
   if (l < s.line || l > e.line) return false;
   if (l === s.line && c < s.col) return false;
-  if (l === e.line && c > e.col) return false;
-  return true;
+  return !(l === e.line && c > e.col);
 }
 
 /**
@@ -214,10 +232,10 @@ function within(span: Span | undefined, pos: { line: number; character: number }
 function findDeclAt(m: AstModule, pos: { line: number; character: number }): AstDecl | null {
   let found: AstDecl | null = null;
   for (const d of m.decls) {
-    const sp: Span | undefined = (d as any).span;
+    const sp: Span | undefined = getSpan(d);
     if (within(sp, pos)) {
       found = d as AstDecl;
-      if ((d as any).kind === 'Func') return d as AstDecl;
+      if (isAstFunc(d)) return d;
     }
   }
   return found;
@@ -230,9 +248,9 @@ function findDeclAt(m: AstModule, pos: { line: number; character: number }): Ast
  * @returns 标记名称（标识符或类型标识符），如果未找到则返回 null
  */
 export function tokenNameAt(tokens: readonly any[], pos: { line: number; character: number }): string | null {
-  for (const t of tokens as any[]) {
+  for (const t of tokens) {
     if (!t || !t.start || !t.end) continue;
-    const span: Span = { start: { line: t.start.line, col: t.start.col }, end: { line: t.end.line, col: t.end.col } } as any;
+    const span: Span = { start: { line: t.start.line, col: t.start.col }, end: { line: t.end.line, col: t.end.col } };
     if (within(span, pos)) {
       if (t.kind === 'IDENT' || t.kind === 'TYPE_IDENT') return String(t.value || '');
     }
@@ -267,10 +285,10 @@ function findPatternBindingDetail(fn: AstFunc, name: string, pos: { line: number
   const inRange = (sp?: Span): boolean => within(sp, pos);
   if (!fn.body) return null;
   const walkBlock = (b: AstBlock): { name: string; ofType?: string | undefined } | null => {
-    for (const s of b.statements as any[]) {
+    const statements = getStatements(b);
+    for (const s of statements) {
       if (s.kind === 'Match') {
-        const m = s as any;
-        for (const c of m.cases) {
+        for (const c of s.cases) {
           const names: string[] = [];
           let ofType: string | undefined;
           const extract = (p: any): void => {
@@ -283,8 +301,8 @@ function findPatternBindingDetail(fn: AstFunc, name: string, pos: { line: number
             }
           };
           extract(c.pattern);
-          const body = c.body as any;
-          const sp = (body as any).span as Span | undefined;
+          const body = c.body;
+          const sp = getSpan(body);
           if (names.includes(name) && inRange(sp)) {
             return ofType ? { name, ofType } : { name };
           }
@@ -296,8 +314,8 @@ function findPatternBindingDetail(fn: AstFunc, name: string, pos: { line: number
       } else if (s.kind === 'If') {
         const a = walkBlock(s.thenBlock as AstBlock) || (s.elseBlock ? walkBlock(s.elseBlock as AstBlock) : null);
         if (a) return a;
-      } else if (s.kind === 'Block') {
-        const a = walkBlock(s as unknown as AstBlock);
+      } else if (isAstBlock(s)) {
+        const a = walkBlock(s);
         if (a) return a;
       }
     }
@@ -314,9 +332,11 @@ function findPatternBindingDetail(fn: AstFunc, name: string, pos: { line: number
  */
 function findLocalLetWithExpr(b: AstBlock | null, name: string): { span: Span; expr: any } | null {
   if (!b) return null;
-  for (const s of b.statements as any[]) {
+  const statements = getStatements(b);
+  for (const s of statements) {
     if (s.kind === 'Let' && s.name === name) {
-      return { span: s.span as Span, expr: s.expr };
+      const sp = getSpan(s);
+      if (sp) return { span: sp, expr: s.expr };
     }
     if (s.kind === 'If') {
       const a = findLocalLetWithExpr(s.thenBlock as AstBlock, name);
@@ -332,8 +352,8 @@ function findLocalLetWithExpr(b: AstBlock | null, name: string): { span: Span; e
           if (r) return r;
         }
       }
-    } else if (s.kind === 'Block') {
-      const r = findLocalLetWithExpr(s as unknown as AstBlock, name);
+    } else if (isAstBlock(s)) {
+      const r = findLocalLetWithExpr(s, name);
       if (r) return r;
     }
   }
@@ -348,14 +368,19 @@ function findLocalLetWithExpr(b: AstBlock | null, name: string): { span: Span; e
 export function collectLetsWithSpan(b: AstBlock | null): Map<string, Span> {
   const out = new Map<string, Span>();
   if (!b) return out;
-  for (const s of b.statements as any[]) {
-    if (s.kind === 'Let') out.set(s.name, s.span as Span);
-    else if (s.kind === 'If') {
+  const statements = getStatements(b);
+  for (const s of statements) {
+    if (s.kind === 'Let') {
+      const sp = getSpan(s);
+      if (sp) out.set(s.name, sp);
+    } else if (s.kind === 'If') {
       collectLetsWithSpan(s.thenBlock as AstBlock).forEach((v, k) => out.set(k, v));
       if (s.elseBlock) collectLetsWithSpan(s.elseBlock as AstBlock).forEach((v, k) => out.set(k, v));
     } else if (s.kind === 'Match') {
       for (const c of s.cases) if (c.body.kind === 'Block') collectLetsWithSpan(c.body as AstBlock).forEach((v, k) => out.set(k, v));
-    } else if (s.kind === 'Block') collectLetsWithSpan(s as unknown as AstBlock).forEach((v, k) => out.set(k, v));
+    } else if (isAstBlock(s)) {
+      collectLetsWithSpan(s).forEach((v, k) => out.set(k, v));
+    }
   }
   return out;
 }
@@ -368,11 +393,10 @@ export function collectLetsWithSpan(b: AstBlock | null): Map<string, Span> {
 function enumVariantSpanMap(m: AstModule): Map<string, Span> {
   const out = new Map<string, Span>();
   for (const d of m.decls as AstDecl[]) {
-    if (d.kind === 'Enum') {
-      const en = d as AstEnum;
-      const vspans: (Span | undefined)[] = (((en as any).variantSpans as Span[] | undefined) || []);
-      for (let i = 0; i < en.variants.length; i++) {
-        const nm = en.variants[i]!;
+    if (isAstEnum(d)) {
+      const vspans: (Span | undefined)[] = getVariantSpans(d);
+      for (let i = 0; i < d.variants.length; i++) {
+        const nm = d.variants[i]!;
         const sp = vspans[i];
         if (sp) out.set(nm, sp);
       }
@@ -389,11 +413,10 @@ function enumVariantSpanMap(m: AstModule): Map<string, Span> {
 function dataFieldSpanMap(m: AstModule): Map<string, Span> {
   const out = new Map<string, Span>();
   for (const d of m.decls as AstDecl[]) {
-    if (d.kind === 'Data') {
-      const da = d as AstData;
-      for (const f of da.fields) {
-        const sp = (f as any).span as Span | undefined;
-        if (sp) out.set(`${da.name}.${f.name}`, sp);
+    if (isAstData(d)) {
+      for (const f of d.fields) {
+        const sp = getSpan(f);
+        if (sp) out.set(`${d.name}.${f.name}`, sp);
       }
     }
   }
@@ -410,25 +433,26 @@ function findConstructFieldAt(m: AstModule, pos: { line: number; character: numb
   // Shallow walk function bodies to find Construct nodes and match field spans
   const withinSpan = (sp: Span | undefined): boolean => within(sp, pos);
   for (const d of m.decls as AstDecl[]) {
-    if (d.kind !== 'Func') continue;
-    const f = d as AstFunc;
+    if (!isAstFunc(d)) continue;
+    const f = d;
     const walkBlock = (b: AstBlock): void => {
-      for (const s of b.statements as any[]) {
+      const statements = getStatements(b);
+      for (const s of statements) {
         if (s.kind === 'Return') {
           walkExpr(s.expr);
         } else if (s.kind === 'Let' || s.kind === 'Set') {
           walkExpr(s.expr);
         } else if (s.kind === 'If') {
-          walkExpr(s.cond as any);
+          walkExpr(s.cond);
           walkBlock(s.thenBlock as AstBlock);
           if (s.elseBlock) walkBlock(s.elseBlock as AstBlock);
         } else if (s.kind === 'Match') {
-          walkExpr(s.expr as any);
+          walkExpr(s.expr);
           for (const c of s.cases) {
             if (c.body.kind === 'Block') walkBlock(c.body as AstBlock);
           }
-        } else if (s.kind === 'Block') {
-          walkBlock(s as unknown as AstBlock);
+        } else if (isAstBlock(s)) {
+          walkBlock(s);
         }
       }
     };
@@ -436,7 +460,7 @@ function findConstructFieldAt(m: AstModule, pos: { line: number; character: numb
       if (!e || !e.kind) return;
       if (e.kind === 'Construct') {
         for (const fld of e.fields || []) {
-          const sp = (fld as any).span as Span | undefined;
+          const sp = getSpan(fld);
           if (withinSpan(sp)) { found = { typeName: e.typeName as string, field: fld.name as string }; return; }
         }
       } else if (e.kind === 'Call') {
@@ -467,28 +491,28 @@ export function registerNavigationHandlers(
   getDocumentSettings: (uri: string) => Promise<any>
 ): void {
   // Progress 闭包函数（访问 connection 对象）
-  const _beginProgress = (token: unknown, title: string): void => {
+  const _beginProgress = (token: ProgressToken | undefined, title: string): void => {
     try {
       if (!token) return;
-      (connection as any).sendProgress({ method: '$/progress' }, token, { kind: 'begin', title });
+      (connection as any).sendProgress('$/progress', token, { kind: 'begin', title });
     } catch {
       // ignore
     }
   };
 
-  const _reportProgress = (token: unknown, message: string): void => {
+  const _reportProgress = (token: ProgressToken | undefined, message: string): void => {
     try {
       if (!token) return;
-      (connection as any).sendProgress({ method: '$/progress' }, token, { kind: 'report', message });
+      (connection as any).sendProgress('$/progress', token, { kind: 'report', message });
     } catch {
       // ignore
     }
   };
 
-  const _endProgress = (token: unknown): void => {
+  const _endProgress = (token: ProgressToken | undefined): void => {
     try {
       if (!token) return;
-      (connection as any).sendProgress({ method: '$/progress' }, token, { kind: 'end' });
+      (connection as any).sendProgress('$/progress', token, { kind: 'end' });
     } catch {
       // ignore
     }
@@ -497,7 +521,7 @@ export function registerNavigationHandlers(
   const defaultSettings = { rename: { scope: 'workspace' }, streaming: { referencesChunk: 200, renameChunk: 200, logChunks: false } };
 
   // onReferences: 查找符号引用
-  connection.onReferences(async (params: ReferenceParams, token?: any) => {
+  connection.onReferences(async (params: ReferenceParams & ParamsWithProgress, token?: any) => {
     const doc = documents.get(params.textDocument.uri);
     if (!doc) return [];
     const text = doc.getText();
@@ -513,7 +537,7 @@ export function registerNavigationHandlers(
     try { await updateDocumentIndex(doc.uri, doc.getText()); } catch {}
     const refs = await findSymbolReferences(word, undefined);
     const filtered = scope === 'open' ? refs.filter(loc => openUris.has(loc.uri)) : refs;
-    _beginProgress((params as any).workDoneToken, 'Aster references');
+    _beginProgress(params.workDoneToken, 'Aster references');
     const CHUNK = Math.max(10, settings.streaming?.referencesChunk ?? 200);
     let batch: Location[] = [];
     for (const loc of filtered) {
@@ -521,23 +545,23 @@ export function registerNavigationHandlers(
       out.push(loc);
       batch.push(loc);
       if (batch.length >= CHUNK) {
-        try { (connection as any).sendProgress({ method: '$/progress' }, (params as any).partialResultToken, { kind: 'report', message: `references: +${batch.length}`, items: batch }); } catch {}
-        _reportProgress((params as any).workDoneToken, `references: +${batch.length}`);
+        try { (connection as any).sendProgress('$/progress', params.partialResultToken, { kind: 'report', message: `references: +${batch.length}`, items: batch }); } catch {}
+        _reportProgress(params.workDoneToken, `references: +${batch.length}`);
         try { if (settings.streaming?.logChunks) connection.console.log(`references chunk: +${batch.length}`); } catch {}
         batch = [];
       }
     }
     if (batch.length > 0) {
-      try { (connection as any).sendProgress({ method: '$/progress' }, (params as any).partialResultToken, { kind: 'report', message: `references: +${batch.length}`, items: batch }); } catch {}
-      _reportProgress((params as any).workDoneToken, `references: +${batch.length}`);
+      try { (connection as any).sendProgress('$/progress', params.partialResultToken, { kind: 'report', message: `references: +${batch.length}`, items: batch }); } catch {}
+      _reportProgress(params.workDoneToken, `references: +${batch.length}`);
       try { if (settings.streaming?.logChunks) connection.console.log(`references chunk: +${batch.length}`); } catch {}
     }
-    _endProgress((params as any).workDoneToken);
+    _endProgress(params.workDoneToken);
     return out;
   });
 
   // onRenameRequest: 重命名符号
-  connection.onRenameRequest(async (params: RenameParams, token?: any): Promise<WorkspaceEdit | null> => {
+  connection.onRenameRequest(async (params: RenameParams & ParamsWithProgress, token?: any): Promise<WorkspaceEdit | null> => {
     const doc = documents.get(params.textDocument.uri);
     if (!doc) return null;
     const text = doc.getText();
@@ -552,7 +576,7 @@ export function registerNavigationHandlers(
     const modules = getAllModules();
     const total = modules.length;
     try { await updateDocumentIndex(doc.uri, doc.getText()); } catch {}
-    _beginProgress((params as any).workDoneToken, 'Aster rename');
+    _beginProgress(params.workDoneToken, 'Aster rename');
     const CHUNK = Math.max(10, settings.streaming?.renameChunk ?? 200);
     const BATCH_SIZE = 20; // 批量并发读取文件数
     let editsInChunk = 0;
@@ -588,17 +612,17 @@ export function registerNavigationHandlers(
         changes[result.uri] = (changes[result.uri] || []).concat(result.edits);
         editsInChunk += result.edits.length;
         if (editsInChunk >= CHUNK) {
-          _reportProgress((params as any).workDoneToken, `rename: +${editsInChunk}`);
+          _reportProgress(params.workDoneToken, `rename: +${editsInChunk}`);
           editsInChunk = 0;
         }
       }
 
       processed += batch.length;
       if (processed % 50 === 0 || processed === total) {
-        _reportProgress((params as any).workDoneToken, `${processed}/${total}`);
+        _reportProgress(params.workDoneToken, `${processed}/${total}`);
       }
     }
-    _endProgress((params as any).workDoneToken);
+    _endProgress(params.workDoneToken);
     return { changes };
   });
 
@@ -638,9 +662,9 @@ export function registerNavigationHandlers(
       const ast2 = (ast as AstModule) || (parse(toks) as AstModule);
       const decl = findDeclAt(ast2, pos);
       if (decl) {
-        if ((decl as any).kind === 'Func') {
-          const f = decl as AstFunc;
-          const nameAt = tokenNameAt(toks as any[], pos);
+        if (isAstFunc(decl)) {
+          const f = decl;
+          const nameAt = tokenNameAt(toks, pos);
           // Pattern bindings: if hover is inside a case body and name matches a binding
           const patInfo = nameAt ? findPatternBindingDetail(f, nameAt, pos) : null;
           if (patInfo) {
@@ -658,13 +682,13 @@ export function registerNavigationHandlers(
           }
           return { contents: { kind: 'markdown', value: `Function ${f.name} — ${funcDetail(f)}` } };
         }
-        if ((decl as any).kind === 'Data') {
-          const d = decl as AstData;
+        if (isAstData(decl)) {
+          const d = decl;
           const fields = d.fields.map(f => `${f.name}: ${typeText(f.type)}`).join(', ');
           return { contents: { kind: 'markdown', value: `type ${d.name}${fields ? ' — ' + fields : ''}` } };
         }
-        if ((decl as any).kind === 'Enum') {
-          const e = decl as AstEnum;
+        if (isAstEnum(decl)) {
+          const e = decl;
           return { contents: { kind: 'markdown', value: `enum ${e.name} — ${e.variants.join(', ')}` } };
         }
       }
@@ -676,45 +700,49 @@ export function registerNavigationHandlers(
 
   // collectBlockSymbols 辅助函数（内部使用）
   const collectBlockSymbols = (b: AstBlock, parent: DocumentSymbol, doc: TextDocument): void => {
-    for (const s of b.statements as any[]) {
+    const statements = getStatements(b);
+    for (const s of statements) {
       if (s.kind === 'Let') {
-        const letS = s as any;
+        const letS = s;
+        const sp = getSpan(letS);
         parent.children!.push({
           name: letS.name,
           kind: SymbolKind.Variable,
-          range: spanOrDoc(letS.span, doc),
-          selectionRange: spanOrDoc(letS.span, doc),
+          range: spanOrDoc(sp, doc),
+          selectionRange: spanOrDoc(sp, doc),
         });
-      } else if (s.kind === 'Block') {
-        const blk = s as AstBlock;
+      } else if (isAstBlock(s)) {
+        const sp = getSpan(s);
         const bs: DocumentSymbol = {
           name: 'block',
           kind: SymbolKind.Namespace,
-          range: spanOrDoc((blk as any).span, doc),
-          selectionRange: spanOrDoc((blk as any).span, doc),
+          range: spanOrDoc(sp, doc),
+          selectionRange: spanOrDoc(sp, doc),
           children: [],
         };
-        collectBlockSymbols(blk, bs, doc);
+        collectBlockSymbols(s, bs, doc);
         parent.children!.push(bs);
       } else if (s.kind === 'If') {
         // Collect nested blocks
         const thenB = s.thenBlock as AstBlock;
+        const sp = getSpan(s);
         const thenS: DocumentSymbol = {
           name: 'if',
           kind: SymbolKind.Namespace,
-          range: spanOrDoc((s as any).span, doc),
-          selectionRange: spanOrDoc((s as any).span, doc),
+          range: spanOrDoc(sp, doc),
+          selectionRange: spanOrDoc(sp, doc),
           children: [],
         };
         collectBlockSymbols(thenB, thenS, doc);
         if (s.elseBlock) collectBlockSymbols(s.elseBlock as AstBlock, thenS, doc);
         parent.children!.push(thenS);
       } else if (s.kind === 'Match') {
+        const sp = getSpan(s);
         const ms: DocumentSymbol = {
           name: 'match',
           kind: SymbolKind.Namespace,
-          range: spanOrDoc((s as any).span, doc),
-          selectionRange: spanOrDoc((s as any).span, doc),
+          range: spanOrDoc(sp, doc),
+          selectionRange: spanOrDoc(sp, doc),
           children: [],
         };
         for (const c of s.cases) {
@@ -760,21 +788,23 @@ export function registerNavigationHandlers(
         switch (d.kind) {
           case 'Data': {
             const data = d as AstData;
+            const sp = getSpan(data);
             const ds: DocumentSymbol = {
               name: data.name,
               kind: SymbolKind.Struct,
-              range: spanOrDoc((data as any).span, doc),
-              selectionRange: spanOrDoc((data as any).span, doc),
+              range: spanOrDoc(sp, doc),
+              selectionRange: spanOrDoc(sp, doc),
               children: [],
               detail: 'type',
             };
             // fields
             for (const f of data.fields) {
+              const fsp = getSpan(f);
               ds.children!.push({
                 name: f.name,
                 kind: SymbolKind.Field,
-                range: spanOrDoc(((f as any).span as Span | undefined), doc),
-                selectionRange: spanOrDoc(((f as any).span as Span | undefined), doc),
+                range: spanOrDoc(fsp, doc),
+                selectionRange: spanOrDoc(fsp, doc),
                 detail: typeText(f.type),
               });
             }
@@ -783,39 +813,43 @@ export function registerNavigationHandlers(
           }
           case 'Enum': {
             const en = d as AstEnum;
+            const sp = getSpan(en);
             const es: DocumentSymbol = {
               name: en.name,
               kind: SymbolKind.Enum,
-              range: spanOrDoc((en as any).span, doc),
-              selectionRange: spanOrDoc((en as any).span, doc),
+              range: spanOrDoc(sp, doc),
+              selectionRange: spanOrDoc(sp, doc),
               children: [],
             };
-            const vspans: (Span | undefined)[] = (((en as any).variantSpans as Span[] | undefined) || []);
+            const vspans: (Span | undefined)[] = getVariantSpans(en);
             for (let vi = 0; vi < en.variants.length; vi++) {
               const v = en.variants[vi]!;
-              const sp = vspans[vi];
-              es.children!.push({ name: v, kind: SymbolKind.EnumMember, range: spanOrDoc(sp, doc), selectionRange: spanOrDoc(sp, doc) });
+              const vsp = vspans[vi];
+              es.children!.push({ name: v, kind: SymbolKind.EnumMember, range: spanOrDoc(vsp, doc), selectionRange: spanOrDoc(vsp, doc) });
             }
             pushChild(moduleParent, es);
             break;
           }
           case 'Func': {
             const f = d as AstFunc;
+            const sp = getSpan(f);
+            const nsp = getNameSpan(f) ?? sp;
             const fs: DocumentSymbol = {
               name: f.name,
               kind: SymbolKind.Function,
-              range: spanOrDoc((f as any).span, doc),
-              selectionRange: spanOrDoc((((f as any).nameSpan as Span | undefined) ?? (f as any).span), doc),
+              range: spanOrDoc(sp, doc),
+              selectionRange: spanOrDoc(nsp, doc),
               children: [],
               detail: funcDetail(f),
             };
             // params
             for (const p of f.params) {
+              const psp = getSpan(p);
               fs.children!.push({
                 name: p.name,
                 kind: SymbolKind.Variable,
-                range: spanOrDoc(((p as any).span as Span | undefined), doc),
-                selectionRange: spanOrDoc(((p as any).span as Span | undefined), doc),
+                range: spanOrDoc(psp, doc),
+                selectionRange: spanOrDoc(psp, doc),
                 detail: typeText(p.type),
               });
             }
@@ -841,7 +875,7 @@ export function registerNavigationHandlers(
     const { tokens: toks, ast } = getOrParse(doc);
     try {
       const ast2 = (ast as AstModule) || (parse(toks) as AstModule);
-      const name = tokenNameAt(toks as any[], params.position);
+      const name = tokenNameAt(toks, params.position);
       if (!name) return null;
 
       // Index top-level decls
@@ -849,9 +883,10 @@ export function registerNavigationHandlers(
       for (const d of ast2.decls as AstDecl[]) {
         if (d.kind === 'Func' || d.kind === 'Data' || d.kind === 'Enum') {
           // Prefer function nameSpan when present
-          const nm = (d as any).name as string;
-          const nsp = (d as any).nameSpan as Span | undefined;
-          declMap.set(nm, (nsp ?? ((d as any).span as Span | undefined)));
+          const nm = (d as { name: string }).name;
+          const nsp = getNameSpan(d);
+          const sp = getSpan(d);
+          declMap.set(nm, nsp ?? sp);
         }
       }
       if (declMap.has(name)) {
@@ -886,12 +921,12 @@ export function registerNavigationHandlers(
 
       // If inside a function, check params and lets
       const here = findDeclAt(ast2, params.position);
-      if (here && (here as any).kind === 'Func') {
-        const f = here as AstFunc;
+      if (here && isAstFunc(here)) {
+        const f = here;
         // params
         const pHit = f.params.find(p => p.name === name);
         if (pHit) {
-          const psp = ((pHit as any).span as Span | undefined) || ((f as any).span as Span | undefined);
+          const psp = getSpan(pHit) || getSpan(f);
           if (psp) return toLocation(doc.uri, psp);
         }
         // lets

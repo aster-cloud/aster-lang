@@ -98,6 +98,7 @@ export interface BaseFunc<S = Span | Origin, E = string[] | readonly Effect[], T
   readonly params: readonly BaseParameter<T>[];
   readonly effects?: E;
   readonly effectCaps?: readonly CapabilityKind[];
+  readonly effectCapsExplicit?: boolean;
 }
 
 /**

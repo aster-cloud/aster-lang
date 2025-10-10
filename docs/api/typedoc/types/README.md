@@ -17,6 +17,8 @@
 - [Position](interfaces/Position.md)
 - [Span](interfaces/Span.md)
 - [Origin](interfaces/Origin.md)
+- [AstMetadata](interfaces/AstMetadata.md)
+- [EffectCapable](interfaces/EffectCapable.md)
 - [Token](interfaces/Token.md)
 - [TypecheckDiagnostic](interfaces/TypecheckDiagnostic.md)
 - [Module](interfaces/Module.md)
@@ -68,6 +70,7 @@
 
 ## Type Aliases
 
+- [CapabilityKind](type-aliases/CapabilityKind.md)
 - [AstNode](type-aliases/AstNode.md)
 - [Declaration](type-aliases/Declaration.md)
 - [Statement](type-aliases/Statement.md)

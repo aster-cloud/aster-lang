@@ -20,6 +20,47 @@ export interface Origin {
   readonly end: Position;
 }
 
+/**
+ * AST 节点的基础元数据接口
+ *
+ * 用于为 AST 节点附加位置、来源等元数据信息，消除 `(x as any).span = ...` 模式。
+ */
+export interface AstMetadata {
+  /** 源代码位置信息（可选，由 parser 附加） */
+  span?: Span;
+  /** 来源文件信息（可选，由 lower_to_core 附加） */
+  origin?: Origin;
+  /** 文件路径（可选） */
+  file?: string | null;
+}
+
+/**
+ * 带有效应能力标注的 AST 节点接口
+ *
+ * 用于在语法分析阶段附加效应能力信息（如 `[files, secrets]`），
+ * 支持细粒度的效应跟踪和验证。
+ */
+export interface EffectCapable {
+  /** 效应能力列表（可选，由 parser 附加） */
+  effectCaps?: readonly CapabilityKind[];
+  /** 效应能力是否显式声明（区分隐式推导和显式标注） */
+  effectCapsExplicit?: boolean;
+}
+
+/**
+ * 能力类型枚举
+ *
+ * 定义系统支持的所有效应能力类型。
+ */
+export type CapabilityKind =
+  | 'files'      // 文件系统访问
+  | 'network'    // 网络访问
+  | 'secrets'    // 敏感数据访问
+  | 'crypto'     // 加密操作
+  | 'random'     // 随机数生成
+  | 'time'       // 时间获取
+  | 'env';       // 环境变量访问
+
 export interface Token {
   readonly kind: TokenKind;
   readonly value: string | number | boolean | null;

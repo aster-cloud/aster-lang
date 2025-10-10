@@ -16,6 +16,14 @@ export enum DiagnosticCode {
   L003_InvalidIndentation = 'L003',
   L004_InconsistentDedent = 'L004',
 
+  // Lowering errors (L101-L199)
+  L101_UnknownDeclKind = 'L101',
+  L102_UnknownEffect = 'L102',
+  L103_UnknownStmtKind = 'L103',
+  L104_UnknownExprKind = 'L104',
+  L105_UnknownPatternKind = 'L105',
+  L106_UnknownTypeKind = 'L106',
+
   // Parser errors (P001-P199)
   P001_ExpectedIdentifier = 'P001',
   P002_ExpectedTypeIdentifier = 'P002',
@@ -227,6 +235,37 @@ export const Diagnostics = {
   unexpectedCharacter: (char: string, pos: Position): DiagnosticBuilder =>
     DiagnosticBuilder.error(DiagnosticCode.L001_UnexpectedCharacter)
       .withMessage(`Unexpected character '${char}'`)
+      .withPosition(pos),
+
+  // Lowering errors
+  unknownDeclKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L101_UnknownDeclKind)
+      .withMessage(`Unknown declaration kind: ${kind}`)
+      .withPosition(pos),
+
+  unknownEffect: (effect: string, validEffects: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L102_UnknownEffect)
+      .withMessage(`未知的 effect '${effect}'，有效值为：${validEffects}`)
+      .withPosition(pos),
+
+  unknownStmtKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L103_UnknownStmtKind)
+      .withMessage(`lowerStmt: 未处理的语句类型 '${kind}'`)
+      .withPosition(pos),
+
+  unknownExprKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L104_UnknownExprKind)
+      .withMessage(`Unknown expression kind: ${kind}`)
+      .withPosition(pos),
+
+  unknownPatternKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L105_UnknownPatternKind)
+      .withMessage(`Unknown pattern kind: ${kind}`)
+      .withPosition(pos),
+
+  unknownTypeKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L106_UnknownTypeKind)
+      .withMessage(`Unknown type kind: ${kind}`)
       .withPosition(pos),
 };
 

@@ -8,6 +8,7 @@ import { CodeActionKind, TextEdit } from 'vscode-languageserver/node.js';
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 import { computeDisambiguationEdits } from './analysis.js';
 import { loadCapabilityManifest } from './diagnostics.js';
+import { ConfigService } from '../config/config-service.js';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -30,7 +31,7 @@ export function registerCodeActionHandlers(
     if (!doc) return [];
     const text = doc.getText();
     const actions: CodeAction[] = [];
-    const capsPath = process.env.ASTER_CAPS || '';
+    const capsPath = ConfigService.getInstance().capsManifestPath || '';
 
     for (const d of params.context.diagnostics) {
       const code = (d.code as string) || '';

@@ -54,6 +54,7 @@ import { registerCodeActionHandlers } from './codeaction.js';
 import { registerSymbolsHandlers } from './symbols.js';
 import { registerTokensHandlers, SEM_LEGEND } from './tokens.js';
 import { registerHealthHandlers } from './health.js';
+import { ConfigService } from '../config/config-service.js';
 // import { lowerModule } from "../lower_to_core";
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -83,7 +84,7 @@ function getOrParse(doc: TextDocument): CachedDoc {
   const text = doc.getText();
   const can = canonicalize(text);
   const tokens = lex(can);
-  let ast: AstModule | null = null;
+  let ast: AstModule | null;
   try {
     ast = parse(tokens) as AstModule;
   } catch {
@@ -125,7 +126,7 @@ connection.onInitialize(async (params: InitializeParams) => {
   setDiagnosticConfig({
     relatedInformationSupported: hasDiagnosticRelatedInformationCapability,
     workspaceDiagnosticsEnabled: true,
-    capabilityManifestPath: process.env.ASTER_CAPS || null,
+    capabilityManifestPath: ConfigService.getInstance().capsManifestPath,
   });
 
   const result: InitializeResult = {

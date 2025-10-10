@@ -63,6 +63,10 @@
                   }
                 }
               ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Text"
+              },
               "ret": {
                 "kind": "TypeName",
                 "name": "Text"
@@ -171,6 +175,10 @@
                   }
                 }
               ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Int"
+              },
               "ret": {
                 "kind": "TypeName",
                 "name": "Int"

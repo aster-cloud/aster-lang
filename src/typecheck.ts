@@ -9,7 +9,8 @@ import {
 } from './capabilities.js';
 import { CapabilityKind, inferCapabilityFromName } from './config/semantic.js';
 import { inferEffects } from './effect_inference.js';
-import { DefaultCoreVisitor } from './visitor.js';
+import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
+import { DefaultTypeVisitor } from './ast_visitor.js';
 // import { DiagnosticBuilder, DiagnosticCode, DiagnosticSeverity } from './diagnostics.js';
 import { getIOPrefixes, getCPUPrefixes } from './config/effect_config.js';
 import { ENFORCE_CAPABILITIES } from './config/runtime.js';
@@ -272,9 +273,182 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
   }
 
   // Effect enforcement (minimal lattice: ∅ ⊑ CPU ⊑ IO[*])
+  checkEffects(ctx, f, diags);
+
+  // Async discipline: every started task should be waited somewhere in the body
+  checkAsyncDiscipline(f, diags);
+
+  // Capability-parameterized IO enforcement (feature-gated)
+  checkCapabilities(f, diags);
+  // Generics: infer type variables from return position (preview)
+  const typeParams = (f as unknown as { typeParams?: readonly string[] }).typeParams ?? [];
+  if (typeParams.length > 0) {
+    const subst = new Map<string, Core.Type>();
+    unifyTypes(f.ret as T, bodyRet, subst, diags);
+  }
+
+  // Generic type parameters: undefined usage (error) and unused (warn)
+  checkGenericTypeParameters(ctx, f, diags);
+
+  return diags;
+}
+
+/**
+ * 类型参数收集器：收集类型表达式中所有使用的 TypeVar
+ */
+class TypeParamCollector extends DefaultTypeVisitor<Set<string>> {
+  override visitTypeVar(v: Core.TypeVar, ctx: Set<string>): void {
+    ctx.add(v.name);
+  }
+}
+
+/**
+ * 未知类型名称查找器：查找可能是类型变量但未声明的 TypeName
+ */
+class UnknownTypeFinder extends DefaultTypeVisitor<{ unknowns: Set<string>; ctx: ModuleContext }> {
+  private static readonly KNOWN_SCALARS = new Set(['Text', 'Int', 'Bool', 'Float']);
+  private static readonly isMaybeTypeVarLike = (name: string): boolean => /^[A-Z][A-Za-z0-9_]*$/.test(name);
+
+  override visitTypeName(n: Core.TypeName, context: { unknowns: Set<string>; ctx: ModuleContext }): void {
+    const nm = n.name;
+    if (
+      !UnknownTypeFinder.KNOWN_SCALARS.has(nm) &&
+      !context.ctx.datas.has(nm) &&
+      !context.ctx.enums.has(nm) &&
+      UnknownTypeFinder.isMaybeTypeVarLike(nm)
+    ) {
+      context.unknowns.add(nm);
+    }
+  }
+}
+
+/**
+ * 检查泛型类型参数的使用（Generic type parameters validation）
+ * 包括：未声明的类型变量、未使用的类型参数、类型变量命名规范
+ */
+function checkGenericTypeParameters(
+  ctx: ModuleContext,
+  f: Core.Func,
+  diags: TypecheckDiagnostic[]
+): void {
+  const typeParams = (f as unknown as { typeParams?: readonly string[] }).typeParams ?? [];
+
+  // 收集已使用的类型变量
+  const declared = new Set<string>(typeParams);
+  const used = new Set<string>();
+  const collector = new TypeParamCollector();
+  for (const p of f.params) collector.visitType(p.type, used);
+  collector.visitType(f.ret, used);
+
+  // 检查未声明的类型变量使用
+  for (const u of used) {
+    if (!declared.has(u)) {
+      diags.push({
+        severity: 'error',
+        message: `Type variable '${u}' is used in '${f.name}' but not declared in its type parameters.`,
+      });
+    }
+  }
+
+  // 检查未使用的类型参数
+  for (const tv of declared) {
+    if (!used.has(tv)) {
+      diags.push({
+        severity: 'warning',
+        message: `Type parameter '${tv}' on '${f.name}' is declared but not used.`,
+      });
+    }
+  }
+
+  // 查找疑似类型变量的未知类型名
+  const unknowns = new Set<string>();
+  const finder = new UnknownTypeFinder();
+  for (const p of f.params) finder.visitType(p.type, { unknowns, ctx });
+  finder.visitType(f.ret, { unknowns, ctx });
+
+  // 报告未声明的疑似类型变量
+  for (const nm of unknowns) {
+    if (!declared.has(nm)) {
+      diags.push({
+        severity: 'error',
+        message: `Type variable-like '${nm}' is used in '${f.name}' but not declared; declare it with 'of ${nm}'.`,
+      });
+    }
+  }
+}
+
+/**
+ * 检查异步任务纪律（Async discipline）
+ * 确保每个 Start 的任务都被 Wait
+ */
+function checkAsyncDiscipline(
+  f: Core.Func,
+  diags: TypecheckDiagnostic[]
+): void {
+  const aw = collectAsync(f.body);
+  const notWaited = [...aw.started].filter(n => !aw.waited.has(n));
+  if (notWaited.length > 0) {
+    diags.push({
+      severity: 'error',
+      message: `Started async tasks not waited: ${notWaited.join(', ')}`,
+    });
+  }
+}
+
+/**
+ * 检查函数的能力声明（Capability-parameterized IO enforcement）
+ * 仅在 ENFORCE_CAPABILITIES 特性开启时执行
+ */
+function checkCapabilities(
+  f: Core.Func,
+  diags: TypecheckDiagnostic[]
+): void {
+  if (!ENFORCE_CAPABILITIES) return;
+
+  const meta = f as unknown as { effectCaps?: readonly CapabilityKind[]; effectCapsExplicit?: boolean };
+  const declaredCaps = meta.effectCapsExplicit ? meta.effectCaps : undefined;
+  if (!declaredCaps || declaredCaps.length === 0) return;
+
+  const declared = new Set<CapabilityKind>(declaredCaps);
+  const used = collectCapabilities(f.body);
+
+  for (const [cap, callSites] of used) {
+    if (!declared.has(cap)) {
+      const declaredList = [...declared].join(', ');
+      diags.push({
+        severity: 'error',
+        message: `Function '${f.name}' uses ${cap} capability but header declares [${declaredList}].`,
+        code: 'EFF_CAP_MISSING',
+        data: { func: f.name, cap, calls: callSites },
+      });
+    }
+  }
+
+  for (const cap of declared) {
+    if (!used.has(cap)) {
+      diags.push({
+        severity: 'info',
+        message: `Function '${f.name}' declares ${cap} capability but it is not used.`,
+        code: 'EFF_CAP_SUPERFLUOUS',
+        data: { func: f.name, cap },
+      });
+    }
+  }
+}
+
+/**
+ * 检查函数的效应声明（Effect enforcement）
+ * 使用最小格理论：∅ ⊑ CPU ⊑ IO[*]
+ */
+function checkEffects(
+  ctx: ModuleContext,
+  f: Core.Func,
+  diags: TypecheckDiagnostic[]
+): void {
   const effs = collectEffects(ctx, f.body);
   const hasIO = f.effects.some(e => String(e).toLowerCase() === 'io');
   const hasCPU = f.effects.some(e => String(e).toLowerCase() === 'cpu');
+
   // Missing IO is an error when IO-like calls are detected
   if (effs.has('io') && !hasIO)
     diags.push({
@@ -283,6 +457,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
       code: 'EFF_MISSING_IO',
       data: { func: f.name },
     });
+
   // Under lattice, IO subsumes CPU: if CPU work is detected, it is satisfied by either @cpu or @io
   if (effs.has('cpu') && !(hasCPU || hasIO))
     diags.push({
@@ -291,6 +466,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
       code: 'EFF_MISSING_CPU',
       data: { func: f.name },
     });
+
   // Superfluous annotations:
   // - If @io is declared but only CPU-like work is found, emit an info (IO subsumes CPU; not harmful).
   if (!effs.has('io') && hasIO && effs.has('cpu'))
@@ -300,6 +476,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
       code: 'EFF_SUPERFLUOUS_IO_CPU_ONLY',
       data: { func: f.name },
     });
+
   // - If @io is declared but no obvious IO/CPU is found, keep a low-severity warning.
   if (!effs.has('io') && hasIO && !effs.has('cpu'))
     diags.push({
@@ -308,6 +485,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
       code: 'EFF_SUPERFLUOUS_IO',
       data: { func: f.name },
     });
+
   if (!effs.has('cpu') && hasCPU)
     diags.push({
       severity: 'warning',
@@ -315,191 +493,34 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] 
       code: 'EFF_SUPERFLUOUS_CPU',
       data: { func: f.name },
     });
-  // Async discipline: every started task should be waited somewhere in the body
-
-  // Capability-parameterized IO enforcement (feature-gated)
-  if (ENFORCE_CAPABILITIES) {
-    const meta = f as unknown as { effectCaps?: readonly CapabilityKind[]; effectCapsExplicit?: boolean };
-    const declaredCaps = meta.effectCapsExplicit ? meta.effectCaps : undefined;
-    if (declaredCaps && declaredCaps.length > 0) {
-      const declared = new Set<CapabilityKind>(declaredCaps);
-      const used = collectCapabilities(f.body);
-      for (const [cap, callSites] of used) {
-        if (!declared.has(cap)) {
-          const declaredList = [...declared].join(', ');
-          diags.push({
-            severity: 'error',
-            message: `Function '${f.name}' uses ${cap} capability but header declares [${declaredList}].`,
-            code: 'EFF_CAP_MISSING',
-            data: { func: f.name, cap, calls: callSites },
-          });
-        }
-      }
-      for (const cap of declared) {
-        if (!used.has(cap)) {
-          diags.push({
-            severity: 'info',
-            message: `Function '${f.name}' declares ${cap} capability but it is not used.`,
-            code: 'EFF_CAP_SUPERFLUOUS',
-            data: { func: f.name, cap },
-          });
-        }
-      }
-    }
-  }
-
-  const aw = collectAsync(f.body);
-  const notWaited = [...aw.started].filter(n => !aw.waited.has(n));
-  if (notWaited.length > 0) {
-    diags.push({
-      severity: 'error',
-      message: `Started async tasks not waited: ${notWaited.join(', ')}`,
-    });
-  }
-  // Generics: infer type variables from return position (preview)
-  const typeParams = (f as unknown as { typeParams?: readonly string[] }).typeParams ?? [];
-  if (typeParams.length > 0) {
-    const subst = new Map<string, Core.Type>();
-    unifyTypes(f.ret as T, bodyRet, subst, diags);
-  }
-  // Generic type parameters: undefined usage (error) and unused (warn)
-  {
-    const declared = new Set<string>(typeParams);
-    const used = new Set<string>();
-    const collect = (t: Core.Type): void => {
-      switch (t.kind) {
-        case 'TypeVar':
-          used.add((t as Core.TypeVar).name);
-          break;
-        case 'Maybe':
-          collect((t as Core.Maybe).type);
-          break;
-        case 'Option':
-          collect((t as Core.Option).type);
-          break;
-        case 'Result':
-          collect((t as Core.Result).ok);
-          collect((t as Core.Result).err);
-          break;
-        case 'List':
-          collect((t as Core.List).type);
-          break;
-        case 'Map':
-          collect((t as Core.Map).key);
-          collect((t as Core.Map).val);
-          break;
-        case 'TypeApp':
-          for (const a of (t as Core.TypeApp).args) collect(a);
-          break;
-        case 'FuncType': {
-          const ft = t as unknown as Core.FuncType;
-          ft.params.forEach(collect);
-          collect(ft.ret);
-          break;
-        }
-      }
-    };
-    for (const p of f.params) collect(p.type);
-    collect(f.ret);
-    for (const u of used)
-      if (!declared.has(u))
-        diags.push({
-          severity: 'error',
-          message: `Type variable '${u}' is used in '${f.name}' but not declared in its type parameters.`,
-        });
-    for (const tv of declared)
-      if (!used.has(tv))
-        diags.push({
-          severity: 'warning',
-          message: `Type parameter '${tv}' on '${f.name}' is declared but not used.`,
-        });
-
-    // Heuristic: flag capitalized unknown type names that look like type variables but are not declared and not defined data/enum
-    const KNOWN_SCALARS = new Set(['Text', 'Int', 'Bool', 'Float']);
-    const isMaybeTypeVarLike = (name: string): boolean => /^[A-Z][A-Za-z0-9_]*$/.test(name);
-    const unknowns = new Set<string>();
-    const findUnknowns = (t: Core.Type): void => {
-      switch (t.kind) {
-        case 'TypeName': {
-          const nm = (t as Core.TypeName).name;
-          if (
-            !KNOWN_SCALARS.has(nm) &&
-            !ctx.datas.has(nm) &&
-            !ctx.enums.has(nm) &&
-            isMaybeTypeVarLike(nm)
-          )
-            unknowns.add(nm);
-          break;
-        }
-        case 'Maybe':
-          findUnknowns((t as Core.Maybe).type);
-          break;
-        case 'Option':
-          findUnknowns((t as Core.Option).type);
-          break;
-        case 'Result':
-          findUnknowns((t as Core.Result).ok);
-          findUnknowns((t as Core.Result).err);
-          break;
-        case 'List':
-          findUnknowns((t as Core.List).type);
-          break;
-        case 'Map':
-          findUnknowns((t as Core.Map).key);
-          findUnknowns((t as Core.Map).val);
-          break;
-        case 'TypeApp':
-          for (const a of (t as Core.TypeApp).args) findUnknowns(a);
-          break;
-        case 'FuncType': {
-          const ft = t as unknown as Core.FuncType;
-          ft.params.forEach(findUnknowns);
-          findUnknowns(ft.ret);
-          break;
-        }
-        case 'PiiType':
-          findUnknowns((t as Core.PiiType).baseType);
-          break;
-      }
-    };
-    for (const p of f.params) findUnknowns(p.type);
-    findUnknowns(f.ret);
-    for (const nm of unknowns) {
-      if (!declared.has(nm))
-        diags.push({
-          severity: 'error',
-          message: `Type variable-like '${nm}' is used in '${f.name}' but not declared; declare it with 'of ${nm}'.`,
-        });
-    }
-  }
-  return diags;
 }
+
 function warn(diags: TypecheckDiagnostic[], message: string): void {
   diags.push({ severity: 'warning', message });
 }
 
 function collectEffects(ctx: ModuleContext, b: Core.Block): Set<'io' | 'cpu'> {
   const effs = new Set<'io' | 'cpu'>();
-  class EffectsVisitor extends DefaultCoreVisitor<void> {
-    override visitExpression(e: Core.Expression): void {
+  class EffectsVisitor extends DefaultCoreVisitor {
+    override visitExpression(e: Core.Expression, context: import('./visitor.js').VisitorContext): void {
       if (e.kind === 'Call' && e.target.kind === 'Name') {
         const rawName = e.target.name;
         const resolvedName = resolveAlias(rawName, ctx.imports);
         if (IO_PREFIXES.some((p: string) => resolvedName.startsWith(p))) effs.add('io');
         if (CPU_PREFIXES.some((p: string) => resolvedName.startsWith(p))) effs.add('cpu');
       }
-      super.visitExpression(e, undefined as unknown as void);
+      super.visitExpression(e, context);
     }
   }
-  new EffectsVisitor().visitBlock(b, undefined as unknown as void);
+  new EffectsVisitor().visitBlock(b, createVisitorContext());
   return effs;
 }
 
 
 function collectCapabilities(b: Core.Block): Map<CapabilityKind, string[]> {
   const caps = new Map<CapabilityKind, string[]>();
-  class CapVisitor extends DefaultCoreVisitor<void> {
-    override visitExpression(e: Core.Expression): void {
+  class CapVisitor extends DefaultCoreVisitor {
+    override visitExpression(e: Core.Expression, context: import('./visitor.js').VisitorContext): void {
       if (e.kind === 'Call' && e.target.kind === 'Name') {
         const n = e.target.name;
         const inferred = inferCapabilityFromName(n);
@@ -512,10 +533,10 @@ function collectCapabilities(b: Core.Block): Map<CapabilityKind, string[]> {
           }
         }
       }
-      super.visitExpression(e, undefined as unknown as void);
+      super.visitExpression(e, context);
     }
   }
-  new CapVisitor().visitBlock(b, undefined as unknown as void);
+  new CapVisitor().visitBlock(b, createVisitorContext());
   return caps;
 }
 
@@ -935,13 +956,13 @@ function unifyTypes(
 function collectAsync(b: Core.Block): { started: Set<string>; waited: Set<string> } {
   const started = new Set<string>();
   const waited = new Set<string>();
-  class AsyncVisitor extends DefaultCoreVisitor<void> {
-    override visitStatement(s: Core.Statement): void {
+  class AsyncVisitor extends DefaultCoreVisitor {
+    override visitStatement(s: Core.Statement, context: import('./visitor.js').VisitorContext): void {
       if (s.kind === 'Start') started.add(s.name);
       if (s.kind === 'Wait') s.names.forEach(n => waited.add(n));
-      super.visitStatement(s, undefined as unknown as void);
+      super.visitStatement(s, context);
     }
   }
-  new AsyncVisitor().visitBlock(b, undefined as unknown as void);
+  new AsyncVisitor().visitBlock(b, createVisitorContext());
   return { started, waited };
 }

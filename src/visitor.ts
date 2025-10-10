@@ -9,6 +9,29 @@ import type { Core } from './types.js';
  * - 仅依赖 Core IR 类型，不引入额外运行时依赖
  */
 
+/**
+ * Visitor 遍历的上下文对象
+ */
+export interface VisitorContext {
+  /** 当前模块名称 */
+  moduleName?: string;
+  /** 当前函数名称（如果在函数内） */
+  functionName?: string;
+  /** 父节点栈 */
+  parentStack?: any[];
+  /** 自定义数据 */
+  data?: Map<string, any>;
+}
+
+/**
+ * 创建空的 Visitor 上下文
+ */
+export function createVisitorContext(): VisitorContext {
+  return {
+    data: new Map(),
+  };
+}
+
 export interface CoreVisitor<Ctx, R = void> {
   // 顶层
   visitModule(m: Core.Module, ctx: Ctx): R;
@@ -30,7 +53,7 @@ export interface CoreVisitor<Ctx, R = void> {
  * - 覆写某个 `visitXxx` 方法即可插入自定义逻辑；调用 `super.visitXxx` 继续默认递归。
  * - 所有 `switch` 语句保持与 `src/types.ts` 中 Core 节点 kind 对齐。
  */
-export class DefaultCoreVisitor<Ctx> implements CoreVisitor<Ctx, void> {
+export class DefaultCoreVisitor<Ctx = VisitorContext> implements CoreVisitor<Ctx, void> {
   // 可选钩子默认不实现，由子类按需覆写
   public visitType?(t: Core.Type, ctx: Ctx): void;
   public visitPattern?(p: Core.Pattern, ctx: Ctx): void;

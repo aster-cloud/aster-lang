@@ -1,7 +1,7 @@
 import type { Core } from './types.js';
-import { DefaultCoreVisitor } from './visitor.js';
+import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
 
-class PrettyCoreVisitor extends DefaultCoreVisitor<void> {
+class PrettyCoreVisitor extends DefaultCoreVisitor {
   out: string[] = [];
   indentLevel = 0;
 
@@ -10,11 +10,11 @@ class PrettyCoreVisitor extends DefaultCoreVisitor<void> {
   formatModule(m: Core.Module): string {
     this.out = [];
     if (m.name) this.out.push(`// module ${m.name}`);
-    this.visitModule(m, undefined as unknown as void);
+    this.visitModule(m, createVisitorContext());
     return this.out.join('\n');
   }
 
-  override visitDeclaration(d: Core.Declaration, _ctx: void): void {
+  override visitDeclaration(d: Core.Declaration, _ctx: import('./visitor.js').VisitorContext): void {
     switch (d.kind) {
       case 'Import':
         this.out.push(`use ${d.name}${d.asName ? ` as ${d.asName}` : ''}`);
@@ -157,7 +157,7 @@ export function formatModule(m: Core.Module): string {
 
 export function formatDecl(d: Core.Declaration): string {
   const v = new PrettyCoreVisitor();
-  v.visitDeclaration(d as any, undefined as unknown as void);
+  v.visitDeclaration(d as any, createVisitorContext());
   return v.out.join('\n');
 }
 
