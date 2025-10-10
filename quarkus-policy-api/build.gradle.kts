@@ -18,7 +18,7 @@ dependencies {
     // Quarkus BOM (Bill of Materials) for dependency management
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.17.5"))
 
-    // Quarkus核心依赖 - REST endpoints
+    // Quarkus核心依赖 - Reactive REST endpoints (quarkus-rest already includes reactive support)
     implementation("io.quarkus:quarkus-rest")
     implementation("io.quarkus:quarkus-rest-jackson")
 
@@ -29,6 +29,9 @@ dependencies {
     // Metrics
     implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
 
+    // Caching - Caffeine cache
+    implementation("io.quarkus:quarkus-cache")
+
     // Aster运行时和编译后的策略
     implementation(project(":aster-runtime"))
     implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
@@ -36,6 +39,7 @@ dependencies {
     // 测试依赖
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
+    testImplementation("io.smallrye.reactive:smallrye-mutiny-vertx-junit5")
 }
 
 tasks.withType<JavaCompile>().configureEach {

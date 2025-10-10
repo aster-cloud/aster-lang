@@ -1,6 +1,7 @@
 package io.aster.policy.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -11,14 +12,13 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.*;
 
 /**
- * REST API for policy evaluation
+ * REST API for policy evaluation (Reactive)
  *
  * 提供策略评估的REST端点，支持动态调用编译后的Aster策略
+ * 使用Mutiny的Uni实现reactive REST endpoints
  */
 @Path("/api/policies")
 @Tag(name = "Policy Evaluation", description = "Evaluate policies against context data")
@@ -29,17 +29,20 @@ public class PolicyEvaluationResource {
     @Inject
     ObjectMapper objectMapper;
 
+    @Inject
+    PolicyEvaluationService policyEvaluationService;
+
     /**
-     * 评估策略
+     * 评估策略（带缓存，reactive版本）
      *
      * @param request 包含策略名称和上下文数据的请求
-     * @return 评估结果
+     * @return Uni包装的评估结果
      */
     @POST
     @Path("/evaluate")
     @Operation(
         summary = "Evaluate a policy",
-        description = "Evaluates a specific policy against provided context data"
+        description = "Evaluates a specific policy against provided context data (reactive)"
     )
     @APIResponse(
         responseCode = "200",
@@ -58,82 +61,64 @@ public class PolicyEvaluationResource {
         responseCode = "500",
         description = "Policy evaluation failed"
     )
-    public Response evaluatePolicy(PolicyEvaluationRequest request) {
-        try {
-            // 验证请求
-            if (request == null || request.policyModule == null || request.policyFunction == null) {
-                return Response.status(Response.Status.BAD_REQUEST)
+    public Uni<Response> evaluatePolicy(PolicyEvaluationRequest request) {
+        // 验证请求
+        if (request == null || request.policyModule == null || request.policyFunction == null) {
+            return Uni.createFrom().item(
+                Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "Missing required fields: policyModule, policyFunction"))
-                    .build();
-            }
-
-            // 动态加载策略类
-            String className = request.policyModule + "." + request.policyFunction + "_fn";
-            Class<?> policyClass = Class.forName(className);
-
-            // 查找函数方法 - 使用函数名而不是"invoke"
-            // Aster生成的函数类有静态方法,方法名与函数名相同
-            Method functionMethod = null;
-            for (Method m : policyClass.getDeclaredMethods()) {
-                if (m.getName().equals(request.policyFunction) &&
-                    java.lang.reflect.Modifier.isStatic(m.getModifiers())) {
-                    functionMethod = m;
-                    break;
-                }
-            }
-
-            if (functionMethod == null) {
-                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", "Policy method not found",
-                                 "details", "No static method named: " + request.policyFunction))
-                    .build();
-            }
-
-            // 准备参数 - 将JSON对象转换为正确的类型
-            Parameter[] parameters = functionMethod.getParameters();
-            Object[] args = new Object[parameters.length];
-
-            if (request.context != null && parameters.length > 0) {
-                List<Object> contextList = request.context;
-                for (int i = 0; i < Math.min(parameters.length, contextList.size()); i++) {
-                    Class<?> expectedType = parameters[i].getType();
-                    Object contextObj = contextList.get(i);
-
-                    // 将Map转换为目标类型
-                    if (contextObj instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> map = (Map<String, Object>) contextObj;
-                        args[i] = constructFromMap(expectedType, map);
-                    } else {
-                        args[i] = contextObj;
-                    }
-                }
-            }
-
-            // 调用策略
-            long startTime = System.nanoTime();
-            Object result = functionMethod.invoke(null, args);
-            long durationNanos = System.nanoTime() - startTime;
-
-            // 构建响应
-            PolicyEvaluationResponse response = new PolicyEvaluationResponse();
-            response.result = result;
-            response.executionTimeMs = durationNanos / 1_000_000.0;
-            response.policyModule = request.policyModule;
-            response.policyFunction = request.policyFunction;
-            response.timestamp = System.currentTimeMillis();
-
-            return Response.ok(response).build();
-
-        } catch (ClassNotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND)
-                .entity(Map.of("error", "Policy not found: " + request.policyModule + "." + request.policyFunction))
-                .build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(Map.of("error", "Policy evaluation failed", "details", e.getMessage()))
-                .build();
+                    .build()
+            );
         }
+
+        // 准备上下文参数数组
+        Object[] contextArray = request.context != null
+            ? request.context.toArray()
+            : new Object[0];
+
+        long startTime = System.nanoTime();
+
+        // 使用缓存服务评估策略（reactive）
+        return policyEvaluationService.evaluatePolicy(
+                request.policyModule,
+                request.policyFunction,
+                contextArray
+            )
+            .onItem().transform(evalResult -> {
+                long totalDurationNanos = System.nanoTime() - startTime;
+
+                // 构建响应
+                PolicyEvaluationResponse response = new PolicyEvaluationResponse();
+                response.result = evalResult.getResult();
+                response.executionTimeMs = totalDurationNanos / 1_000_000.0;
+                response.policyModule = request.policyModule;
+                response.policyFunction = request.policyFunction;
+                response.timestamp = System.currentTimeMillis();
+                response.fromCache = evalResult.isFromCache();
+                response.policyExecutionTimeMs = evalResult.getExecutionTimeMs();
+
+                return Response.ok(response).build();
+            })
+            .onFailure(throwable -> {
+                // Check if the root cause is ClassNotFoundException
+                Throwable cause = throwable;
+                while (cause != null) {
+                    if (cause instanceof ClassNotFoundException) {
+                        return true;
+                    }
+                    cause = cause.getCause();
+                }
+                return false;
+            }).recoverWithItem(e ->
+                Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Policy not found: " + request.policyModule + "." + request.policyFunction))
+                    .build()
+            )
+            .onFailure().recoverWithItem(e ->
+                Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", "Policy evaluation failed", "details", e.getMessage()))
+                    .build()
+            );
     }
 
     /**
@@ -184,62 +169,6 @@ public class PolicyEvaluationResource {
         )).build();
     }
 
-    /**
-     * 从Map构造对象 - 使用反射查找匹配的构造函数
-     */
-    private Object constructFromMap(Class<?> targetClass, Map<String, Object> map) throws Exception {
-        // 获取所有构造函数
-        var constructors = targetClass.getConstructors();
-        if (constructors.length == 0) {
-            throw new IllegalArgumentException("No public constructors found for " + targetClass.getName());
-        }
-
-        // 使用第一个构造函数(Aster生成的类只有一个全参构造函数)
-        var constructor = constructors[0];
-        Parameter[] params = constructor.getParameters();
-        Object[] args = new Object[params.length];
-
-        // 获取类的所有字段,按声明顺序
-        var fields = targetClass.getDeclaredFields();
-
-        // 从Map中提取参数值(假设字段顺序与构造函数参数顺序一致)
-        for (int i = 0; i < params.length && i < fields.length; i++) {
-            String fieldName = fields[i].getName();
-            Object value = map.get(fieldName);
-
-            // 类型转换
-            Class<?> paramType = params[i].getType();
-            if (value != null) {
-                if (paramType == int.class || paramType == Integer.class) {
-                    args[i] = ((Number) value).intValue();
-                } else if (paramType == long.class || paramType == Long.class) {
-                    args[i] = ((Number) value).longValue();
-                } else if (paramType == double.class || paramType == Double.class) {
-                    args[i] = ((Number) value).doubleValue();
-                } else if (paramType == String.class) {
-                    args[i] = value.toString();
-                } else {
-                    args[i] = value;
-                }
-            } else {
-                // 为null时提供默认值
-                if (paramType == int.class) {
-                    args[i] = 0;
-                } else if (paramType == long.class) {
-                    args[i] = 0L;
-                } else if (paramType == double.class) {
-                    args[i] = 0.0;
-                } else if (paramType == boolean.class) {
-                    args[i] = false;
-                } else {
-                    args[i] = null;
-                }
-            }
-        }
-
-        return constructor.newInstance(args);
-    }
-
     // 内部数据类
     public static class PolicyEvaluationRequest {
         public String policyModule;
@@ -253,6 +182,8 @@ public class PolicyEvaluationResource {
         public String policyModule;
         public String policyFunction;
         public long timestamp;
+        public boolean fromCache;
+        public double policyExecutionTimeMs;
     }
 
     public static class PolicyInfo {
@@ -265,5 +196,153 @@ public class PolicyEvaluationResource {
             this.function = function;
             this.description = description;
         }
+    }
+
+    /**
+     * 批量评估多个策略（reactive并行执行）
+     *
+     * @param batchRequest 包含多个策略评估请求的批次
+     * @return Uni包装的批量评估结果
+     */
+    @POST
+    @Path("/evaluate/batch")
+    @Operation(
+        summary = "Batch evaluate policies",
+        description = "Evaluates multiple policies in parallel (reactive)"
+    )
+    @APIResponse(
+        responseCode = "200",
+        description = "Batch evaluation successful"
+    )
+    @APIResponse(
+        responseCode = "400",
+        description = "Invalid batch request"
+    )
+    public Uni<Response> evaluateBatch(BatchEvaluationRequest batchRequest) {
+        if (batchRequest == null || batchRequest.requests == null || batchRequest.requests.isEmpty()) {
+            return Uni.createFrom().item(
+                Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Batch request cannot be empty"))
+                    .build()
+            );
+        }
+
+        long startTime = System.nanoTime();
+
+        // 转换为服务层的BatchRequest列表
+        java.util.List<PolicyEvaluationService.BatchRequest> serviceRequests = batchRequest.requests.stream()
+            .map(req -> new PolicyEvaluationService.BatchRequest(
+                req.policyModule,
+                req.policyFunction,
+                req.context != null ? req.context.toArray() : new Object[0]
+            ))
+            .collect(java.util.stream.Collectors.toList());
+
+        return policyEvaluationService.evaluateBatch(serviceRequests)
+            .onItem().transform(results -> {
+                long totalDurationNanos = System.nanoTime() - startTime;
+
+                // 构建批量响应
+                java.util.List<PolicyEvaluationResponse> responses = new java.util.ArrayList<>();
+                for (int i = 0; i < results.size(); i++) {
+                    var evalResult = results.get(i);
+                    var originalReq = batchRequest.requests.get(i);
+
+                    PolicyEvaluationResponse response = new PolicyEvaluationResponse();
+                    response.result = evalResult.getResult();
+                    response.executionTimeMs = evalResult.getExecutionTimeMs();
+                    response.policyModule = originalReq.policyModule;
+                    response.policyFunction = originalReq.policyFunction;
+                    response.timestamp = System.currentTimeMillis();
+                    response.fromCache = evalResult.isFromCache();
+                    response.policyExecutionTimeMs = evalResult.getExecutionTimeMs();
+
+                    responses.add(response);
+                }
+
+                return Response.ok(Map.of(
+                    "results", responses,
+                    "count", responses.size(),
+                    "totalExecutionTimeMs", totalDurationNanos / 1_000_000.0,
+                    "timestamp", System.currentTimeMillis()
+                )).build();
+            })
+            .onFailure().recoverWithItem(e ->
+                Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", "Batch evaluation failed", "details", e.getMessage()))
+                    .build()
+            );
+    }
+
+    /**
+     * 清空策略缓存（reactive版本）
+     *
+     * @return Uni包装的操作结果
+     */
+    @DELETE
+    @Path("/cache")
+    @Operation(
+        summary = "Clear policy cache",
+        description = "Clears all cached policy evaluation results (reactive)"
+    )
+    @APIResponse(
+        responseCode = "200",
+        description = "Cache cleared successfully"
+    )
+    public Uni<Response> clearCache() {
+        return policyEvaluationService.clearAllCache()
+            .onItem().transform(v -> Response.ok(Map.of(
+                "status", "success",
+                "message", "Policy cache cleared",
+                "timestamp", System.currentTimeMillis()
+            )).build());
+    }
+
+    /**
+     * 使特定策略的缓存失效（reactive版本）
+     *
+     * @param request 包含策略名称和上下文的请求
+     * @return Uni包装的操作结果
+     */
+    @DELETE
+    @Path("/cache/invalidate")
+    @Operation(
+        summary = "Invalidate specific policy cache",
+        description = "Invalidates cache for a specific policy and context (reactive)"
+    )
+    @APIResponse(
+        responseCode = "200",
+        description = "Cache invalidated successfully"
+    )
+    public Uni<Response> invalidateCache(PolicyEvaluationRequest request) {
+        if (request == null || request.policyModule == null || request.policyFunction == null) {
+            return Uni.createFrom().item(
+                Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Missing required fields: policyModule, policyFunction"))
+                    .build()
+            );
+        }
+
+        Object[] contextArray = request.context != null
+            ? request.context.toArray()
+            : new Object[0];
+
+        return policyEvaluationService.invalidateCache(
+                request.policyModule,
+                request.policyFunction,
+                contextArray
+            )
+            .onItem().transform(v -> Response.ok(Map.of(
+                "status", "success",
+                "message", "Cache invalidated for " + request.policyModule + "." + request.policyFunction,
+                "timestamp", System.currentTimeMillis()
+            )).build());
+    }
+
+    /**
+     * 批量评估请求数据类
+     */
+    public static class BatchEvaluationRequest {
+        public List<PolicyEvaluationRequest> requests;
     }
 }
