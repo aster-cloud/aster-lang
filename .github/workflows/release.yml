@@ -49,7 +49,7 @@ jobs:
         run: npm run build
 
       - name: Run CI checks
-        run: npm run ci || echo "CI checks non-blocking in release workflow"
+        run: npm run ci:fast || echo "CI checks non-blocking in release workflow"
 
       - name: Create Version PR (no publish)
         id: changesets

@@ -57,6 +57,7 @@ import type {
   Span,
 } from '../types.js';
 import { promises as fsPromises } from 'node:fs';
+import { buildTokenIndex, tokenNameAt as tokenNameAtOptimized } from './token-index.js';
 
 /**
  * 捕获指定偏移量处的单词
@@ -633,6 +634,10 @@ export function registerNavigationHandlers(
     const entry = getOrParse(doc);
     const { tokens: toks, ast } = entry;
     const pos = params.position;
+
+    // Build token index once for O(log n) lookups
+    const tokenIndex = buildTokenIndex(toks);
+
     const anyCall = findDottedCallRangeAt(toks, pos);
     if (anyCall) {
       // Include a short signature preview by heuristic
@@ -664,7 +669,8 @@ export function registerNavigationHandlers(
       if (decl) {
         if (isAstFunc(decl)) {
           const f = decl;
-          const nameAt = tokenNameAt(toks, pos);
+          // Use optimized O(log n) token lookup
+          const nameAt = tokenNameAtOptimized(tokenIndex, pos);
           // Pattern bindings: if hover is inside a case body and name matches a binding
           const patInfo = nameAt ? findPatternBindingDetail(f, nameAt, pos) : null;
           if (patInfo) {
@@ -873,9 +879,14 @@ export function registerNavigationHandlers(
     const doc = documents.get(params.textDocument.uri);
     if (!doc) return null;
     const { tokens: toks, ast } = getOrParse(doc);
+
+    // Build token index once for O(log n) lookups
+    const tokenIndex = buildTokenIndex(toks);
+
     try {
       const ast2 = (ast as AstModule) || (parse(toks) as AstModule);
-      const name = tokenNameAt(toks, params.position);
+      // Use optimized O(log n) token lookup
+      const name = tokenNameAtOptimized(tokenIndex, params.position);
       if (!name) return null;
 
       // Index top-level decls

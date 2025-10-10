@@ -6,7 +6,7 @@
 
 > **inferCapabilityFromName**(`name`): `null` \| [`CapabilityKind`](../enumerations/CapabilityKind.md)
 
-Defined in: [config/semantic.ts:166](https://github.com/wontlost-ltd/aster-lang/blob/44608e5a094893bf06e67cc4c9ca2750d8578ae7/src/config/semantic.ts#L166)
+Defined in: [config/semantic.ts:166](https://github.com/wontlost-ltd/aster-lang/blob/4c104476feb1dd10d1e24655952797af86444e2f/src/config/semantic.ts#L166)
 
 根据函数名前缀推断 capability。
 
