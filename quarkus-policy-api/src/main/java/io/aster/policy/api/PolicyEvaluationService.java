@@ -72,23 +72,33 @@ public class PolicyEvaluationService {
      * @param context 上下文参数
      * @return Uni包装的评估结果
      */
-    @CacheResult(cacheName = "policy-results")
     public Uni<PolicyEvaluationResult> evaluatePolicy(
             String policyModule,
             String policyFunction,
             Object[] context) {
+
+        // Create cache key
+        PolicyCacheKey cacheKey = new PolicyCacheKey(policyModule, policyFunction, context);
+        return evaluatePolicyWithKey(cacheKey);
+    }
+
+    /**
+     * Internal method with cache key for proper caching
+     */
+    @CacheResult(cacheName = "policy-results")
+    Uni<PolicyEvaluationResult> evaluatePolicyWithKey(PolicyCacheKey cacheKey) {
 
         return Uni.createFrom().item(() -> {
             try {
                 long startTime = System.nanoTime();
 
                 // Get or load policy metadata (cached)
-                String cacheKey = policyModule + "." + policyFunction;
-                PolicyMetadata metadata = metadataCache.computeIfAbsent(cacheKey,
-                    key -> loadPolicyMetadata(policyModule, policyFunction));
+                String metadataKey = cacheKey.getPolicyModule() + "." + cacheKey.getPolicyFunction();
+                PolicyMetadata metadata = metadataCache.computeIfAbsent(metadataKey,
+                    key -> loadPolicyMetadata(cacheKey.getPolicyModule(), cacheKey.getPolicyFunction()));
 
                 // 准备参数
-                Object[] args = prepareArguments(metadata.parameters, context);
+                Object[] args = prepareArguments(metadata.parameters, cacheKey.getContext());
 
                 // 使用MethodHandle调用策略 (比reflection快2-3倍)
                 Object result = metadata.methodHandle.invokeWithArguments(args);
@@ -147,8 +157,16 @@ public class PolicyEvaluationService {
     /**
      * 使缓存失效（针对特定策略，reactive版本）
      */
-    @CacheInvalidate(cacheName = "policy-results")
     public Uni<Void> invalidateCache(String policyModule, String policyFunction, Object[] context) {
+        PolicyCacheKey cacheKey = new PolicyCacheKey(policyModule, policyFunction, context);
+        return invalidateCacheWithKey(cacheKey);
+    }
+
+    /**
+     * Internal method with cache key for cache invalidation
+     */
+    @CacheInvalidate(cacheName = "policy-results")
+    Uni<Void> invalidateCacheWithKey(PolicyCacheKey cacheKey) {
         // 返回completed Uni，缓存失效由注解处理
         return Uni.createFrom().voidItem();
     }
