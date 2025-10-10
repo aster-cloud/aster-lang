@@ -1,0 +1,18 @@
+This module is demo.comparison.
+
+To testGreaterThanOrEqual with a: Int, b: Int, produce Bool:
+  Return >=(a, b).
+
+To testLessThanOrEqual with a: Int, b: Int, produce Bool:
+  Return <=(a, b).
+
+To testNotEqual with a: Int, b: Int, produce Bool:
+  Return !=(a, b).
+
+To testInRange with value: Int, min: Int, max: Int, produce Bool:
+  Let atLeastMin be >=(value, min).
+  Let atMostMax be <=(value, max).
+  If atLeastMin,:
+    Return atMostMax.
+  Otherwise,:
+    Return false.

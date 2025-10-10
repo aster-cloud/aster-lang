@@ -312,10 +312,10 @@ export function parseExpr(
   ctx: ParserContext,
   error: (msg: string) => never
 ): Expression {
-  // Operator-name calls like '<(x, y)' or '+(x, y)' or '>(x, y)'
-  if (ctx.at(TokenKind.LT) || ctx.at(TokenKind.PLUS) || ctx.at(TokenKind.MINUS) || ctx.at(TokenKind.GT)) {
+  // Operator-name calls like '<(x, y)' or '+(x, y)' or '>(x, y)' or '>=(x, y)' or '<=(x, y)' or '!=(x, y)'
+  if (ctx.at(TokenKind.LT) || ctx.at(TokenKind.PLUS) || ctx.at(TokenKind.MINUS) || ctx.at(TokenKind.GT) || ctx.at(TokenKind.GTE) || ctx.at(TokenKind.LTE) || ctx.at(TokenKind.NEQ)) {
     const symTok = ctx.next();
-    const sym = symTok.kind === TokenKind.LT ? '<' : symTok.kind === TokenKind.GT ? '>' : symTok.kind === TokenKind.PLUS ? '+' : '-';
+    const sym = symTok.kind === TokenKind.LT ? '<' : symTok.kind === TokenKind.GT ? '>' : symTok.kind === TokenKind.GTE ? '>=' : symTok.kind === TokenKind.LTE ? '<=' : symTok.kind === TokenKind.NEQ ? '!=' : symTok.kind === TokenKind.PLUS ? '+' : '-';
     if (ctx.at(TokenKind.LPAREN)) {
       const target = Node.Name(sym);
       const args = parseArgList(ctx, error);
@@ -348,6 +348,18 @@ function parseComparison(
       ctx.next();
       const right = parseAddition(ctx, error);
       left = Node.Call(Node.Name('>'), [left, right]);
+    } else if (ctx.at(TokenKind.LTE)) {
+      ctx.next();
+      const right = parseAddition(ctx, error);
+      left = Node.Call(Node.Name('<='), [left, right]);
+    } else if (ctx.at(TokenKind.GTE)) {
+      ctx.next();
+      const right = parseAddition(ctx, error);
+      left = Node.Call(Node.Name('>='), [left, right]);
+    } else if (ctx.at(TokenKind.NEQ)) {
+      ctx.next();
+      const right = parseAddition(ctx, error);
+      left = Node.Call(Node.Name('!='), [left, right]);
     } else if (ctx.isKeyword(KW.LESS_THAN)) {
       ctx.nextWord();
       const right = parseAddition(ctx, error);
@@ -742,7 +754,7 @@ export function inferLambdaReturnType(e: Expression): Type {
         if (n === 'Text.length') return Node.TypeName('Int');
         if (n === '+') return Node.TypeName('Int');
         if (n === 'not') return Node.TypeName('Bool');
-        if (n === '<' || n === '>' || n === '==') return Node.TypeName('Bool');
+        if (n === '<' || n === '>' || n === '<=' || n === '>=' || n === '==' || n === '!=') return Node.TypeName('Bool');
       }
       return Node.TypeName('Unknown');
     }

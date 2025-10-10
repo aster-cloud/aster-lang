@@ -202,6 +202,16 @@ export function lex(input: string): Token[] {
       push(TokenKind.RBRACKET, ']');
       continue;
     }
+    if (ch === '!') {
+      next();
+      if (peek() === '=') {
+        next();
+        push(TokenKind.NEQ, '!=');
+      } else {
+        Diagnostics.unexpectedCharacter(ch, { line, col }).throw();
+      }
+      continue;
+    }
     if (ch === '=') {
       next();
       push(TokenKind.EQUALS, '=');
@@ -234,12 +244,22 @@ export function lex(input: string): Token[] {
     }
     if (ch === '<') {
       next();
-      push(TokenKind.LT, '<');
+      if (peek() === '=') {
+        next();
+        push(TokenKind.LTE, '<=');
+      } else {
+        push(TokenKind.LT, '<');
+      }
       continue;
     }
     if (ch === '>') {
       next();
-      push(TokenKind.GT, '>');
+      if (peek() === '=') {
+        next();
+        push(TokenKind.GTE, '>=');
+      } else {
+        push(TokenKind.GT, '>');
+      }
       continue;
     }
 

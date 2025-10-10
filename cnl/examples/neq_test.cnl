@@ -1,0 +1,10 @@
+This module is demo.neq.
+
+To isDifferent with x: Int, y: Int, produce Bool:
+  Return !=(x, y).
+
+To isNotZero with n: Int, produce Bool:
+  Return !=(n, 0).
+
+To checkNotEqual with a: Text, b: Text, produce Bool:
+  Return !=(a, b).
