@@ -172,7 +172,7 @@ public class PolicyEvaluationService {
     }
 
     /**
-     * 批量评估多个策略（并行执行，显著提升吞吐量）
+     * 批量评估多个策略（并行执行，显著提升吞吐量，任一失败则全部失败）
      *
      * @param requests 策略评估请求列表
      * @return Uni包装的评估结果列表
@@ -185,8 +185,135 @@ public class PolicyEvaluationService {
             .map(req -> evaluatePolicy(req.policyModule, req.policyFunction, req.context))
             .collect(java.util.stream.Collectors.toList());
 
-        // 合并所有Uni结果使用现代API
+        // 合并所有Uni结果使用现代API（任一失败则全部失败）
         return Uni.join().all(unis).andFailFast();
+    }
+
+    /**
+     * 批量评估多个策略（并行执行，收集所有成功和失败结果）
+     *
+     * @param requests 策略评估请求列表
+     * @return Uni包装的批量评估结果（包含成功和失败的结果）
+     */
+    public Uni<BatchEvaluationResult> evaluateBatchWithFailures(
+            java.util.List<BatchRequest> requests) {
+
+        // 为每个请求创建带错误处理的Uni
+        java.util.List<Uni<EvaluationAttempt>> attempts = new java.util.ArrayList<>();
+
+        for (int i = 0; i < requests.size(); i++) {
+            final int index = i;
+            final BatchRequest req = requests.get(i);
+
+            Uni<EvaluationAttempt> attempt = evaluatePolicy(req.policyModule, req.policyFunction, req.context)
+                .onItem().transform(result -> new EvaluationAttempt(
+                    index,
+                    req.policyModule,
+                    req.policyFunction,
+                    result,
+                    null
+                ))
+                .onFailure().recoverWithItem(error -> new EvaluationAttempt(
+                    index,
+                    req.policyModule,
+                    req.policyFunction,
+                    null,
+                    error.getMessage()
+                ));
+
+            attempts.add(attempt);
+        }
+
+        // 并行执行所有评估（不会因失败而中断）
+        return Uni.join().all(attempts).andCollectFailures()
+            .onItem().transform(attemptResults -> {
+                // 分离成功和失败结果
+                java.util.List<EvaluationAttempt> successes = new java.util.ArrayList<>();
+                java.util.List<EvaluationAttempt> failures = new java.util.ArrayList<>();
+
+                for (EvaluationAttempt attempt : attemptResults) {
+                    if (attempt.error == null) {
+                        successes.add(attempt);
+                    } else {
+                        failures.add(attempt);
+                    }
+                }
+
+                return new BatchEvaluationResult(
+                    successes,
+                    failures,
+                    successes.size(),
+                    failures.size(),
+                    requests.size()
+                );
+            });
+    }
+
+    /**
+     * 策略组合执行（顺序执行多个策略，可选择前一个策略的结果作为下一个策略的输入）
+     *
+     * @param steps 策略组合步骤列表（按顺序执行）
+     * @param initialContext 初始上下文参数
+     * @return Uni包装的最终评估结果和中间结果列表
+     */
+    public Uni<PolicyCompositionResult> evaluateComposition(
+            java.util.List<CompositionStep> steps,
+            Object[] initialContext) {
+
+        if (steps == null || steps.isEmpty()) {
+            return Uni.createFrom().failure(
+                new IllegalArgumentException("Composition steps cannot be empty")
+            );
+        }
+
+        // 从初始上下文开始，顺序链接所有步骤
+        return evaluateCompositionStep(steps, 0, initialContext,
+            new PolicyCompositionResult(new java.util.ArrayList<>(), null));
+    }
+
+    /**
+     * 递归执行组合步骤
+     */
+    private Uni<PolicyCompositionResult> evaluateCompositionStep(
+            java.util.List<CompositionStep> steps,
+            int stepIndex,
+            Object[] context,
+            PolicyCompositionResult accumulator) {
+
+        if (stepIndex >= steps.size()) {
+            return Uni.createFrom().item(accumulator);
+        }
+
+        CompositionStep step = steps.get(stepIndex);
+
+        // 执行当前步骤
+        return evaluatePolicy(step.policyModule, step.policyFunction, context)
+            .chain(stepResult -> {
+                // 记录步骤结果
+                accumulator.getStepResults().add(new StepResult(
+                    step.policyModule,
+                    step.policyFunction,
+                    stepResult.getResult(),
+                    stepResult.getExecutionTimeMs(),
+                    stepIndex
+                ));
+
+                // 更新最终结果
+                accumulator.setFinalResult(stepResult.getResult());
+
+                // 确定下一步的上下文
+                Object[] nextContext;
+                if (step.useResultAsInput && stepIndex < steps.size() - 1) {
+                    // 使用当前步骤的结果作为下一步的输入
+                    nextContext = new Object[]{stepResult.getResult()};
+                } else {
+                    // 继续使用原始上下文
+                    nextContext = context;
+                }
+
+                // 递归执行下一步
+                return evaluateCompositionStep(steps, stepIndex + 1, nextContext, accumulator);
+            });
     }
 
     /**
@@ -216,6 +343,58 @@ public class PolicyEvaluationService {
         constructorCache.clear();
         // 返回completed Uni，缓存清空由注解处理
         return Uni.createFrom().voidItem();
+    }
+
+    /**
+     * 验证策略是否存在并可以加载
+     *
+     * @param policyModule 策略模块名
+     * @param policyFunction 策略函数名
+     * @return Uni包装的验证结果
+     */
+    public Uni<PolicyValidationResult> validatePolicy(String policyModule, String policyFunction) {
+        return Uni.createFrom().item(() -> {
+            try {
+                // 尝试加载策略元数据
+                String metadataKey = policyModule + "." + policyFunction;
+                PolicyMetadata metadata = metadataCache.computeIfAbsent(metadataKey,
+                    key -> loadPolicyMetadata(policyModule, policyFunction));
+
+                // 获取参数信息
+                java.util.List<ParameterInfo> parameters = new java.util.ArrayList<>();
+                for (Parameter param : metadata.parameters) {
+                    parameters.add(new ParameterInfo(
+                        param.getName(),
+                        param.getType().getSimpleName(),
+                        param.getType().getName()
+                    ));
+                }
+
+                // 获取返回类型
+                String returnType = metadata.method.getReturnType().getSimpleName();
+                String returnTypeFullName = metadata.method.getReturnType().getName();
+
+                return new PolicyValidationResult(
+                    true,
+                    "Policy exists and is valid",
+                    policyModule,
+                    policyFunction,
+                    parameters,
+                    returnType,
+                    returnTypeFullName
+                );
+            } catch (Exception e) {
+                return new PolicyValidationResult(
+                    false,
+                    "Policy validation failed: " + e.getMessage(),
+                    policyModule,
+                    policyFunction,
+                    null,
+                    null,
+                    null
+                );
+            }
+        }).runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
     }
 
     /**
@@ -397,6 +576,249 @@ public class PolicyEvaluationService {
         @Override
         public int hashCode() {
             return Objects.hash(result, executionTimeMs, fromCache);
+        }
+    }
+
+    /**
+     * Policy composition step
+     */
+    public static class CompositionStep {
+        public String policyModule;
+        public String policyFunction;
+        public boolean useResultAsInput;  // 是否使用前一步的结果作为输入
+
+        public CompositionStep() {}
+
+        public CompositionStep(String policyModule, String policyFunction, boolean useResultAsInput) {
+            this.policyModule = policyModule;
+            this.policyFunction = policyFunction;
+            this.useResultAsInput = useResultAsInput;
+        }
+    }
+
+    /**
+     * Policy composition result
+     */
+    public static class PolicyCompositionResult {
+        private java.util.List<StepResult> stepResults;
+        private Object finalResult;
+
+        public PolicyCompositionResult(java.util.List<StepResult> stepResults, Object finalResult) {
+            this.stepResults = stepResults;
+            this.finalResult = finalResult;
+        }
+
+        public java.util.List<StepResult> getStepResults() {
+            return stepResults;
+        }
+
+        public Object getFinalResult() {
+            return finalResult;
+        }
+
+        public void setFinalResult(Object finalResult) {
+            this.finalResult = finalResult;
+        }
+    }
+
+    /**
+     * Step result in policy composition
+     */
+    public static class StepResult {
+        private final String policyModule;
+        private final String policyFunction;
+        private final Object result;
+        private final double executionTimeMs;
+        private final int stepIndex;
+
+        public StepResult(String policyModule, String policyFunction, Object result,
+                         double executionTimeMs, int stepIndex) {
+            this.policyModule = policyModule;
+            this.policyFunction = policyFunction;
+            this.result = result;
+            this.executionTimeMs = executionTimeMs;
+            this.stepIndex = stepIndex;
+        }
+
+        public String getPolicyModule() {
+            return policyModule;
+        }
+
+        public String getPolicyFunction() {
+            return policyFunction;
+        }
+
+        public Object getResult() {
+            return result;
+        }
+
+        public double getExecutionTimeMs() {
+            return executionTimeMs;
+        }
+
+        public int getStepIndex() {
+            return stepIndex;
+        }
+    }
+
+    /**
+     * Policy validation result
+     */
+    public static class PolicyValidationResult {
+        private final boolean valid;
+        private final String message;
+        private final String policyModule;
+        private final String policyFunction;
+        private final java.util.List<ParameterInfo> parameters;
+        private final String returnType;
+        private final String returnTypeFullName;
+
+        public PolicyValidationResult(boolean valid, String message, String policyModule,
+                                     String policyFunction, java.util.List<ParameterInfo> parameters,
+                                     String returnType, String returnTypeFullName) {
+            this.valid = valid;
+            this.message = message;
+            this.policyModule = policyModule;
+            this.policyFunction = policyFunction;
+            this.parameters = parameters;
+            this.returnType = returnType;
+            this.returnTypeFullName = returnTypeFullName;
+        }
+
+        public boolean isValid() {
+            return valid;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String getPolicyModule() {
+            return policyModule;
+        }
+
+        public String getPolicyFunction() {
+            return policyFunction;
+        }
+
+        public java.util.List<ParameterInfo> getParameters() {
+            return parameters;
+        }
+
+        public String getReturnType() {
+            return returnType;
+        }
+
+        public String getReturnTypeFullName() {
+            return returnTypeFullName;
+        }
+    }
+
+    /**
+     * Parameter information
+     */
+    public static class ParameterInfo {
+        private final String name;
+        private final String type;
+        private final String fullTypeName;
+
+        public ParameterInfo(String name, String type, String fullTypeName) {
+            this.name = name;
+            this.type = type;
+            this.fullTypeName = fullTypeName;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getFullTypeName() {
+            return fullTypeName;
+        }
+    }
+
+    /**
+     * Evaluation attempt (can be success or failure)
+     */
+    public static class EvaluationAttempt {
+        private final int index;
+        private final String policyModule;
+        private final String policyFunction;
+        private final PolicyEvaluationResult result;
+        private final String error;
+
+        public EvaluationAttempt(int index, String policyModule, String policyFunction,
+                                PolicyEvaluationResult result, String error) {
+            this.index = index;
+            this.policyModule = policyModule;
+            this.policyFunction = policyFunction;
+            this.result = result;
+            this.error = error;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+
+        public String getPolicyModule() {
+            return policyModule;
+        }
+
+        public String getPolicyFunction() {
+            return policyFunction;
+        }
+
+        public PolicyEvaluationResult getResult() {
+            return result;
+        }
+
+        public String getError() {
+            return error;
+        }
+    }
+
+    /**
+     * Batch evaluation result with successes and failures
+     */
+    public static class BatchEvaluationResult {
+        private final java.util.List<EvaluationAttempt> successes;
+        private final java.util.List<EvaluationAttempt> failures;
+        private final int successCount;
+        private final int failureCount;
+        private final int totalCount;
+
+        public BatchEvaluationResult(java.util.List<EvaluationAttempt> successes,
+                                    java.util.List<EvaluationAttempt> failures,
+                                    int successCount, int failureCount, int totalCount) {
+            this.successes = successes;
+            this.failures = failures;
+            this.successCount = successCount;
+            this.failureCount = failureCount;
+            this.totalCount = totalCount;
+        }
+
+        public java.util.List<EvaluationAttempt> getSuccesses() {
+            return successes;
+        }
+
+        public java.util.List<EvaluationAttempt> getFailures() {
+            return failures;
+        }
+
+        public int getSuccessCount() {
+            return successCount;
+        }
+
+        public int getFailureCount() {
+            return failureCount;
+        }
+
+        public int getTotalCount() {
+            return totalCount;
         }
     }
 }

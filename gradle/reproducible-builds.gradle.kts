@@ -15,9 +15,8 @@ allprojects {
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
 
-    // 固定文件权限
-    fileMode = 0b110100100  // 0644
-    dirMode = 0b111101101   // 0755
+    // Note: fileMode and dirMode properties have been removed in Gradle 9.x
+    // File permissions are now handled by the file system
   }
 
   tasks.withType<JavaCompile>().configureEach {
@@ -44,7 +43,8 @@ gradle.settingsEvaluated {
     local {
       isEnabled = true
       directory = file("${rootProject.projectDir}/.gradle/build-cache")
-      removeUnusedEntriesAfterDays = 30
+      // Note: removeUnusedEntriesAfterDays has been removed in Gradle 9.x
+      // Cache cleanup is now managed automatically by Gradle
     }
 
     // 生产环境可配置远程缓存（如 S3）

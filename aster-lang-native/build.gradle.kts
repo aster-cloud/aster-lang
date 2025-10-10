@@ -24,7 +24,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
   implementation(project(":aster-runtime"))
-  implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
+  implementation(fileTree("${rootProject.projectDir}/build/aster-out") { include("aster.jar") })
 
   // 如果需要 Truffle 支持，取消注释：
   // implementation("org.graalvm.truffle:truffle-api:23.1.0")

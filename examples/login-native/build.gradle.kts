@@ -13,7 +13,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
   implementation(project(":aster-runtime"))
-  implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
+  implementation(fileTree("${rootProject.projectDir}/build/aster-out") { include("aster.jar") })
 }
 
 application {

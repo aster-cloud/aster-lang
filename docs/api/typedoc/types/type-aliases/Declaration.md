@@ -6,4 +6,4 @@
 
 > **Declaration** = [`Import`](../interfaces/Import.md) \| [`Data`](../interfaces/Data.md) \| [`Enum`](../interfaces/Enum.md) \| [`Func`](../interfaces/Func.md)
 
-Defined in: [types.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/d058d9c7dd4806e1a5ad4bae99abf86063fa8371/src/types.ts#L135)
+Defined in: [types.ts:138](https://github.com/wontlost-ltd/aster-lang/blob/ecb135a7d7668ee5a34b1d09cf742b5655b7829c/src/types.ts#L138)

@@ -6,4 +6,4 @@
 
 > **Statement** = [`Let`](../interfaces/Let.md) \| [`Set`](../interfaces/Set.md) \| [`Return`](../interfaces/Return.md) \| [`If`](../interfaces/If.md) \| [`Match`](../interfaces/Match.md) \| [`Start`](../interfaces/Start.md) \| [`Wait`](../interfaces/Wait.md) \| [`Expression`](Expression.md) \| [`Block`](../interfaces/Block.md)
 
-Defined in: [types.ts:137](https://github.com/wontlost-ltd/aster-lang/blob/d058d9c7dd4806e1a5ad4bae99abf86063fa8371/src/types.ts#L137)
+Defined in: [types.ts:140](https://github.com/wontlost-ltd/aster-lang/blob/ecb135a7d7668ee5a34b1d09cf742b5655b7829c/src/types.ts#L140)

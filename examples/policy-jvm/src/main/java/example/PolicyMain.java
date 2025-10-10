@@ -46,19 +46,20 @@ public final class PolicyMain {
     }
   }
   
+  @SuppressWarnings("unchecked")
   private static void runBasicPolicy(String[] args) {
     if (args.length < 5) {
       System.err.println("Usage: policy basic <role> <action> <ownerId> <userId>");
       System.exit(1);
     }
-    
+
     String role = args[1];
     String actionStr = args[2];
     String ownerId = args[3];
     String userId = args[4];
-    
+
     try {
-      demo.policy.Action action = demo.policy.Action.valueOf(actionStr);
+      demo.policy.Action action = Enum.valueOf(demo.policy.Action.class, actionStr);
       boolean allowed = demo.policy.canAccess_fn.canAccess(role, action, ownerId, userId);
       System.out.println(allowed ? "ALLOW" : "DENY");
     } catch (IllegalArgumentException ex) {
@@ -80,25 +81,26 @@ public final class PolicyMain {
     System.out.println("Test 5: " + demo.policy_demo.runPolicyTest5_fn.runPolicyTest5());
   }
   
-  
+
+  @SuppressWarnings("unchecked")
   private static void runComplexPolicy(String[] args) {
     if (args.length < 6) {
       System.err.println("Usage: policy complex <userId> <userRole> <resourceOwner> <resourceType> <timeOfDay>");
       System.exit(1);
     }
-    
+
     String userId = args[1];
     String userRole = args[2];
     String resourceOwner = args[3];
     String resourceType = args[4];
     double timeOfDay = Double.parseDouble(args[5]);
-    
+
     // Create a PolicyContext and test with evaluateUserReadRule
     demo.policy.PolicyContext context = new demo.policy.PolicyContext(
-        userId, userRole, resourceOwner, 
-        demo.policy.Resource.valueOf(resourceType), 
+        userId, userRole, resourceOwner,
+        Enum.valueOf(demo.policy.Resource.class, resourceType),
         aster.runtime.Primitives.number(timeOfDay), "office");
-    
+
     boolean result = demo.policy.evaluateUserReadRule_fn.evaluateUserReadRule(context);
     System.out.println(result ? "Access granted" : "Access denied");
   }

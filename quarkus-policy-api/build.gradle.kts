@@ -1,6 +1,7 @@
 plugins {
     id("java")
-    id("io.quarkus") version "3.17.5"
+    // Using latest Quarkus 3.28.3 - testing Gradle 9.0 compatibility
+    id("io.quarkus") version "3.28.3"
 }
 
 repositories {
@@ -16,7 +17,7 @@ java {
 
 dependencies {
     // Quarkus BOM (Bill of Materials) for dependency management
-    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.17.5"))
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.28.3"))
 
     // Quarkus核心依赖 - Reactive REST endpoints (quarkus-rest already includes reactive support)
     implementation("io.quarkus:quarkus-rest")
