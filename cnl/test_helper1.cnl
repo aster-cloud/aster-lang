@@ -1,0 +1,10 @@
+This module is test.helper1.
+
+Define Service with basePrice: Int.
+
+To determineMinorCoverage with insuranceType: Text, service: Service, produce Int:
+  If =(insuranceType, "Premium"),:
+    Return 90.
+  If =(insuranceType, "Standard"),:
+    Return 80.
+  Return 70.

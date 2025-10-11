@@ -132,6 +132,12 @@ export function lex(input: string): Token[] {
       while (i < input.length && peek() !== '\n') next();
       continue;
     }
+    // Division operator (must come after '//' comment check)
+    if (ch === '/') {
+      next();
+      push(TokenKind.SLASH, '/');
+      continue;
+    }
 
     // Newline + indentation (support \r\n and \r)
     if (ch === '\n' || ch === '\r') {

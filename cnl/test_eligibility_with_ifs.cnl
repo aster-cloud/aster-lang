@@ -1,0 +1,57 @@
+This module is test.eligibility.with.ifs.
+
+Define Patient with patientId: Text, age: Int, hasInsurance: Bool, insuranceType: Text, chronicConditions: Int.
+
+Define Service with serviceCode: Text, serviceName: Text, basePrice: Int, requiresPreAuth: Bool.
+
+Define EligibilityCheck with eligible: Bool, reason: Text, coveragePercent: Int, estimatedCost: Int, requiresPreAuth: Bool.
+
+To determineMinorCoverage with insuranceType: Text, service: Service, produce Int:
+  If =(insuranceType, "Premium"),:
+    Return 90.
+  If =(insuranceType, "Standard"),:
+    Return 80.
+  Return 70.
+
+To determineSeniorCoverage with insuranceType: Text, service: Service, produce Int:
+  If =(insuranceType, "Medicare"),:
+    Return 85.
+  If =(insuranceType, "Premium"),:
+    Return 95.
+  If =(insuranceType, "Standard"),:
+    Return 75.
+  Return 60.
+
+To determineStandardCoverage with insuranceType: Text, service: Service, chronicConditions: Int, produce Int:
+  If =(insuranceType, "Premium"),:
+    If >(chronicConditions, 2),:
+      Return 90.
+    Return 85.
+  If =(insuranceType, "Standard"),:
+    If >(chronicConditions, 2),:
+      Return 75.
+    Return 70.
+  If =(insuranceType, "Basic"),:
+    Return 60.
+  Return 50.
+
+To calculatePatientCost with basePrice: Int, coveragePercent: Int, produce Int:
+  Let coverageAmount be *(basePrice, coveragePercent).
+  Let patientPercent be -(100, coveragePercent).
+  Let patientCost be *(basePrice, patientPercent).
+  Return patientCost.
+
+To checkServiceEligibility with patient: Patient, service: Service, produce EligibilityCheck:
+  If not(patient.hasInsurance),:
+    Return EligibilityCheck with eligible = false, reason = "No insurance coverage", coveragePercent = 0, estimatedCost = service.basePrice, requiresPreAuth = false.
+
+  If <(patient.age, 18),:
+    Let coverage be determineMinorCoverage(patient.insuranceType, service).
+    Return EligibilityCheck with eligible = true, reason = "Minor coverage", coveragePercent = coverage, estimatedCost = calculatePatientCost(service.basePrice, coverage), requiresPreAuth = service.requiresPreAuth.
+
+  If >(patient.age, 65),:
+    Let coverage be determineSeniorCoverage(patient.insuranceType, service).
+    Return EligibilityCheck with eligible = true, reason = "Senior coverage", coveragePercent = coverage, estimatedCost = calculatePatientCost(service.basePrice, coverage), requiresPreAuth = service.requiresPreAuth.
+
+  Let coverage be determineStandardCoverage(patient.insuranceType, service, patient.chronicConditions).
+  Return EligibilityCheck with eligible = true, reason = "Standard coverage", coveragePercent = coverage, estimatedCost = calculatePatientCost(service.basePrice, coverage), requiresPreAuth = service.requiresPreAuth.

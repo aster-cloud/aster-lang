@@ -1,0 +1,8 @@
+This module is test.two.ifs.
+
+To testTwoIfs with x: Int, produce Int:
+  If =(x, 1),:
+    Return 10.
+  If =(x, 2),:
+    Return 20.
+  Return 0.

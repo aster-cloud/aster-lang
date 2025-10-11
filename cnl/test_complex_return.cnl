@@ -1,0 +1,19 @@
+This module is test.complex.return.
+
+Define Patient with insuranceType: Text, age: Int.
+
+Define Service with basePrice: Int, requiresPreAuth: Bool.
+
+Define EligibilityCheck with eligible: Bool, reason: Text, coveragePercent: Int, estimatedCost: Int, requiresPreAuth: Bool.
+
+To determineMinorCoverage with insuranceType: Text, service: Service, produce Int:
+  Return 90.
+
+To calculatePatientCost with basePrice: Int, coveragePercent: Int, produce Int:
+  Return *(basePrice, coveragePercent).
+
+To checkServiceEligibility with patient: Patient, service: Service, produce EligibilityCheck:
+  If <(patient.age, 18),:
+    Let coverage be determineMinorCoverage(patient.insuranceType, service).
+    Return EligibilityCheck with eligible = true, reason = "Minor coverage", coveragePercent = coverage, estimatedCost = calculatePatientCost(service.basePrice, coverage), requiresPreAuth = service.requiresPreAuth.
+  Return EligibilityCheck with eligible = false, reason = "No coverage", coveragePercent = 0, estimatedCost = 0, requiresPreAuth = false.

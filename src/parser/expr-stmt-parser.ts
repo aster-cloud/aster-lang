@@ -312,10 +312,10 @@ export function parseExpr(
   ctx: ParserContext,
   error: (msg: string) => never
 ): Expression {
-  // Operator-name calls like '<(x, y)' or '+(x, y)' or '>(x, y)' or '>=(x, y)' or '<=(x, y)' or '!=(x, y)'
-  if (ctx.at(TokenKind.LT) || ctx.at(TokenKind.PLUS) || ctx.at(TokenKind.MINUS) || ctx.at(TokenKind.GT) || ctx.at(TokenKind.GTE) || ctx.at(TokenKind.LTE) || ctx.at(TokenKind.NEQ)) {
+  // Operator-name calls like '<(x, y)' or '+(x, y)' or '*(x, y)' or '/(x, y)' or '>(x, y)' or '>=(x, y)' or '<=(x, y)' or '!=(x, y)' or '=(x, y)'
+  if (ctx.at(TokenKind.LT) || ctx.at(TokenKind.PLUS) || ctx.at(TokenKind.MINUS) || ctx.at(TokenKind.STAR) || ctx.at(TokenKind.SLASH) || ctx.at(TokenKind.GT) || ctx.at(TokenKind.GTE) || ctx.at(TokenKind.LTE) || ctx.at(TokenKind.NEQ) || ctx.at(TokenKind.EQUALS)) {
     const symTok = ctx.next();
-    const sym = symTok.kind === TokenKind.LT ? '<' : symTok.kind === TokenKind.GT ? '>' : symTok.kind === TokenKind.GTE ? '>=' : symTok.kind === TokenKind.LTE ? '<=' : symTok.kind === TokenKind.NEQ ? '!=' : symTok.kind === TokenKind.PLUS ? '+' : '-';
+    const sym = symTok.kind === TokenKind.LT ? '<' : symTok.kind === TokenKind.GT ? '>' : symTok.kind === TokenKind.GTE ? '>=' : symTok.kind === TokenKind.LTE ? '<=' : symTok.kind === TokenKind.NEQ ? '!=' : symTok.kind === TokenKind.EQUALS ? '=' : symTok.kind === TokenKind.PLUS ? '+' : symTok.kind === TokenKind.MINUS ? '-' : symTok.kind === TokenKind.STAR ? '*' : '/';
     if (ctx.at(TokenKind.LPAREN)) {
       const target = Node.Name(sym);
       const args = parseArgList(ctx, error);
@@ -389,26 +389,55 @@ function parseAddition(
   ctx: ParserContext,
   error: (msg: string) => never
 ): Expression {
-  let left = parsePrimary(ctx, error);
+  let left = parseMultiplication(ctx, error);
 
   let more = true;
   while (more) {
     if (ctx.at(TokenKind.PLUS)) {
       ctx.next();
-      const right = parsePrimary(ctx, error);
+      const right = parseMultiplication(ctx, error);
       left = Node.Call(Node.Name('+'), [left, right]);
     } else if (ctx.at(TokenKind.MINUS)) {
       ctx.next();
-      const right = parsePrimary(ctx, error);
+      const right = parseMultiplication(ctx, error);
       left = Node.Call(Node.Name('-'), [left, right]);
     } else if (ctx.isKeyword(KW.PLUS)) {
       ctx.nextWord();
-      const right = parsePrimary(ctx, error);
+      const right = parseMultiplication(ctx, error);
       left = Node.Call(Node.Name('+'), [left, right]);
     } else if (ctx.isKeyword(KW.MINUS)) {
       ctx.nextWord();
-      const right = parsePrimary(ctx, error);
+      const right = parseMultiplication(ctx, error);
       left = Node.Call(Node.Name('-'), [left, right]);
+    } else {
+      more = false;
+    }
+  }
+  return left;
+}
+
+/**
+ * 解析乘除法表达式
+ * @param ctx Parser 上下文
+ * @param error 错误报告函数
+ * @returns Expression 节点
+ */
+function parseMultiplication(
+  ctx: ParserContext,
+  error: (msg: string) => never
+): Expression {
+  let left = parsePrimary(ctx, error);
+
+  let more = true;
+  while (more) {
+    if (ctx.at(TokenKind.STAR)) {
+      ctx.next();
+      const right = parsePrimary(ctx, error);
+      left = Node.Call(Node.Name('*'), [left, right]);
+    } else if (ctx.at(TokenKind.SLASH)) {
+      ctx.next();
+      const right = parsePrimary(ctx, error);
+      left = Node.Call(Node.Name('/'), [left, right]);
     } else {
       more = false;
     }

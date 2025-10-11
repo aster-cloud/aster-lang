@@ -1,0 +1,14 @@
+This module is test.eligibility.minimal.
+
+Define Patient with insuranceType: Text, age: Int, hasInsurance: Bool.
+
+Define Service with basePrice: Int.
+
+To determineMinorCoverage with insuranceType: Text, service: Service, produce Int:
+  Return 90.
+
+To checkServiceEligibility with patient: Patient, service: Service, produce Int:
+  If <(patient.age, 18),:
+    Let coverage be determineMinorCoverage(patient.insuranceType, service).
+    Return coverage.
+  Return 0.

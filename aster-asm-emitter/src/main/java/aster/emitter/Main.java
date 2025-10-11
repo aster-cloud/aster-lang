@@ -800,33 +800,34 @@ public final class Main {
           continue;
         }
         if (st instanceof CoreModel.Return r) {
-          // Fast-path intrinsics for numeric/boolean returns
-          if (r.expr instanceof CoreModel.Call c && c.target instanceof CoreModel.Name tn) {
-            var nm = tn.name;
-            if (Objects.equals(nm, "+") && "I".equals(retDesc) && c.args.size()==2) {
-              System.out.println("RET FASTPATH: add");
-              // Direct param loads for 2-int params
-              mv.visitVarInsn(ILOAD, 0);
-              mv.visitVarInsn(ILOAD, 1);
-              mv.visitInsn(IADD);
-              mv.visitInsn(IRETURN);
-              mv.visitMaxs(0,0); mv.visitEnd(); writeClass(ctx, internal, cw.toByteArray()); return;
-            }
-            if (Objects.equals(nm, "<") && "Z".equals(retDesc) && c.args.size()==2) {
-              System.out.println("RET FASTPATH: cmp_lt");
-              var lT = new Label(); var lE = new Label();
-              mv.visitVarInsn(ILOAD, 0);
-              mv.visitVarInsn(ILOAD, 1);
-              mv.visitJumpInsn(IF_ICMPLT, lT);
-              mv.visitInsn(ICONST_0);
-              mv.visitJumpInsn(GOTO, lE);
-              mv.visitLabel(lT);
-              mv.visitInsn(ICONST_1);
-              mv.visitLabel(lE);
-              mv.visitInsn(IRETURN);
-              mv.visitMaxs(0,0); mv.visitEnd(); writeClass(ctx, internal, cw.toByteArray()); return;
-            }
-          }
+          // DISABLED: Fast-path intrinsics are buggy and assume parameters are in locals 0,1
+          // which is not true when parameters are objects. Let normal emission handle it.
+          // if (r.expr instanceof CoreModel.Call c && c.target instanceof CoreModel.Name tn) {
+          //   var nm = tn.name;
+          //   if (Objects.equals(nm, "+") && "I".equals(retDesc) && c.args.size()==2) {
+          //     System.out.println("RET FASTPATH: add");
+          //     // Direct param loads for 2-int params
+          //     mv.visitVarInsn(ILOAD, 0);
+          //     mv.visitVarInsn(ILOAD, 1);
+          //     mv.visitInsn(IADD);
+          //     mv.visitInsn(IRETURN);
+          //     mv.visitMaxs(0,0); mv.visitEnd(); writeClass(ctx, internal, cw.toByteArray()); return;
+          //   }
+          //   if (Objects.equals(nm, "<") && "Z".equals(retDesc) && c.args.size()==2) {
+          //     System.out.println("RET FASTPATH: cmp_lt");
+          //     var lT = new Label(); var lE = new Label();
+          //     mv.visitVarInsn(ILOAD, 0);
+          //     mv.visitVarInsn(ILOAD, 1);
+          //     mv.visitJumpInsn(IF_ICMPLT, lT);
+          //     mv.visitInsn(ICONST_0);
+          //     mv.visitJumpInsn(GOTO, lE);
+          //     mv.visitLabel(lT);
+          //     mv.visitInsn(ICONST_1);
+          //     mv.visitLabel(lE);
+          //     mv.visitInsn(IRETURN);
+          //     mv.visitMaxs(0,0); mv.visitEnd(); writeClass(ctx, internal, cw.toByteArray()); return;
+          //   }
+          // }
           // If returning Result, wrap unknown calls in try/catch -> Ok/Err
           if (retDesc.equals("Laster/runtime/Result;") && r.expr instanceof CoreModel.Call) {
             var lTryStart = new Label(); var lTryEnd = new Label(); var lCatch = new Label(); var lRet = new Label();
@@ -1038,6 +1039,13 @@ public final class Main {
           return;
         }
       }
+      // Check if this is a built-in operator
+      String builtinField = getBuiltinField(n.name);
+      if (builtinField != null) {
+        mv.visitFieldInsn(GETSTATIC, "aster/runtime/Builtins", builtinField,
+            builtinField.equals("NOT") ? "Laster/runtime/Fn1;" : "Laster/runtime/Fn2;");
+        return;
+      }
       mv.visitInsn(ACONST_NULL); return;
     }
     if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name tn) {
@@ -1056,6 +1064,33 @@ public final class Main {
           emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
           emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
           mv.visitInsn(IADD);
+          return;
+        }
+      }
+      if (Objects.equals(name, "-")) {
+        // ISUB
+        if (c.args.size() == 2) {
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          mv.visitInsn(ISUB);
+          return;
+        }
+      }
+      if (Objects.equals(name, "*")) {
+        // IMUL
+        if (c.args.size() == 2) {
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          mv.visitInsn(IMUL);
+          return;
+        }
+      }
+      if (Objects.equals(name, "/")) {
+        // IDIV
+        if (c.args.size() == 2) {
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          mv.visitInsn(IDIV);
           return;
         }
       }
@@ -1263,6 +1298,11 @@ public final class Main {
               else if (tn.name.equals("Long")) paramDesc = "J";
               else if (tn.name.equals("Double")) paramDesc = "D";
               else if (tn.name.equals("Text")) paramDesc = "Ljava/lang/String;";
+              else {
+                // Custom record type - convert to internal class descriptor
+                String internal = tn.name.contains(".") ? tn.name.replace('.', '/') : toInternal(currentPkg, tn.name);
+                paramDesc = internalDesc(internal);
+              }
             }
 
             emitExpr(ctx, mv, cgen.args.get(i), paramDesc, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
@@ -1277,6 +1317,11 @@ public final class Main {
             else if (rtn.name.equals("Long")) retDesc = "J";
             else if (rtn.name.equals("Double")) retDesc = "D";
             else if (rtn.name.equals("Text")) retDesc = "Ljava/lang/String;";
+            else {
+              // Custom record type - convert to internal class descriptor
+              String internal = rtn.name.contains(".") ? rtn.name.replace('.', '/') : toInternal(currentPkg, rtn.name);
+              retDesc = internalDesc(internal);
+            }
           }
           mdesc.append(")").append(retDesc);
 
@@ -1949,6 +1994,27 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     return pkg.replace('.', '/') + "/" + cls;
   }
   static String internalDesc(String internal) { return "L" + internal + ';'; }
+
+  /** Map built-in operator names to Builtins field names */
+  static String getBuiltinField(String operatorName) {
+    return switch (operatorName) {
+      case "=" -> "EQUALS";
+      case "!=" -> "NOT_EQUALS";
+      case "<" -> "LESS_THAN";
+      case "<=" -> "LESS_THAN_OR_EQUAL";
+      case ">" -> "GREATER_THAN";
+      case ">=" -> "GREATER_THAN_OR_EQUAL";
+      case "+" -> "ADD";
+      case "-" -> "SUBTRACT";
+      case "*" -> "MULTIPLY";
+      case "/" -> "DIVIDE";
+      case "%" -> "MODULO";
+      case "and" -> "AND";
+      case "or" -> "OR";
+      case "not" -> "NOT";
+      default -> null;
+    };
+  }
   static void emitConstString(Ctx ctx, MethodVisitor mv, String s) {
     String pooled = ctx.stringPool.computeIfAbsent(s, k -> k);
     mv.visitLdcInsn(pooled);
@@ -1980,19 +2046,64 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
   }
   // Overload with Ctx to support user-defined function return type classification
   static Character classifyNumeric(CoreModel.Expr e, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals, Ctx ctx) {
-    // Try basic classification first
-    Character basic = classifyNumeric(e, intLocals, longLocals, doubleLocals);
-    if (basic != null) return basic;
+    // Direct literal types
+    if (e instanceof CoreModel.DoubleE) return 'D';
+    if (e instanceof CoreModel.LongE) return 'J';
+    if (e instanceof CoreModel.IntE || e instanceof CoreModel.Bool) return 'I';
 
-    // Check for user-defined function calls
-    if (ctx != null && e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name targetName) {
-      String funcName = targetName.name;
-      if (ctx.functionSchemas().containsKey(funcName)) {
-        CoreModel.Func funcSchema = ctx.functionSchemas().get(funcName);
-        if (funcSchema.ret instanceof CoreModel.TypeName rtn) {
-          if (rtn.name.equals("Int") || rtn.name.equals("Bool")) return 'I';
-          if (rtn.name.equals("Long")) return 'J';
-          if (rtn.name.equals("Double")) return 'D';
+    // Local variables
+    if (e instanceof CoreModel.Name n) {
+      if (doubleLocals != null && doubleLocals.contains(n.name)) return 'D';
+      if (longLocals != null && longLocals.contains(n.name)) return 'J';
+      if (intLocals != null && intLocals.contains(n.name)) return 'I';
+
+      // Check for field access in Name expressions (e.g., "vehicle.year")
+      if (ctx != null) {
+        int dot = n.name.lastIndexOf('.');
+        if (dot > 0) {
+          String fieldName = n.name.substring(dot+1);
+          // Search dataSchema for this field
+          for (var entry : ctx.dataSchema.entrySet()) {
+            var dataType = entry.getValue();
+            for (var field : dataType.fields) {
+              if (field.name.equals(fieldName)) {
+                if (field.type instanceof CoreModel.TypeName tn) {
+                  if (tn.name.equals("Int") || tn.name.equals("Bool")) return 'I';
+                  if (tn.name.equals("Long")) return 'J';
+                  if (tn.name.equals("Double")) return 'D';
+                }
+                return null; // Found field but not a numeric type
+              }
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    // Operator calls (arithmetic/comparison) - recursively classify with ctx
+    if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn) {
+      String op = nn.name;
+      if (("+".equals(op) || "-".equals(op) || "*".equals(op) || "/".equals(op) || "times".equals(op) || "divided by".equals(op)) && c.args != null && c.args.size() == 2) {
+        Character k0 = classifyNumeric(c.args.get(0), intLocals, longLocals, doubleLocals, ctx);
+        Character k1 = classifyNumeric(c.args.get(1), intLocals, longLocals, doubleLocals, ctx);
+        if (k0 != null && k1 != null) {
+          if (k0 == 'D' || k1 == 'D') return 'D';
+          if (k0 == 'J' || k1 == 'J') return 'J';
+          return 'I';
+        }
+      }
+
+      // Check for user-defined function calls
+      if (ctx != null) {
+        String funcName = op;
+        if (ctx.functionSchemas().containsKey(funcName)) {
+          CoreModel.Func funcSchema = ctx.functionSchemas().get(funcName);
+          if (funcSchema.ret instanceof CoreModel.TypeName rtn) {
+            if (rtn.name.equals("Int") || rtn.name.equals("Bool")) return 'I';
+            if (rtn.name.equals("Long")) return 'J';
+            if (rtn.name.equals("Double")) return 'D';
+          }
         }
       }
     }
@@ -2000,28 +2111,7 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
   }
 
   static Character classifyNumeric(CoreModel.Expr e, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals) {
-    if (e instanceof CoreModel.DoubleE) return 'D';
-    if (e instanceof CoreModel.LongE) return 'J';
-    if (e instanceof CoreModel.IntE || e instanceof CoreModel.Bool) return 'I';
-    if (e instanceof CoreModel.Name n) {
-      if (doubleLocals != null && doubleLocals.contains(n.name)) return 'D';
-      if (longLocals != null && longLocals.contains(n.name)) return 'J';
-      if (intLocals != null && intLocals.contains(n.name)) return 'I';
-      return null;
-    }
-    if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn) {
-      String op = nn.name;
-      if (("+".equals(op) || "-".equals(op) || "times".equals(op) || "divided by".equals(op)) && c.args != null && c.args.size() == 2) {
-        Character k0 = classifyNumeric(c.args.get(0), intLocals, longLocals, doubleLocals);
-        Character k1 = classifyNumeric(c.args.get(1), intLocals, longLocals, doubleLocals);
-        if (k0 != null && k1 != null) {
-          if (k0 == 'D' || k1 == 'D') return 'D';
-          if (k0 == 'J' || k1 == 'J') return 'J';
-          return 'I';
-        }
-      }
-    }
-    return null;
+    return classifyNumeric(e, intLocals, longLocals, doubleLocals, null);
   }
   static final java.util.Map<String,String> REFLECT_CACHE = new java.util.LinkedHashMap<>();
   static final java.util.Map<String, java.util.List<String>> METHOD_CACHE = new java.util.LinkedHashMap<>();

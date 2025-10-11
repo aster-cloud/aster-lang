@@ -84,6 +84,7 @@ export enum TokenKind {
   PLUS = 'PLUS',
   STAR = 'STAR',
   MINUS = 'MINUS',
+  SLASH = 'SLASH',
   LT = 'LT',
   GT = 'GT',
   LTE = 'LTE',

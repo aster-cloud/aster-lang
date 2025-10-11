@@ -1,0 +1,16 @@
+This module is test.two.statements.
+
+Define Patient with insuranceType: Text, age: Int.
+
+Define Service with basePrice: Int.
+
+Define Result with value: Int.
+
+To determineMinorCoverage with insuranceType: Text, service: Service, produce Int:
+  Return 90.
+
+To checkServiceEligibility with patient: Patient, service: Service, produce Result:
+  If <(patient.age, 18),:
+    Let coverage be determineMinorCoverage(patient.insuranceType, service).
+    Return Result with value = coverage.
+  Return Result with value = 0.

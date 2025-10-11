@@ -1,0 +1,7 @@
+This module is test.let.in.if.
+
+To testLetInIf with x: Int, produce Int:
+  If >(x, 10),:
+    Let doubled be *(x, 2).
+    Return doubled.
+  Return x.

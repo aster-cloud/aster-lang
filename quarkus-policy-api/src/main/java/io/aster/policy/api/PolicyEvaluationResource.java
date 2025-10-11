@@ -139,12 +139,41 @@ public class PolicyEvaluationResource {
         description = "Policy list retrieved successfully"
     )
     public Response listPolicies() {
-        // 返回已知策略列表（aster-finance库）
+        // 返回已知策略列表（aster-finance库 + healthcare + insurance）
         List<PolicyInfo> policies = Arrays.asList(
+            // Finance policies
             new PolicyInfo("aster.finance.loan", "evaluateLoanEligibility", "Evaluate loan application eligibility"),
             new PolicyInfo("aster.finance.loan", "determineInterestRateBps", "Determine interest rate based on credit score"),
             new PolicyInfo("aster.finance.fraud", "detectFraud", "Detect fraudulent transactions based on amount, history and account age"),
-            new PolicyInfo("aster.finance.risk", "assessRisk", "Assess financial risk based on credit score, income and debt")
+            new PolicyInfo("aster.finance.risk", "assessRisk", "Assess financial risk based on credit score, income and debt"),
+
+            // Healthcare Eligibility policies
+            new PolicyInfo("aster.healthcare.eligibility", "checkServiceEligibility", "Check patient eligibility for healthcare service"),
+            new PolicyInfo("aster.healthcare.eligibility", "determineMinorCoverage", "Determine coverage percentage for minors"),
+            new PolicyInfo("aster.healthcare.eligibility", "determineSeniorCoverage", "Determine coverage percentage for seniors"),
+            new PolicyInfo("aster.healthcare.eligibility", "determineStandardCoverage", "Determine coverage percentage for standard patients"),
+            new PolicyInfo("aster.healthcare.eligibility", "calculatePatientCost", "Calculate patient out-of-pocket cost"),
+
+            // Healthcare Claims policies
+            new PolicyInfo("aster.healthcare.claims", "processClaim", "Process healthcare claim and determine approval"),
+            new PolicyInfo("aster.healthcare.claims", "calculateClaimApproval", "Calculate approved claim amount based on coverage and specialty"),
+            new PolicyInfo("aster.healthcare.claims", "validateClaimDocumentation", "Validate claim documentation completeness"),
+
+            // Auto Insurance policies
+            new PolicyInfo("aster.insurance.auto", "generateAutoQuote", "Generate auto insurance quote"),
+            new PolicyInfo("aster.insurance.auto", "calculateBasePremium", "Calculate base premium for driver and vehicle"),
+            new PolicyInfo("aster.insurance.auto", "calculateAgeFactor", "Calculate age-based premium factor"),
+            new PolicyInfo("aster.insurance.auto", "calculateVehicleFactor", "Calculate vehicle-based premium factor"),
+            new PolicyInfo("aster.insurance.auto", "calculateRiskMultiplier", "Calculate risk multiplier based on driver history"),
+            new PolicyInfo("aster.insurance.auto", "determineDeductible", "Determine deductible amount based on coverage and credit"),
+            new PolicyInfo("aster.insurance.auto", "determineCoverageLimit", "Determine coverage limit based on policy type"),
+
+            // Life Insurance policies
+            new PolicyInfo("aster.insurance.life", "generateLifeQuote", "Generate life insurance quote"),
+            new PolicyInfo("aster.insurance.life", "calculateBaseRate", "Calculate base rate based on age and term"),
+            new PolicyInfo("aster.insurance.life", "calculateHealthMultiplier", "Calculate health-based premium multiplier"),
+            new PolicyInfo("aster.insurance.life", "calculateOccupationMultiplier", "Calculate occupation-based premium multiplier"),
+            new PolicyInfo("aster.insurance.life", "calculateRiskScore", "Calculate overall risk score for applicant")
         );
 
         return Response.ok(Map.of(

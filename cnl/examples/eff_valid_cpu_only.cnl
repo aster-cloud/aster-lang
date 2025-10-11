@@ -1,7 +1,7 @@
 This module is test.eff.valid.cpu_only.
 
 To heavy_compute, produce Int. It performs cpu:
-  Return 42 * 58 + 100.
+  Return +(*(42, 58), 100).
 
 To process_cpu, produce Int. It performs cpu:
-  Return heavy_compute() + 1.
+  Return +(heavy_compute(), 1).

@@ -1,0 +1,112 @@
+This module is test.healthcare.claims.
+
+Define Claim with claimId: Text, patientId: Text, providerId: Text, serviceDate: Text, amount: Int, diagnosisCode: Text.
+
+Define Provider with providerId: Text, inNetwork: Bool, specialtyType: Text, qualityScore: Int.
+
+Define ClaimDecision with approved: Bool, reason: Text, approvedAmount: Int, denialCode: Text, requiresReview: Bool.
+
+To calculateClaimApproval with claimAmount: Int, coverage: Int, specialty: Text, produce Int:
+  Let baseApproval be *(claimAmount, coverage).
+
+  If =(specialty, "Specialist"),:
+    Let adjustedCoverage be -(coverage, 10).
+    Return *(claimAmount, adjustedCoverage).
+
+  If =(specialty, "Surgery"),:
+    Let adjustedCoverage be +(coverage, 5).
+    Return *(claimAmount, adjustedCoverage).
+
+  Return baseApproval.
+
+To processClaim with claim: Claim, provider: Provider, patientCoverage: Int, produce ClaimDecision:
+  If not(provider.inNetwork),:
+    Return ClaimDecision with approved = false, reason = "Provider not in network", approvedAmount = 0, denialCode = "OON", requiresReview = false.
+
+  If >(claim.amount, 50000),:
+    Return ClaimDecision with approved = false, reason = "Amount exceeds limit", approvedAmount = 0, denialCode = "LIMIT", requiresReview = true.
+
+  If <(provider.qualityScore, 70),:
+    Return ClaimDecision with approved = false, reason = "Provider quality score too low", approvedAmount = 0, denialCode = "QUALITY", requiresReview = true.
+
+  Let approvedAmt be calculateClaimApproval(claim.amount, patientCoverage, provider.specialtyType).
+
+  If =(approvedAmt, 0),:
+    Return ClaimDecision with approved = false, reason = "Coverage exclusion", approvedAmount = 0, denialCode = "EXCLUDE", requiresReview = false.
+
+  Return ClaimDecision with approved = true, reason = "Claim approved", approvedAmount = approvedAmt, denialCode = "", requiresReview = false.
+
+To validateClaimDocumentation with claim: Claim, hasPreAuth: Bool, hasReferral: Bool, produce Bool:
+  If >(claim.amount, 10000),:
+    If not(hasPreAuth),:
+      Return false.
+
+  If not(hasReferral),:
+    Return false.
+
+  Return true.
+
+To testOutOfNetworkProvider, produce ClaimDecision:
+  Let claim be Claim with claimId = "C001", patientId = "P001", providerId = "PR001", serviceDate = "2025-01-15", amount = 5000, diagnosisCode = "D001".
+  Let provider be Provider with providerId = "PR001", inNetwork = false, specialtyType = "General", qualityScore = 85.
+  Return processClaim(claim, provider, 80).
+
+To testAmountExceedsLimit, produce ClaimDecision:
+  Let claim be Claim with claimId = "C002", patientId = "P002", providerId = "PR002", serviceDate = "2025-01-16", amount = 60000, diagnosisCode = "D002".
+  Let provider be Provider with providerId = "PR002", inNetwork = true, specialtyType = "Surgery", qualityScore = 90.
+  Return processClaim(claim, provider, 85).
+
+To testLowQualityProvider, produce ClaimDecision:
+  Let claim be Claim with claimId = "C003", patientId = "P003", providerId = "PR003", serviceDate = "2025-01-17", amount = 3000, diagnosisCode = "D003".
+  Let provider be Provider with providerId = "PR003", inNetwork = true, specialtyType = "General", qualityScore = 65.
+  Return processClaim(claim, provider, 70).
+
+To testGeneralProviderNormalClaim, produce ClaimDecision:
+  Let claim be Claim with claimId = "C004", patientId = "P004", providerId = "PR004", serviceDate = "2025-01-18", amount = 2000, diagnosisCode = "D004".
+  Let provider be Provider with providerId = "PR004", inNetwork = true, specialtyType = "General", qualityScore = 85.
+  Return processClaim(claim, provider, 80).
+
+To testSpecialistProvider, produce ClaimDecision:
+  Let claim be Claim with claimId = "C005", patientId = "P005", providerId = "PR005", serviceDate = "2025-01-19", amount = 4000, diagnosisCode = "D005".
+  Let provider be Provider with providerId = "PR005", inNetwork = true, specialtyType = "Specialist", qualityScore = 92.
+  Return processClaim(claim, provider, 85).
+
+To testSurgeryProvider, produce ClaimDecision:
+  Let claim be Claim with claimId = "C006", patientId = "P006", providerId = "PR006", serviceDate = "2025-01-20", amount = 15000, diagnosisCode = "D006".
+  Let provider be Provider with providerId = "PR006", inNetwork = true, specialtyType = "Surgery", qualityScore = 95.
+  Return processClaim(claim, provider, 75).
+
+To testHighAmountInNetworkClaim, produce ClaimDecision:
+  Let claim be Claim with claimId = "C007", patientId = "P007", providerId = "PR007", serviceDate = "2025-01-21", amount = 45000, diagnosisCode = "D007".
+  Let provider be Provider with providerId = "PR007", inNetwork = true, specialtyType = "Surgery", qualityScore = 88.
+  Return processClaim(claim, provider, 90).
+
+To testMinimalAmountClaim, produce ClaimDecision:
+  Let claim be Claim with claimId = "C008", patientId = "P008", providerId = "PR008", serviceDate = "2025-01-22", amount = 500, diagnosisCode = "D008".
+  Let provider be Provider with providerId = "PR008", inNetwork = true, specialtyType = "General", qualityScore = 80.
+  Return processClaim(claim, provider, 70).
+
+To testValidDocumentationWithPreAuth, produce Bool:
+  Let claim be Claim with claimId = "C009", patientId = "P009", providerId = "PR009", serviceDate = "2025-01-23", amount = 12000, diagnosisCode = "D009".
+  Return validateClaimDocumentation(claim, true, true).
+
+To testInvalidDocumentationNoPreAuth, produce Bool:
+  Let claim be Claim with claimId = "C010", patientId = "P010", providerId = "PR010", serviceDate = "2025-01-24", amount = 15000, diagnosisCode = "D010".
+  Return validateClaimDocumentation(claim, false, true).
+
+To testInvalidDocumentationNoReferral, produce Bool:
+  Let claim be Claim with claimId = "C011", patientId = "P011", providerId = "PR011", serviceDate = "2025-01-25", amount = 5000, diagnosisCode = "D011".
+  Return validateClaimDocumentation(claim, true, false).
+
+To testLowAmountNoPreAuthRequired, produce Bool:
+  Let claim be Claim with claimId = "C012", patientId = "P012", providerId = "PR012", serviceDate = "2025-01-26", amount = 8000, diagnosisCode = "D012".
+  Return validateClaimDocumentation(claim, false, true).
+
+To testCalculateClaimApprovalGeneral, produce Int:
+  Return calculateClaimApproval(10000, 80, "General").
+
+To testCalculateClaimApprovalSpecialist, produce Int:
+  Return calculateClaimApproval(10000, 80, "Specialist").
+
+To testCalculateClaimApprovalSurgery, produce Int:
+  Return calculateClaimApproval(10000, 75, "Surgery").

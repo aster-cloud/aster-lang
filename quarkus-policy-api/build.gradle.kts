@@ -33,6 +33,9 @@ dependencies {
     // Caching - Caffeine cache
     implementation("io.quarkus:quarkus-cache")
 
+    // GraphQL支持
+    implementation("io.quarkus:quarkus-smallrye-graphql")
+
     // Aster运行时和编译后的策略
     implementation(project(":aster-runtime"))
     implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
@@ -52,13 +55,28 @@ tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
 
-// 确保在编译前生成Aster JAR（包含loan policy）
+// 确保在编译前生成Aster JAR（包含loan policy + healthcare + insurance）
 val generateAsterJar by tasks.registering(Exec::class) {
     workingDir = rootProject.projectDir
     commandLine = if (System.getProperty("os.name").lowercase().contains("win")) {
-        listOf("cmd", "/c", "npm", "run", "emit:class", "cnl/stdlib/finance/loan.cnl", "&&", "npm", "run", "jar:jvm")
+        listOf("cmd", "/c",
+            "npm", "run", "emit:class",
+            "cnl/stdlib/finance/loan.cnl",
+            "cnl/stdlib/healthcare/eligibility.cnl",
+            "cnl/stdlib/healthcare/claims.cnl",
+            "cnl/stdlib/insurance/auto.cnl",
+            "cnl/stdlib/insurance/life.cnl",
+            "&&",
+            "npm", "run", "jar:jvm")
     } else {
-        listOf("sh", "-c", "npm run emit:class cnl/stdlib/finance/loan.cnl && npm run jar:jvm")
+        listOf("sh", "-c",
+            "npm run emit:class " +
+            "cnl/stdlib/finance/loan.cnl " +
+            "cnl/stdlib/healthcare/eligibility.cnl " +
+            "cnl/stdlib/healthcare/claims.cnl " +
+            "cnl/stdlib/insurance/auto.cnl " +
+            "cnl/stdlib/insurance/life.cnl " +
+            "&& npm run jar:jvm")
     }
 }
 
