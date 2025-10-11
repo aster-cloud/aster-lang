@@ -1,0 +1,4 @@
+This module is test.
+
+To compare with x: Number, produce Bool:
+  Return >=(x, 100).

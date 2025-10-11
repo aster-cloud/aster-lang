@@ -1,0 +1,6 @@
+This module is test.operators.
+
+To checkRange with x: Int, produce Bool:
+  Let atLeast10 be >=(x, 10).
+  Let atMost100 be <=(x, 100).
+  Return atLeast10.

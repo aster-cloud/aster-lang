@@ -6,7 +6,7 @@
 
 > **CapabilityKind** = `"files"` \| `"network"` \| `"secrets"` \| `"crypto"` \| `"random"` \| `"time"` \| `"env"`
 
-Defined in: [types.ts:55](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/types.ts#L55)
+Defined in: [types.ts:55](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types.ts#L55)
 
 能力类型枚举
 

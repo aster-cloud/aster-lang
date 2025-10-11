@@ -4,7 +4,7 @@
 
 # Interface: AstMetadata
 
-Defined in: [types.ts:28](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/types.ts#L28)
+Defined in: [types.ts:28](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types.ts#L28)
 
 AST 节点的基础元数据接口
 
@@ -16,7 +16,7 @@ AST 节点的基础元数据接口
 
 > `optional` **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/types.ts#L30)
+Defined in: [types.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types.ts#L30)
 
 源代码位置信息（可选，由 parser 附加）
 
@@ -26,7 +26,7 @@ Defined in: [types.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/424562
 
 > `optional` **origin**: [`Origin`](Origin.md)
 
-Defined in: [types.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/types.ts#L32)
+Defined in: [types.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types.ts#L32)
 
 来源文件信息（可选，由 lower_to_core 附加）
 
@@ -36,6 +36,6 @@ Defined in: [types.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/424562
 
 > `optional` **file**: `null` \| `string`
 
-Defined in: [types.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/types.ts#L34)
+Defined in: [types.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types.ts#L34)
 
 文件路径（可选）

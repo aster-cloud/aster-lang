@@ -37,6 +37,17 @@ function main(): void {
   console.log('Copying policy classes from', classes);
   sh(`cp -r ${path.join(process.cwd(), classes)}/* ${tempDir}/`);
 
+  // Copy package-map.json to temp directory
+  const packageMapSource = 'aster-asm-emitter/build/aster-out/package-map.json';
+  const packageMapDest = path.join(tempDir, 'aster-asm-emitter/build/aster-out');
+  if (fs.existsSync(packageMapSource)) {
+    console.log('Copying package-map.json from', packageMapSource);
+    fs.mkdirSync(packageMapDest, { recursive: true });
+    fs.copyFileSync(packageMapSource, path.join(packageMapDest, 'package-map.json'));
+  } else {
+    console.warn('Warning: package-map.json not found at', packageMapSource);
+  }
+
   // Create merged JAR
   console.log('Creating merged JAR:', outJar);
   sh(`jar --create --file ${path.join(process.cwd(), outJar)} -C ${tempDir} .`);

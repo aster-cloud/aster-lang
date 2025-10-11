@@ -4,7 +4,7 @@
 
 # Interface: ConstructField
 
-Defined in: [types.ts:368](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/types.ts#L368)
+Defined in: [types.ts:368](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types.ts#L368)
 
 构造器字段基础接口。
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:368](https://github.com/wontlost-ltd/aster-lang/blob/42456
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:331](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/types/base.ts#L331)
+Defined in: [types/base.ts:331](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types/base.ts#L331)
 
 #### Inherited from
 
@@ -30,7 +30,7 @@ Defined in: [types/base.ts:331](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types/base.ts:332](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/types/base.ts#L332)
+Defined in: [types/base.ts:332](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types/base.ts#L332)
 
 #### Inherited from
 

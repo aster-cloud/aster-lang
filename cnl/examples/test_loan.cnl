@@ -1,0 +1,10 @@
+This module is aster.finance.loan.
+
+Define LoanApplication with applicantId: Text, amount: Number.
+
+Define LoanDecision with approved: Bool, reason: Text.
+
+To test with x: Number, produce Bool:
+  If <(x, 18),:
+    Return true.
+  Return false.

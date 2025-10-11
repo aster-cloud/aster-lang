@@ -1,0 +1,188 @@
+This module is aster.finance.creditcard.
+
+Define ApplicantInfo with applicantId: Text, age: Int, annualIncome: Int, creditScore: Int, existingCreditCards: Int, monthlyRent: Int, employmentStatus: Text, yearsAtCurrentJob: Int.
+
+Define FinancialHistory with bankruptcyCount: Int, latePayments: Int, utilization: Int, accountAge: Int, hardInquiries: Int.
+
+Define CreditCardOffer with productType: Text, requestedLimit: Int, hasRewards: Bool, annualFee: Int.
+
+Define ApprovalDecision with approved: Bool, reason: Text, approvedLimit: Int, interestRateAPR: Int, monthlyFee: Int, creditLine: Int, requiresDeposit: Bool, depositAmount: Int.
+
+Define RiskScore with score: Int, category: Text, factors: Text.
+
+Define IncomeValidation with sufficient: Bool, ratio: Int, recommendation: Text.
+
+To evaluateCreditCardApplication with applicant: ApplicantInfo, history: FinancialHistory, offer: CreditCardOffer, produce ApprovalDecision:
+  // 多层嵌套风险评估 - Multi-level nested risk assessment
+  Let riskScore be calculateComprehensiveRiskScore(applicant, history).
+  Let incomeCheck be validateIncomeRequirements(applicant, offer.requestedLimit).
+  Let employmentRisk be assessEmploymentStability(applicant).
+
+  // 硬性拒绝条件 - Hard rejection conditions
+  If !=(history.bankruptcyCount, 0),:
+    Return ApprovalDecision with approved = false, reason = "Bankruptcy on record", approvedLimit = 0, interestRateAPR = 0, monthlyFee = 0, creditLine = 0, requiresDeposit = false, depositAmount = 0.
+
+  If <(applicant.age, 21),:
+    Return ApprovalDecision with approved = false, reason = "Age below 21", approvedLimit = 0, interestRateAPR = 0, monthlyFee = 0, creditLine = 0, requiresDeposit = false, depositAmount = 0.
+
+  If <(applicant.creditScore, 550),:
+    Return ApprovalDecision with approved = false, reason = "Credit score too low", approvedLimit = 0, interestRateAPR = 0, monthlyFee = 0, creditLine = 0, requiresDeposit = false, depositAmount = 0.
+
+  // 收入不足检查 - Insufficient income check
+  If =(incomeCheck.sufficient, false),:
+    Return ApprovalDecision with approved = false, reason = incomeCheck.recommendation, approvedLimit = 0, interestRateAPR = 0, monthlyFee = 0, creditLine = 0, requiresDeposit = false, depositAmount = 0.
+
+  // 复杂的批准逻辑 - Complex approval logic with nested dependencies
+  Let finalLimit be determineFinalCreditLimit(offer.requestedLimit, applicant, history, riskScore.score, employmentRisk).
+  Let apr be calculateAPR(applicant.creditScore, riskScore.score, history).
+  Let requiresSecured be shouldRequireSecuredCard(applicant, history, riskScore.score).
+  Let deposit be calculateRequiredDeposit(requiresSecured, finalLimit).
+  Let fee be determineMonthlyFee(offer.productType, requiresSecured, applicant.creditScore).
+
+  Return ApprovalDecision with approved = true, reason = "Approved", approvedLimit = finalLimit, interestRateAPR = apr, monthlyFee = fee, creditLine = finalLimit, requiresDeposit = requiresSecured, depositAmount = deposit.
+
+To calculateComprehensiveRiskScore with applicant: ApplicantInfo, history: FinancialHistory, produce RiskScore:
+  // 基础风险分数计算 - Base risk score calculation
+  Let creditScorePoints be calculateCreditScorePoints(applicant.creditScore).
+  Let historyPoints be calculateHistoryPoints(history).
+  Let utilizationPenalty be calculateUtilizationPenalty(history.utilization).
+  Let inquiryPenalty be calculateInquiryPenalty(history.hardInquiries).
+
+  Let totalScore be -(-(-(creditScorePoints, historyPoints), utilizationPenalty), inquiryPenalty).
+
+  If >(totalScore, 800),:
+    Return RiskScore with score = totalScore, category = "Excellent", factors = "Strong profile".
+  If >(totalScore, 700),:
+    Return RiskScore with score = totalScore, category = "Good", factors = "Solid credit".
+  If >(totalScore, 600),:
+    Return RiskScore with score = totalScore, category = "Fair", factors = "Some concerns".
+  Return RiskScore with score = totalScore, category = "Poor", factors = "High risk".
+
+To calculateCreditScorePoints with creditScore: Int, produce Int:
+  If >(creditScore, 780),:
+    Return 300.
+  If >(creditScore, 720),:
+    Return 250.
+  If >(creditScore, 670),:
+    Return 200.
+  If >(creditScore, 620),:
+    Return 150.
+  Return 100.
+
+To calculateHistoryPoints with history: FinancialHistory, produce Int:
+  Let ageBonus be *(history.accountAge, 10).
+  Let latePenalty be *(history.latePayments, 15).
+  Return -(ageBonus, latePenalty).
+
+To calculateUtilizationPenalty with utilization: Int, produce Int:
+  If >(utilization, 80),:
+    Return 100.
+  If >(utilization, 50),:
+    Return 50.
+  If >(utilization, 30),:
+    Return 20.
+  Return 0.
+
+To calculateInquiryPenalty with inquiries: Int, produce Int:
+  If >(inquiries, 6),:
+    Return 80.
+  If >(inquiries, 3),:
+    Return 40.
+  Return 0.
+
+To validateIncomeRequirements with applicant: ApplicantInfo, requestedLimit: Int, produce IncomeValidation:
+  Let monthlyIncome be /(applicant.annualIncome, 12).
+  Let totalObligations be +(applicant.monthlyRent, /(requestedLimit, 10)).
+  Let ratio be /(*(totalObligations, 100), monthlyIncome).
+
+  If >=(ratio, 50),:
+    Return IncomeValidation with sufficient = false, ratio = ratio, recommendation = "Debt-to-income ratio too high".
+  If <(applicant.annualIncome, 15000),:
+    Return IncomeValidation with sufficient = false, ratio = ratio, recommendation = "Annual income below minimum".
+  Return IncomeValidation with sufficient = true, ratio = ratio, recommendation = "Income requirements met".
+
+To assessEmploymentStability with applicant: ApplicantInfo, produce Int:
+  If =(applicant.employmentStatus, "Unemployed"),:
+    Return 0.
+  If =(applicant.employmentStatus, "Self-employed"),:
+    If >(applicant.yearsAtCurrentJob, 3),:
+      Return 60.
+    Return 30.
+  If =(applicant.employmentStatus, "Full-time"),:
+    If >(applicant.yearsAtCurrentJob, 5),:
+      Return 100.
+    If >(applicant.yearsAtCurrentJob, 2),:
+      Return 80.
+    Return 50.
+  Return 40.
+
+To determineFinalCreditLimit with requestedLimit: Int, applicant: ApplicantInfo, history: FinancialHistory, riskScore: Int, employmentScore: Int, produce Int:
+  Let incomeBasedMax be /(applicant.annualIncome, 3).
+  Let riskBasedMax be +(*(riskScore, 50), *(employmentScore, 20)).
+
+  Let preliminaryLimit be requestedLimit.
+  If >(preliminaryLimit, incomeBasedMax),:
+    Let preliminaryLimit be incomeBasedMax.
+  If >(preliminaryLimit, riskBasedMax),:
+    Let preliminaryLimit be riskBasedMax.
+
+  // 根据历史调整 - Adjust based on history
+  If >(history.latePayments, 5),:
+    Let preliminaryLimit be /(preliminaryLimit, 2).
+
+  If <(preliminaryLimit, 500),:
+    Return 500.
+  If >(preliminaryLimit, 50000),:
+    Return 50000.
+  Return preliminaryLimit.
+
+To calculateAPR with creditScore: Int, riskScore: Int, history: FinancialHistory, produce Int:
+  Let baseAPR be 2400.
+
+  If >(creditScore, 780),:
+    Let baseAPR be 1299.
+  If >=(creditScore, 721),:
+    If <=(creditScore, 780),:
+      Let baseAPR be 1599.
+  If >=(creditScore, 671),:
+    If <=(creditScore, 720),:
+      Let baseAPR be 1899.
+  If >=(creditScore, 621),:
+    If <=(creditScore, 670),:
+      Let baseAPR be 2199.
+
+  // 风险调整 - Risk adjustment
+  If <(riskScore, 600),:
+    Let baseAPR be +(baseAPR, 300).
+
+  If >(history.latePayments, 3),:
+    Let baseAPR be +(baseAPR, 200).
+
+  Return baseAPR.
+
+To shouldRequireSecuredCard with applicant: ApplicantInfo, history: FinancialHistory, riskScore: Int, produce Bool:
+  If <=(applicant.creditScore, 620),:
+    Return true.
+  If <=(riskScore, 550),:
+    Return true.
+  If >=(history.latePayments, 8),:
+    Return true.
+  If >=(history.utilization, 90),:
+    Return true.
+  Return false.
+
+To calculateRequiredDeposit with requiresSecured: Bool, creditLimit: Int, produce Int:
+  If !=(requiresSecured, true),:
+    Return 0.
+  Return creditLimit.
+
+To determineMonthlyFee with productType: Text, isSecured: Bool, creditScore: Int, produce Int:
+  If =(isSecured, true),:
+    Return 0.
+  If =(productType, "Premium"),:
+    Return 25.
+  If =(productType, "Standard"),:
+    If <=(creditScore, 650),:
+      Return 10.
+    Return 0.
+  Return 0.

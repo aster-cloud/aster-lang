@@ -1,0 +1,9 @@
+This module is test.allcomparisons.
+
+To testAllOperators with x: Int, y: Int, produce Bool:
+  Let lt be <(x, y).
+  Let gt be >(x, y).
+  Let lte be <=(x, y).
+  Let gte be >=(x, y).
+  Let neq be !=(x, y).
+  Return neq.

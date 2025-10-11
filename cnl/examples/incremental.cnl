@@ -1,0 +1,10 @@
+This module is test.loan.
+
+Define LoanApplication with applicantId: Text, amount: Number, termMonths: Number, purpose: Text.
+
+Define Decision with approved: Bool, reason: Text.
+
+To check with age: Number, produce Decision:
+  If <(age, 18),:
+    Return Decision with approved = false, reason = "Too young".
+  Return Decision with approved = true, reason = "OK".

@@ -55,13 +55,16 @@ tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
 
-// 确保在编译前生成Aster JAR（包含loan policy + healthcare + insurance）
+// 确保在编译前生成Aster JAR（包含loan policy + creditcard + healthcare + insurance + lending）
 val generateAsterJar by tasks.registering(Exec::class) {
     workingDir = rootProject.projectDir
     commandLine = if (System.getProperty("os.name").lowercase().contains("win")) {
         listOf("cmd", "/c",
             "npm", "run", "emit:class",
             "cnl/stdlib/finance/loan.cnl",
+            "cnl/stdlib/finance/creditcard.cnl",
+            "cnl/stdlib/finance/lending/enterprise.cnl",
+            "cnl/stdlib/finance/lending/personal.cnl",
             "cnl/stdlib/healthcare/eligibility.cnl",
             "cnl/stdlib/healthcare/claims.cnl",
             "cnl/stdlib/insurance/auto.cnl",
@@ -72,6 +75,9 @@ val generateAsterJar by tasks.registering(Exec::class) {
         listOf("sh", "-c",
             "npm run emit:class " +
             "cnl/stdlib/finance/loan.cnl " +
+            "cnl/stdlib/finance/creditcard.cnl " +
+            "cnl/stdlib/finance/lending/enterprise.cnl " +
+            "cnl/stdlib/finance/lending/personal.cnl " +
             "cnl/stdlib/healthcare/eligibility.cnl " +
             "cnl/stdlib/healthcare/claims.cnl " +
             "cnl/stdlib/insurance/auto.cnl " +

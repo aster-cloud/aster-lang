@@ -6,7 +6,7 @@
 
 > **isBuiltinAwait**(`name`): `boolean`
 
-Defined in: [config/semantic.ts:283](https://github.com/wontlost-ltd/aster-lang/blob/424562fcc358f728754d52c653dd622346cf0157/src/config/semantic.ts#L283)
+Defined in: [config/semantic.ts:283](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/config/semantic.ts#L283)
 
 验证是否为内置异步函数。
 
