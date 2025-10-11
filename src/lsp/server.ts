@@ -59,6 +59,7 @@ import { registerSymbolsHandlers } from './symbols.js';
 import { registerTokensHandlers, SEM_LEGEND } from './tokens.js';
 import { registerHealthHandlers } from './health.js';
 import { ConfigService } from '../config/config-service.js';
+import { setWarmupPromise } from './shared-state.js';
 // import { lowerModule } from "../lower_to_core";
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -80,16 +81,6 @@ const pendingValidate: Map<string, ReturnType<typeof setTimeout>> = new Map();
 let currentIndexPath: string | null = null;
 let indexPersistenceActive = true;
 const workspaceFolders: string[] = [];
-
-// 预热完成 Promise，用于等待后台预热完成
-let warmupPromise: Promise<void> | null = null;
-
-/**
- * 获取预热 Promise，用于等待后台预热完成
- */
-export function getWarmupPromise(): Promise<void> | null {
-  return warmupPromise;
-}
 
 function getOrParse(doc: TextDocument): CachedDoc {
   const key = doc.uri;
@@ -273,7 +264,7 @@ connection.onInitialized(() => {
 
   // Background warmup: Rebuild workspace index and pre-compute diagnostics
   if (workspaceFolders.length > 0) {
-    warmupPromise = (async (): Promise<void> => {
+    const warmupPromise = (async (): Promise<void> => {
       try {
         await rebuildWorkspaceIndex(workspaceFolders);
         connection.console.log(`Workspace index rebuilt: ${getAllModules().length} modules indexed`);
@@ -288,6 +279,7 @@ connection.onInitialized(() => {
         connection.console.warn(`Workspace index rebuild failed: ${error?.message ?? String(error)}`);
       }
     })();
+    setWarmupPromise(warmupPromise);
   }
 
   // Register health handlers

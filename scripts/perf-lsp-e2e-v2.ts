@@ -135,7 +135,7 @@ async function measureScenario(definition: ProjectDefinition): Promise<ProjectMe
       );
       const warmupMs = performance.now() - warmupStart;
       console.log(`✅ Warmup completed in ${warmupMs.toFixed(2)}ms`);
-    } catch (err) {
+    } catch {
       console.warn(`⚠️  Warmup timeout or failed, continuing with test...`);
     }
 
@@ -183,7 +183,7 @@ async function measureScenario(definition: ProjectDefinition): Promise<ProjectMe
         } else if (i === 5) {
           console.log(`  ... (${definition.testFiles.length - 10} more files) ...`);
         }
-      } catch (err) {
+      } catch {
         console.warn(`  [${(i + 1).toString().padStart(2)}/${definition.testFiles.length}] ${relPath.padEnd(40)} TIMEOUT`);
       }
     }
@@ -225,7 +225,7 @@ async function measureScenario(definition: ProjectDefinition): Promise<ProjectMe
             const duration = performance.now() - start;
             incrementalSamples.push(duration);
             console.log(`  Iteration ${i + 1}: ${duration.toFixed(2)}ms`);
-          } catch (err) {
+          } catch {
             console.warn(`  Iteration ${i + 1}: TIMEOUT`);
           }
         }

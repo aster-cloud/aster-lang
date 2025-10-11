@@ -5,7 +5,6 @@
  */
 
 import { performance } from 'node:perf_hooks';
-import { createConnection, ProposedFeatures } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { computeDiagnostics } from '../src/lsp/diagnostics.js';
 import { lex } from '../src/lexer.js';
@@ -49,7 +48,7 @@ async function loadExampleFiles(): Promise<TextDocument[]> {
   return documents;
 }
 
-async function testDiagnostics(documents: TextDocument[], label: string) {
+async function testDiagnostics(documents: TextDocument[], label: string): Promise<{ total: number; avg: number; p50: number; p95: number; p99: number; results: number[] }> {
   console.log(`\n🧪 Test: ${label}`);
   console.log('─'.repeat(60));
 
@@ -101,7 +100,7 @@ async function testDiagnostics(documents: TextDocument[], label: string) {
   return { total, avg, p50, p95, p99, results };
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log('🚀 CNL Examples Diagnostics Performance Test');
   console.log('='.repeat(60));
 

@@ -6,6 +6,6 @@
 
 > **PiiDataCategory** = `"email"` \| `"phone"` \| `"ssn"` \| `"address"` \| `"financial"` \| `"health"` \| `"name"` \| `"biometric"`
 
-Defined in: [types.ts:233](https://github.com/wontlost-ltd/aster-lang/blob/af4125774ad182976762e13ef712d3d624eaba26/src/types.ts#L233)
+Defined in: [types.ts:233](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types.ts#L233)
 
 PII 数据类别

@@ -22,7 +22,6 @@ import { DiagnosticError } from '../diagnostics.js';
 import { collectSemanticDiagnostics } from './analysis.js';
 import type { CapabilityManifest } from '../capabilities.js';
 import { ConfigService } from '../config/config-service.js';
-import { getWarmupPromise } from './server.js';
 
 /**
  * 表示诊断模块的配置选项。
@@ -263,9 +262,7 @@ export async function computeDiagnostics(
     return cached.diagnostics;
   }
 
-  const parseStart = Date.now();
   const { tokens, ast } = getOrParse(textDocument);
-  const parseTime = Date.now() - parseStart;
 
   const diagnostics: Diagnostic[] = [];
 
@@ -500,19 +497,48 @@ export function registerDiagnosticHandlers(
     }
   );
 
-  // Workspace diagnostics (pull): 批次并行计算所有索引文件的诊断
+  // Workspace diagnostics (pull): 返回已缓存的诊断结果
   connection.onRequest(
     WorkspaceDiagnosticRequest.type,
     async (): Promise<WorkspaceDiagnosticReport> => {
       try {
-        // 等待后台预热完成
-        const warmupPromise = getWarmupPromise();
-        if (warmupPromise) {
-          await warmupPromise;
+        if (!diagnosticConfig.workspaceDiagnosticsEnabled) {
+          return { items: [] };
         }
 
+        // 仅返回已打开文档或已缓存的诊断结果，不触发完整工作区扫描
+        // 完整工作区诊断由后台预热(warmup)异步完成
         const modules = getAllModules();
-        const items = await computeWorkspaceDiagnostics(modules, documents, getOrParse);
+        const items: WorkspaceDocumentDiagnosticReport[] = [];
+
+        for (const rec of modules) {
+          // 只处理已打开的文档或已有缓存的文档
+          const doc = documents.get(rec.uri);
+          const cached = diagnosticCache.get(rec.uri);
+
+          if (doc || cached) {
+            try {
+              let diagnostics: Diagnostic[];
+              if (doc) {
+                diagnostics = await computeDiagnostics(doc, getOrParse);
+              } else if (cached) {
+                diagnostics = cached.diagnostics;
+              } else {
+                continue;
+              }
+
+              items.push({
+                uri: rec.uri,
+                version: doc?.version || null,
+                kind: DocumentDiagnosticReportKind.Full,
+                items: diagnostics,
+              });
+            } catch {
+              // 忽略单个文档的错误
+            }
+          }
+        }
+
         return { items };
       } catch {
         return { items: [] };

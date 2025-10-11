@@ -46,7 +46,7 @@ async function measureInitializeLatency(client: LSPClient): Promise<number> {
   return performance.now() - start;
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log('🚀 Layer 2: IPC Communication Overhead Test');
   console.log('='.repeat(70));
   console.log('');

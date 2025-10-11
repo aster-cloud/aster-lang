@@ -276,24 +276,6 @@ async function collectDiagnosticsSamples(options: DiagnosticsSampleOptions): Pro
   return samples;
 }
 
-async function waitForDiagnostics(client: LSPClient, uri: string, timeoutMs: number): Promise<void> {
-  const deadline = performance.now() + timeoutMs;
-  while (performance.now() < deadline) {
-    const remaining = Math.max(1, deadline - performance.now());
-    const message = await withTimeout(client.recv(), remaining, '等待诊断通知');
-    if (isDiagnosticsForUri(message, uri)) return;
-  }
-  throw new Error('诊断通知超时');
-}
-
-function isDiagnosticsForUri(message: unknown, uri: string): boolean {
-  if (!message || typeof message !== 'object') return false;
-  const payload = message as { method?: unknown; params?: unknown };
-  if (payload.method !== 'textDocument/publishDiagnostics') return false;
-  const params = payload.params as { uri?: unknown };
-  return typeof params?.uri === 'string' && params.uri === uri;
-}
-
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${label} 超时（>${timeoutMs}ms）`)), timeoutMs);

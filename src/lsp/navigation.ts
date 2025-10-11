@@ -539,7 +539,7 @@ export function registerNavigationHandlers(
     const refs = await findSymbolReferences(word, undefined);
     const filtered = scope === 'open' ? refs.filter(loc => openUris.has(loc.uri)) : refs;
     _beginProgress(params.workDoneToken, 'Aster references');
-    const CHUNK = Math.max(10, settings.streaming?.referencesChunk ?? 200);
+    const CHUNK = settings.streaming?.referencesChunk ?? 200;
     let batch: Location[] = [];
     for (const loc of filtered) {
       if (token?.isCancellationRequested) break;
@@ -578,7 +578,7 @@ export function registerNavigationHandlers(
     const total = modules.length;
     try { await updateDocumentIndex(doc.uri, doc.getText()); } catch {}
     _beginProgress(params.workDoneToken, 'Aster rename');
-    const CHUNK = Math.max(10, settings.streaming?.renameChunk ?? 200);
+    const CHUNK = settings.streaming?.renameChunk ?? 200;
     const BATCH_SIZE = 20; // 批量并发读取文件数
     let editsInChunk = 0;
 

@@ -9,7 +9,7 @@ type PendingCallback = {
 export class LSPClient {
   private server: ChildProcessWithoutNullStreams | null = null;
   private messageId = 0;
-  private buffer = '';
+  private buffer = Buffer.alloc(0); // Use Buffer instead of string to handle UTF-8 byte lengths correctly
   private pendingRequests = new Map<number, PendingCallback>();
   private pendingMessages: unknown[] = [];
   private pendingReceivers: PendingCallback[] = [];
@@ -24,9 +24,14 @@ export class LSPClient {
       stdio: ['pipe', 'pipe', 'pipe'],
     }) as unknown as ChildProcessWithoutNullStreams;
 
-    server.stdout.setEncoding('utf8');
+    // 配置 stdout 缓冲区大小为 100KB，支持大型 JSON 响应（如 workspace/diagnostic）
+    if (server.stdout.readableHighWaterMark < 100 * 1024) {
+      // @ts-expect-error - Node.js internal API to increase buffer size
+      server.stdout._readableState.highWaterMark = 100 * 1024;
+    }
+    // Don't set encoding - we need raw Buffer to correctly handle UTF-8 byte lengths
     server.stdout.on('data', chunk => {
-      this.handleStdout(String(chunk));
+      this.handleStdout(chunk instanceof Buffer ? chunk : Buffer.from(chunk));
     });
     server.stderr.on('data', chunk => {
       console.error('[LSP stderr]', String(chunk));
@@ -98,7 +103,7 @@ export class LSPClient {
   /** 清除状态以复用 */
   private resetState(): void {
     this.messageId = 0;
-    this.buffer = '';
+    this.buffer = Buffer.alloc(0);
     this.closed = false;
     this.pendingRequests.clear();
     this.pendingMessages = [];
@@ -110,39 +115,47 @@ export class LSPClient {
     return this.server;
   }
 
-  private handleStdout(chunk: string): void {
-    this.buffer += chunk;
+  private handleStdout(chunk: Buffer): void {
+    // Concatenate new chunk to existing buffer
+    this.buffer = Buffer.concat([this.buffer, chunk]);
+
     for (;;) {
-      const headerMatch = this.buffer.match(/^Content-Length: (\d+)\r\n\r\n/);
+      // Parse header from buffer (ASCII safe)
+      const bufferStr = this.buffer.toString('utf8');
+      const headerMatch = bufferStr.match(/^Content-Length: (\d+)\r\n\r\n/);
       if (!headerMatch) break;
-      const length = Number(headerMatch[1]);
-      const start = headerMatch[0].length;
-      if (this.buffer.length < start + length) break;
-      const payload = this.buffer.slice(start, start + length);
-      const remainder = this.buffer.slice(start + length);
+
+      const contentLength = Number(headerMatch[1]);
+      const headerLength = Buffer.byteLength(headerMatch[0], 'utf8');
+
+      // Check if we have enough bytes for the full message
+      if (this.buffer.length < headerLength + contentLength) break;
+
+      // Extract payload using byte offsets (not string indices!)
+      const payloadBuffer = this.buffer.slice(headerLength, headerLength + contentLength);
+      const payload = payloadBuffer.toString('utf8');
+      this.buffer = this.buffer.slice(headerLength + contentLength);
+
       try {
         const message = JSON.parse(payload);
-        this.buffer = remainder;
         this.dispatchMessage(message);
       } catch (err) {
+        // Fallback: try to find valid JSON by looking for last }
         const candidateEnd = payload.lastIndexOf('}');
         if (candidateEnd >= 0) {
           const candidate = payload.slice(0, candidateEnd + 1);
-          const leftover = payload.slice(candidateEnd + 1);
           try {
             const message = JSON.parse(candidate);
-            this.buffer = leftover + remainder;
             this.dispatchMessage(message);
             continue;
           } catch (nestedErr) {
             console.error('解析 LSP 消息失败：', nestedErr);
-            console.error('原始消息：', payload);
+            console.error('原始消息 (truncated):', payload.slice(0, 500));
           }
         } else {
           console.error('解析 LSP 消息失败：', err);
-          console.error('原始消息：', payload);
+          console.error('原始消息 (truncated):', payload.slice(0, 500));
         }
-        this.buffer = remainder;
       }
     }
   }

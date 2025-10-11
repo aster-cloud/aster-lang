@@ -163,7 +163,7 @@ async function measureScenario(scenario: TestScenario): Promise<void> {
   console.log(`     Compare with Layer 0 (profile-medium-project.ts) to see pure processing speed.`);
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log('🚀 Layer 1: LSP Server Internal Latency Test');
   console.log('='.repeat(70));
   console.log('');

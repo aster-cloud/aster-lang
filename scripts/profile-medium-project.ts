@@ -49,7 +49,7 @@ function printStats(stats: PhaseStats): void {
   console.log(`  Max:         ${stats.max.toFixed(2)}ms`);
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log('🚀 Medium Project Performance Analysis');
   console.log('='.repeat(60));
 
