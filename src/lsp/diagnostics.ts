@@ -22,6 +22,7 @@ import { DiagnosticError } from '../diagnostics.js';
 import { collectSemanticDiagnostics } from './analysis.js';
 import type { CapabilityManifest } from '../capabilities.js';
 import { ConfigService } from '../config/config-service.js';
+import { getWarmupPromise } from './server.js';
 
 /**
  * 表示诊断模块的配置选项。
@@ -51,6 +52,149 @@ let manifestCache: {
   path: string;
   data: CapabilityManifest | null;
 } | null = null;
+
+/**
+ * 诊断结果缓存，以 URI + 文档版本号为键。
+ * 当文档未变更时，直接返回缓存的诊断结果，避免重复类型检查。
+ */
+type DiagnosticCacheEntry = {
+  version: number;
+  diagnostics: Diagnostic[];
+  timestamp: number;
+};
+const diagnosticCache = new Map<string, DiagnosticCacheEntry>();
+
+/**
+ * 模块级类型检查结果缓存，用于增量类型检查优化。
+ * 缓存每个模块的类型检查诊断结果和依赖关系。
+ */
+type TypecheckCacheEntry = {
+  moduleName: string;          // 模块名称
+  version: number;              // 文档版本号
+  diagnostics: TypecheckDiagnostic[];  // 类型检查诊断结果
+  imports: string[];            // 该模块导入的其他模块名称列表
+  timestamp: number;            // 缓存时间戳
+};
+const typecheckCache = new Map<string, TypecheckCacheEntry>();
+
+/**
+ * 反向依赖图：记录哪些模块依赖于某个模块。
+ * 键：被依赖的模块名称
+ * 值：依赖该模块的模块 URI 列表
+ */
+const dependentsMap = new Map<string, Set<string>>();
+
+/**
+ * 从 Core.Module 中提取导入的模块名称列表。
+ * @param coreModule Core IR 模块
+ * @returns 导入的模块名称数组
+ */
+function extractImports(coreModule: any): string[] {
+  const imports: string[] = [];
+  if (!coreModule || !Array.isArray(coreModule.decls)) {
+    return imports;
+  }
+
+  for (const decl of coreModule.decls) {
+    if (decl && decl.kind === 'Import' && typeof decl.name === 'string') {
+      imports.push(decl.name);
+    }
+  }
+
+  return imports;
+}
+
+/**
+ * 更新反向依赖图：记录 importerUri 依赖于 imports 中的模块。
+ * @param importerUri 导入者的 URI
+ * @param imports 被导入的模块名称列表
+ */
+function updateDependentsMap(importerUri: string, imports: string[]): void {
+  for (const moduleName of imports) {
+    if (!dependentsMap.has(moduleName)) {
+      dependentsMap.set(moduleName, new Set());
+    }
+    dependentsMap.get(moduleName)!.add(importerUri);
+  }
+}
+
+/**
+ * 从反向依赖图中移除指定 URI 的所有依赖记录。
+ * @param uri 要移除的 URI
+ */
+function removeFromDependentsMap(uri: string): void {
+  for (const dependents of dependentsMap.values()) {
+    dependents.delete(uri);
+  }
+}
+
+/**
+ * 获取依赖于指定模块的所有 URI（递归获取传递依赖）。
+ * @param moduleName 模块名称
+ * @param visited 已访问的模块集合（用于避免循环依赖）
+ * @returns 所有依赖该模块的 URI 集合
+ */
+function getDependentUris(moduleName: string, visited = new Set<string>()): Set<string> {
+  const result = new Set<string>();
+
+  if (visited.has(moduleName)) {
+    return result; // 避免循环依赖
+  }
+  visited.add(moduleName);
+
+  const directDependents = dependentsMap.get(moduleName);
+  if (!directDependents) {
+    return result;
+  }
+
+  for (const uri of directDependents) {
+    result.add(uri);
+
+    // 递归获取该 URI 对应模块的依赖者
+    const cached = typecheckCache.get(uri);
+    if (cached) {
+      const transitiveDependents = getDependentUris(cached.moduleName, visited);
+      for (const dep of transitiveDependents) {
+        result.add(dep);
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 清除指定 URI 的诊断缓存。
+ * @param uri 文档 URI。
+ */
+export function invalidateDiagnosticCache(uri: string): void {
+  diagnosticCache.delete(uri);
+}
+
+/**
+ * 清除指定 URI 的类型检查缓存，并传递失效所有依赖者。
+ * @param uri 文档 URI
+ */
+export function invalidateTypecheckCache(uri: string): void {
+  const cached = typecheckCache.get(uri);
+  if (!cached) {
+    return; // 没有缓存，无需失效
+  }
+
+  // 获取所有依赖该模块的 URI
+  const dependentUris = getDependentUris(cached.moduleName);
+
+  // 失效该模块及其所有依赖者
+  typecheckCache.delete(uri);
+  removeFromDependentsMap(uri);
+
+  for (const depUri of dependentUris) {
+    typecheckCache.delete(depUri);
+    removeFromDependentsMap(depUri);
+  }
+
+  console.log(`[TypecheckCache] Invalidated ${uri} and ${dependentUris.size} dependents`);
+}
 
 /**
  * 异步加载能力清单文件。
@@ -104,7 +248,25 @@ export async function computeDiagnostics(
   textDocument: TextDocument,
   getOrParse: (doc: TextDocument) => { text: string; tokens: readonly any[]; ast: any }
 ): Promise<Diagnostic[]> {
+  const startTime = Date.now();
+
+  // 检查诊断缓存
+  const uri = textDocument.uri;
+  const version = textDocument.version;
+  const cached = diagnosticCache.get(uri);
+  if (cached && cached.version === version) {
+    // 缓存命中，直接返回
+    const duration = Date.now() - startTime;
+    if (duration > 1) {
+      console.log(`[Diagnostics] Cache hit for ${uri} (${duration}ms)`);
+    }
+    return cached.diagnostics;
+  }
+
+  const parseStart = Date.now();
   const { tokens, ast } = getOrParse(textDocument);
+  const parseTime = Date.now() - parseStart;
+
   const diagnostics: Diagnostic[] = [];
 
   try {
@@ -115,12 +277,44 @@ export async function computeDiagnostics(
       const core = lowerModule(parsed);
       diagnostics.push(...collectSemanticDiagnostics(tokens, core));
 
-      // 类型检查
-      const manifest = await loadCapabilityManifest();
-      const tdiags: TypecheckDiagnostic[] = manifest
-        ? typecheckModuleWithCapabilities(core, manifest)
-        : typecheckModule(core);
+      // 类型检查（使用模块级缓存）
+      const moduleName = (parsed as any).name || '';
+      const imports = extractImports(core);
 
+      // 检查类型检查缓存
+      const tcCached = typecheckCache.get(uri);
+      let tdiags: TypecheckDiagnostic[];
+
+      if (tcCached && tcCached.version === version && tcCached.moduleName === moduleName) {
+        // 缓存命中，直接使用缓存的类型检查结果
+        tdiags = tcCached.diagnostics;
+        console.log(`[TypecheckCache] Cache hit for ${uri} (module: ${moduleName})`);
+      } else {
+        // 缓存未命中或版本不匹配，执行类型检查
+        const typecheckStart = Date.now();
+        const manifest = await loadCapabilityManifest();
+        tdiags = manifest
+          ? typecheckModuleWithCapabilities(core, manifest)
+          : typecheckModule(core);
+        const typecheckTime = Date.now() - typecheckStart;
+
+        // 更新类型检查缓存
+        typecheckCache.set(uri, {
+          moduleName,
+          version,
+          diagnostics: tdiags,
+          imports,
+          timestamp: Date.now(),
+        });
+
+        // 更新反向依赖图
+        removeFromDependentsMap(uri); // 先清除旧的依赖关系
+        updateDependentsMap(uri, imports);
+
+        console.log(`[TypecheckCache] Cached ${uri} (module: ${moduleName}, typecheck: ${typecheckTime}ms, imports: ${imports.length})`);
+      }
+
+      // 转换为 LSP Diagnostic 格式
       for (const td of tdiags) {
         const d: Diagnostic = {
           severity:
@@ -204,6 +398,13 @@ export async function computeDiagnostics(
     // 忽略
   }
 
+  // 更新诊断缓存
+  diagnosticCache.set(uri, {
+    version,
+    diagnostics,
+    timestamp: Date.now(),
+  });
+
   return diagnostics;
 }
 
@@ -228,7 +429,7 @@ function uriToFsPath(uri: string): string | null {
  * @param getOrParse 获取缓存解析结果的函数。
  * @returns 工作区诊断报告列表。
  */
-async function computeWorkspaceDiagnostics(
+export async function computeWorkspaceDiagnostics(
   modules: Array<{ uri: string }>,
   documents: { get(uri: string): TextDocument | undefined },
   getOrParse: (doc: TextDocument) => { text: string; tokens: readonly any[]; ast: any }
@@ -249,7 +450,8 @@ async function computeWorkspaceDiagnostics(
             const fsPath = uriToFsPath(rec.uri);
             if (!fsPath || !existsSync(fsPath)) return null;
             const text = await fs.readFile(fsPath, 'utf8');
-            doc = TextDocument.create(rec.uri, 'cnl', 0, text);
+            // 使用 version=1 以匹配 LSP didOpen 时的版本号，确保预热缓存能被命中
+            doc = TextDocument.create(rec.uri, 'cnl', 1, text);
           }
           const items = await computeDiagnostics(doc, getOrParse);
           return {
@@ -303,6 +505,12 @@ export function registerDiagnosticHandlers(
     WorkspaceDiagnosticRequest.type,
     async (): Promise<WorkspaceDiagnosticReport> => {
       try {
+        // 等待后台预热完成
+        const warmupPromise = getWarmupPromise();
+        if (warmupPromise) {
+          await warmupPromise;
+        }
+
         const modules = getAllModules();
         const items = await computeWorkspaceDiagnostics(modules, documents, getOrParse);
         return { items };

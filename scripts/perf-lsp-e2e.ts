@@ -36,7 +36,7 @@ type DiagnosticsSampleOptions = {
 };
 
 const REQUEST_TIMEOUT_MS = resolveTimeout(process.env.LSP_PERF_TIMEOUT_MS, 5_000);
-const DIAGNOSTIC_TIMEOUT_MS = resolveTimeout(process.env.LSP_PERF_DIAG_TIMEOUT_MS, 5_000);
+const DIAGNOSTIC_TIMEOUT_MS = resolveTimeout(process.env.LSP_PERF_DIAG_TIMEOUT_MS, 30_000); // 提高默认超时到30秒以适应大型项目
 const ITERATIONS = resolveIterationCount(process.env.LSP_PERF_ITERATIONS, 100);
 const DIAGNOSTIC_ITERATIONS = resolveIterationCount(process.env.LSP_PERF_DIAG_ITERATIONS, 20);
 const DEBUG = process.env.LSP_PERF_DEBUG === '1';
@@ -234,23 +234,38 @@ async function collectDiagnosticsSamples(options: DiagnosticsSampleOptions): Pro
   const samples: number[] = [];
   let version = 1;
 
+  // 初始诊断请求（使用 Pull Diagnostics）
   const initialStart = performance.now();
   try {
-    await waitForDiagnostics(client, uri, DIAGNOSTIC_TIMEOUT_MS);
+    await withTimeout(
+      client.request('textDocument/diagnostic', {
+        textDocument: { uri },
+      }),
+      DIAGNOSTIC_TIMEOUT_MS,
+      'initial diagnostic request',
+    );
     samples.push(performance.now() - initialStart);
   } catch {
-    // 如果初始诊断缺失则继续采样后续迭代
+    // 初始诊断失败则继续采样后续迭代
   }
 
   for (let i = 0; i < iterations; i++) {
-    const start = performance.now();
     version += 1;
     client.notify('textDocument/didChange', {
       textDocument: { uri, version },
       contentChanges: [{ text }],
     });
+
+    // 主动请求诊断（Pull Diagnostics）
+    const start = performance.now();
     try {
-      await waitForDiagnostics(client, uri, DIAGNOSTIC_TIMEOUT_MS);
+      await withTimeout(
+        client.request('textDocument/diagnostic', {
+          textDocument: { uri },
+        }),
+        DIAGNOSTIC_TIMEOUT_MS,
+        'diagnostic request',
+      );
       samples.push(performance.now() - start);
     } catch {
       // 超时样本忽略

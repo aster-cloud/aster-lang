@@ -15,6 +15,7 @@ import {
 } from 'vscode-languageserver/node.js';
 
 import { promises as fsPromises } from 'node:fs';
+import { performance } from 'node:perf_hooks';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -39,6 +40,9 @@ import {
 import {
   registerDiagnosticHandlers,
   setDiagnosticConfig,
+  invalidateDiagnosticCache,
+  invalidateTypecheckCache,
+  computeWorkspaceDiagnostics,
 } from './diagnostics.js';
 import { registerCompletionHandlers, typeText } from './completion.js';
 import {
@@ -76,6 +80,16 @@ const pendingValidate: Map<string, ReturnType<typeof setTimeout>> = new Map();
 let currentIndexPath: string | null = null;
 let indexPersistenceActive = true;
 const workspaceFolders: string[] = [];
+
+// 预热完成 Promise，用于等待后台预热完成
+let warmupPromise: Promise<void> | null = null;
+
+/**
+ * 获取预热 Promise，用于等待后台预热完成
+ */
+export function getWarmupPromise(): Promise<void> | null {
+  return warmupPromise;
+}
 
 function getOrParse(doc: TextDocument): CachedDoc {
   const key = doc.uri;
@@ -175,8 +189,9 @@ connection.onInitialize(async (params: InitializeParams) => {
     };
   }
   try {
-    const path = require('node:path');
+    const { join, relative } = await import('node:path');
     const candidateRoots: Array<string | null | undefined> = [];
+
     // Collect workspace folders for later index rebuild
     if (Array.isArray(params.workspaceFolders) && params.workspaceFolders.length > 0) {
       for (const folder of params.workspaceFolders) {
@@ -187,21 +202,25 @@ connection.onInitialize(async (params: InitializeParams) => {
         }
       }
     }
-    if (params.rootUri) candidateRoots.push(uriToFsPath(params.rootUri));
+    if (params.rootUri) {
+      const rootFsPath = uriToFsPath(params.rootUri);
+      candidateRoots.push(rootFsPath);
+    }
     candidateRoots.push(params.rootPath);
     candidateRoots.push(process.cwd());
     const root = candidateRoots.find(r => typeof r === 'string' && r.length > 0) as string | undefined;
+
     // Fallback: if no workspace folders collected, use root
     if (workspaceFolders.length === 0 && root) {
       workspaceFolders.push(root);
     }
-    currentIndexPath = root ? path.join(root, '.asteri', 'lsp-index.json') : null;
+    currentIndexPath = root ? join(root, '.asteri', 'lsp-index.json') : null;
     setIndexConfig({ persistEnabled: true, indexPath: currentIndexPath ?? null, autoSaveDelay: 500 });
     indexPersistenceActive = true;
     if (currentIndexPath) {
       const loaded = await loadIndex(currentIndexPath);
       if (loaded) {
-        connection.console.log(`Loaded persisted index from ${path.relative(root ?? process.cwd(), currentIndexPath)}`);
+        connection.console.log(`Loaded persisted index from ${relative(root ?? process.cwd(), currentIndexPath)}`);
       }
     }
   } catch (error: any) {
@@ -251,12 +270,20 @@ connection.onInitialized(() => {
   } else {
     connection.console.warn('Client does not advertise didChangeWatchedFiles; workspace index updates may be limited to open documents.');
   }
-  // Rebuild workspace index in background for instant symbol search
+
+  // Background warmup: Rebuild workspace index and pre-compute diagnostics
   if (workspaceFolders.length > 0) {
-    void (async (): Promise<void> => {
+    warmupPromise = (async (): Promise<void> => {
       try {
         await rebuildWorkspaceIndex(workspaceFolders);
         connection.console.log(`Workspace index rebuilt: ${getAllModules().length} modules indexed`);
+
+        // Pre-compute diagnostics for all indexed modules
+        const warmupStart = performance.now();
+        const modules = getAllModules();
+        await computeWorkspaceDiagnostics(modules, documents, getOrParse);
+        const warmupDuration = performance.now() - warmupStart;
+        connection.console.log(`Diagnostics warmup completed in ${warmupDuration.toFixed(2)}ms`);
       } catch (error: any) {
         connection.console.warn(`Workspace index rebuild failed: ${error?.message ?? String(error)}`);
       }
@@ -374,6 +401,18 @@ documents.onDidChangeContent(change => {
     try { void getOrParse(change.document); } catch {}
   }, 150);
   pendingValidate.set(uri, handle);
+  // Clear diagnostic cache when document changes
+  try {
+    invalidateDiagnosticCache(uri);
+  } catch {
+    // ignore
+  }
+  // Clear typecheck cache and cascade to dependents
+  try {
+    invalidateTypecheckCache(uri);
+  } catch {
+    // ignore
+  }
   // Update index for open document
   try {
     void updateDocumentIndex(change.document.uri, change.document.getText()).catch(() => {});
