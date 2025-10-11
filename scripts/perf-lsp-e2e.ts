@@ -316,7 +316,7 @@ async function prepareSmallProject(): Promise<ProjectDefinition> {
     name: 'small',
     files,
     entryRelativePath: 'examples/greet.cnl',
-    hoverPosition: locatePosition(text, 'greet', 1),
+    hoverPosition: locatePosition(text, 'user', 0, 'parameter'),
     completionPosition: locatePosition(text, 'Return ', 7),
   };
 }
@@ -337,7 +337,7 @@ async function prepareMediumProject(): Promise<ProjectDefinition> {
     name: 'medium',
     files,
     entryRelativePath: entryPath,
-    hoverPosition: locatePosition(entryText, 'buildRequestId', 2),
+    hoverPosition: locatePosition(entryText, 'prefix', 0, 'parameter'),
     completionPosition: locatePosition(entryText, 'Return base.', 7),
   };
 }
@@ -353,15 +353,35 @@ async function prepareLargeProject(): Promise<ProjectDefinition> {
     name: 'large',
     files,
     entryRelativePath: relativePath,
-    hoverPosition: locatePosition(content, 'process0', 3),
+    hoverPosition: locatePosition(content, 'user', 0, 'parameter'),
     completionPosition: locatePosition(content, 'Return Active.', 8),
   };
 }
 
-function locatePosition(text: string, search: string, offset = 0): Position {
-  const index = text.indexOf(search);
-  if (index === -1) throw new Error(`在文本中找不到片段：${search}`);
-  const targetIndex = index + offset;
+/**
+ * 在文本中定位指定搜索词的位置
+ * @param text 要搜索的文本
+ * @param search 搜索词（函数名、参数名等）
+ * @param offset 从搜索词开始位置的偏移量（可选）
+ * @param context 上下文提示，用于更精确的匹配（可选，如 'parameter' 表示查找参数）
+ */
+function locatePosition(text: string, search: string, offset = 0, context?: 'parameter'): Position {
+  let targetIndex: number;
+
+  if (context === 'parameter') {
+    // 参数查找：查找 "with paramName:" 或 "and paramName:" 模式
+    const paramPattern = new RegExp(`\\b(with|and)\\s+(${search})\\s*:`, 'g');
+    const match = paramPattern.exec(text);
+    if (!match) throw new Error(`在文本中找不到参数：${search}`);
+    // 定位到参数名的开始位置
+    targetIndex = match.index + match[1]!.length + 1; // +1 for space after 'with'/'and'
+  } else {
+    // 普通查找：直接查找字符串
+    const index = text.indexOf(search);
+    if (index === -1) throw new Error(`在文本中找不到片段：${search}`);
+    targetIndex = index + offset;
+  }
+
   const untilTarget = text.slice(0, targetIndex);
   const line = untilTarget.split(/\r?\n/).length - 1;
   const lastLineBreak = untilTarget.lastIndexOf('\n');
