@@ -720,4 +720,71 @@ await runOneTypecheck(
 ## 观察
 - 已使用 `src/lsp/index.ts` 提供的接口替代 indexByUri/indexByModule 逻辑
 - references/workspaceSymbol/diagnostics 处理逻辑均改为依赖新模块
+2025-10-12 22:00 NZST — Codex — policy-editor 原生镜像编译适配
 
+2025-10-12 22:06 NZST — Codex — 增加原生运行交付物
+
+2025-10-12 22:12 NZST — Codex — 修复 JAR 组装脚本在 JDK 模块化环境下的兼容性
+
+2025-10-12 22:41 NZST — Codex — 为 examples/*-jvm 增加统一运行脚本
+
+2025-10-12 22:48 NZST — Codex — 配置缓存调整：全局开启，policy-editor 模块单独关闭
+
+2025-10-12 22:55 NZST — Codex — 进一步屏蔽 examples/*-native 的 Graal 生成任务配置缓存
+
+2025-10-12 23:02 NZST — Codex — 对 native 示例按模块关闭配置缓存
+
+2025-10-12 23:06 NZST — Codex — 局部屏蔽 examples/*-native 的 nativeCompile 配置缓存
+
+- 更新 `examples/build.gradle.kts`：对 `*-native` 子项目的 `nativeCompile` 任务标记 `notCompatibleWithConfigurationCache`
+- 目的：避免 `BuildNativeImageTask` 在缓存序列化阶段解析 `nativeImageCompileOnly` 配置导致失败
+- 工具：apply_patch
+
+- 新增 `examples/hello-native/gradle.properties` 与 `examples/login-native/gradle.properties`：`org.gradle.configuration-cache=false`
+- 目的：在 Gradle 9 + GraalVM Build Tools 组合下，彻底避免 `nativeCompile`/生成任务导致的配置缓存序列化失败
+- 范围：仅影响对应 `*-native` 模块；其他模块保持缓存开启
+- 工具：apply_patch
+
+- 修改 `examples/build.gradle.kts`：对 `*-native` 子项目的 `generateResourcesConfigFile` 与 `generateReachabilityMetadata` 标记 `notCompatibleWithConfigurationCache`
+- 原因：GraalVM Build Tools 任务在 Gradle 9 下序列化 `DefaultLegacyConfiguration` 失败，导致 CI 报错
+- 影响：涉及这些任务的构建不写入配置缓存，但整体 CI 可稳定通过
+- 工具：apply_patch
+
+- 还原 `gradle.properties`：`org.gradle.configuration-cache=true`
+- 在 `policy-editor/build.gradle.kts` 中为本模块的所有任务设置 `notCompatibleWithConfigurationCache(...)`
+- 目的：仅在涉及 `:policy-editor` 的构建中禁用缓存，其他项目仍可享受配置缓存以提升性能
+- 背景：Quarkus/Graal 原生相关任务在缓存序列化阶段不稳定，导致 CI 报错
+- 工具：apply_patch
+
+- 新增以下脚本（统一通过 Gradle Application 插件的 :run 任务运行）：
+  - examples/cli-jvm/run.sh
+  - examples/list-jvm/run.sh
+  - examples/login-jvm/run.sh
+  - examples/map-jvm/run.sh
+  - examples/text-jvm/run.sh
+  - examples/math-jvm/run.sh
+  - examples/policy-jvm/run.sh
+  - examples/rest-jvm/run.sh
+- 脚本策略：自动定位仓库根目录，使用本地 `build/.gradle` 作为 GRADLE_USER_HOME，保证首次运行即可完成所需生成与依赖
+- 工具：apply_patch
+
+- 更新 `scripts/jar-jvm.ts` 与同步生成的 `dist/scripts/jar-jvm.js`
+- 变更点：
+  - `jar --extract/--create` 失败时回退到 `unzip`/`zip`，适配受限或特定 JDK 版本的 jartool 异常
+  - 目的：保证 `npm run jar:jvm` 与 Gradle 任务的 JAR 合并在各环境稳定执行
+- 预期影响：修复 `jdk.jartool` 初始化异常导致的提取失败，解锁后续示例编译（demo.list 缺失系前置合并失败引起）
+- 工具：apply_patch
+
+- 新增 `policy-editor/Dockerfile.native`：最小化原生运行镜像（暴露 8081）
+- 新增 `policy-editor/build-native.sh`：一键原生构建脚本
+- 新增 `policy-editor/run-native.sh`：本地启动原生二进制脚本
+- 更新 `policy-editor/README.md`：补充原生构建/运行说明（强调原生仅后端）
+- 工具：apply_patch
+
+- 动作：更新 `policy-editor/build.gradle.kts`，在检测到 `-Dquarkus.package.type=native` 时：
+  - 不引入 `com.vaadin:vaadin-quarkus-extension`
+  - 不引入 `:aster-vaadin-native`
+  - 排除 `editor/ui/**` Java 源码与前端/webapp 资源，避免 Vaadin 相关类型在原生构建时参与编译与打包
+- 目的：规避 Vaadin 扩展在 Quarkus 增强与 Native Image 构建阶段的已知不兼容，保证 `:policy-editor` 原生镜像能够完成编译
+- 影响：原生镜像下不包含 Vaadin UI，仅保留 REST/GraphQL 代理后端能力；JVM 构建不受影响
+- 工具：apply_patch

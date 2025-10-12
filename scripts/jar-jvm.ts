@@ -7,11 +7,23 @@ function sh(cmd: string, options?: cp.ExecSyncOptions): void {
   cp.execSync(cmd, { stdio: 'inherit', ...options });
 }
 
+function tryExec(cmd: string, options?: cp.ExecSyncOptions): boolean {
+  try {
+    cp.execSync(cmd, { stdio: 'inherit', ...options });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function main(): void {
   const classes = 'build/jvm-classes';
   const runtimeJar = 'aster-runtime/build/libs/aster-runtime.jar';
-  const outJar = 'build/aster-out/aster.jar';
-  const tempDir = 'build/aster-out/temp-merge';
+  const outBase = process.env.ASTER_OUT_DIR && process.env.ASTER_OUT_DIR.trim().length > 0
+    ? process.env.ASTER_OUT_DIR
+    : 'build/aster-out';
+  const outJar = path.join(outBase, 'aster.jar');
+  const tempDir = path.join(outBase, 'temp-merge');
 
   if (!fs.existsSync(classes)) {
     console.error('No classes found:', classes);
@@ -25,13 +37,19 @@ function main(): void {
   }
 
   // Create output and temp directories
-  fs.mkdirSync('build/aster-out', { recursive: true });
+  fs.mkdirSync(outBase, { recursive: true });
   fs.rmSync(tempDir, { recursive: true, force: true });
   fs.mkdirSync(tempDir, { recursive: true });
 
   // Extract runtime JAR to temp directory
   console.log('Extracting runtime classes from', runtimeJar);
-  sh(`jar --extract --file ${path.join(process.cwd(), runtimeJar)}`, { cwd: tempDir });
+  const absRuntime = path.join(process.cwd(), runtimeJar);
+  // 优先使用 jar 工具；若失败（部分 JDK 版本下 jartool 在受限环境会异常），回退到 unzip
+  if (!tryExec(`jar --extract --file ${absRuntime}`, { cwd: tempDir })) {
+    console.warn('[jar-jvm] jar 工具解压失败，回退到 unzip');
+    // -o 覆盖，-q 安静模式（保持输出简洁）
+    sh(`unzip -o ${absRuntime}`, { cwd: tempDir });
+  }
 
   // Copy policy classes to temp directory
   console.log('Copying policy classes from', classes);
@@ -50,7 +68,18 @@ function main(): void {
 
   // Create merged JAR
   console.log('Creating merged JAR:', outJar);
-  sh(`jar --create --file ${path.join(process.cwd(), outJar)} -C ${tempDir} .`);
+  const absOut = path.join(process.cwd(), outJar);
+  if (!tryExec(`jar --create --file ${absOut} -C ${tempDir} .`)) {
+    console.warn('[jar-jvm] jar 工具打包失败，回退到 zip');
+    // 使用 zip 创建 JAR（ZIP）文件
+    const prevCwd = process.cwd();
+    try {
+      process.chdir(tempDir);
+      sh(`zip -r ${absOut} .`);
+    } finally {
+      process.chdir(prevCwd);
+    }
+  }
 
   // Clean up temp directory
   fs.rmSync(tempDir, { recursive: true, force: true });

@@ -8,9 +8,11 @@ tasks.withType<JavaCompile>().configureEach {
   options.isDeprecation = true
 }
 
+val moduleOut = layout.buildDirectory.dir("aster-out")
+
 dependencies {
   implementation(project(":aster-runtime"))
-  implementation(fileTree("${rootProject.projectDir}/build/aster-out") { include("aster.jar") })
+  implementation(files(moduleOut.map { it.file("aster.jar") }))
 }
 
 application { mainClass.set("example.CLIMain") }
@@ -18,10 +20,9 @@ application { mainClass.set("example.CLIMain") }
 val generateAsterJar by tasks.registering(Exec::class) {
   workingDir = rootProject.projectDir
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
-    listOf("cmd", "/c", "npm", "run", "emit:class", "cnl/examples/cli_tool.cnl", "&&", "npm", "run", "jar:jvm")
-  else listOf("sh", "-c", "npm run emit:class cnl/examples/cli_tool.cnl && npm run jar:jvm")
+    listOf("cmd", "/c", "set", "ASTER_OUT_DIR=examples/cli-jvm/build/aster-out", "&&", "npm", "run", "emit:class", "cnl/examples/cli_tool.cnl", "&&", "set", "ASTER_OUT_DIR=examples/cli-jvm/build/aster-out", "&&", "npm", "run", "jar:jvm")
+  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/cli-jvm/build/aster-out npm run emit:class cnl/examples/cli_tool.cnl && ASTER_OUT_DIR=examples/cli-jvm/build/aster-out npm run jar:jvm")
 }
 tasks.withType<JavaCompile>().configureEach {
   dependsOn(generateAsterJar)
 }
-

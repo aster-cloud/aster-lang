@@ -25,7 +25,15 @@ include ':examples:rest-jvm'
 project(':examples:rest-jvm').projectDir = file('examples/rest-jvm')
 include ':examples:policy-jvm'
 project(':examples:policy-jvm').projectDir = file('examples/policy-jvm')
+include ':policy-editor'
+project(':policy-editor').projectDir = file('policy-editor')
 
 // Phase 1: Quarkus Policy API
 include ':quarkus-policy-api'
 project(':quarkus-policy-api').projectDir = file('quarkus-policy-api')
+
+// Vaadin native integration extension modules
+include ':aster-vaadin-native'
+project(':aster-vaadin-native').projectDir = file('aster-vaadin-native')
+include ':aster-vaadin-native-deployment'
+project(':aster-vaadin-native-deployment').projectDir = file('aster-vaadin-native-deployment')
