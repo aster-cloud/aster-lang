@@ -63,8 +63,10 @@ export function registerCodeActionHandlers(
       }
 
       // 处理能力清单相关的 Quick Fix
-      if ((code === 'CAP_IO_NOT_ALLOWED' || code === 'CAP_CPU_NOT_ALLOWED') && capsPath) {
-        const cap = code === 'CAP_IO_NOT_ALLOWED' ? 'io' : 'cpu';
+      if (code === 'CAPABILITY_NOT_ALLOWED' && capsPath) {
+        const capRaw = ((d as any).data?.cap as string) || '';
+        // 将 CapabilityKind 转换为清单使用的小写键名
+        const cap = capRaw.toLowerCase();
         const func = ((d as any).data?.func as string) || extractFuncNameFromMessage(d.message);
         const mod = ((d as any).data?.module as string) || extractModuleName(text) || '';
         const fqn = mod ? `${mod}.${func}` : func;

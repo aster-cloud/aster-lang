@@ -18,40 +18,74 @@ async function main(): Promise<void> {
   const capsPath = path.resolve(outDir, 'tmp_caps.json');
   fs.writeFileSync(capsPath, JSON.stringify({ allow: { io: [], cpu: [] } }, null, 2) + '\n', 'utf8');
 
+  const DEBUG = process.argv.includes('--debug');
+  if (DEBUG) {
+    console.log('Capability manifest path:', capsPath);
+    console.log('Manifest content:', fs.readFileSync(capsPath, 'utf8'));
+  }
+
   const server = spawn('node', ['dist/src/lsp/server.js', '--stdio'], {
     stdio: ['pipe', 'pipe', 'inherit'],
     env: { ...process.env, ASTER_CAPS: capsPath },
   }) as unknown as ChildProcessWithoutNullStreams;
 
-  server.stdout.setEncoding('utf8');
-  let buffer = '';
+  // Don't set encoding - work with raw buffers to handle byte lengths correctly
+  let buffer = Buffer.alloc(0);
   let diags: any[] = [];
-  const DEBUG = process.argv.includes('--debug');
 
   server.stdout.on('data', (chunk: string | Buffer) => {
-    buffer += String(chunk);
+    buffer = Buffer.concat([buffer, Buffer.from(chunk)]);
     for (;;) {
-      const match = buffer.match(/^Content-Length: (\d+)\r\n\r\n/);
+      const match = buffer.toString('utf8').match(/^Content-Length: (\d+)\r\n\r\n/);
       if (!match) break;
-      const len = Number(match[1]);
-      const start = match[0].length;
-      if (buffer.length < start + len) break;
-      const jsonText = buffer.slice(start, start + len);
-      buffer = buffer.slice(start + len);
+      const headerLen = Buffer.byteLength(match[0], 'utf8');
+      const contentLen = Number(match[1]);
+      if (buffer.length < headerLen + contentLen) break;
+      const jsonBytes = buffer.subarray(headerLen, headerLen + contentLen);
+      buffer = buffer.subarray(headerLen + contentLen);
+      const jsonText = jsonBytes.toString('utf8');
       const obj = JSON.parse(jsonText);
-      if (obj.method === 'textDocument/publishDiagnostics' && obj.params?.uri === 'file:///cap-smoke.cnl') {
-        diags = obj.params.diagnostics || [];
+      if (DEBUG && !obj.method?.includes('window/logMessage')) {
+        if (obj.method) {
+          console.log('LSP Notification/Request:', obj.method, obj.id ? `id=${obj.id}` : '', obj.params?.uri || '');
+        } else if (obj.result !== undefined || obj.error) {
+          console.log('LSP Response:', `id=${obj.id}`, obj.error ? 'ERROR' : 'OK');
+        }
+      }
+      if (obj.method === 'textDocument/publishDiagnostics') {
         if (DEBUG) {
-          console.log('Diagnostics:', JSON.stringify(diags, null, 2));
+          console.log('Diagnostics URI:', obj.params?.uri, 'Count:', obj.params?.diagnostics?.length || 0);
+        }
+        if (obj.params?.uri === 'file:///cap-smoke.cnl') {
+          diags = obj.params.diagnostics || [];
+          if (DEBUG) {
+            console.log('Captured Diagnostics:', JSON.stringify(diags, null, 2));
+          }
         }
       }
       if (obj.id === 2) {
+        // Response to textDocument/diagnostic request
+        const result = obj.result;
+        if (result && result.items) {
+          diags = result.items;
+          if (DEBUG) {
+            console.log('Received diagnostics:', diags.length, 'items');
+            console.log('Diagnostics:', JSON.stringify(diags.map(d => ({ message: d.message, code: d.code })), null, 2));
+          }
+        }
+      }
+      if (obj.id === 3) {
         const actions: any[] = obj.result || [];
         if (DEBUG) {
           console.log('CodeActions:', JSON.stringify(actions.map(a => a.title), null, 2));
         }
-        const hasAllowFqn = actions.some(a => typeof a.title === 'string' && a.title.includes('Allow IO for demo.capdemo.hello'));
-        const hasAllowMod = actions.some(a => typeof a.title === 'string' && a.title.includes('Allow IO for demo.capdemo.*'));
+        // Check for capability manifest code actions (new granular capability model)
+        // Should have at least one "Allow <CAP> for <FQN>" and one "Allow <CAP> for <MODULE>.*"
+        const hasAllowFqn = actions.some(a => typeof a.title === 'string' &&
+          a.title.includes('for demo.capdemo.hello in manifest'));
+        const hasAllowMod = actions.some(a => typeof a.title === 'string' &&
+          a.title.includes('for demo.capdemo.* in manifest'));
+
         if (!hasAllowFqn || !hasAllowMod) {
           console.error('lsp-capmanifest-codeaction-smoke: expected allow actions not found');
           if (!DEBUG) {
@@ -60,8 +94,16 @@ async function main(): Promise<void> {
           }
           process.exit(1);
         }
+
+        // Verify we got actions for multiple capability types
+        const capTypes = new Set(actions.map(a => a.title?.split(' ')[1]).filter(Boolean));
+        if (capTypes.size < 2) {
+          console.error('lsp-capmanifest-codeaction-smoke: expected actions for multiple capability types');
+          console.error('Found capabilities:', [...capTypes]);
+          process.exit(1);
+        }
         // shutdown
-        send(server, { jsonrpc: '2.0', id: 3, method: 'shutdown' });
+        send(server, { jsonrpc: '2.0', id: 4, method: 'shutdown' });
         send(server, { jsonrpc: '2.0', method: 'exit' });
         setTimeout(() => process.exit(0), 100);
       }
@@ -93,11 +135,26 @@ async function main(): Promise<void> {
     },
   });
 
-  // Request code actions after diagnostics arrive
+  // Request diagnostics explicitly (pull-based diagnostics in LSP 3.17+)
   setTimeout(() => {
     send(server, {
       jsonrpc: '2.0',
       id: 2,
+      method: 'textDocument/diagnostic',
+      params: {
+        textDocument: { uri: 'file:///cap-smoke.cnl' },
+      },
+    });
+  }, 500);
+
+  // Request code actions after diagnostics are received
+  setTimeout(() => {
+    if (DEBUG) {
+      console.log('Requesting code actions. Diagnostics count:', diags.length);
+    }
+    send(server, {
+      jsonrpc: '2.0',
+      id: 3,
       method: 'textDocument/codeAction',
       params: {
         textDocument: { uri: 'file:///cap-smoke.cnl' },
@@ -105,7 +162,7 @@ async function main(): Promise<void> {
         context: { diagnostics: diags },
       },
     });
-  }, 700);
+  }, 1500);
 }
 
 main().catch(e => {
