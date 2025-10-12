@@ -1,0 +1,33 @@
+####
+# Dockerfile for JVM-based deployment of Policy Editor
+#
+# Build: ../../gradlew build
+# Docker build: docker build -f Dockerfile.jvm -t policy-editor:jvm .
+# Run: docker run -p 8080:8080 policy-editor:jvm
+####
+
+FROM eclipse-temurin:21-jre-alpine
+
+LABEL maintainer="Aster Lang Project"
+LABEL description="Policy Editor - Vaadin + Quarkus Web Application"
+
+# 创建工作目录
+WORKDIR /work/
+
+# 复制 Quarkus 应用
+COPY build/quarkus-app/lib/ /work/lib/
+COPY build/quarkus-app/*.jar /work/
+COPY build/quarkus-app/app/ /work/app/
+COPY build/quarkus-app/quarkus/ /work/quarkus/
+
+# 创建策略文件目录
+RUN mkdir -p /work/policies
+
+# 暴露端口
+EXPOSE 8080
+
+# 设置环境变量
+ENV JAVA_OPTS="-Xmx256m -Xms128m"
+
+# 运行应用
+CMD ["sh", "-c", "java $JAVA_OPTS -jar /work/quarkus-run.jar"]

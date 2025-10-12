@@ -1,0 +1,67 @@
+diff --git a/deployment/src/main/java/com/vaadin/quarkus/deployment/VaadinQuarkusNativeProcessor.java b/deployment/src/main/java/com/vaadin/quarkus/deployment/VaadinQuarkusNativeProcessor.java
+index 2bdd51d..090cc9c 100644
+--- a/deployment/src/main/java/com/vaadin/quarkus/deployment/VaadinQuarkusNativeProcessor.java
++++ b/deployment/src/main/java/com/vaadin/quarkus/deployment/VaadinQuarkusNativeProcessor.java
+@@ -50,6 +50,8 @@ import io.quarkus.deployment.builditem.GeneratedNativeImageClassBuildItem;
+ import io.quarkus.deployment.builditem.nativeimage.NativeImageResourcePatternsBuildItem;
+ import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+ import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedPackageBuildItem;
++import io.quarkus.deployment.builditem.SystemPropertyBuildItem;
++import io.quarkus.deployment.configuration.RunTimeConfigurationDefaultBuildItem;
+ import io.quarkus.deployment.pkg.NativeConfig;
+ import io.quarkus.gizmo.ClassCreator;
+ import io.quarkus.gizmo.MethodCreator;
+@@ -128,6 +130,35 @@ public class VaadinQuarkusNativeProcessor {
+         recorder.initAtmosphere(deploymentManager.getDeploymentManager());
+     }
+ 
++    /**
++     * Forces Vaadin to run in production mode when building a native image.
++     * <p>
++     * Dev Mode requires file system access and project structure (pom.xml/build.gradle)
++     * that is not available in compiled native images. This BuildStep ensures that
++     * Vaadin's DevModeInitializer is not invoked during native image runtime, preventing
++     * the "Failed to determine project directory" error.
++     * <p>
++     * Related issues:
++     * - https://github.com/quarkusio/quarkus/issues/45315
++     */
++    @BuildStep(onlyIf = IsNativeBuild.class)
++    void forceProductionModeInNativeImage(
++            BuildProducer<SystemPropertyBuildItem> systemProperty,
++            BuildProducer<RunTimeConfigurationDefaultBuildItem> runtimeConfig) {
++
++        // Set system property to enable production mode
++        systemProperty.produce(new SystemPropertyBuildItem(
++            "vaadin.productionMode", "true"));
++
++        // Set Quarkus configuration default
++        runtimeConfig.produce(new RunTimeConfigurationDefaultBuildItem(
++            "quarkus.vaadin.production-mode", "true"));
++
++        // Disable frontend hot deployment
++        systemProperty.produce(new SystemPropertyBuildItem(
++            "vaadin.frontend.hotdeploy", "false"));
++    }
++
+     /*
+      * If license-checker is not present at runtime, create stub Dau integration
+      * classes that thrown an exception if invoked. This will happen only if the
+@@ -270,10 +301,17 @@ public class VaadinQuarkusNativeProcessor {
+                         "vaadin-featureflags\\.properties")
+                 .build());
+ 
++        // Defer Atmosphere analytics initialization
+         runtimeInitializedPackage
+                 .produce(new RuntimeInitializedPackageBuildItem(
+                         "org.atmosphere.util.analytics"));
+ 
++        // Defer OSHI library initialization (used by Vaadin Dev Server)
++        // OSHI attempts to access system resources at build time, which fails in Native Image
++        runtimeInitializedPackage
++                .produce(new RuntimeInitializedPackageBuildItem(
++                        "oshi.software.os"));
++
+         // JSON serialization
+         reflectiveClass.produce(ReflectiveClassBuildItem
+                 .builder(AvailableViewInfo.class,

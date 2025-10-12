@@ -4,7 +4,7 @@
 
 # Interface: Field
 
-Defined in: [types.ts:282](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types.ts#L282)
+Defined in: [types.ts:282](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types.ts#L282)
 
 字段基础接口。
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:282](https://github.com/wontlost-ltd/aster-lang/blob/9a442
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types/base.ts#L65)
+Defined in: [types/base.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types/base.ts#L65)
 
 #### Inherited from
 
@@ -30,7 +30,7 @@ Defined in: [types/base.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/9
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types/base.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types/base.ts#L66)
+Defined in: [types/base.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types/base.ts#L66)
 
 #### Inherited from
 

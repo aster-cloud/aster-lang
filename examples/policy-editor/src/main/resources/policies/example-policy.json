@@ -1,0 +1,12 @@
+{
+  "id": "example-policy",
+  "name": "示例策略",
+  "allow": {
+    "io": ["*"],
+    "cpu": ["*"],
+    "network": ["http://*", "https://*"]
+  },
+  "deny": {
+    "io": ["/etc/passwd", "/etc/shadow"]
+  }
+}

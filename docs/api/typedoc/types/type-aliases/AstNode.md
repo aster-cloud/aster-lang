@@ -6,4 +6,4 @@
 
 > **AstNode** = [`BaseNode`](../base/interfaces/BaseNode.md)\<[`Span`](../interfaces/Span.md)\>
 
-Defined in: [types.ts:118](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types.ts#L118)
+Defined in: [types.ts:118](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types.ts#L118)

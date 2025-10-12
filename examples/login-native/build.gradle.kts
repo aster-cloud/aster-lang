@@ -5,7 +5,7 @@ plugins {
 
 repositories { mavenCentral() }
 
-java { toolchain { languageVersion.set(JavaLanguageVersion.of(21)) } }
+java { toolchain { languageVersion.set(JavaLanguageVersion.of(25)) } }
 tasks.withType<JavaCompile>().configureEach {
   options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
   options.isDeprecation = true

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略编辑器 - Policy Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .toolbar {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #545b62;
+        }
+
+        button.danger {
+            background: #dc3545;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background: white;
+            margin: 50px auto;
+            padding: 30px;
+            max-width: 800px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>策略编辑器 (Policy Editor)</h1>
+
+        <div class="toolbar">
+            <button onclick="showAddModal()">➕ 添加策略</button>
+            <button class="secondary" onclick="loadPolicies()">🔄 刷新</button>
+        </div>
+
+        <div id="policies-list">
+            <div class="loading">正在加载策略...</div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑模态框 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">添加策略</h2>
+
+            <form id="policy-form" onsubmit="savePolicy(event)">
+                <div class="form-group">
+                    <label>策略名称:</label>
+                    <input type="text" id="policy-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Allow 规则 (JSON):</label>
+                    <textarea id="allow-rules" placeholder='{"io": ["*"], "cpu": ["*"]}'></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Deny 规则 (JSON):</label>
+                    <textarea id="deny-rules" placeholder='{"io": ["/etc/passwd"]}'></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit">💾 保存</button>
+                    <button type="button" class="secondary" onclick="closeModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentPolicy = null;
+
+        // 加载策略列表
+        async function loadPolicies() {
+            try {
+                const response = await fetch('/api/policies');
+                const policies = await response.json();
+
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>名称</th>
+                                <th>Allow 规则</th>
+                                <th>Deny 规则</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${policies.map(policy => `
+                                <tr>
+                                    <td>${policy.id}</td>
+                                    <td>${policy.name}</td>
+                                    <td>${Object.keys(policy.allow.rules).length}</td>
+                                    <td>${Object.keys(policy.deny.rules).length}</td>
+                                    <td class="action-buttons">
+                                        <button onclick='editPolicy(${JSON.stringify(policy)})'>✏️ 编辑</button>
+                                        <button class="danger" onclick='deletePolicy("${policy.id}")'>🗑️ 删除</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                document.getElementById('policies-list').innerHTML = html;
+            } catch (error) {
+                document.getElementById('policies-list').innerHTML =
+                    `<div class="loading">❌ 加载失败: ${error.message}</div>`;
+            }
+        }
+
+        // 显示添加模态框
+        function showAddModal() {
+            currentPolicy = null;
+            document.getElementById('modal-title').textContent = '添加策略';
+            document.getElementById('policy-name').value = '';
+            document.getElementById('allow-rules').value = '{\n  "io": ["*"],\n  "cpu": ["*"]\n}';
+            document.getElementById('deny-rules').value = '{}';
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        // 编辑策略
+        function editPolicy(policy) {
+            currentPolicy = policy;
+            document.getElementById('modal-title').textContent = '编辑策略';
+            document.getElementById('policy-name').value = policy.name;
+            document.getElementById('allow-rules').value = JSON.stringify(policy.allow.rules, null, 2);
+            document.getElementById('deny-rules').value = JSON.stringify(policy.deny.rules, null, 2);
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // 保存策略
+        async function savePolicy(event) {
+            event.preventDefault();
+
+            try {
+                const name = document.getElementById('policy-name').value;
+                const allowRules = JSON.parse(document.getElementById('allow-rules').value || '{}');
+                const denyRules = JSON.parse(document.getElementById('deny-rules').value || '{}');
+
+                const policy = {
+                    id: currentPolicy ? currentPolicy.id : undefined,
+                    name: name,
+                    allow: { rules: allowRules },
+                    deny: { rules: denyRules }
+                };
+
+                const url = currentPolicy ? `/api/policies/${currentPolicy.id}` : '/api/policies';
+                const method = currentPolicy ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(policy)
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    loadPolicies();
+                    alert('✅ 保存成功');
+                } else {
+                    alert('❌ 保存失败: ' + await response.text());
+                }
+            } catch (error) {
+                alert('❌ 错误: ' + error.message);
+            }
+        }
+
+        // 删除策略
+        async function deletePolicy(id) {
+            if (!confirm(`确定要删除策略 ${id} 吗？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/policies/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadPolicies();
+                    alert('✅ 删除成功');
+                } else {
+                    alert('❌ 删除失败');
+                }
+            } catch (error) {
+                alert('❌ 错误: ' + error.message);
+            }
+        }
+
+        // 页面加载时加载策略
+        loadPolicies();
+    </script>
+</body>
+</html>

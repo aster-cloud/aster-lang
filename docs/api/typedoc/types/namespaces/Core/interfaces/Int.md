@@ -4,7 +4,7 @@
 
 # Interface: Int
 
-Defined in: [types.ts:349](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types.ts#L349)
+Defined in: [types.ts:349](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types.ts#L349)
 
 整数字面量基础接口。
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:349](https://github.com/wontlost-ltd/aster-lang/blob/9a442
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types/base.ts#L32)
+Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types/base.ts#L32)
 
 #### Inherited from
 
@@ -30,7 +30,7 @@ Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/9
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types/base.ts#L33)
+Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types/base.ts#L33)
 
 #### Inherited from
 
@@ -42,7 +42,7 @@ Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/9
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types/base.ts#L34)
+Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types/base.ts#L34)
 
 #### Inherited from
 
@@ -54,7 +54,7 @@ Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/9
 
 > `readonly` **kind**: `"Int"`
 
-Defined in: [types/base.ts:264](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types/base.ts#L264)
+Defined in: [types/base.ts:264](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types/base.ts#L264)
 
 #### Inherited from
 
@@ -66,7 +66,7 @@ Defined in: [types/base.ts:264](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **value**: `number`
 
-Defined in: [types/base.ts:265](https://github.com/wontlost-ltd/aster-lang/blob/9a442c516389168ad783665c1531d6c31447ae23/src/types/base.ts#L265)
+Defined in: [types/base.ts:265](https://github.com/wontlost-ltd/aster-lang/blob/fe93f11b4481d694b312ddca8e1933258bd7f0df/src/types/base.ts#L265)
 
 #### Inherited from
 
