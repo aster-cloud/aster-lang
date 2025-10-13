@@ -1,0 +1,100 @@
+---
+# Policy Editor Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-editor
+  labels:
+    app: policy-editor
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: policy-editor
+  template:
+    metadata:
+      labels:
+        app: policy-editor
+        version: v1
+    spec:
+      containers:
+      - name: policy-editor
+        image: policy-editor:jvm
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: JAVA_OPTS
+          value: "-Xmx256m -Xms128m"
+        - name: QUARKUS_HTTP_PORT
+          value: "8080"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: policies
+          mountPath: /work/policies
+      volumes:
+      - name: policies
+        emptyDir: {}
+---
+# Policy Editor Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: policy-editor
+  labels:
+    app: policy-editor
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: policy-editor
+---
+# Policy Editor Ingress (optional)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: policy-editor
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: policy-editor.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: policy-editor
+            port:
+              number: 8080

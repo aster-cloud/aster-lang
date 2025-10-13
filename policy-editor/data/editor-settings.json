@@ -1,0 +1,8 @@
+{
+  "graphqlEndpoint" : "http://localhost:8081/graphql",
+  "timeoutMillis" : 5000,
+  "compression" : true,
+  "cacheTtlMillis" : 3000,
+  "remoteRepoDir" : null,
+  "userName" : "admin"
+}

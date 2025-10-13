@@ -8,6 +8,17 @@
 - 工具：code-index__set_project_path、code-index__build_deep_index、code-index__get_file_summary → 建立索引并确认 `test/benchmark.ts` 函数分布
 - 工具：apply_patch → 新增 `test/generators.ts` 并抽取全部生成器函数与类型
 - 工具：apply_patch → 更新 `test/benchmark.ts`、`scripts/perf-lsp-e2e.ts`、`scripts/perf-benchmark.ts` 改为导入共用模块
+
+# 2025-10-14 00:29 NZDT P0-结构化扫描
+
+- 执行者：Codex
+- 触发：主AI指令执行 结构化快速扫描
+
+## 操作记录
+- 工具：sequential-thinking__sequentialthinking → 梳理任务理解、风险与后续步骤
+- 工具：shell（ls、cat、sed、git log、date）→ 收集目录结构、关键配置与最近提交
+- 工具：code-index__set_project_path、code-index__find_files → 初始化项目索引并尝试定位测试文件
+- 工具：apply_patch → 写入 `.claude/context-initial.json` 结构化扫描结果
 - 命令：`npm run build`、`npm run bench` → 验证编译与性能基准执行通过
 
 ## 观察
@@ -840,3 +851,7 @@ await runOneTypecheck(
 - 目的：规避 Vaadin 扩展在 Quarkus 增强与 Native Image 构建阶段的已知不兼容，保证 `:policy-editor` 原生镜像能够完成编译
 - 影响：原生镜像下不包含 Vaadin UI，仅保留 REST/GraphQL 代理后端能力；JVM 构建不受影响
 - 工具：apply_patch
+
+- 深度审查 `src/typecheck.ts`、`src/effect_inference.ts`、`policy-editor/**` 以及 `quarkus-policy-api` 契约：读取 `.claude/context-initial.json`，使用 `sed`/`nl`/`rg` 查看源代码，调用 `code-index` 构建索引并生成文件摘要，收集接口与复杂度证据
+- 目的：为第二步技术债识别整理高风险清单与性能瓶颈
+- 工具：cat, sed, rg, code-index__*

@@ -1,0 +1,11 @@
+{
+  "compatibilityMode": false,
+  "productionMode": true,
+  "npmFolder": "",
+  "generatedFolder": "",
+  "enablePnpm": true,
+  "build": "quarkus-native",
+  "projectFolder": ".",
+  "stringify": true
+}
+

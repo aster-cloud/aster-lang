@@ -1,0 +1,19 @@
+# 基于 Quarkus 原生镜像的最小运行镜像
+# 说明：本 native 运行镜像仅包含后端 API（不含 Vaadin UI）
+
+FROM quay.io/quarkus/quarkus-micro-image:2.0
+WORKDIR /work/
+
+# 复制原生可执行文件（由 Gradle 原生构建产出）
+COPY build/*-runner /work/application
+
+# 运行时参数：确保监听 0.0.0.0
+ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0"
+
+EXPOSE 8081
+
+USER 1001
+
+ENTRYPOINT ["/work/application"]
+CMD ["-Dquarkus.http.host=0.0.0.0"]
+
