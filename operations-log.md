@@ -736,6 +736,58 @@ await runOneTypecheck(
 
 2025-10-12 23:06 NZST — Codex — 局部屏蔽 examples/*-native 的 nativeCompile 配置缓存
 
+2025-10-12 23:12 NZST — Codex — 实现 policy-editor 前端：GraphQL 工作台 + 策略管理
+
+2025-10-12 23:18 NZST — Codex — 前端增强：主题切换与 JSON 高亮
+
+2025-10-12 23:26 NZST — Codex — 新增“设置”页面（GraphQL 端点与 HTTP 选项）
+
+2025-10-12 23:38 NZST — Codex — 批量导入/导出、历史撤销重做、同步、审计、GraphQL缓存与错误处理
+
+2025-10-12 23:52 NZST — Codex — 接入 Quarkus Security（OIDC/JWT）与真实用户审计
+
+- 依赖：在 policy-editor 增加 quarkus-oidc 与 quarkus-security
+- 新增 `editor.service.AuthService`：优先从 `SecurityIdentity` 读取用户名，匿名时回退到 Settings.userName
+- 改造审计：PolicyService 中所有审计记录使用 AuthService.currentUser()
+- 配置示例：application.properties 提供 OIDC 典型配置注释，便于启用认证与鉴权
+- 工具：apply_patch
+
+- 新增服务：
+  - HistoryService（data/history/<id>/<ts>.json + .cursor）：快照、列表、加载、撤销/重做
+  - AuditService：data/audit.log 记录增删改/导入导出/同步
+  - PolicyValidationService：JSON Schema 校验
+- REST：
+  - GET /api/policies/export（ZIP）
+  - POST /api/policies/importZip（base64）
+  - GET /api/policies/{id}/history, GET /api/policies/{id}/history/{ver}
+  - POST /api/policies/{id}/undo, POST /api/policies/{id}/redo
+  - POST /api/policies/sync/pull|push（text/plain 远端目录）
+- UI：
+  - 策略管理增加 搜索/复制/导入/导出/历史/撤销/重做 按钮
+  - 新增 HistoryDialog 展示版本列表、加载两版并输出行级 Diff
+  - GraphQLClient 支持 TTL 缓存与错误码友好提示
+- 设置扩展：EditorSettings 增加 cacheTtlMillis、remoteRepoDir；默认 TTL=3000ms
+- 工具：apply_patch
+
+- 新增 `editor.model.EditorSettings` 与 `editor.service.SettingsService`：本地 JSON（data/editor-settings.json）持久化设置
+- MainView：侧边栏加入“设置”Tab，提供端点/超时/压缩配置，保存即时生效
+- GraphQLClient：支持超时与压缩选项（Accept-Encoding: gzip）
+- 工具：apply_patch
+
+- MainView：
+  - 引入 AppLayout 顶部“🌓 主题”按钮，切换 light/dark，并持久化 localStorage
+  - 初始渲染从 localStorage 读取主题
+  - GraphQL 结果区域由 Pre 改为 Div，使用 highlightJson 输出 HTML
+- 样式：新增 `src/main/frontend/styles/json.css`，支持亮/暗色下的 JSON 语法高亮
+- 工具：apply_patch
+
+- 更新 `policy-editor/src/main/java/editor/ui/MainView.java`：
+  - 新增“策略管理”Tab：使用 `PolicyService` + `PolicyEditorDialog` 实现策略列表、增删改
+  - GraphQL 客户端端点改为从配置读取 `quarkus.http.port` 组装 `http://localhost:<port>/graphql`，去除硬编码
+  - 引入 `Grid` 与增删改按钮，保存后自动刷新
+- 目的：让前端可视化地调用 GraphQL（经 /graphql 反代）并管理本地策略
+- 工具：apply_patch
+
 - 更新 `examples/build.gradle.kts`：对 `*-native` 子项目的 `nativeCompile` 任务标记 `notCompatibleWithConfigurationCache`
 - 目的：避免 `BuildNativeImageTask` 在缓存序列化阶段解析 `nativeImageCompileOnly` 配置导致失败
 - 工具：apply_patch
