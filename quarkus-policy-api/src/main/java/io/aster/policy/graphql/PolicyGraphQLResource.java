@@ -6,10 +6,19 @@ import io.aster.policy.graphql.types.CreditCardTypes;
 import io.aster.policy.graphql.types.EnterpriseLendingTypes;
 import io.aster.policy.graphql.types.HealthcareTypes;
 import io.aster.policy.graphql.types.LifeInsuranceTypes;
+import io.aster.policy.graphql.types.PolicyTypes;
 import io.aster.policy.graphql.types.LoanTypes;
 import io.aster.policy.graphql.types.PersonalLendingTypes;
+import io.aster.policy.service.PolicyStorageService;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.eclipse.microprofile.graphql.Description;
 import org.eclipse.microprofile.graphql.GraphQLApi;
 import org.eclipse.microprofile.graphql.Mutation;
@@ -27,6 +36,20 @@ public class PolicyGraphQLResource {
 
     @Inject
     PolicyEvaluationService policyEvaluationService;
+
+    @Inject
+    PolicyStorageService policyStorageService;
+
+    @Context
+    HttpHeaders httpHeaders;
+
+    private String tenantId() {
+        if (httpHeaders == null) {
+            return "default";
+        }
+        String tenant = httpHeaders.getHeaderString("X-Tenant-Id");
+        return tenant == null || tenant.isBlank() ? "default" : tenant.trim();
+    }
 
     // ==================== Life Insurance Queries ====================
 
@@ -662,6 +685,127 @@ public class PolicyGraphQLResource {
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert Aster result to GraphQL type", e);
         }
+    }
+
+    // ==================== Policy Management ====================
+
+    @Query("getPolicy")
+    @Description("根据ID获取策略 / Get policy by ID")
+    public Uni<PolicyTypes.Policy> getPolicy(
+            @NonNull @Description("策略ID / Policy identifier")
+            String id
+    ) {
+        return Uni.createFrom().item(() ->
+            policyStorageService.getPolicy(tenantId(), id)
+                .map(this::convertToGraphQLPolicy)
+                .orElse(null)
+        );
+    }
+
+    @Query("listPolicies")
+    @Description("列出所有策略 / List policies")
+    public Uni<List<PolicyTypes.Policy>> listPolicies() {
+        return Uni.createFrom().item(() -> {
+            List<PolicyStorageService.PolicyDocument> documents = policyStorageService.listPolicies(tenantId());
+            List<PolicyTypes.Policy> policies = new ArrayList<>();
+            for (PolicyStorageService.PolicyDocument document : documents) {
+                policies.add(convertToGraphQLPolicy(document));
+            }
+            return policies;
+        });
+    }
+
+    @Mutation("createPolicy")
+    @Description("创建策略 / Create policy")
+    public Uni<PolicyTypes.Policy> createPolicy(
+            @NonNull @Description("策略输入 / Policy payload")
+            PolicyTypes.PolicyInput input
+    ) {
+        return Uni.createFrom().item(() -> {
+            PolicyStorageService.PolicyDocument created = policyStorageService.createPolicy(
+                    tenantId(),
+                    convertToPolicyDocument(null, input)
+            );
+            return convertToGraphQLPolicy(created);
+        });
+    }
+
+    @Mutation("updatePolicy")
+    @Description("更新策略 / Update policy")
+    public Uni<PolicyTypes.Policy> updatePolicy(
+            @NonNull @Description("策略ID / Policy identifier")
+            String id,
+            @NonNull @Description("策略输入 / Policy payload")
+            PolicyTypes.PolicyInput input
+    ) {
+        return Uni.createFrom().item(() ->
+            policyStorageService.updatePolicy(
+                    tenantId(),
+                    id,
+                    convertToPolicyDocument(id, input)
+            ).map(this::convertToGraphQLPolicy).orElse(null)
+        );
+    }
+
+    @Mutation("deletePolicy")
+    @Description("删除策略 / Delete policy")
+    public Uni<Boolean> deletePolicy(
+            @NonNull @Description("策略ID / Policy identifier")
+            String id
+    ) {
+        return Uni.createFrom().item(() -> policyStorageService.deletePolicy(tenantId(), id));
+    }
+
+    private PolicyStorageService.PolicyDocument convertToPolicyDocument(String id, PolicyTypes.PolicyInput input) {
+        if (input == null) {
+            throw new IllegalArgumentException("策略输入不能为空");
+        }
+
+        String name = Objects.requireNonNull(input.name, "策略名称不能为空");
+        Map<String, List<String>> allow = convertRuleSetInput(input.allow);
+        Map<String, List<String>> deny = convertRuleSetInput(input.deny);
+        String effectiveId = id != null ? id : input.id;
+        return new PolicyStorageService.PolicyDocument(effectiveId, name, allow, deny);
+    }
+
+    private Map<String, List<String>> convertRuleSetInput(PolicyTypes.PolicyRuleSetInput input) {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        if (input == null || input.rules == null) {
+            return result;
+        }
+        for (PolicyTypes.PolicyRuleInput ruleInput : input.rules) {
+            if (ruleInput == null || ruleInput.resourceType == null || ruleInput.resourceType.isBlank()) {
+                continue;
+            }
+            String resourceType = ruleInput.resourceType.trim();
+            List<String> patterns = new ArrayList<>();
+            if (ruleInput.patterns != null) {
+                for (String pattern : ruleInput.patterns) {
+                    if (pattern != null && !pattern.trim().isEmpty()) {
+                        patterns.add(pattern.trim());
+                    }
+                }
+            }
+            result.put(resourceType, patterns);
+        }
+        return result;
+    }
+
+    private PolicyTypes.Policy convertToGraphQLPolicy(PolicyStorageService.PolicyDocument document) {
+        return new PolicyTypes.Policy(
+            document.getId(),
+            document.getName(),
+            convertToGraphQLRuleSet(document.getAllow()),
+            convertToGraphQLRuleSet(document.getDeny())
+        );
+    }
+
+    private PolicyTypes.PolicyRuleSet convertToGraphQLRuleSet(Map<String, List<String>> rules) {
+        List<PolicyTypes.PolicyRule> gqlRules = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : rules.entrySet()) {
+            gqlRules.add(new PolicyTypes.PolicyRule(entry.getKey(), entry.getValue()));
+        }
+        return new PolicyTypes.PolicyRuleSet(gqlRules);
     }
 
     // ==================== Cache Management Mutations ====================

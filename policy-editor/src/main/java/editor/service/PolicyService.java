@@ -1,28 +1,80 @@
 package editor.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import editor.graphql.GraphQLClient;
 import editor.model.Policy;
-import editor.service.HistoryService;
+import editor.model.PolicyRuleSet;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * 策略管理服务，负责策略的 CRUD 操作
+ * 策略管理服务，使用 GraphQL API 执行 CRUD 操作。
  */
 @ApplicationScoped
 public class PolicyService {
 
-    private static final String POLICIES_DIR = "examples/policy-editor/src/main/resources/policies";
+    private static final String POLICY_SELECTION = """
+        id
+        name
+        allow { rules { resourceType patterns } }
+        deny { rules { resourceType patterns } }
+        """;
+
+    private static final String LIST_POLICIES_QUERY = """
+        query ListPolicies {
+          listPolicies {
+            %s
+          }
+        }
+        """.formatted(POLICY_SELECTION);
+
+    private static final String GET_POLICY_QUERY = """
+        query GetPolicy($id: String!) {
+          getPolicy(id: $id) {
+            %s
+          }
+        }
+        """.formatted(POLICY_SELECTION);
+
+    private static final String CREATE_POLICY_MUTATION = """
+        mutation CreatePolicy($input: PolicyInput!) {
+          createPolicy(input: $input) {
+            %s
+          }
+        }
+        """.formatted(POLICY_SELECTION);
+
+    private static final String UPDATE_POLICY_MUTATION = """
+        mutation UpdatePolicy($id: String!, $input: PolicyInput!) {
+          updatePolicy(id: $id, input: $input) {
+            %s
+          }
+        }
+        """.formatted(POLICY_SELECTION);
+
+    private static final String DELETE_POLICY_MUTATION = """
+        mutation DeletePolicy($id: String!) {
+          deletePolicy(id: $id)
+        }
+        """;
 
     @Inject
     ObjectMapper objectMapper;
@@ -39,220 +91,346 @@ public class PolicyService {
     @Inject
     RequestContextService requestContext;
 
-    public PolicyService() {
-        // 确保目录存在
-        try {
-            Files.createDirectories(Paths.get(POLICIES_DIR));
-        } catch (IOException e) {
-            throw new RuntimeException("无法创建策略目录: " + POLICIES_DIR, e);
-        }
-    }
+    @ConfigProperty(name = "policy.api.graphql.url")
+    String graphqlEndpoint;
+
+    @ConfigProperty(name = "policy.api.graphql.timeout", defaultValue = "5000")
+    int graphqlTimeoutMillis;
+
+    @ConfigProperty(name = "policy.api.graphql.compression", defaultValue = "true")
+    boolean graphqlCompression;
+
+    @ConfigProperty(name = "policy.api.graphql.cache-ttl", defaultValue = "0")
+    int graphqlCacheTtlMillis;
+
+    private volatile GraphQLClient graphQLClient;
 
     /**
-     * 获取所有策略
+     * 获取所有策略。
      */
     public List<Policy> getAllPolicies() {
-        try (Stream<Path> paths = Files.walk(Paths.get(POLICIES_DIR))) {
-            return paths
-                .filter(Files::isRegularFile)
-                .filter(p -> p.toString().endsWith(".json"))
-                .map(this::loadPolicy)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-        } catch (IOException e) {
-            System.err.println("读取策略列表失败: " + e.getMessage());
-            return new ArrayList<>();
+        JsonNode listNode = executeGraphQL(LIST_POLICIES_QUERY, Map.of()).path("listPolicies");
+        List<Policy> policies = new ArrayList<>();
+        if (listNode.isArray()) {
+            for (JsonNode node : listNode) {
+                policies.add(parsePolicy(node));
+            }
         }
+        return policies;
     }
 
     /**
-     * 根据 ID 获取策略
+     * 根据 ID 获取策略。
      */
     public Optional<Policy> getPolicyById(String id) {
-        Path policyPath = getPolicyPath(id);
-        return loadPolicy(policyPath);
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        Map<String, Object> variables = Map.of("id", id);
+        JsonNode node = executeGraphQL(GET_POLICY_QUERY, variables).path("getPolicy");
+        if (node.isMissingNode() || node.isNull()) {
+            return Optional.empty();
+        }
+        return Optional.of(parsePolicy(node));
     }
 
     /**
-     * 创建新策略
+     * 创建策略（带审计与历史记录）。
      */
     public Policy createPolicy(Policy policy) {
-        Path policyPath = getPolicyPath(policy.getId());
-        Policy created = savePolicy(policyPath, policy);
+        Policy created = doCreatePolicy(policy);
         historyService.snapshot(created);
-        String actor = authService.currentUser();
-        auditService.recordCtx(actor, "create", created.getId(), created.getName(), requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
+        recordAudit("create", created.getId(), created.getName());
         return created;
     }
 
     /**
-     * 更新现有策略
+     * 更新策略（带审计与历史记录）。
      */
     public Optional<Policy> updatePolicy(String id, Policy policy) {
-        Path policyPath = getPolicyPath(id);
-        if (!Files.exists(policyPath)) {
-            return Optional.empty();
-        }
-        Policy updatedPolicy = new Policy(id, policy.getName(), policy.getAllow(), policy.getDeny());
-        Policy out = savePolicy(policyPath, updatedPolicy);
-        historyService.snapshot(out);
-        String actor = authService.currentUser();
-        auditService.recordCtx(actor, "update", id, policy.getName(), requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
-        return Optional.of(out);
+        Optional<Policy> updated = doUpdatePolicy(id, policy);
+        updated.ifPresent(p -> {
+            historyService.snapshot(p);
+            recordAudit("update", p.getId(), p.getName());
+        });
+        return updated;
     }
 
     /**
-     * 删除策略
+     * 删除策略。
      */
     public boolean deletePolicy(String id) {
-        Path policyPath = getPolicyPath(id);
-        try {
-            boolean ok = Files.deleteIfExists(policyPath);
-            if (ok) {
-                String actor = authService.currentUser();
-                auditService.recordCtx(actor, "delete", id, "", requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
-            }
-            return ok;
-        } catch (IOException e) {
-            System.err.println("删除策略失败: " + e.getMessage());
+        if (id == null || id.isBlank()) {
             return false;
         }
-    }
-
-    private Path getPolicyPath(String id) {
-        return Paths.get(POLICIES_DIR, id + ".json");
-    }
-
-    private Optional<Policy> loadPolicy(Path path) {
-        try {
-            Policy policy = objectMapper.readValue(path.toFile(), Policy.class);
-            return Optional.of(policy);
-        } catch (IOException e) {
-            System.err.println("读取策略文件失败: " + path + " - " + e.getMessage());
-            return Optional.empty();
+        Map<String, Object> variables = Map.of("id", id);
+        boolean deleted = executeGraphQL(DELETE_POLICY_MUTATION, variables)
+            .path("deletePolicy").asBoolean(false);
+        if (deleted) {
+            recordAudit("delete", id, "");
         }
+        return deleted;
     }
 
-    private Policy savePolicy(Path path, Policy policy) {
-        try {
-            objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-            objectMapper.writeValue(path.toFile(), policy);
-            return policy;
-        } catch (IOException e) {
-            throw new RuntimeException("保存策略失败: " + path, e);
-        }
-    }
-
-    // 批量导出为 ZIP 到目标 Path
+    /**
+     * 导出所有策略为 ZIP。
+     */
     public Path exportZip(Path targetZip) {
-        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(Files.newOutputStream(targetZip))) {
-            try (Stream<Path> paths = Files.walk(Paths.get(POLICIES_DIR))) {
-                paths.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".json")).forEach(p -> {
-                    try {
-                        java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(Paths.get(POLICIES_DIR).relativize(p).toString());
-                        zos.putNextEntry(entry);
-                        Files.copy(p, zos);
-                        zos.closeEntry();
-                    } catch (IOException ex) { throw new RuntimeException(ex); }
-                });
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(targetZip))) {
+            for (Policy policy : getAllPolicies()) {
+                ZipEntry entry = new ZipEntry(policy.getId() + ".json");
+                zos.putNextEntry(entry);
+                byte[] data = objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsBytes(policy);
+                zos.write(data);
+                zos.closeEntry();
             }
-            String actor = authService.currentUser();
-            auditService.recordCtx(actor, "export", "all", targetZip.toString(), requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
+            recordAudit("export", "all", targetZip.toString());
             return targetZip;
-        } catch (IOException e) { throw new RuntimeException("导出ZIP失败", e); }
+        } catch (IOException e) {
+            throw new RuntimeException("导出ZIP失败", e);
+        }
     }
 
-    // 从 ZIP 输入流导入策略，覆盖同名
-    public void importZip(java.io.InputStream in) {
-        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(in)) {
-            java.util.zip.ZipEntry entry;
+    /**
+     * 从 ZIP 输入流导入策略。
+     */
+    public void importZip(InputStream in) {
+        try (ZipInputStream zis = new ZipInputStream(in)) {
+            ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                if (entry.isDirectory()) continue;
-                Path out = Paths.get(POLICIES_DIR).resolve(entry.getName()).normalize();
-                Files.createDirectories(out.getParent());
-                Files.copy(zis, out, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                if (entry.isDirectory()) {
+                    continue;
+                }
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buffer = new byte[4096];
+                int read;
+                while ((read = zis.read(buffer)) != -1) {
+                    baos.write(buffer, 0, read);
+                }
+                Policy policy = objectMapper.readValue(baos.toByteArray(), Policy.class);
+                upsertPolicySilently(policy);
                 zis.closeEntry();
             }
-            String actor = authService.currentUser();
-            auditService.recordCtx(actor, "import", "all", "zip", requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
-        } catch (IOException e) { throw new RuntimeException("导入ZIP失败", e); }
+            recordAudit("import", "all", "zip");
+        } catch (IOException e) {
+            throw new RuntimeException("导入ZIP失败", e);
+        }
     }
 
-    // 同步：从远端目录拉取/推送（本地目录代替“远端仓库”）
+    /**
+     * 同步：从远端目录拉取。
+     */
     public void syncPull(String remoteDir) {
-        Path src = Paths.get(remoteDir);
-        try (Stream<Path> paths = Files.walk(src)) {
-            paths.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".json")).forEach(p -> {
-                try {
-                    Path out = Paths.get(POLICIES_DIR).resolve(src.relativize(p).toString());
-                    Files.createDirectories(out.getParent());
-                    Files.copy(p, out, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException ex) { throw new RuntimeException(ex); }
-            });
-            String actor = authService.currentUser();
-            auditService.recordCtx(actor, "pull", remoteDir, "", requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
-        } catch (IOException e) { throw new RuntimeException("同步拉取失败", e); }
+        syncPullWithResult(remoteDir);
     }
 
+    /**
+     * 同步：推送到远端目录。
+     */
     public void syncPush(String remoteDir) {
-        Path dst = Paths.get(remoteDir);
-        try (Stream<Path> paths = Files.walk(Paths.get(POLICIES_DIR))) {
-            paths.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".json")).forEach(p -> {
-                try {
-                    Path out = dst.resolve(Paths.get(POLICIES_DIR).relativize(p).toString());
-                    Files.createDirectories(out.getParent());
-                    Files.copy(p, out, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException ex) { throw new RuntimeException(ex); }
-            });
-            String actor = authService.currentUser();
-            auditService.recordCtx(actor, "push", remoteDir, "", requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
-        } catch (IOException e) { throw new RuntimeException("同步推送失败", e); }
+        syncPushWithResult(remoteDir);
     }
 
-    public static class SyncResult { public int created; public int updated; public int skipped; }
+    public static class SyncResult {
+        public int created;
+        public int updated;
+        public int skipped;
+    }
 
+    /**
+     * 同步：从远端目录拉取并返回统计。
+     */
     public SyncResult syncPullWithResult(String remoteDir) {
         Path src = Paths.get(remoteDir);
-        SyncResult r = new SyncResult();
-        try (Stream<Path> paths = Files.walk(src)) {
-            paths.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".json")).forEach(p -> {
-                try {
-                    Path out = Paths.get(POLICIES_DIR).resolve(src.relativize(p).toString());
-                    Files.createDirectories(out.getParent());
-                    if (!Files.exists(out)) { Files.copy(p, out); r.created++; }
-                    else {
-                        byte[] a = Files.readAllBytes(p), b = Files.readAllBytes(out);
-                        if (!java.util.Arrays.equals(a, b)) { Files.copy(p, out, java.nio.file.StandardCopyOption.REPLACE_EXISTING); r.updated++; }
-                        else { r.skipped++; }
+        SyncResult result = new SyncResult();
+        if (!Files.exists(src)) {
+            return result;
+        }
+        try {
+            Files.walk(src)
+                .filter(Files::isRegularFile)
+                .filter(p -> p.toString().endsWith(".json"))
+                .forEach(path -> {
+                    try {
+                        Policy incoming = objectMapper.readValue(path.toFile(), Policy.class);
+                        Optional<Policy> existing = getPolicyById(incoming.getId());
+                        if (existing.isPresent()) {
+                            if (existing.get().equals(incoming)) {
+                                result.skipped++;
+                            } else {
+                                doUpdatePolicy(incoming.getId(), incoming).ifPresent(p -> result.updated++);
+                            }
+                        } else {
+                            doCreatePolicy(incoming);
+                            result.created++;
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
-                } catch (IOException ex) { throw new RuntimeException(ex); }
-            });
-            String actor = authService.currentUser();
-            auditService.recordCtx(actor, "pull", remoteDir, String.format("created=%d updated=%d skipped=%d", r.created,r.updated,r.skipped), requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
-            return r;
-        } catch (IOException e) { throw new RuntimeException("同步拉取失败", e); }
+                });
+            recordAudit("pull", remoteDir, summary(result));
+            return result;
+        } catch (IOException e) {
+            throw new RuntimeException("同步拉取失败", e);
+        }
     }
 
+    /**
+     * 同步：推送到远端目录并返回统计。
+     */
     public SyncResult syncPushWithResult(String remoteDir) {
         Path dst = Paths.get(remoteDir);
-        SyncResult r = new SyncResult();
-        try (Stream<Path> paths = Files.walk(Paths.get(POLICIES_DIR))) {
-            paths.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".json")).forEach(p -> {
-                try {
-                    Path out = dst.resolve(Paths.get(POLICIES_DIR).relativize(p).toString());
-                    Files.createDirectories(out.getParent());
-                    if (!Files.exists(out)) { Files.copy(p, out); r.created++; }
-                    else {
-                        byte[] a = Files.readAllBytes(p), b = Files.readAllBytes(out);
-                        if (!java.util.Arrays.equals(a, b)) { Files.copy(p, out, java.nio.file.StandardCopyOption.REPLACE_EXISTING); r.updated++; }
-                        else { r.skipped++; }
+        SyncResult result = new SyncResult();
+        try {
+            Files.createDirectories(dst);
+            for (Policy policy : getAllPolicies()) {
+                Path out = dst.resolve(policy.getId() + ".json");
+                String json = objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(policy);
+                if (!Files.exists(out)) {
+                    Files.writeString(out, json, StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    result.created++;
+                } else {
+                    String existing = Files.readString(out);
+                    if (existing.equals(json)) {
+                        result.skipped++;
+                    } else {
+                        Files.writeString(out, json, StandardCharsets.UTF_8,
+                            StandardOpenOption.TRUNCATE_EXISTING);
+                        result.updated++;
                     }
-                } catch (IOException ex) { throw new RuntimeException(ex); }
-            });
-            String actor = authService.currentUser();
-            auditService.recordCtx(actor, "push", remoteDir, String.format("created=%d updated=%d skipped=%d", r.created,r.updated,r.skipped), requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
-            return r;
-        } catch (IOException e) { throw new RuntimeException("同步推送失败", e); }
+                }
+            }
+            recordAudit("push", remoteDir, summary(result));
+            return result;
+        } catch (IOException e) {
+            throw new RuntimeException("同步推送失败", e);
+        }
+    }
+
+    private String summary(SyncResult result) {
+        return "created=%d updated=%d skipped=%d".formatted(result.created, result.updated, result.skipped);
+    }
+
+    private Policy doCreatePolicy(Policy policy) {
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("input", toPolicyInput(policy));
+        JsonNode node = executeGraphQL(CREATE_POLICY_MUTATION, variables).path("createPolicy");
+        return ensurePolicy(node);
+    }
+
+    private Optional<Policy> doUpdatePolicy(String id, Policy policy) {
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("id", id);
+        variables.put("input", toPolicyInput(policy));
+        JsonNode node = executeGraphQL(UPDATE_POLICY_MUTATION, variables).path("updatePolicy");
+        if (node.isMissingNode() || node.isNull()) {
+            return Optional.empty();
+        }
+        return Optional.of(parsePolicy(node));
+    }
+
+    private void upsertPolicySilently(Policy policy) {
+        doUpdatePolicy(policy.getId(), policy).orElseGet(() -> doCreatePolicy(policy));
+    }
+
+    private Policy ensurePolicy(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            throw new IllegalStateException("GraphQL 未返回策略数据");
+        }
+        return parsePolicy(node);
+    }
+
+    private Policy parsePolicy(JsonNode node) {
+        String id = node.path("id").asText();
+        String name = node.path("name").asText();
+        PolicyRuleSet allow = parseRuleSet(node.path("allow"));
+        PolicyRuleSet deny = parseRuleSet(node.path("deny"));
+        return new Policy(id, name, allow, deny);
+    }
+
+    private PolicyRuleSet parseRuleSet(JsonNode node) {
+        Map<String, List<String>> rules = new LinkedHashMap<>();
+        JsonNode rulesNode = node.path("rules");
+        if (rulesNode.isArray()) {
+            for (JsonNode ruleNode : rulesNode) {
+                String resourceType = ruleNode.path("resourceType").asText();
+                List<String> patterns = new ArrayList<>();
+                JsonNode patternsNode = ruleNode.path("patterns");
+                if (patternsNode.isArray()) {
+                    for (JsonNode p : patternsNode) {
+                        patterns.add(p.asText());
+                    }
+                }
+                rules.put(resourceType, patterns);
+            }
+        }
+        return new PolicyRuleSet(rules);
+    }
+
+    private Map<String, Object> toPolicyInput(Policy policy) {
+        Map<String, Object> input = new LinkedHashMap<>();
+        if (policy.getId() != null && !policy.getId().isBlank()) {
+            input.put("id", policy.getId());
+        }
+        input.put("name", policy.getName());
+        input.put("allow", toRuleSetInput(policy.getAllow()));
+        input.put("deny", toRuleSetInput(policy.getDeny()));
+        return input;
+    }
+
+    private Map<String, Object> toRuleSetInput(PolicyRuleSet ruleSet) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        List<Map<String, Object>> rules = new ArrayList<>();
+        ruleSet.getRules().forEach((resourceType, patterns) -> {
+            Map<String, Object> rule = new LinkedHashMap<>();
+            rule.put("resourceType", resourceType);
+            rule.put("patterns", patterns);
+            rules.add(rule);
+        });
+        result.put("rules", rules);
+        return result;
+    }
+
+    private JsonNode executeGraphQL(String query, Map<String, Object> variables) {
+        return client().execute(query, variables == null ? Map.of() : variables, tenantHeaders())
+            .path("data");
+    }
+
+    private GraphQLClient client() {
+        GraphQLClient local = graphQLClient;
+        if (local == null) {
+            synchronized (this) {
+                if (graphQLClient == null) {
+                    graphQLClient = new GraphQLClient(
+                        graphqlEndpoint,
+                        graphqlTimeoutMillis,
+                        graphqlCompression,
+                        graphqlCacheTtlMillis
+                    );
+                }
+                local = graphQLClient;
+            }
+        }
+        return local;
+    }
+
+    private Map<String, String> tenantHeaders() {
+        String tenant = requestContext.tenant();
+        if (tenant == null || tenant.isBlank()) {
+            return Map.of();
+        }
+        return Map.of("X-Tenant-Id", tenant);
+    }
+
+    private void recordAudit(String action, String targetId, String targetName) {
+        String actor = authService.currentUser();
+        auditService.recordCtx(actor, action, targetId, targetName,
+            requestContext.tenant(), requestContext.ip(), requestContext.userAgent());
     }
 }

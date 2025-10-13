@@ -1,18 +1,21 @@
 package editor.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import editor.model.Policy;
-import editor.service.PolicyService;
-import editor.service.HistoryService;
 import editor.service.AuditService;
+import editor.service.HistoryService;
+import editor.service.PolicyService;
+import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.annotation.security.RolesAllowed;
-import jakarta.annotation.security.PermitAll;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -31,6 +34,9 @@ public class PolicyResource {
 
     @Inject
     AuditService auditService;
+
+    @Inject
+    ObjectMapper objectMapper;
 
     /**
      * 获取所有策略
@@ -117,18 +123,38 @@ public class PolicyResource {
     @Path("/{id}/undo")
     @RolesAllowed("admin")
     public Response undo(@PathParam("id") String id) {
-        java.nio.file.Path policyPath = java.nio.file.Paths.get("examples/policy-editor/src/main/resources/policies", id + ".json");
+        Path policyPath = historyTempFile(id);
         boolean ok = historyService.undo(id, policyPath);
-        return ok ? Response.ok().build() : Response.status(Response.Status.CONFLICT).entity("无法撤销").build();
+        if (!ok) {
+            return Response.status(Response.Status.CONFLICT).entity("无法撤销").build();
+        }
+        try {
+            Policy restored = objectMapper.readValue(policyPath.toFile(), Policy.class);
+            Files.deleteIfExists(policyPath);
+            policyService.updatePolicy(id, restored).orElseGet(() -> policyService.createPolicy(restored));
+            return Response.ok().build();
+        } catch (Exception e) {
+            return Response.serverError().entity("应用历史版本失败: " + e.getMessage()).build();
+        }
     }
 
     @POST
     @Path("/{id}/redo")
     @RolesAllowed("admin")
     public Response redo(@PathParam("id") String id) {
-        java.nio.file.Path policyPath = java.nio.file.Paths.get("examples/policy-editor/src/main/resources/policies", id + ".json");
+        Path policyPath = historyTempFile(id);
         boolean ok = historyService.redo(id, policyPath);
-        return ok ? Response.ok().build() : Response.status(Response.Status.CONFLICT).entity("无法重做").build();
+        if (!ok) {
+            return Response.status(Response.Status.CONFLICT).entity("无法重做").build();
+        }
+        try {
+            Policy restored = objectMapper.readValue(policyPath.toFile(), Policy.class);
+            Files.deleteIfExists(policyPath);
+            policyService.updatePolicy(id, restored).orElseGet(() -> policyService.createPolicy(restored));
+            return Response.ok().build();
+        } catch (Exception e) {
+            return Response.serverError().entity("应用历史版本失败: " + e.getMessage()).build();
+        }
     }
 
     // 审计日志查看/清空
@@ -218,5 +244,9 @@ public class PolicyResource {
     public Response syncPush(String remoteDir) {
         try { var r = policyService.syncPushWithResult(remoteDir); return Response.ok(r).build(); }
         catch (Exception e) { return Response.serverError().entity("{\"error\":\""+e.getMessage()+"\"}").build(); }
+    }
+
+    private Path historyTempFile(String id) {
+        return Paths.get("data", "history", "tmp", id + ".json");
     }
 }

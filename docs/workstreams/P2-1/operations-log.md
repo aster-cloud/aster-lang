@@ -44,3 +44,60 @@
 | 2025-10-07 20:52 | shell (sed) | lsp-spec.html 10504-10540 | 提取 SignatureHelpParams 等定义 |
 | 2025-10-07 20:53 | shell (python3) | 生成 context-p2-1-question-1.json | 写入深挖结果 |
 | 2025-10-07 20:54 | shell (python3) | 修正 context JSON 代码片段 | 更新 onHover 片段文本 |
+| 2025-10-14 10:06 | sequential-thinking | totalThoughts=5 | 梳理任务理解与分析要点 |
+| 2025-10-14 10:06 | code-index__set_project_path | path=. | 设置索引根目录 |
+| 2025-10-14 10:06 | code-index__find_files | policy-editor/.../PolicyService.java | 确认策略服务源码位置 |
+| 2025-10-14 10:06 | code-index__build_deep_index | - | 重建索引 793 个文件 |
+| 2025-10-14 10:06 | code-index__get_file_summary | PolicyService.java | 获取结构概要 |
+| 2025-10-14 10:06 | shell (sed) | 1-220 PolicyService.java | 查看本地文件存储逻辑 |
+| 2025-10-14 10:06 | shell (sed) | 200-400 PolicyService.java | 查看同步导入导出实现 |
+| 2025-10-14 10:06 | code-index__find_files | quarkus-policy-api/** | 列出 GraphQL API 相关文件 |
+| 2025-10-14 10:06 | shell (sed) | 1-200 PolicyGraphQLResource.java | 收集 GraphQL 查询定义 |
+| 2025-10-14 10:06 | shell (sed) | 200-400 PolicyGraphQLResource.java | 收集贷款等查询定义 |
+| 2025-10-14 10:06 | shell (sed) | 600-760 PolicyGraphQLResource.java | 获取缓存管理 Mutation |
+| 2025-10-14 10:06 | shell (sed) | 1-200 PolicyEvaluationService.java | 了解评估服务实现 |
+| 2025-10-14 10:06 | shell (date) | TZ=Pacific/Auckland | 获取当前 NZST 时间戳 |
+| 2025-10-14 10:10 | sequential-thinking | totalThoughts=6 | 梳理任务目标、风险与步骤 |
+| 2025-10-14 10:10 | code-index__set_project_path | path=. | 设置索引根目录 |
+| 2025-10-14 10:10 | code-index__find_files | pattern=**/operations-log.md | 定位操作日志文件 |
+| 2025-10-14 10:10 | shell (cat) | docs/workstreams/P2-1/operations-log.md | 查看既有日志记录 |
+| 2025-10-14 10:10 | shell (date) | TZ=Pacific/Auckland | 获取当前 NZST 时间戳 |
+| 2025-10-14 10:10 | shell (cat) | .claude/p2-1-implementation-log.md | 失败：文件不存在 |
+| 2025-10-14 10:10 | shell (date) | TZ=Pacific/Auckland | 获取当前 NZST 时间戳 |
+| 2025-10-14 10:11 | code-index__build_deep_index | - | 重新索引项目 793 个文件 |
+| 2025-10-14 10:11 | code-index__get_file_summary | PolicyGraphQLResource.java | 获取 GraphQL 资源结构概要 |
+| 2025-10-14 10:11 | shell (sed) | PolicyGraphQLResource.java 1-200 | 查看现有查询实现 |
+| 2025-10-14 10:11 | shell (sed) | LifeInsuranceTypes.java 1-200 | 学习类型定义模式 |
+| 2025-10-14 10:12 | shell (sed) | PolicyService.java 1-200 | 阅读本地文件存储逻辑 |
+| 2025-10-14 10:12 | shell (sed) | PolicyService.java 200-400 | 阅读同步导入导出逻辑 |
+| 2025-10-14 10:12 | shell (ls) | .claude | 查看任务辅助目录 |
+| 2025-10-14 10:12 | apply_patch | 新增 .claude/p2-1-implementation-log.md | 记录实施阶段首条日志 |
+| 2025-10-14 10:13 | shell (sed) | PolicyEvaluationService.java 1-200 | 理解评估服务结构 |
+| 2025-10-14 10:13 | shell (rg) | \"@Context\" PolicyGraphQLResource.java | 检查是否已有上下文注入 |
+| 2025-10-14 10:15 | apply_patch | 新增 PolicyTypes.java | 定义策略 GraphQL 类型 |
+| 2025-10-14 10:16 | apply_patch | 新增 PolicyStorageService.java | 实现策略内存存储服务 |
+| 2025-10-14 10:17 | apply_patch | 更新 PolicyGraphQLResource.java 导入 | 引入策略 CRUD 依赖 |
+| 2025-10-14 10:17 | apply_patch | 更新 PolicyGraphQLResource.java 注入 | 添加策略存储与请求头依赖 |
+| 2025-10-14 10:17 | apply_patch | 更新 PolicyGraphQLResource.java 助手方法 | 新增租户解析逻辑 |
+| 2025-10-14 10:17 | apply_patch | 扩展 PolicyGraphQLResource.java | 添加策略 CRUD 查询与转换 |
+| 2025-10-14 10:19 | shell (sed) | GraphQLClient.java 1-200 | 阅读客户端实现细节 |
+| 2025-10-14 10:19 | shell (sed) | MainView.java 320-420 | 确认 GraphQL 客户端调用场景 |
+| 2025-10-14 10:19 | apply_patch | 更新 GraphQLClient.java 导入 | 支持变量与请求头 |
+| 2025-10-14 10:19 | apply_patch | 重构 GraphQLClient.execute | 允许变量与自定义请求头、改进缓存键 |
+| 2025-10-14 10:22 | shell (sed) | RequestContextService.java 1-200 | 复查租户上下文实现 |
+| 2025-10-14 10:22 | shell (sed) | SettingsService.java 1-200 | 确认 GraphQL 配置来源 |
+| 2025-10-14 10:22 | shell (sed) | PolicyResource.java 1-200 | 评估 REST API 对策略服务依赖 |
+| 2025-10-14 10:22 | shell (sed) | PolicyResource.java 200-260 | 评估同步端点实现 |
+| 2025-10-14 10:22 | shell (sed) | HistoryService.java 1-200 | 了解历史快照机制 |
+| 2025-10-14 10:22 | shell (cat) | application.properties | 查看 GraphQL 后端配置 |
+| 2025-10-14 10:23 | apply_patch | 更新 PolicyTypes.PolicyInput | 支持可选策略 ID |
+| 2025-10-14 10:23 | apply_patch | 调整 PolicyGraphQLResource 创建逻辑 | 允许沿用输入 ID |
+| 2025-10-14 10:25 | apply_patch | 删除旧 PolicyService.java | 为 GraphQL 重构做准备 |
+| 2025-10-14 10:25 | apply_patch | 新增 PolicyService.java | 基于 GraphQL 的策略服务实现 |
+| 2025-10-14 10:27 | apply_patch | 更新 PolicyResource.java 导入 | 引入 JSON 解析与临时路径 |
+| 2025-10-14 10:27 | apply_patch | PolicyResource 注入 ObjectMapper | 支持历史应用 |
+| 2025-10-14 10:27 | apply_patch | 重写 undo/redo | 通过 GraphQL 恢复历史版本 |
+| 2025-10-14 10:27 | apply_patch | 新增历史临时文件方法 | 统一历史文件路径 |
+| 2025-10-14 10:27 | apply_patch | 更新 p2-1 实施日志 | 记录阶段性变更 |
+| 2025-10-14 10:29 | shell (gradlew build) | - | 失败：缺少 UndertowDeploymentInfoCustomizerBuildItem |
+| 2025-10-14 10:29 | shell (git status -sb) | - | 查看当前改动概况 |

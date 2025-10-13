@@ -104,21 +104,222 @@ function propagateEffects(
   constraints: EffectConstraint[],
   effectMap: Map<string, Set<Effect>>
 ): void {
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const constraint of constraints) {
-      const callerEffects = effectMap.get(constraint.caller);
-      const calleeEffects = effectMap.get(constraint.callee);
-      if (!callerEffects || !calleeEffects) continue;
-      for (const eff of calleeEffects) {
-        if (!callerEffects.has(eff)) {
-          callerEffects.add(eff);
-          changed = true;
+  if (effectMap.size === 0) return;
+
+  const { nodes, adjacency } = buildEffectFlowGraph(constraints, effectMap);
+  if (nodes.length === 0) return;
+
+  const { components, componentByNode } = runTarjan(nodes, adjacency);
+  const { componentEdges, indegree } = buildComponentGraph(components, componentByNode, adjacency);
+  const order = topologicalSort(componentEdges, indegree);
+
+  for (const componentIndex of order) {
+    const members = components[componentIndex];
+    if (!members || members.length === 0) continue;
+
+    const firstMember = members[0]!;
+    if (members.length > 1 || hasSelfLoop(firstMember, adjacency)) {
+      let localChanged = true;
+      while (localChanged) {
+        localChanged = false;
+        for (const node of members) {
+          const source = effectMap.get(node);
+          const neighbors = adjacency.get(node);
+          if (!source || !neighbors) continue;
+          for (const neighbor of neighbors) {
+            if (componentByNode.get(neighbor) !== componentIndex) continue;
+            const target = effectMap.get(neighbor);
+            if (!target) continue;
+            for (const effect of source) {
+              if (!target.has(effect)) {
+                target.add(effect);
+                localChanged = true;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (const node of members) {
+      const source = effectMap.get(node);
+      const neighbors = adjacency.get(node);
+      if (!source || !neighbors) continue;
+      for (const neighbor of neighbors) {
+        if (componentByNode.get(neighbor) === componentIndex) continue;
+        const target = effectMap.get(neighbor);
+        if (!target) continue;
+        for (const effect of source) {
+          target.add(effect);
         }
       }
     }
   }
+}
+
+function buildEffectFlowGraph(
+  constraints: EffectConstraint[],
+  effectMap: Map<string, Set<Effect>>
+): { nodes: string[]; adjacency: Map<string, Set<string>> } {
+  const adjacency = new Map<string, Set<string>>();
+  const nodes: string[] = [];
+
+  for (const node of effectMap.keys()) {
+    nodes.push(node);
+    adjacency.set(node, new Set());
+  }
+
+  for (const constraint of constraints) {
+    if (!effectMap.has(constraint.caller) || !effectMap.has(constraint.callee)) continue;
+    let followers = adjacency.get(constraint.callee);
+    if (!followers) {
+      followers = new Set();
+      adjacency.set(constraint.callee, followers);
+    }
+    followers.add(constraint.caller);
+  }
+
+  return { nodes, adjacency };
+}
+
+function runTarjan(
+  nodes: string[],
+  adjacency: Map<string, Set<string>>
+): { components: string[][]; componentByNode: Map<string, number> } {
+  let index = 0;
+  const indices = new Map<string, number>();
+  const lowLinks = new Map<string, number>();
+  const stack: string[] = [];
+  const onStack = new Set<string>();
+  const components: string[][] = [];
+  const componentByNode = new Map<string, number>();
+
+  function strongConnect(node: string): void {
+    indices.set(node, index);
+    lowLinks.set(node, index);
+    index += 1;
+    stack.push(node);
+    onStack.add(node);
+
+    const neighbors = adjacency.get(node);
+    if (neighbors) {
+      for (const neighbor of neighbors) {
+        if (!indices.has(neighbor)) {
+          strongConnect(neighbor);
+          const currentLow = lowLinks.get(node)!;
+          const neighborLow = lowLinks.get(neighbor)!;
+          if (neighborLow < currentLow) lowLinks.set(node, neighborLow);
+        } else if (onStack.has(neighbor)) {
+          const currentLow = lowLinks.get(node)!;
+          const neighborIndex = indices.get(neighbor)!;
+          if (neighborIndex < currentLow) lowLinks.set(node, neighborIndex);
+        }
+      }
+    }
+
+    if (lowLinks.get(node) === indices.get(node)) {
+      const component: string[] = [];
+      while (true) {
+        const member = stack.pop();
+        if (!member) break;
+        onStack.delete(member);
+        component.push(member);
+        componentByNode.set(member, components.length);
+        if (member === node) break;
+      }
+      components.push(component);
+    }
+  }
+
+  for (const node of nodes) {
+    if (!indices.has(node)) strongConnect(node);
+  }
+
+  return { components, componentByNode };
+}
+
+function buildComponentGraph(
+  components: string[][],
+  componentByNode: Map<string, number>,
+  adjacency: Map<string, Set<string>>
+): { componentEdges: Map<number, Set<number>>; indegree: number[] } {
+  const componentEdges = new Map<number, Set<number>>();
+  const indegree = Array.from({ length: components.length }, () => 0);
+
+  for (let componentIndex = 0; componentIndex < components.length; componentIndex += 1) {
+    const componentMembers = components[componentIndex];
+    if (!componentMembers) continue;
+    for (const node of componentMembers) {
+      const neighbors = adjacency.get(node);
+      if (!neighbors) continue;
+      for (const neighbor of neighbors) {
+        const neighborComponent = componentByNode.get(neighbor);
+        if (neighborComponent === undefined || neighborComponent === componentIndex) continue;
+        let edges = componentEdges.get(componentIndex);
+        if (!edges) {
+          edges = new Set();
+          componentEdges.set(componentIndex, edges);
+        }
+        if (!edges.has(neighborComponent)) {
+          edges.add(neighborComponent);
+          indegree[neighborComponent] = (indegree[neighborComponent] ?? 0) + 1;
+        }
+      }
+    }
+  }
+
+  return { componentEdges, indegree };
+}
+
+function topologicalSort(
+  componentEdges: Map<number, Set<number>>,
+  indegree: number[]
+): number[] {
+  const order: number[] = [];
+  const queue: number[] = [];
+  const visited = Array.from({ length: indegree.length }, () => false);
+
+  for (let i = 0; i < indegree.length; i += 1) {
+    if (indegree[i] === 0) {
+      queue.push(i);
+    }
+  }
+
+  while (queue.length > 0) {
+    const index = queue.shift()!;
+    if (visited[index]) continue;
+    visited[index] = true;
+    order.push(index);
+    const edges = componentEdges.get(index);
+    if (!edges) continue;
+    for (const next of edges) {
+      if (next < 0 || next >= indegree.length) continue;
+      const current = indegree[next];
+      if (current === undefined) continue;
+      const updated = current - 1;
+      indegree[next] = updated;
+      if (updated === 0 && !visited[next]) {
+        queue.push(next);
+      }
+    }
+  }
+
+  if (order.length !== indegree.length) {
+    // 理论上组件图无环，此处仅保证顺序覆盖全部节点
+    for (let i = 0; i < indegree.length; i += 1) {
+      if (!visited[i]) order.push(i);
+    }
+  }
+
+  return order;
+}
+
+function hasSelfLoop(
+  node: string,
+  adjacency: Map<string, Set<string>>
+): boolean {
+  const neighbors = adjacency.get(node);
+  return neighbors ? neighbors.has(node) : false;
 }
 
 function buildDiagnostics(
