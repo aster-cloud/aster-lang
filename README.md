@@ -155,7 +155,7 @@ npm run verify:asm:lambda:cnl
 The repo includes a Node-based LSP server and a VS Code client.
 
 - Server entry: `dist/src/lsp/server.js` (run with `--stdio`)
-- VS Code client: see `editors/vscode/aster-vscode`
+- VS Code client: see `aster-vscode`
 
 Features
 - Hover: types/effects, interop previews, return types

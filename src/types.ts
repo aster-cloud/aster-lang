@@ -63,9 +63,10 @@ export type CapabilityKind =
 
 export interface Token {
   readonly kind: TokenKind;
-  readonly value: string | number | boolean | null;
+  readonly value: string | number | boolean | null | CommentValue;
   readonly start: Position;
   readonly end: Position;
+  readonly channel?: 'trivia';
 }
 
 export enum TokenKind {
@@ -101,6 +102,28 @@ export enum TokenKind {
   BOOL = 'BOOL',
   NULL = 'NULL',
   KEYWORD = 'KEYWORD',
+  COMMENT = 'COMMENT',
+}
+
+/**
+ * 注释 Token 的取值结构
+ *
+ * 保存原始文本、整理后的主体文本以及注释分类，使词法分析阶段的注释处理更加可控。
+ */
+export interface CommentValue {
+  readonly raw: string;
+  readonly text: string;
+  readonly trivia: 'inline' | 'standalone';
+}
+
+/**
+ * 判断指定 Token 是否为注释 Token，便于在遍历过程中筛选注释。
+ */
+export function isCommentToken(token: Token): token is Token & {
+  readonly kind: TokenKind.COMMENT;
+  readonly value: CommentValue;
+} {
+  return token.kind === TokenKind.COMMENT;
 }
 
 // Effect 枚举现在从 config/semantic.ts 导出，保持类型定义集中

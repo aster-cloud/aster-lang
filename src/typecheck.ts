@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import type { Core, TypecheckDiagnostic } from './types.js';
+import type { Core, Origin, Span, TypecheckDiagnostic } from './types.js';
 import {
   type CapabilityManifest,
   type CapabilityContext,
@@ -379,19 +379,103 @@ function checkGenericTypeParameters(
 
 /**
  * 检查异步任务纪律（Async discipline）
- * 确保每个 Start 的任务都被 Wait
+ *
+ * 完整的异步纪律检查，包括：
+ * 1. Start 未 Wait → error
+ * 2. Wait 引用不存在的 Start → error
+ * 3. 重复 Start → error
+ * 4. 重复 Wait → warning
  */
 function checkAsyncDiscipline(
   f: Core.Func,
   diags: TypecheckDiagnostic[]
 ): void {
-  const aw = collectAsync(f.body);
-  const notWaited = [...aw.started].filter(n => !aw.waited.has(n));
-  if (notWaited.length > 0) {
-    diags.push({
+  const asyncInfo = collectAsync(f.body);
+  const isPlaceholderSpan = (span: Span): boolean =>
+    span.start.line === 0 &&
+    span.start.col === 0 &&
+    span.end.line === 0 &&
+    span.end.col === 0;
+  const pickSpan = (spans: Span[] | undefined): Span | undefined =>
+    spans?.find(s => !isPlaceholderSpan(s));
+  const spanToOrigin = (span: Span): Origin => ({ start: span.start, end: span.end });
+
+  // 1. 检查 Start 未 Wait
+  const notWaited = [...asyncInfo.starts.keys()].filter(n => !asyncInfo.waits.has(n));
+  for (const name of notWaited) {
+    const spans = asyncInfo.starts.get(name);
+    const firstSpan = pickSpan(spans);
+
+    const diag: TypecheckDiagnostic = {
       severity: 'error',
-      message: `Started async tasks not waited: ${notWaited.join(', ')}`,
-    });
+      message: `Started async task '${name}' not waited`,
+      code: 'ASYNC_START_NOT_WAITED',
+    };
+
+    if (firstSpan) {
+      diag.location = spanToOrigin(firstSpan);
+    }
+
+    diags.push(diag);
+  }
+
+  // 2. 检查 Wait 引用不存在的 Start
+  const notStarted = [...asyncInfo.waits.keys()].filter(n => !asyncInfo.starts.has(n));
+  for (const name of notStarted) {
+    const spans = asyncInfo.waits.get(name);
+    const firstSpan = pickSpan(spans);
+
+    const diag: TypecheckDiagnostic = {
+      severity: 'error',
+      message: `Waiting for async task '${name}' that was never started`,
+      code: 'ASYNC_WAIT_NOT_STARTED',
+    };
+
+    if (firstSpan) {
+      diag.location = spanToOrigin(firstSpan);
+    }
+
+    diags.push(diag);
+  }
+
+  // 3. 检查重复 Start
+  for (const [name, spans] of asyncInfo.starts) {
+    if (spans.length > 1) {
+      for (let i = 1; i < spans.length; i++) {
+        const span = spans[i]!;
+        const diag: TypecheckDiagnostic = {
+          severity: 'error',
+          message: `Async task '${name}' started multiple times (${spans.length} occurrences)`,
+          code: 'ASYNC_DUPLICATE_START',
+        };
+
+        if (!isPlaceholderSpan(span)) {
+          diag.location = spanToOrigin(span);
+        }
+
+        diags.push(diag);
+      }
+    }
+  }
+
+  // 4. 检查重复 Wait
+  for (const [name, spans] of asyncInfo.waits) {
+    if (spans.length > 1) {
+      for (let i = 1; i < spans.length; i++) {
+        const span = spans[i]!;
+        const diag: TypecheckDiagnostic = {
+          severity: 'warning',
+          message: `Async task '${name}' waited multiple times (${spans.length} occurrences)`,
+          code: 'ASYNC_DUPLICATE_WAIT',
+        };
+
+        if (!isPlaceholderSpan(span)) {
+          diag.location = spanToOrigin(span);
+        }
+
+        diags.push(diag);
+      }
+    }
   }
 }
 
@@ -953,16 +1037,54 @@ function unifyTypes(
   }
 }
 
-function collectAsync(b: Core.Block): { started: Set<string>; waited: Set<string> } {
-  const started = new Set<string>();
-  const waited = new Set<string>();
+/**
+ * 异步任务分析结果
+ *
+ * 包含所有 Start 和 Wait 语句的位置信息，用于生成精确的诊断消息。
+ */
+export interface AsyncAnalysis {
+  starts: Map<string, Span[]>; // 任务名 -> Start 位置列表
+  waits: Map<string, Span[]>;  // 任务名 -> Wait 位置列表
+}
+
+function collectAsync(b: Core.Block): AsyncAnalysis {
+  const starts = new Map<string, Span[]>();
+  const waits = new Map<string, Span[]>();
+  const fallbackSpan: Span = {
+    start: { line: 0, col: 0 },
+    end: { line: 0, col: 0 },
+  };
+
+  const ensureEntry = (map: Map<string, Span[]>, name: string): Span[] => {
+    let bucket = map.get(name);
+    if (!bucket) {
+      bucket = [];
+      map.set(name, bucket);
+    }
+    return bucket;
+  };
+
+  const toSpan = (origin: Origin | undefined): Span | undefined =>
+    origin ? { start: origin.start, end: origin.end } : undefined;
+
+  const record = (map: Map<string, Span[]>, name: string, span: Span | undefined): void => {
+    const bucket = ensureEntry(map, name);
+    bucket.push(span ?? fallbackSpan);
+  };
+
   class AsyncVisitor extends DefaultCoreVisitor {
     override visitStatement(s: Core.Statement, context: import('./visitor.js').VisitorContext): void {
-      if (s.kind === 'Start') started.add(s.name);
-      if (s.kind === 'Wait') s.names.forEach(n => waited.add(n));
+      if (s.kind === 'Start') {
+        record(starts, s.name, toSpan(s.origin));
+      } else if (s.kind === 'Wait') {
+        for (const name of s.names) {
+          record(waits, name, toSpan(s.origin));
+        }
+      }
       super.visitStatement(s, context);
     }
   }
+
   new AsyncVisitor().visitBlock(b, createVisitorContext());
-  return { started, waited };
+  return { starts, waits };
 }

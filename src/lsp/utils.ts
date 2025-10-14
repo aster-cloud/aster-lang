@@ -4,6 +4,8 @@ export function buildIdIndex(tokens: readonly any[]): Map<string, Span[]> {
   const map = new Map<string, Span[]>();
   for (const t of tokens as any[]) {
     if (!t || !t.start || !t.end) continue;
+    // 跳过 trivia Token（如注释）
+    if (t.channel === 'trivia') continue;
     if (!(t.kind === 'IDENT' || t.kind === 'TYPE_IDENT')) continue;
     const name = String(t.value || '');
     if (!name) continue;

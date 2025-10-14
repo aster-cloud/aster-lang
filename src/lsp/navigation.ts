@@ -96,7 +96,7 @@ function findWordPositions(text: string, word: string): Array<{ start: number; e
  * @param word 要查找的标记或单词
  * @returns 标记位置数组，如果词法分析失败则回退到正则匹配
  */
-function findTokenPositionsSafe(text: string, word: string): Array<{ start: number; end: number }> {
+export function findTokenPositionsSafe(text: string, word: string): Array<{ start: number; end: number }> {
   // If word contains '.', fallback to simple word regex matching over text
   if (word.includes('.')) return findWordPositions(text, word);
   try {
@@ -951,5 +951,51 @@ export function registerNavigationHandlers(
       // ignore
     }
     return null;
+  });
+
+  // onPrepareRename: 准备重命名（验证光标位置是否在可重命名的符号上）
+  // onPrepareRename: 预先校验是否可重命名并返回精确范围
+  connection.onPrepareRename(params => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return null;
+
+    const entry = getOrParse(doc);
+    const { tokens: toks } = entry;
+    const nameAt = tokenNameAt(toks, params.position);
+    if (!nameAt) {
+      // 光标未命中有效标识符，直接拒绝
+      return null;
+    }
+
+    const text = doc.getText();
+    const offset = doc.offsetAt(params.position);
+    const precisePositions = findTokenPositionsSafe(text, nameAt);
+    const precise = precisePositions.find(pos => offset >= pos.start && offset <= pos.end);
+    if (precise) {
+      return {
+        range: {
+          start: offsetToPos(text, precise.start),
+          end: offsetToPos(text, precise.end),
+        },
+        placeholder: text.slice(precise.start, precise.end),
+      };
+    }
+
+    // 词法精确匹配失败时回退到简单的词边界捕获
+    const fallback = captureWordAt(text, offset);
+    if (!fallback) return null;
+    const isWord = (c: string): boolean => /[A-Za-z0-9_.]/.test(c);
+    let start = offset;
+    while (start > 0 && isWord(text[start - 1]!)) start--;
+    let end = offset;
+    while (end < text.length && isWord(text[end]!)) end++;
+
+    return {
+      range: {
+        start: offsetToPos(text, start),
+        end: offsetToPos(text, end),
+      },
+      placeholder: text.slice(start, end),
+    };
   });
 }

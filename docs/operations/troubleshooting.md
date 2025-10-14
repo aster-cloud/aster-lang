@@ -67,7 +67,7 @@
   npm run test:lsp-index
   ```
   - 若失败，清理缓存目录 `~/.cache/aster-lsp`（如存在）。
-- **VS Code 调试**：使用扩展仓库 `editors/vscode/aster-vscode`，启用 `CI_DEBUG=1` 运行 `npm run ci` 可保留详细输出。
+- **VS Code 调试**：使用扩展仓库 `aster-vscode`，启用 `CI_DEBUG=1` 运行 `npm run ci` 可保留详细输出。
 
 ## 6. 调试技巧
 - 启用解析调试：

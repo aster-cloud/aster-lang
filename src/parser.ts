@@ -40,14 +40,55 @@ export function parse(tokens: readonly Token[]): Module {
         parserLogger.debug(`[parseType] ${message}`, { depth: ctx.debug.depth });
       },
     },
-    peek: (offset: number = 0): Token => {
-      const idx = ctx.index + offset;
-      if (idx < ctx.tokens.length) return ctx.tokens[idx]!;
+    skipTrivia: (): void => {
+      while (ctx.index < ctx.tokens.length) {
+        const tok = ctx.tokens[ctx.index]!;
+        if (tok.channel === 'trivia') {
+          ctx.index++;
+        } else {
+          break;
+        }
+      }
+    },
+    peekToken: (offset: number = 0): Token => {
+      let idx = ctx.index;
+      let count = 0;
+      // 跳过trivia，找到第offset个非trivia token
+      while (idx < ctx.tokens.length) {
+        const tok = ctx.tokens[idx]!;
+        if (tok.channel !== 'trivia') {
+          if (count === offset) return tok;
+          count++;
+        }
+        idx++;
+      }
+      // 如果没找到，返回最后一个token（通常是EOF）
       return ctx.tokens[ctx.tokens.length - 1]!;
+    },
+    peek: (offset: number = 0): Token => {
+      return ctx.peekToken(offset);
     },
     next: (): Token => {
       const tok = ctx.peek();
-      if (ctx.index < ctx.tokens.length) ctx.index += 1;
+      // 找到当前非trivia token的实际位置并移动到下一个位置
+      let idx = ctx.index;
+      let found = false;
+      while (idx < ctx.tokens.length) {
+        const t = ctx.tokens[idx]!;
+        if (t.channel !== 'trivia') {
+          if (t === tok) {
+            ctx.index = idx + 1;
+            found = true;
+            break;
+          }
+        }
+        idx++;
+      }
+      if (!found && ctx.index < ctx.tokens.length) {
+        ctx.index++;
+      }
+      // 跳过下一个位置的trivia
+      ctx.skipTrivia();
       return tok;
     },
     at: (kind: TokenKind, value?: Token['value']): boolean => {
@@ -160,6 +201,7 @@ export function parse(tokens: readonly Token[]): Module {
 
   // 主解析循环：收集顶层声明
   const decls: Declaration[] = [];
+  ctx.skipTrivia(); // 跳过开头的注释
   ctx.consumeNewlines();
 
   while (!ctx.at(TokenKind.EOF)) {

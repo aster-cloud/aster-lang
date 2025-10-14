@@ -42,13 +42,23 @@ export function formatCNL(
     .replace(/\.{2,}/g, '.');
   const can = canonicalize(input);
   let tokens;
+  let originalTokens; // For extracting comments from original text
   try {
     tokens = lex(can);
+    // When preserving comments, lex the original text to extract comment tokens
+    if (opts?.preserveComments) {
+      try {
+        originalTokens = lex(text);
+      } catch {
+        // If original fails to lex, fall back to no comment preservation
+        originalTokens = undefined;
+      }
+    }
   } catch {
     return text;
   }
   let formatted: string;
-  const cst = buildCst(text, tokens);
+  const cst = buildCst(text, originalTokens ?? tokens);
   try {
     const ast = parse(tokens) as Module;
     formatted = simpleFormatModule(ast);

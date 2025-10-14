@@ -1,3 +1,31 @@
+# 2025-10-14 22:38 NZDT LSP 完整性调研（阶段0）
+
+- 执行者：Codex
+- 触发：主AI指令分析 Aster 语言 LSP 实现
+
+## 操作记录
+- 工具：sequential-thinking__sequentialthinking → 梳理任务理解与拆分步骤
+- 工具：code-index__set_project_path、code-index__build_deep_index → 重新建立索引 `/Users/rpang/IdeaProjects/aster-lang`
+- 工具：code-index__find_files、code-index__get_file_summary、code-index__search_code_advanced → 罗列 LSP 模块、统计行数并确认缺失 `workspace_index.ts`
+- 命令：shell(ls、sed、rg、cat) → 阅读 `src/lsp/server.ts`、`navigation.ts`、`diagnostics.ts`、`tokens.ts`、`index.ts`、`codeaction.ts`、`completion.ts`、`health.ts`
+- 命令：shell(sed、cat) → 查阅 `docs/architecture.md` LSP 章节与性能表、`aster-vscode/package.json`、`src/extension.ts`、README
+- 命令：shell(sed、rg) → 审阅 LSP 相关测试 `test/lsp-*.test.ts`、`test-hover-final.ts` 及 `scripts/lsp-*`
+
+# 2025-10-14 21:27 NZDT Task 7 collectAsync 扩展
+
+- 执行者：Codex
+- 触发：主AI指令执行任务7扩展 collectAsync 返回结构
+
+## 操作记录
+- 工具：sequential-thinking__sequentialthinking → 梳理任务理解、潜在风险与实施顺序
+- 工具：code-index__set_project_path、code-index__build_deep_index → 初始化索引 `/Users/rpang/IdeaProjects/aster-lang`
+- 工具：code-index__get_file_summary、code-index__search_code_advanced → 定位 `src/typecheck.ts` 中 collectAsync 与 Start/Wait 定义
+- 命令：shell(cat operations-log.md) → 回顾既有日志格式
+- 命令：shell(TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M:%S %Z') → 记录当前新西兰时区时间戳
+- 工具：apply_patch → 更新 `operations-log.md` 追加任务7 操作记录
+- 工具：apply_patch → 调整 `src/typecheck.ts`：引入 `AsyncAnalysis` 映射 `Map<string, Origin[]>`，同步改写 `collectAsync` 与 `checkAsyncDiscipline`
+- 命令：npm run typecheck → 失败（TS2353/TS2339：ParserContext 缺少 skipTrivia/peekToken）
+
 # 2025-10-09 11:48 NZDT P2-4 项目生成器抽取
 
 - 执行者：Codex
@@ -902,3 +930,59 @@ await runOneTypecheck(
 - 输出摘要：测试通过，验证 WireMock 集成与五个场景断言均成功
 - 2025-10-14 10:30 NZST | apply_patch | policy-editor/src/main/java/editor/service/PolicyService.java | getAllPolicies 增加容错，后端 GraphQL 报错时返回空列表，避免 UI 导航崩溃（原始错误：listPolicies DataFetchingException）
 - 2025-10-14 11:05 NZST | apply_patch | quarkus-policy-api/src/main/java/io/aster/policy/graphql/PolicyGraphQLResource.java | listPolicies 增加空值防御与告警日志：单条脏数据不再导致 DataFetchingException，转换失败会记录 tenant/id/name 并跳过该条
+\n- 2025-10-14 20:11:52 NZDT Move VS Code extension: editors/vscode/aster-lang -> aster-vscode; update references (README, docs).
+- 2025-10-14 20:47 NZST | sequential-thinking | 疑问深挖任务启动，记录初始思考步骤
+- 2025-10-14 20:48 NZST | shell(ls) | `ls -a` 查看项目根目录，确认 `.claude` 与源文件结构
+- 2025-10-14 20:48 NZST | shell(date) | 获取新西兰时区时间戳，用于日志记录
+- 2025-10-14 20:48 NZST | shell(tail) | `tail -n 40 operations-log.md` 查看既有日志格式
+- 2025-10-14 20:49 NZST | code-index.set_project_path | 初始化索引路径 `/Users/rpang/IdeaProjects/aster-lang`
+- 2025-10-14 20:49 NZST | code-index.build_deep_index | 构建深度索引，便于检索源码细节
+- 2025-10-14 20:50 NZST | code-index.search | 查询 `src/tokens.ts` 与 `src/types.ts` 中 TokenKind 定义
+- 2025-10-14 20:50 NZST | shell(sed) | `sed -n '1,200p' src/cst_builder.ts` 查看 collectInlineComments 实现细节
+- 2025-10-14 20:51 NZST | shell(sed) | `sed -n '1,200p' src/parser.ts` 读取解析器上下文与 Token 消费方式
+- 2025-10-14 20:51 NZST | shell(sed) | `sed -n '900,1040p' src/typecheck.ts` 检视 collectAsync 实现
+- 2025-10-14 20:51 NZST | shell(sed) | `sed -n '360,420p' src/typecheck.ts` 查看异步诊断逻辑
+- 2025-10-14 20:52 NZST | code-index.search | 检索 `./lexer.js` 使用点以评估词法输出下游影响
+- 2025-10-14 20:52 NZST | code-index.search | 查看 `src/lexer.ts` 中 `emitIndentDedent` 逻辑以评估注释 Token 影响
+- 2025-10-14 20:53 NZST | code-index.search | 检索 `src/core_ir.ts` 中 Start/Wait 结构定义
+- 2025-10-14 20:53 NZST | shell(nl) | `nl -ba src/types.ts | sed -n '60,110p'` 获取 Token 接口及枚举行号
+- 2025-10-14 20:54 NZST | shell(nl) | `nl -ba src/parser.ts | sed -n '1,160p'` 捕获解析器上下文相关代码块
+- 2025-10-14 20:54 NZST | shell(nl) | `nl -ba src/cst_builder.ts | sed -n '1,200p'` 获取 collectInlineComments 代码及上下文
+- 2025-10-14 20:55 NZST | shell(nl) | `nl -ba src/typecheck.ts | sed -n '920,1010p'` 标记 collectAsync 行号
+- 2025-10-14 20:55 NZST | shell(nl) | `nl -ba src/typecheck.ts | sed -n '360,430p'` 确认 checkAsyncDiscipline 诊断逻辑
+- 2025-10-14 20:55 NZST | shell(nl) | `nl -ba src/formatter.ts | sed -n '1,120p'` 识别格式化流程对 Token/CST 的依赖
+- 2025-10-14 20:56 NZST | shell(nl) | `nl -ba src/lsp/server.ts | sed -n '40,160p'` 观察 LSP 缓存对词法输出依赖
+- 2025-10-14 20:56 NZST | shell(date) | 获取当前新西兰时区时间用于报告
+- 2025-10-14 20:57 NZST | apply_patch | 写入 `.claude/context-question-1.json` 深挖分析结果
+- 2025-10-14 20:57 NZST | shell(jq) | `jq empty .claude/context-question-1.json` 校验 JSON 语法
+- 2025-10-14 21:01 NZDT | shell(sed) | `sed -n '60,90p' src/types.ts` 查看 Token.channel 定义
+- 2025-10-14 21:01 NZDT | apply_patch | 更新 `src/types.ts` 的 `Token.channel` 类型为 `'trivia'`
+- 2025-10-14 21:01 NZDT | shell(npm run typecheck) | 执行类型检查验证 `Token` 接口变更
+- 2025-10-14 23:05 NZDT | sequential-thinking(x6) | 分析 LSP 引用查找与重命名准备任务、评估依赖与风险
+- 2025-10-14 23:05 NZDT | code-index.get_file_summary | 读取 `src/lsp/index.ts` 摘要失败，提示需构建深度索引
+- 2025-10-14 23:05 NZDT | code-index.build_deep_index | 构建索引失败，输出“Project path not set”
+- 2025-10-14 23:05 NZDT | code-index.set_project_path | 设置索引根路径为 `/Users/rpang/IdeaProjects/aster-lang`
+- 2025-10-14 23:05 NZDT | code-index.build_deep_index | 重建索引成功，记录 801 个文件
+- 2025-10-14 23:06 NZDT | code-index.get_file_summary | 获取 `src/lsp/index.ts` 摘要了解 `findSymbolReferences` 现状
+- 2025-10-14 23:06 NZDT | code-index.search | 检索 `src/lsp/index.ts` 中 `findSymbolReferences` 代码片段
+- 2025-10-14 23:06 NZDT | code-index.search | 检索 `src/lsp/navigation.ts` 中 `findTokenPositionsSafe` 及重命名批处理逻辑
+- 2025-10-14 23:06 NZDT | code-index.search | 检索 `src/lsp/navigation.ts` 中 `tokenNameAt` 定位实现
+- 2025-10-14 23:06 NZDT | code-index.search | 检索 `src/lsp/navigation.ts` 中 `onReferences` 处理器流程
+- 2025-10-14 23:06 NZDT | code-index.search | 搜索 `findTokenPositionsSafe` 导出情况并确认引用
+- 2025-10-14 23:06 NZDT | code-index.search | 检索 `src/lsp/navigation.ts` 中 `export function ensureUri`
+- 2025-10-14 23:06 NZDT | code-index.get_file_summary | 获取 `operations-log.md` 概要以确认记录格式
+- 2025-10-14 23:06 NZDT | shell(tail) | `tail -n 20 operations-log.md` 查看最近日志条目
+- 2025-10-14 23:06 NZDT | shell(date) | `TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M %Z'` 获取当前新西兰时间
+- 2025-10-14 23:07 NZDT | shell(sed) | `sed -n '1,200p' src/lsp/index.ts` 查看索引模块顶部实现
+- 2025-10-14 23:07 NZDT | shell(sed) | `sed -n '200,400p' src/lsp/index.ts` 继续检查引用查找辅助函数
+- 2025-10-14 23:07 NZDT | shell(sed) | `sed -n '60,160p' src/lsp/navigation.ts` 查看导航工具函数定义
+- 2025-10-14 23:07 NZDT | shell(sed) | `sed -n '560,720p' src/lsp/navigation.ts` 分析重命名处理器批处理逻辑
+- 2025-10-14 23:07 NZDT | shell(sed) | `sed -n '720,840p' src/lsp/navigation.ts` 查看文档符号处理段落
+- 2025-10-14 23:08 NZDT | shell(sed) | `sed -n '900,1040p' src/lsp/navigation.ts` 确认 onPrepareRename 当前实现
+- 2025-10-14 23:09 NZDT | apply_patch | 更新 `src/lsp/navigation.ts` 导出 `findTokenPositionsSafe` 并使用 `tokenNameAt` 校验 onPrepareRename
+- 2025-10-14 23:10 NZDT | apply_patch | 重写 `src/lsp/index.ts` 的 `findSymbolReferences` 以复用导航工具并按批读取文件
+- 2025-10-14 23:11 NZDT | shell(npm run build) | 执行 TypeScript 构建并编译 PEG 生成脚本
+- 2025-10-14 23:11 NZDT | shell(rg --files) | 枚举 `*.test.ts` 文件以定位可新增的 LSP 测试入口
+- 2025-10-14 23:12 NZDT | shell(sed) | `sed -n '1,200p' test/lsp-navigation.test.ts` 查看现有导航测试结构
+- 2025-10-14 23:12 NZDT | shell(sed) | `sed -n '200,400p' test/lsp-navigation.test.ts` 检查测试主函数调用顺序
+- 2025-10-14 23:13 NZDT | apply_patch | 扩展 `test/lsp-navigation.test.ts` 覆盖跨文件引用与 prepareRename 处理逻辑

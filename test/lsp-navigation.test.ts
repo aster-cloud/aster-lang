@@ -11,6 +11,7 @@ import { canonicalize } from '../src/canonicalizer.js';
 import { lex } from '../src/lexer.js';
 import { parse } from '../src/parser.js';
 import type { Module as AstModule } from '../src/types.js';
+import { clearIndex, updateDocumentIndex } from '../src/lsp/index.js';
 
 function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(message);
@@ -36,6 +37,7 @@ function createMockConnection() {
   return {
     onReferences: (handler: any) => { handlers.onReferences = handler; },
     onRenameRequest: (handler: any) => { handlers.onRenameRequest = handler; },
+    onPrepareRename: (handler: any) => { handlers.onPrepareRename = handler; },
     onRequest: (method: string, handler: any) => { handlers[method] = handler; },
     onHover: (handler: any) => { handlers.onHover = handler; },
     onDocumentSymbol: (handler: any) => { handlers.onDocumentSymbol = handler; },
@@ -61,6 +63,7 @@ function createMockGetDocumentSettings() {
 }
 
 async function testReferencesHandler(): Promise<void> {
+  clearIndex();
   const code = `This module is test_app.
 
 To greet with name: Text, produce Text:
@@ -72,13 +75,21 @@ To main produce Text:
 `;
 
   const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const consumer = TextDocument.create('file:///consumer.cnl', 'cnl', 1, `This module is consumer.
+
+To demo produce Text:
+  Return greet("Tester").
+`);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
   mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set('file:///consumer.cnl', consumer);
   const getOrParse = createMockGetOrParse();
   const getDocumentSettings = createMockGetDocumentSettings();
 
   registerNavigationHandlers(mockConnection, mockDocuments, getOrParse, getDocumentSettings);
+  await updateDocumentIndex(doc.uri, doc.getText());
+  await updateDocumentIndex(consumer.uri, consumer.getText());
 
   // 测试查找 greet 函数的引用
   const params = {
@@ -90,13 +101,18 @@ To main produce Text:
   const references: Location[] = await mockConnection.handlers.onReferences(params);
 
   assert(Array.isArray(references), '应返回 Location 数组');
-  // 至少应该找到函数定义本身
-  assert(references.length >= 1, `应找到至少1个引用（实际: ${references.length}）`);
+  assert(references.length === 3, `应找到 3 个引用（实际: ${references.length}）`);
+  assert(references.some(ref => ref.uri === 'file:///consumer.cnl'), '应包含跨文件引用');
+  assert(
+    references.some(ref => ref.range.start.line === 6),
+    '应包含调用处的引用范围'
+  );
 
   console.log(`✓ References 功能正常（找到 ${references.length} 个引用）`);
 }
 
 async function testRenameHandler(): Promise<void> {
+  clearIndex();
   const code = `This module is test_app.
 
 To greet with name: Text, produce Text:
@@ -115,6 +131,7 @@ To main produce Text:
   const getDocumentSettings = createMockGetDocumentSettings();
 
   registerNavigationHandlers(mockConnection, mockDocuments, getOrParse, getDocumentSettings);
+  await updateDocumentIndex(doc.uri, doc.getText());
 
   // 测试重命名 greet 函数
   const params = {
@@ -141,6 +158,7 @@ To main produce Text:
 }
 
 async function testHoverHandler(): Promise<void> {
+  clearIndex();
   const code = `This module is test_app.
 
 To greet with name: Text, produce Text:
@@ -175,6 +193,7 @@ To greet with name: Text, produce Text:
 }
 
 async function testDocumentSymbolHandler(): Promise<void> {
+  clearIndex();
   const code = `This module is test_app.
 
 To greet with name: Text, produce Text:
@@ -210,6 +229,7 @@ Define User as:
 }
 
 async function testDefinitionHandler(): Promise<void> {
+  clearIndex();
   const code = `This module is test_app.
 
 To greet with name: Text, produce Text:
@@ -248,6 +268,7 @@ To main produce Text:
 }
 
 async function testEdgeCases(): Promise<void> {
+  clearIndex();
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
   const getOrParse = createMockGetOrParse();
@@ -267,12 +288,55 @@ async function testEdgeCases(): Promise<void> {
   console.log('✓ 边界情况处理正常');
 }
 
+async function testPrepareRenameHandler(): Promise<void> {
+  clearIndex();
+  const code = `This module is test_app.
+
+To greet with name: Text, produce Text:
+  Return "Hello " + name.
+
+To main produce Text:
+  Let result be greet("World").
+  Return result.
+`;
+
+  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const mockConnection = createMockConnection() as any;
+  const mockDocuments = createMockDocuments();
+  mockDocuments.set('file:///test.cnl', doc);
+  const getOrParse = createMockGetOrParse();
+  const getDocumentSettings = createMockGetDocumentSettings();
+
+  registerNavigationHandlers(mockConnection, mockDocuments, getOrParse, getDocumentSettings);
+  await updateDocumentIndex(doc.uri, doc.getText());
+
+  const prepare = await mockConnection.handlers.onPrepareRename({
+    textDocument: { uri: 'file:///test.cnl' },
+    position: { line: 6, character: 17 },
+  });
+
+  assert(prepare !== null, '应返回可重命名范围');
+  if (prepare) {
+    assert(prepare.placeholder === 'greet', `占位符应为 greet（实际: ${prepare.placeholder}）`);
+    assert(prepare.range.start.line === 6, '范围应命中调用位置');
+  }
+
+  const invalid = await mockConnection.handlers.onPrepareRename({
+    textDocument: { uri: 'file:///test.cnl' },
+    position: { line: 0, character: 0 },
+  });
+  assert(invalid === null, '无效位置应返回 null');
+
+  console.log('✓ PrepareRename 功能正常（正确返回范围和占位符）');
+}
+
 async function main(): Promise<void> {
   console.log('Running LSP navigation tests...\n');
 
   try {
     await testReferencesHandler();
     await testRenameHandler();
+    await testPrepareRenameHandler();
     await testHoverHandler();
     await testDocumentSymbolHandler();
     await testDefinitionHandler();

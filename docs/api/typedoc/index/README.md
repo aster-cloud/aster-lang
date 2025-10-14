@@ -113,6 +113,18 @@ Re-exports [Token](../types/interfaces/Token.md)
 
 ***
 
+### CommentValue
+
+Re-exports [CommentValue](../types/interfaces/CommentValue.md)
+
+***
+
+### isCommentToken
+
+Re-exports [isCommentToken](../types/functions/isCommentToken.md)
+
+***
+
 ### TypecheckDiagnostic
 
 Re-exports [TypecheckDiagnostic](../types/interfaces/TypecheckDiagnostic.md)

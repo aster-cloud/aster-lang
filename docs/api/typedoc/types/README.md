@@ -20,6 +20,7 @@
 - [AstMetadata](interfaces/AstMetadata.md)
 - [EffectCapable](interfaces/EffectCapable.md)
 - [Token](interfaces/Token.md)
+- [CommentValue](interfaces/CommentValue.md)
 - [TypecheckDiagnostic](interfaces/TypecheckDiagnostic.md)
 - [Module](interfaces/Module.md)
 - [Import](interfaces/Import.md)
@@ -79,6 +80,10 @@
 - [Type](type-aliases/Type.md)
 - [PiiSensitivityLevel](type-aliases/PiiSensitivityLevel.md)
 - [PiiDataCategory](type-aliases/PiiDataCategory.md)
+
+## Functions
+
+- [isCommentToken](functions/isCommentToken.md)
 
 ## References
 

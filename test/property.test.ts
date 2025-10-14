@@ -101,6 +101,115 @@ const testStringLiterals = (): void => {
   console.log('✓ String literals lex correctly');
 };
 
+// Property: Comment tokens should be generated with trivia channel
+const testCommentTokenGeneration = (): void => {
+  const cases = [
+    { input: '# standalone comment', desc: 'hash comment' },
+    { input: '// standalone comment', desc: 'slash comment' },
+    { input: 'Let x be 1. # inline', desc: 'inline hash comment' },
+    { input: 'Let x be 1. // inline', desc: 'inline slash comment' },
+    { input: '# comment 1\n# comment 2', desc: 'multiple comments' },
+  ];
+
+  for (const c of cases) {
+    const tokens = lex(c.input);
+    const commentTokens = tokens.filter(t => t.kind === TokenKind.COMMENT);
+    if (commentTokens.length === 0) {
+      throw new Error(`Expected comment token for ${c.desc}, got none`);
+    }
+    for (const ct of commentTokens) {
+      if (ct.channel !== 'trivia') {
+        throw new Error(`Expected trivia channel for ${c.desc}, got ${ct.channel}`);
+      }
+      if (!ct.value || typeof ct.value !== 'object') {
+        throw new Error(`Expected comment value object for ${c.desc}`);
+      }
+    }
+  }
+  console.log('✓ Comment tokens generated with trivia channel');
+};
+
+// Property: Inline/standalone comment classification
+const testCommentClassification = (): void => {
+  const inlineCases = [
+    'Let x be 1. # inline',
+    'Return "hi". // inline',
+    'To greet, produce Text: # inline',
+  ];
+  const standaloneCases = [
+    '# standalone',
+    '  # indented standalone',
+    '// standalone at start',
+  ];
+
+  for (const src of inlineCases) {
+    const tokens = lex(src);
+    const commentTokens = tokens.filter(t => t.kind === TokenKind.COMMENT);
+    if (commentTokens.length === 0) {
+      throw new Error(`Expected inline comment for: ${src}`);
+    }
+    const ct = commentTokens[0]!;
+    const val = ct.value as { trivia: string };
+    if (val.trivia !== 'inline') {
+      throw new Error(`Expected inline classification for: ${src}, got ${val.trivia}`);
+    }
+  }
+
+  for (const src of standaloneCases) {
+    const tokens = lex(src);
+    const commentTokens = tokens.filter(t => t.kind === TokenKind.COMMENT);
+    if (commentTokens.length === 0) {
+      throw new Error(`Expected standalone comment for: ${src}`);
+    }
+    const ct = commentTokens[0]!;
+    const val = ct.value as { trivia: string };
+    if (val.trivia !== 'standalone') {
+      throw new Error(`Expected standalone classification for: ${src}, got ${val.trivia}`);
+    }
+  }
+
+  console.log('✓ Comment inline/standalone classification correct');
+};
+
+// Property: Comments should not affect indentation tracking
+const testCommentsIndentInteraction = (): void => {
+  const src = [
+    'This module is test.',
+    '',
+    '# standalone comment',
+    'To f, produce Int:',
+    '  # indented comment',
+    '  Let x be 1.',
+    '  # another comment',
+    '  Return x.',
+  ].join('\n');
+
+  const tokens = lex(src);
+  const indentTokens = tokens.filter(t => t.kind === TokenKind.INDENT);
+  const dedentTokens = tokens.filter(t => t.kind === TokenKind.DEDENT);
+
+  // Should have exactly 1 INDENT (after function header) and 1 DEDENT (at end)
+  if (indentTokens.length !== 1) {
+    throw new Error(`Expected 1 INDENT, got ${indentTokens.length}`);
+  }
+  if (dedentTokens.length !== 1) {
+    throw new Error(`Expected 1 DEDENT, got ${dedentTokens.length}`);
+  }
+
+  // Verify comments are trivia
+  const commentTokens = tokens.filter(t => t.kind === TokenKind.COMMENT);
+  if (commentTokens.length < 3) {
+    throw new Error(`Expected at least 3 comments, got ${commentTokens.length}`);
+  }
+  for (const ct of commentTokens) {
+    if (ct.channel !== 'trivia') {
+      throw new Error(`Comment should have trivia channel, got ${ct.channel}`);
+    }
+  }
+
+  console.log('✓ Comments do not affect indentation tracking');
+};
+
 // Regression: Start/Wait 关键字应优先于“裸表达式报错”
 // 确保 'Start ... as async ... .', 'Wait for ... .' 解析为语句而非裸表达式
 const testStartWaitPrecedence = (): void => {
@@ -247,6 +356,9 @@ function main(): void {
     testValidIdentifiers();
     testValidIntegers();
     testStringLiterals();
+    testCommentTokenGeneration();
+    testCommentClassification();
+    testCommentsIndentInteraction();
     testStartWaitPrecedence();
     testWaitSingleAndMultiple();
     testRoundTrip();

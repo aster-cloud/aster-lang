@@ -4,7 +4,7 @@
 
 # Interface: Token
 
-Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/1faf303c4ce91a4234e070e405f7ddbcc6e172c4/src/types.ts#L64)
+Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/182cd56309a0bb85c21ecd155862d52b481546d5/src/types.ts#L64)
 
 ## Properties
 
@@ -12,15 +12,15 @@ Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/1faf30
 
 > `readonly` **kind**: [`TokenKind`](../enumerations/TokenKind.md)
 
-Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/1faf303c4ce91a4234e070e405f7ddbcc6e172c4/src/types.ts#L65)
+Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/182cd56309a0bb85c21ecd155862d52b481546d5/src/types.ts#L65)
 
 ***
 
 ### value
 
-> `readonly` **value**: `null` \| `string` \| `number` \| `boolean`
+> `readonly` **value**: `null` \| `string` \| `number` \| `boolean` \| [`CommentValue`](CommentValue.md)
 
-Defined in: [types.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/1faf303c4ce91a4234e070e405f7ddbcc6e172c4/src/types.ts#L66)
+Defined in: [types.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/182cd56309a0bb85c21ecd155862d52b481546d5/src/types.ts#L66)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/1faf30
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/1faf303c4ce91a4234e070e405f7ddbcc6e172c4/src/types.ts#L67)
+Defined in: [types.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/182cd56309a0bb85c21ecd155862d52b481546d5/src/types.ts#L67)
 
 ***
 
@@ -36,4 +36,12 @@ Defined in: [types.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/1faf30
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:68](https://github.com/wontlost-ltd/aster-lang/blob/1faf303c4ce91a4234e070e405f7ddbcc6e172c4/src/types.ts#L68)
+Defined in: [types.ts:68](https://github.com/wontlost-ltd/aster-lang/blob/182cd56309a0bb85c21ecd155862d52b481546d5/src/types.ts#L68)
+
+***
+
+### channel?
+
+> `readonly` `optional` **channel**: `"trivia"`
+
+Defined in: [types.ts:69](https://github.com/wontlost-ltd/aster-lang/blob/182cd56309a0bb85c21ecd155862d52b481546d5/src/types.ts#L69)

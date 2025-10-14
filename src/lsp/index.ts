@@ -91,6 +91,24 @@ let indexConfig: IndexConfig = {
 
 let indexWriteTimer: NodeJS.Timeout | null = null;
 
+type NavigationHelpers = Pick<typeof import('./navigation.js'), 'findTokenPositionsSafe' | 'offsetToPos' | 'ensureUri' | 'uriToFsPath'>;
+let navigationHelpersPromise: Promise<NavigationHelpers> | null = null;
+
+/**
+ * 延迟加载导航模块中的公共工具函数，避免循环依赖导致的初始化问题。
+ */
+async function loadNavigationHelpers(): Promise<NavigationHelpers> {
+  if (!navigationHelpersPromise) {
+    navigationHelpersPromise = import('./navigation.js').then(mod => ({
+      findTokenPositionsSafe: mod.findTokenPositionsSafe,
+      offsetToPos: mod.offsetToPos,
+      ensureUri: mod.ensureUri,
+      uriToFsPath: mod.uriToFsPath,
+    }));
+  }
+  return navigationHelpersPromise;
+}
+
 /**
  * 根据文档 URI 获取对应的模块索引。
  * @param uri 目标文档的 URI。
@@ -109,22 +127,50 @@ export function getAllModules(): ModuleIndex[] {
 }
 
 /**
- * 根据符号名称查找其在工作区内的引用位置。
+ * 根据符号名称查找其在工作区内的所有引用位置（包括定义和使用点）。
  * @param symbol 需要查找的符号名称。
  * @param excludeUri 可选的排除 URI，用于忽略当前文档。
  * @returns 匹配到的引用列表。
  */
 export async function findSymbolReferences(symbol: string, excludeUri?: string): Promise<Location[]> {
+  const { findTokenPositionsSafe, offsetToPos, ensureUri, uriToFsPath } = await loadNavigationHelpers();
   const locations: Location[] = [];
+  const BATCH_SIZE = 20;
+  const modules = Array.from(indexByUri.values());
+  const normalizedExclude = excludeUri ? ensureUri(excludeUri) : undefined;
 
-  for (const [uri, moduleIndex] of indexByUri) {
-    if (excludeUri && uri === excludeUri) {
-      continue;
-    }
+  // 分批扫描模块，逐个读取文件并查找符号出现位置
+  for (let i = 0; i < modules.length; i += BATCH_SIZE) {
+    const batch = modules.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (mod): Promise<Location[]> => {
+        const uri = ensureUri(mod.uri);
+        if (normalizedExclude && uri === normalizedExclude) {
+          return [];
+        }
+        try {
+          const fsPath = uriToFsPath(uri) ?? (uri.startsWith('file://') ? new URL(uri).pathname : uri);
+          const content = await fs.readFile(fsPath, 'utf8');
+          const positions = findTokenPositionsSafe(content, symbol);
+          if (positions.length === 0) {
+            return [];
+          }
+          return positions.map(pos => ({
+            uri,
+            range: {
+              start: offsetToPos(content, pos.start),
+              end: offsetToPos(content, pos.end),
+            },
+          }));
+        } catch {
+          return [];
+        }
+      })
+    );
 
-    for (const symbolInfo of moduleIndex.symbols) {
-      if (symbolInfo.name === symbol) {
-        locations.push({ uri, range: symbolInfo.range });
+    for (const result of batchResults) {
+      if (result.length > 0) {
+        locations.push(...result);
       }
     }
   }

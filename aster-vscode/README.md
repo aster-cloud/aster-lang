@@ -48,12 +48,12 @@ npm run build
 ### 2. 安装扩展
 
 **方式一：本地开发**
-- 在 VSCode 中打开 `editors/vscode/aster-lang` 目录
+- 在 VSCode 中打开 `aster-vscode` 目录
 - 按 `F5` 启动扩展开发主机
 
 **方式二：VSIX 安装**
 ```bash
-cd editors/vscode/aster-lang
+cd aster-vscode
 npm install
 npm run package
 code --install-extension aster-vscode-0.1.0.vsix
@@ -210,7 +210,7 @@ A Status is one of:
 
 ### 编译扩展
 ```bash
-cd editors/vscode/aster-lang
+cd aster-vscode
 npm install
 npm run compile
 ```
@@ -228,7 +228,7 @@ npm run package
 生成 `.vsix` 文件，可分发安装。
 
 ### 调试扩展
-1. 在 VSCode 中打开 `editors/vscode/aster-lang`
+1. 在 VSCode 中打开 `aster-vscode`
 2. 按 `F5` 启动调试
 3. 新窗口会加载扩展，可在原窗口设置断点
 

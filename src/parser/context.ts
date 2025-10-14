@@ -14,7 +14,13 @@ export interface ParserContext {
   collectedEffects: string[] | null;
   effectSnapshots: Array<string[] | null>;
   debug: { enabled: boolean; depth: number; log(message: string): void };
+  /** 跳过当前位置所有 trivia Token（如注释） */
+  skipTrivia(): void;
+  /** 查看第 N 个非 trivia Token（内部使用，不跳过 trivia） */
+  peekToken(offset?: number): Token;
+  /** 查看第 N 个 Token（自动跳过 trivia） */
   peek(offset?: number): Token;
+  /** 消费当前 Token 并前进（自动跳过 trivia） */
   next(): Token;
   at(kind: TokenKind, value?: Token['value']): boolean;
   expect(kind: TokenKind, message: string): Token;

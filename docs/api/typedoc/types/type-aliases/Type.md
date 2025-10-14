@@ -6,4 +6,4 @@
 
 > **Type** = [`TypeName`](../interfaces/TypeName.md) \| [`Maybe`](../interfaces/Maybe.md) \| [`Option`](../interfaces/Option.md) \| [`Result`](../interfaces/Result.md) \| [`List`](../interfaces/List.md) \| [`Map`](../interfaces/Map.md) \| [`TypeApp`](../interfaces/TypeApp.md) \| [`TypeVar`](../interfaces/TypeVar.md) \| [`FuncType`](../interfaces/FuncType.md) \| [`TypePii`](../interfaces/TypePii.md)
 
-Defined in: [types.ts:220](https://github.com/wontlost-ltd/aster-lang/blob/1faf303c4ce91a4234e070e405f7ddbcc6e172c4/src/types.ts#L220)
+Defined in: [types.ts:243](https://github.com/wontlost-ltd/aster-lang/blob/182cd56309a0bb85c21ecd155862d52b481546d5/src/types.ts#L243)
