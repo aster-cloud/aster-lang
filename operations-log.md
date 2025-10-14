@@ -855,3 +855,50 @@ await runOneTypecheck(
 - 深度审查 `src/typecheck.ts`、`src/effect_inference.ts`、`policy-editor/**` 以及 `quarkus-policy-api` 契约：读取 `.claude/context-initial.json`，使用 `sed`/`nl`/`rg` 查看源代码，调用 `code-index` 构建索引并生成文件摘要，收集接口与复杂度证据
 - 目的：为第二步技术债识别整理高风险清单与性能瓶颈
 - 工具：cat, sed, rg, code-index__*
+
+# 2025-10-14 11:37 NZDT P0-4 GraphQL Proxy 集成测试兼容迁移
+
+- 执行者：Codex
+- 触发：主AI指令重写 GraphQLProxyResourceTest 以兼容 Quarkus 3.x
+- 操作：使用 `rg --files -g 'operations-log.md'` 定位日志文件位置，随后通过 `tail -n 20 operations-log.md` 与 `head -n 5 operations-log.md` 校验既有记录格式，并调用 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 获取当前时间戳
+- 输出摘要：确认存在全局 `operations-log.md` 及既有条目结构，记录时间为 2025-10-14 11:37 NZDT
+- 操作：执行 `sed -n '1,200p' policy-editor/src/test/java/editor/api/GraphQLProxyResourceTest.java` 与 `sed -n '200,400p' ...` 阅读现有测试实现与自建 HttpServer 细节
+- 输出摘要：掌握旧版测试依赖 `QuarkusTestResourceLifecycleManager` 启动本地 HttpServer，并记录五个测试场景逻辑
+- 操作：执行 `sed -n '1,200p' policy-editor/src/test/java/editor/PolicyResourceE2ETest.java` 获取 Quarkus 3.x 测试结构样例
+- 输出摘要：确认使用 `@QuarkusTest` + `@TestSecurity`，依赖 RestAssured 风格断言
+- 操作：运行 `rg \"wiremock\" -n` 搜索现有依赖或引用
+- 输出摘要：未发现 WireMock 相关条目，推测尚未引入该依赖
+- 操作：执行 `sed -n '1,200p' policy-editor/build.gradle.kts` 检视测试依赖配置
+- 输出摘要：已包含 `quarkus-junit5`、`rest-assured`、`quarkus-test-security`，未见 WireMock 依赖
+- 操作：使用 `apply_patch` 重写 `policy-editor/src/test/java/editor/api/GraphQLProxyResourceTest.java`，改用 WireMockServer + `@TestProfile` 注入配置，移除已废弃的 `QuarkusTestResource` 生命周期管理
+- 输出摘要：创建 `WireMockProfile` 覆盖 `policy.api.graphql.url`，每个测试通过 WireMock stub 设置响应，并保留五个场景断言
+- 操作：使用 `apply_patch` 更新 `policy-editor/build.gradle.kts`，新增 `com.github.tomakehurst:wiremock-jre8:3.0.1` Test 依赖
+- 输出摘要：为 WireMock 集成测试提供依赖支持
+- 操作：执行 `./gradlew :policy-editor:test --tests editor.api.GraphQLProxyResourceTest`
+- 输出摘要：编译失败，缺少 `LoggedRequest` 类型引用且 Stream `toList()` 推断为 `List<Object>`，需调整 WireMock 依赖引用与类型泛型
+- 操作：再次执行 `./gradlew :policy-editor:test --tests editor.api.GraphQLProxyResourceTest`
+- 输出摘要：运行期失败，Quarkus Test 初始化时抛出 `ClassNotFoundException`（WireMock 静态块），需分析缺失类
+- 操作：使用 `apply_patch` 更新 `policy-editor/build.gradle.kts`，新增 `testRuntimeOnly("com.vaadin:vaadin-dev-server:24.9.2")`
+- 输出摘要：为测试阶段补齐 Vaadin DevMode 监听器缺失的类，避免启动异常
+- 操作：使用 `apply_patch` 调整 GraphQLProxyResourceTest，移除对 `LoggedRequest` 的直接引用并改为 `ServeEvent` 映射，同时修正 Stream 泛型推断
+- 输出摘要：辅助方法 `toCaptured` 与 `flattenHeaders` 现以 WireMock ServeEvent 为输入，消除编译错误
+- 操作：使用 `apply_patch` 在 `performGraphQLPost` 中添加 `log().ifValidationFails()` 以便定位 RestAssured 断言失败原因
+- 输出摘要：失败时会打印实际响应状态和内容，辅助排障
+- 操作：使用 `apply_patch` 将 `performGraphQLPost` 的断言拆分，先捕获响应并在状态码不符时直接 fail，包含实际响应体
+- 输出摘要：便于快速查看返回状态与内容
+- 操作：使用 `apply_patch` 在测试类上加入 `@TestSecurity(user = \"alice\", roles = {\"admin\"})`，同时导入相关注解
+- 输出摘要：模拟认证上下文，避免 `/graphql` 被 Quarkus 安全拦截返回 401
+- 操作：使用 `apply_patch` 调整失败信息，附带 WireMock 捕获的请求数量以定位是否完成转发
+- 输出摘要：失败日志新增“下游捕获请求数”提示
+- 操作：使用 `apply_patch` 将 `@TestSecurity` 从类级别改为逐个方法标注
+- 输出摘要：确保每个测试独立注入认证上下文
+- 操作：使用 `apply_patch` 在 `WireMockProfile` 中新增 `quarkus.http.auth.permission.graphql-test.*` 配置，允许 `/graphql` 在测试中免鉴权
+- 输出摘要：避免 Quarkus 安全层返回 401，确保请求转发到 WireMock
+- 操作：使用 `apply_patch` 将免鉴权路径调整为 `/*`，彻底关闭测试环境的 HTTP 权限拦截
+- 输出摘要：确保所有请求均可到达 WireMock
+- 操作：使用 `apply_patch` 将配置改为 `Map.ofEntries(...)` 并追加 `quarkus.oidc.enabled=false`
+- 输出摘要：禁用 OIDC 认证，避免 Authorization 头被框架截获返回 401
+- 操作：执行 `./gradlew :policy-editor:test --tests editor.api.GraphQLProxyResourceTest`
+- 输出摘要：测试通过，验证 WireMock 集成与五个场景断言均成功
+- 2025-10-14 10:30 NZST | apply_patch | policy-editor/src/main/java/editor/service/PolicyService.java | getAllPolicies 增加容错，后端 GraphQL 报错时返回空列表，避免 UI 导航崩溃（原始错误：listPolicies DataFetchingException）
+- 2025-10-14 11:05 NZST | apply_patch | quarkus-policy-api/src/main/java/io/aster/policy/graphql/PolicyGraphQLResource.java | listPolicies 增加空值防御与告警日志：单条脏数据不再导致 DataFetchingException，转换失败会记录 tenant/id/name 并跳过该条

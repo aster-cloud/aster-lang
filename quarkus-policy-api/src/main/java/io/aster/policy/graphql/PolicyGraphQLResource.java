@@ -11,9 +11,10 @@ import io.aster.policy.graphql.types.LoanTypes;
 import io.aster.policy.graphql.types.PersonalLendingTypes;
 import io.aster.policy.service.PolicyStorageService;
 import io.smallrye.mutiny.Uni;
+import org.jboss.logging.Logger;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.HttpHeaders;
+import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,6 +35,8 @@ import org.eclipse.microprofile.graphql.Query;
 @GraphQLApi
 public class PolicyGraphQLResource {
 
+    private static final Logger LOG = Logger.getLogger(PolicyGraphQLResource.class);
+
     @Inject
     PolicyEvaluationService policyEvaluationService;
 
@@ -41,13 +44,14 @@ public class PolicyGraphQLResource {
     PolicyStorageService policyStorageService;
 
     @Context
-    HttpHeaders httpHeaders;
+    RoutingContext routingContext;
 
     private String tenantId() {
-        if (httpHeaders == null) {
+        // GraphQL 请求不经过 RESTEasy Reactive 的 JAX-RS 上下文，这里改用 Vert.x RoutingContext 获取 HTTP 头
+        if (routingContext == null || routingContext.request() == null) {
             return "default";
         }
-        String tenant = httpHeaders.getHeaderString("X-Tenant-Id");
+        String tenant = routingContext.request().getHeader("X-Tenant-Id");
         return tenant == null || tenant.isBlank() ? "default" : tenant.trim();
     }
 
@@ -706,10 +710,21 @@ public class PolicyGraphQLResource {
     @Description("列出所有策略 / List policies")
     public Uni<List<PolicyTypes.Policy>> listPolicies() {
         return Uni.createFrom().item(() -> {
-            List<PolicyStorageService.PolicyDocument> documents = policyStorageService.listPolicies(tenantId());
+            String tenant = tenantId();
+            List<PolicyStorageService.PolicyDocument> documents = policyStorageService.listPolicies(tenant);
             List<PolicyTypes.Policy> policies = new ArrayList<>();
-            for (PolicyStorageService.PolicyDocument document : documents) {
-                policies.add(convertToGraphQLPolicy(document));
+            for (int i = 0; i < documents.size(); i++) {
+                PolicyStorageService.PolicyDocument document = documents.get(i);
+                if (document == null) {
+                    LOG.warnf("[listPolicies] 跳过空文档: tenant=%s index=%d", tenant, i);
+                    continue;
+                }
+                try {
+                    policies.add(convertToGraphQLPolicy(document));
+                } catch (Exception e) {
+                    LOG.warnf(e, "[listPolicies] 转换策略失败, 已跳过: tenant=%s id=%s name=%s", tenant,
+                        safe(document.getId()), safe(document.getName()));
+                }
             }
             return policies;
         });
@@ -792,21 +807,26 @@ public class PolicyGraphQLResource {
     }
 
     private PolicyTypes.Policy convertToGraphQLPolicy(PolicyStorageService.PolicyDocument document) {
-        return new PolicyTypes.Policy(
-            document.getId(),
-            document.getName(),
-            convertToGraphQLRuleSet(document.getAllow()),
-            convertToGraphQLRuleSet(document.getDeny())
-        );
+        String id = document.getId() == null ? "" : document.getId();
+        String name = document.getName() == null ? "" : document.getName();
+        Map<String, List<String>> allow = document.getAllow() == null ? new LinkedHashMap<>() : document.getAllow();
+        Map<String, List<String>> deny = document.getDeny() == null ? new LinkedHashMap<>() : document.getDeny();
+        return new PolicyTypes.Policy(id, name, convertToGraphQLRuleSet(allow), convertToGraphQLRuleSet(deny));
     }
 
     private PolicyTypes.PolicyRuleSet convertToGraphQLRuleSet(Map<String, List<String>> rules) {
         List<PolicyTypes.PolicyRule> gqlRules = new ArrayList<>();
-        for (Map.Entry<String, List<String>> entry : rules.entrySet()) {
-            gqlRules.add(new PolicyTypes.PolicyRule(entry.getKey(), entry.getValue()));
+        if (rules != null) {
+            for (Map.Entry<String, List<String>> entry : rules.entrySet()) {
+                String resourceType = entry.getKey() == null ? "" : entry.getKey();
+                List<String> patterns = entry.getValue() == null ? new ArrayList<>() : entry.getValue();
+                gqlRules.add(new PolicyTypes.PolicyRule(resourceType, patterns));
+            }
         }
         return new PolicyTypes.PolicyRuleSet(gqlRules);
     }
+
+    private static String safe(Object v) { return v == null ? "<null>" : String.valueOf(v); }
 
     // ==================== Cache Management Mutations ====================
 

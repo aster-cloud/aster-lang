@@ -8,13 +8,21 @@ import editor.service.PolicyService;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -123,7 +131,7 @@ public class PolicyResource {
     @Path("/{id}/undo")
     @RolesAllowed("admin")
     public Response undo(@PathParam("id") String id) {
-        Path policyPath = historyTempFile(id);
+        java.nio.file.Path policyPath = historyTempFile(id);
         boolean ok = historyService.undo(id, policyPath);
         if (!ok) {
             return Response.status(Response.Status.CONFLICT).entity("无法撤销").build();
@@ -142,7 +150,7 @@ public class PolicyResource {
     @Path("/{id}/redo")
     @RolesAllowed("admin")
     public Response redo(@PathParam("id") String id) {
-        Path policyPath = historyTempFile(id);
+        java.nio.file.Path policyPath = historyTempFile(id);
         boolean ok = historyService.redo(id, policyPath);
         if (!ok) {
             return Response.status(Response.Status.CONFLICT).entity("无法重做").build();
@@ -246,7 +254,7 @@ public class PolicyResource {
         catch (Exception e) { return Response.serverError().entity("{\"error\":\""+e.getMessage()+"\"}").build(); }
     }
 
-    private Path historyTempFile(String id) {
+    private java.nio.file.Path historyTempFile(String id) {
         return Paths.get("data", "history", "tmp", id + ".json");
     }
 }

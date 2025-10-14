@@ -70,6 +70,8 @@ dependencies {
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.quarkus:quarkus-test-security")
+    testImplementation("com.github.tomakehurst:wiremock-jre8:3.0.1")
+    testRuntimeOnly("com.vaadin:vaadin-dev-server:24.9.2")
 }
 
 // 移除严格警告依赖于 Vaadin 的编译器提示
@@ -81,12 +83,21 @@ tasks.withType<JavaCompile>().configureEach {
         "-Xlint:all",
         "-Xlint:-processing",
         "-Xlint:-this-escape",  // Vaadin 组件初始化时的误报警告
+        "-Xlint:-classfile",    // MicroProfile Config 依赖缺失 OSGI 注解导致的警告
         "-Werror"
     ))
 }
 
 tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+}
+
+// quarkusDev 任务配置：添加 Java 25 兼容性 JVM 参数
+// 通过系统属性传递给 Quarkus Dev Mode
+quarkus {
+    // Quarkus Dev Mode JVM arguments
+    val jvmArgsValue = listOf("--add-opens", "java.base/java.lang=ALL-UNNAMED")
+    System.setProperty("quarkus.args", jvmArgsValue.joinToString(" "))
 }
 
 // 在原生镜像构建时，排除 Vaadin UI 源码与 Web 资源，确保编译期无 Vaadin 依赖
@@ -124,4 +135,3 @@ val prepareVaadinDevDirs by tasks.registering {
         comps.mkdirs()
     }
 }
-

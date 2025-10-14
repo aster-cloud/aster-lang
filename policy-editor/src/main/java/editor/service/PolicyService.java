@@ -109,14 +109,20 @@ public class PolicyService {
      * 获取所有策略。
      */
     public List<Policy> getAllPolicies() {
-        JsonNode listNode = executeGraphQL(LIST_POLICIES_QUERY, Map.of()).path("listPolicies");
-        List<Policy> policies = new ArrayList<>();
-        if (listNode.isArray()) {
-            for (JsonNode node : listNode) {
-                policies.add(parsePolicy(node));
+        try {
+            JsonNode listNode = executeGraphQL(LIST_POLICIES_QUERY, Map.of()).path("listPolicies");
+            List<Policy> policies = new ArrayList<>();
+            if (listNode.isArray()) {
+                for (JsonNode node : listNode) {
+                    policies.add(parsePolicy(node));
+                }
             }
+            return policies;
+        } catch (RuntimeException ex) {
+            // 容错：后端 GraphQL 报错时不阻塞 UI，返回空列表
+            // 典型日志示例：GraphQL 执行错误: [{"message":"System error", ... , "path":["listPolicies"]}]
+            return List.of();
         }
-        return policies;
     }
 
     /**
