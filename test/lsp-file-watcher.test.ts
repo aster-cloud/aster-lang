@@ -103,28 +103,47 @@ async function testConcurrentPollingProtection(): Promise<void> {
   const testDir = await createTestWorkspace();
 
   try {
-    // 配置一个很短的轮询间隔
+    // 配置一个很短的轮询间隔（50ms）和创建大量文件来拖慢扫描
     configureFileWatcher({
       mode: 'polling',
       enabled: true,
-      pollingInterval: 100, // 100ms轮询
+      pollingInterval: 50, // 非常短的轮询间隔，容易触发重叠
     });
 
-    // 创建多个文件以增加扫描时间
-    for (let i = 0; i < 10; i++) {
+    // 创建大量文件以增加扫描时间
+    for (let i = 0; i < 50; i++) {
       await fs.writeFile(join(testDir, `file${i}.aster`), `This module is test${i}.\n`);
     }
 
+    const initialTracked = getWatcherStatus().trackedFiles;
+
     startFileWatcher([testDir]);
 
-    // 等待多个轮询周期
+    // 等待多个轮询周期（应触发多次setInterval）
     await sleep(500);
 
-    // 如果没有崩溃或挂起，说明并发控制有效
     const status = getWatcherStatus();
+
+    // 验证watcher仍在运行（没有崩溃）
     assert(status.isRunning, 'Watcher应该仍在运行（没有被并发扫描卡死）');
 
-    console.log('✓ 并发轮询保护功能正常');
+    // 验证所有文件都被跟踪（证明扫描完成）
+    assert(
+      status.trackedFiles === 50,
+      `应该跟踪50个文件，实际跟踪${status.trackedFiles}个`
+    );
+
+    // 创建额外文件来验证后续扫描仍能正常工作
+    await fs.writeFile(join(testDir, 'additional.aster'), 'This module is additional.\n');
+    await sleep(300);
+
+    const status2 = getWatcherStatus();
+    assert(
+      status2.trackedFiles === 51,
+      `应该跟踪51个文件（包括新增），实际跟踪${status2.trackedFiles}个`
+    );
+
+    console.log('✓ 并发轮询保护功能正常（单飞行锁防止重入，后续扫描正常）');
   } finally {
     stopFileWatcher();
     await cleanupTestWorkspace(testDir);
@@ -133,12 +152,12 @@ async function testConcurrentPollingProtection(): Promise<void> {
 
 async function testPathMatching(): Promise<void> {
   // 测试路径匹配逻辑，避免前缀碰撞
-  // 由于实际的路径匹配逻辑在内部函数中，这里通过集成测试验证
+  // 核心场景：监控 /foo/bar 不应该误删 /foo/barista 中的文件
 
   const testDir = await createTestWorkspace();
 
   try {
-    // 创建类似命名的目录
+    // 创建类似命名的目录（前缀碰撞场景）
     const dir1 = join(testDir, 'foo', 'bar');
     const dir2 = join(testDir, 'foo', 'barista');
 
@@ -152,26 +171,44 @@ async function testPathMatching(): Promise<void> {
     configureFileWatcher({
       mode: 'polling',
       enabled: true,
-      pollingInterval: 500,
+      pollingInterval: 200,
     });
 
-    startFileWatcher([dir1]); // 只监控 foo/bar
+    // 只监控 foo/bar（不包括 foo/barista）
+    startFileWatcher([dir1]);
 
-    await sleep(1000);
+    await sleep(500);
 
-    // 删除 foo/barista 中的文件，不应该触发 foo/bar 的删除事件
+    const status1 = getWatcherStatus();
+    assert(
+      status1.trackedFiles === 1,
+      `应该只跟踪1个文件（foo/bar/file1.aster），实际跟踪${status1.trackedFiles}个`
+    );
+
+    // 删除 foo/barista 中的文件
     await fs.unlink(join(dir2, 'file2.aster'));
 
-    await sleep(1000);
+    // 等待轮询周期
+    await sleep(500);
 
-    // 如果路径匹配正确，file1.aster应该仍然被跟踪
-    // （没有被误删）
-    const status = getWatcherStatus();
-    // trackedFiles的具体数量取决于实现细节
-    // 这里只验证watcher仍在正常运行
-    assert(status.isRunning, 'Watcher应该仍在运行');
+    // 验证 foo/bar 中的文件没有被误删
+    const status2 = getWatcherStatus();
+    assert(
+      status2.trackedFiles === 1,
+      `foo/bar/file1.aster不应该被误删，trackedFiles应为1，实际为${status2.trackedFiles}`
+    );
 
-    console.log('✓ 路径匹配功能正常（避免前缀碰撞）');
+    // 删除 foo/bar 中的文件（真正应该删除的）
+    await fs.unlink(join(dir1, 'file1.aster'));
+    await sleep(500);
+
+    const status3 = getWatcherStatus();
+    assert(
+      status3.trackedFiles === 0,
+      `foo/bar/file1.aster应该被删除，trackedFiles应为0，实际为${status3.trackedFiles}`
+    );
+
+    console.log('✓ 路径匹配功能正常（使用relative()避免前缀碰撞，精确匹配目录成员）');
   } finally {
     stopFileWatcher();
     await cleanupTestWorkspace(testDir);
