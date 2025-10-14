@@ -986,3 +986,22 @@ await runOneTypecheck(
 - 2025-10-14 23:12 NZDT | shell(sed) | `sed -n '1,200p' test/lsp-navigation.test.ts` 查看现有导航测试结构
 - 2025-10-14 23:12 NZDT | shell(sed) | `sed -n '200,400p' test/lsp-navigation.test.ts` 检查测试主函数调用顺序
 - 2025-10-14 23:13 NZDT | apply_patch | 扩展 `test/lsp-navigation.test.ts` 覆盖跨文件引用与 prepareRename 处理逻辑
+- 2025-10-14 23:14 NZDT | shell(cat) | 查看 `package.json` 以确认测试命令
+- 2025-10-14 23:15 NZDT | shell(npm run build) | 重新构建项目以生成最新测试脚本
+- 2025-10-14 23:16 NZDT | apply_patch | 为 LSP 导航测试增加临时文件写入，确保引用扫描读取真实文件
+- 2025-10-14 23:16 NZDT | shell(npm run build) | 再次构建以同步最新测试修改
+- 2025-10-14 23:17 NZDT | apply_patch | 调整 prepareRename 测试的无效光标位置以避免命中标识符
+- 2025-10-14 23:17 NZDT | shell(npm run build) | 再次构建同步最新测试代码
+- 2025-10-14 23:18 NZDT | shell(node) | `node dist/test/lsp-navigation.test.js` 验证导航引用与 prepareRename 测试全部通过
+- 2025-10-14 23:18 NZDT | shell(git status) | 查看当前工作区改动概况
+- 2025-10-14 23:19 NZDT | shell(git diff) | 尝试查看 `src/lsp/index.ts` 差异（无输出）
+- 2025-10-14 23:19 NZDT | shell(git diff) | 以 `GIT_PAGER=cat` 再次查看 `src/lsp/index.ts` 差异（无输出）
+- 2025-10-14 23:19 NZDT | shell(git diff --name-only) | 确认当前差异文件列表
+- 2025-10-14 23:19 NZDT | shell(sed) | `sed -n '100,220p' src/lsp/index.ts` 检查动态导入实现
+- 2025-10-14 23:19 NZDT | shell(nl) | `nl -ba src/lsp/index.ts | sed -n '100,200p'` 获取关键信息行号
+- 2025-10-14 23:20 NZDT | shell(nl) | `nl -ba src/lsp/navigation.ts | sed -n '60,160p'` 标记导出函数行号
+- 2025-10-14 23:20 NZDT | shell(nl) | `nl -ba src/lsp/navigation.ts | sed -n '880,1020p'` 标记 prepareRename 实现行号
+- 2025-10-14 23:20 NZDT | shell(tail) | `tail -n 20 operations-log.md` 查看最新日志记录
+- 2025-10-14 23:20 NZDT | apply_patch | 移除 navigation 中重复的 onPrepareRename 注释
+- 2025-10-14 23:21 NZDT | shell(npm run build) | 最终构建以同步 navigation 注释更新
+- 2025-10-14 23:21 NZDT | shell(nl) | `nl -ba test/lsp-navigation.test.ts | sed -n '1,200p'` 标注新增测试的行号

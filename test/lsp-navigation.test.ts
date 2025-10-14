@@ -12,9 +12,31 @@ import { lex } from '../src/lexer.js';
 import { parse } from '../src/parser.js';
 import type { Module as AstModule } from '../src/types.js';
 import { clearIndex, updateDocumentIndex } from '../src/lsp/index.js';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(message);
+}
+
+const TMP_DIR = join(process.cwd(), '.tmp', 'lsp-navigation-tests');
+let tmpCounter = 0;
+
+function ensureTmpDir(): string {
+  if (!existsSync(TMP_DIR)) mkdirSync(TMP_DIR, { recursive: true });
+  return TMP_DIR;
+}
+
+function createTempModule(baseName: string, content: string): { uri: string } {
+  const dir = ensureTmpDir();
+  const filePath = join(dir, `${baseName}-${++tmpCounter}.cnl`);
+  writeFileSync(filePath, content, 'utf8');
+  return { uri: pathToFileURL(filePath).href };
+}
+
+function cleanupTmpDir(): void {
+  if (existsSync(TMP_DIR)) rmSync(TMP_DIR, { recursive: true, force: true });
 }
 
 function createMockGetOrParse() {
@@ -74,16 +96,19 @@ To main produce Text:
   Return result.
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
-  const consumer = TextDocument.create('file:///consumer.cnl', 'cnl', 1, `This module is consumer.
+  const mainFile = createTempModule('references-main', code);
+  const doc = TextDocument.create(mainFile.uri, 'cnl', 1, code);
+  const consumerContent = `This module is consumer.
 
 To demo produce Text:
   Return greet("Tester").
-`);
+`;
+  const consumerFile = createTempModule('references-consumer', consumerContent);
+  const consumer = TextDocument.create(consumerFile.uri, 'cnl', 1, consumerContent);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
-  mockDocuments.set('file:///consumer.cnl', consumer);
+  mockDocuments.set(mainFile.uri, doc);
+  mockDocuments.set(consumerFile.uri, consumer);
   const getOrParse = createMockGetOrParse();
   const getDocumentSettings = createMockGetDocumentSettings();
 
@@ -93,7 +118,7 @@ To demo produce Text:
 
   // 测试查找 greet 函数的引用
   const params = {
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: doc.uri },
     position: { line: 2, character: 3 }, // greet 函数定义处
     context: { includeDeclaration: true },
   };
@@ -102,7 +127,7 @@ To demo produce Text:
 
   assert(Array.isArray(references), '应返回 Location 数组');
   assert(references.length === 3, `应找到 3 个引用（实际: ${references.length}）`);
-  assert(references.some(ref => ref.uri === 'file:///consumer.cnl'), '应包含跨文件引用');
+  assert(references.some(ref => ref.uri === consumer.uri), '应包含跨文件引用');
   assert(
     references.some(ref => ref.range.start.line === 6),
     '应包含调用处的引用范围'
@@ -123,10 +148,11 @@ To main produce Text:
   Return result.
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const mainFile = createTempModule('rename-main', code);
+  const doc = TextDocument.create(mainFile.uri, 'cnl', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set(mainFile.uri, doc);
   const getOrParse = createMockGetOrParse();
   const getDocumentSettings = createMockGetDocumentSettings();
 
@@ -135,7 +161,7 @@ To main produce Text:
 
   // 测试重命名 greet 函数
   const params = {
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: doc.uri },
     position: { line: 2, character: 3 }, // greet 函数定义处
     newName: 'sayHello',
   };
@@ -144,7 +170,7 @@ To main produce Text:
 
   assert(workspaceEdit !== null, '应返回 WorkspaceEdit 对象');
   if (workspaceEdit && workspaceEdit.changes) {
-    const changes = workspaceEdit.changes['file:///test.cnl'];
+    const changes = workspaceEdit.changes[doc.uri];
     if (changes) {
       assert(Array.isArray(changes), '应包含文件修改');
       assert(changes.length >= 1, `应至少有1个修改（实际: ${changes.length}）`);
@@ -165,10 +191,11 @@ To greet with name: Text, produce Text:
   Return "Hello " + name.
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const mainFile = createTempModule('hover-main', code);
+  const doc = TextDocument.create(mainFile.uri, 'cnl', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set(mainFile.uri, doc);
   const getOrParse = createMockGetOrParse();
   const getDocumentSettings = createMockGetDocumentSettings();
 
@@ -176,7 +203,7 @@ To greet with name: Text, produce Text:
 
   // 测试在函数名上悬停
   const params = {
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: doc.uri },
     position: { line: 2, character: 3 }, // greet 函数定义处
   };
 
@@ -204,17 +231,18 @@ Define User as:
   age is Int
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const mainFile = createTempModule('symbol-main', code);
+  const doc = TextDocument.create(mainFile.uri, 'cnl', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set(mainFile.uri, doc);
   const getOrParse = createMockGetOrParse();
   const getDocumentSettings = createMockGetDocumentSettings();
 
   registerNavigationHandlers(mockConnection, mockDocuments, getOrParse, getDocumentSettings);
 
   const params = {
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: doc.uri },
   };
 
   const symbols = mockConnection.handlers.onDocumentSymbol(params);
@@ -240,10 +268,11 @@ To main produce Text:
   Return result.
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const mainFile = createTempModule('definition-main', code);
+  const doc = TextDocument.create(mainFile.uri, 'cnl', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set(mainFile.uri, doc);
   const getOrParse = createMockGetOrParse();
   const getDocumentSettings = createMockGetDocumentSettings();
 
@@ -251,7 +280,7 @@ To main produce Text:
 
   // 测试跳转到 greet 函数定义
   const params = {
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: doc.uri },
     position: { line: 6, character: 17 }, // greet 调用处
   };
 
@@ -300,10 +329,11 @@ To main produce Text:
   Return result.
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const mainFile = createTempModule('prepare-main', code);
+  const doc = TextDocument.create(mainFile.uri, 'cnl', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set(mainFile.uri, doc);
   const getOrParse = createMockGetOrParse();
   const getDocumentSettings = createMockGetDocumentSettings();
 
@@ -311,7 +341,7 @@ To main produce Text:
   await updateDocumentIndex(doc.uri, doc.getText());
 
   const prepare = await mockConnection.handlers.onPrepareRename({
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: doc.uri },
     position: { line: 6, character: 17 },
   });
 
@@ -322,8 +352,8 @@ To main produce Text:
   }
 
   const invalid = await mockConnection.handlers.onPrepareRename({
-    textDocument: { uri: 'file:///test.cnl' },
-    position: { line: 0, character: 0 },
+    textDocument: { uri: doc.uri },
+    position: { line: 1, character: 0 },
   });
   assert(invalid === null, '无效位置应返回 null');
 
@@ -346,6 +376,8 @@ async function main(): Promise<void> {
   } catch (error) {
     console.error('\n❌ Test failed:', error);
     process.exit(1);
+  } finally {
+    cleanupTmpDir();
   }
 }
 

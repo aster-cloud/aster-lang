@@ -953,7 +953,6 @@ export function registerNavigationHandlers(
     return null;
   });
 
-  // onPrepareRename: 准备重命名（验证光标位置是否在可重命名的符号上）
   // onPrepareRename: 预先校验是否可重命名并返回精确范围
   connection.onPrepareRename(params => {
     const doc = documents.get(params.textDocument.uri);
