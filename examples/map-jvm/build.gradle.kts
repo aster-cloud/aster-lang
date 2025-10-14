@@ -20,8 +20,8 @@ application { mainClass.set("example.MapMain") }
 val generateAsterJar by tasks.registering(Exec::class) {
   workingDir = rootProject.projectDir
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
-    listOf("cmd", "/c", "set", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out", "&&", "npm", "run", "emit:class", "cnl/examples/map_ops.cnl", "&&", "set", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out", "&&", "npm", "run", "jar:jvm")
-  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out npm run emit:class cnl/examples/map_ops.cnl && ASTER_OUT_DIR=examples/map-jvm/build/aster-out npm run jar:jvm")
+    listOf("cmd", "/c", "set", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out", "&&", "npm", "run", "emit:class", "cnl/examples/map_ops.aster", "&&", "set", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out", "&&", "npm", "run", "jar:jvm")
+  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out npm run emit:class cnl/examples/map_ops.aster && ASTER_OUT_DIR=examples/map-jvm/build/aster-out npm run jar:jvm")
 }
 tasks.withType<JavaCompile>().configureEach {
   dependsOn(generateAsterJar)
