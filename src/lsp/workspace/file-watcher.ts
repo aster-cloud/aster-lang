@@ -4,7 +4,7 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { extname } from 'node:path';
+import { extname, relative, sep } from 'node:path';
 import { updateDocumentIndex, invalidateDocument } from './document-indexer.js';
 import { pathToFileURL } from 'node:url';
 
@@ -58,6 +58,7 @@ let pollingTimer: NodeJS.Timeout | null = null;
 const fileSnapshots: Map<string, FileSnapshot> = new Map();
 let workspaceFolders: string[] = [];
 let isRunning = false;
+let isScanning = false; // 单飞行锁：防止并发扫描
 
 /**
  * 配置文件监控器
@@ -149,15 +150,25 @@ function stopPolling(): void {
  * 扫描并更新文件索引
  */
 async function scanAndUpdate(): Promise<void> {
-  const changes: FileChangeEvent[] = [];
-
-  for (const folder of workspaceFolders) {
-    const detectedChanges = await detectChanges(folder);
-    changes.push(...detectedChanges);
+  // 单飞行锁：如果已经在扫描，跳过本次
+  if (isScanning) {
+    return;
   }
 
-  // 批量处理变更
-  await processChanges(changes);
+  isScanning = true;
+  try {
+    const changes: FileChangeEvent[] = [];
+
+    for (const folder of workspaceFolders) {
+      const detectedChanges = await detectChanges(folder);
+      changes.push(...detectedChanges);
+    }
+
+    // 批量处理变更
+    await processChanges(changes);
+  } finally {
+    isScanning = false;
+  }
 }
 
 /**
@@ -176,7 +187,12 @@ async function detectChanges(dir: string): Promise<FileChangeEvent[]> {
 
   // 检查已删除的文件
   for (const [path] of fileSnapshots) {
-    if (path.startsWith(dir) && !currentFiles.has(path)) {
+    // 使用 relative 检查文件是否在目录下，避免前缀碰撞
+    // 例如: /foo/bar 不会误匹配 /foo/barista/file.aster
+    const rel = relative(dir, path);
+    const isInDir = rel && !rel.startsWith('..') && !rel.startsWith(sep);
+
+    if (isInDir && !currentFiles.has(path)) {
       changes.push({
         uri: pathToFileURL(path).href,
         type: 'deleted',

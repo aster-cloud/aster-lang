@@ -1005,3 +1005,41 @@ await runOneTypecheck(
 - 2025-10-14 23:20 NZDT | apply_patch | 移除 navigation 中重复的 onPrepareRename 注释
 - 2025-10-14 23:21 NZDT | shell(npm run build) | 最终构建以同步 navigation 注释更新
 - 2025-10-14 23:21 NZDT | shell(nl) | `nl -ba test/lsp-navigation.test.ts | sed -n '1,200p'` 标注新增测试的行号
+- 2025-10-15 00:52 NZDT | sequential-thinking | 审查 LSP 文件监控与任务队列实现前进行深度推理分析
+- 2025-10-15 00:52 NZDT | code-index__set_project_path | 初始化索引根目录以便检索审查文件
+- 2025-10-15 00:52 NZDT | code-index__find_files | 尝试定位 `.claude/operations-log.md`（未找到，确认仅存在全局日志）
+- 2025-10-15 00:52 NZDT | shell(tail) | `tail -n 20 operations-log.md` 查看全局操作日志格式
+- 2025-10-15 00:52 NZDT | apply_patch | 更新 operations-log.md 追加审查阶段工具使用记录
+- 2025-10-15 00:53 NZDT | code-index__build_deep_index | 重建索引以获取审查文件结构信息
+- 2025-10-15 00:53 NZDT | code-index__get_file_summary | 获取 `src/lsp/workspace/file-watcher.ts` 概要
+- 2025-10-15 00:53 NZDT | shell(sed) | `sed -n '1,200p' src/lsp/workspace/file-watcher.ts` 查看文件前半段
+- 2025-10-15 00:53 NZDT | shell(sed) | `sed -n '200,400p' src/lsp/workspace/file-watcher.ts` 查看文件后半段
+- 2025-10-15 00:53 NZDT | code-index__get_file_summary | 获取 `src/lsp/task-queue.ts` 概要
+- 2025-10-15 00:53 NZDT | shell(sed) | `sed -n '1,200p' src/lsp/task-queue.ts` 阅读任务队列核心实现
+- 2025-10-15 00:53 NZDT | shell(sed) | `sed -n '200,400p' src/lsp/task-queue.ts` 阅读队列调度与统计逻辑
+- 2025-10-15 00:54 NZDT | shell(sed) | `sed -n '400,520p' src/lsp/task-queue.ts` 查看运行中任务导出
+- 2025-10-15 00:54 NZDT | shell(rg) | `rg \"TaskQueue\" -n src/lsp/server.ts` 定位任务队列集成位置
+- 2025-10-15 00:54 NZDT | shell(sed) | `sed -n '1,160p' src/lsp/server.ts` 阅读初始化流程
+- 2025-10-15 00:54 NZDT | shell(sed) | `sed -n '200,320p' src/lsp/server.ts` 检查文件监控与任务队列集成
+- 2025-10-15 00:54 NZDT | shell(sed) | `sed -n '1,200p' src/lsp/health.ts` 审阅健康检查输出
+- 2025-10-15 00:54 NZDT | shell(sed) | `sed -n '1,200p' src/lsp/workspace/workspace-scanner.ts` 审阅扫描器任务队列接入
+- 2025-10-15 00:54 NZDT | apply_patch | 更新 operations-log.md 追加文件阅读与检索记录
+- 2025-10-15 01:08 NZDT | shell(sed) | `sed -n '1,160p' .claude/CODE_REVIEW_GUIDE.md` 回顾审查规范与输出要求
+- 2025-10-15 01:08 NZDT | apply_patch | 更新 operations-log.md 记录审查规范阅读操作
+- 2025-10-15 01:10 NZDT | shell(nl) | `nl -ba src/lsp/task-queue.ts | sed -n '80,200p'` 标注任务提交段落行号
+- 2025-10-15 01:10 NZDT | shell(nl) | `nl -ba src/lsp/task-queue.ts | sed -n '200,360p'` 标注任务取消与调度行号
+- 2025-10-15 01:10 NZDT | shell(nl) | `nl -ba src/lsp/task-queue.ts | sed -n '360,460p'` 标注任务收尾导出行号
+- 2025-10-15 01:10 NZDT | apply_patch | 更新 operations-log.md 追加行号标注命令记录
+- 2025-10-15 01:10 NZDT | shell(nl) | `nl -ba src/lsp/workspace/file-watcher.ts | sed -n '1,200p'` 标注文件监控配置段行号
+- 2025-10-15 01:10 NZDT | shell(nl) | `nl -ba src/lsp/workspace/file-watcher.ts | sed -n '200,360p'` 标注轮询与变更处理行号
+- 2025-10-15 01:10 NZDT | apply_patch | 更新 operations-log.md 记录文件监控行号标注命令
+- 2025-10-15 01:10 NZDT | shell(nl) | `nl -ba src/lsp/workspace/workspace-scanner.ts | sed -n '1,200p'` 标注工作区扫描器与队列接入行号
+- 2025-10-15 01:10 NZDT | apply_patch | 更新 operations-log.md 记录工作区扫描器行号标注命令
+- 2025-10-15 01:11 NZDT | shell(nl) | `nl -ba src/lsp/server.ts | sed -n '200,320p'` 标注 LSP server 集成段行号
+- 2025-10-15 01:11 NZDT | apply_patch | 更新 operations-log.md 记录 server 行号标注命令
+- 2025-10-15 01:11 NZDT | shell(nl) | `nl -ba src/lsp/health.ts | sed -n '1,200p'` 标注健康检查状态组装行号
+- 2025-10-15 01:11 NZDT | apply_patch | 更新 operations-log.md 记录健康检查行号标注命令
+- 2025-10-15 01:11 NZDT | shell(date) | `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'` 获取审查报告时间戳
+- 2025-10-15 01:11 NZDT | apply_patch | 更新 operations-log.md 记录时间戳命令
+- 2025-10-15 01:12 NZDT | shell(date) | `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 获取审查报告落笔时间
+- 2025-10-15 01:12 NZDT | apply_patch | 新建 `.claude/review-report.md` 输出 P1.3/P1.4 深度审查结论

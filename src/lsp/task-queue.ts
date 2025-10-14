@@ -80,6 +80,11 @@ export interface Task<T = any> {
    * 取消标记
    */
   cancelled?: boolean;
+  /**
+   * Promise 控制器：用于在取消/超时时通知调用方
+   */
+  resolve?: (value: T) => void;
+  reject?: (error: Error) => void;
 }
 
 /**
@@ -178,18 +183,11 @@ export function submitTask<T>(
       id: taskId,
       name,
       priority,
-      execute: async () => {
-        try {
-          const result = await execute();
-          resolve(result);
-          return result;
-        } catch (error) {
-          reject(error);
-          throw error;
-        }
-      },
+      execute,
       status: TaskStatus.PENDING,
       createdAt: Date.now(),
+      resolve,
+      reject,
     };
 
     // 添加到优先级队列
@@ -234,6 +232,10 @@ async function executeTask(task: Task): Promise<void> {
   if (task.cancelled) {
     task.status = TaskStatus.CANCELLED;
     task.completedAt = Date.now();
+    // 通知调用方任务已取消
+    if (task.reject) {
+      task.reject(new Error(`Task ${task.name} was cancelled`));
+    }
     scheduleNext();
     return;
   }
@@ -243,23 +245,50 @@ async function executeTask(task: Task): Promise<void> {
   runningTasks.add(task);
 
   let timeoutId: NodeJS.Timeout | null = null;
+  let timedOut = false;
 
   try {
-    // 设置超时
+    // 设置超时：创建一个竞速的Promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      if (currentConfig.taskTimeout > 0) {
+        timeoutId = setTimeout(() => {
+          timedOut = true;
+          reject(new Error(`Task timeout after ${currentConfig.taskTimeout}ms`));
+        }, currentConfig.taskTimeout);
+      }
+    });
+
+    // 执行任务，与超时Promise竞速
+    let result: any;
     if (currentConfig.taskTimeout > 0) {
-      timeoutId = setTimeout(() => {
-        task.cancelled = true;
-        task.error = new Error(`Task timeout after ${currentConfig.taskTimeout}ms`);
-      }, currentConfig.taskTimeout);
+      result = await Promise.race([task.execute(), timeoutPromise]);
+    } else {
+      result = await task.execute();
     }
 
-    // 执行任务
-    const result = await task.execute();
-    task.result = result;
-    task.status = TaskStatus.COMPLETED;
+    // 任务成功完成
+    if (!timedOut) {
+      task.result = result;
+      task.status = TaskStatus.COMPLETED;
+      if (task.resolve) {
+        task.resolve(result);
+      }
+    }
   } catch (error) {
     task.error = error as Error;
-    task.status = TaskStatus.FAILED;
+
+    // 区分超时和失败
+    if (timedOut) {
+      task.status = TaskStatus.CANCELLED;
+      task.cancelled = true;
+    } else {
+      task.status = TaskStatus.FAILED;
+    }
+
+    // 通知调用方
+    if (task.reject) {
+      task.reject(task.error);
+    }
   } finally {
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -284,6 +313,11 @@ export function cancelTask(taskId: string): boolean {
   task.status = TaskStatus.CANCELLED;
   task.completedAt = Date.now();
 
+  // 通知调用方任务已取消
+  if (task.reject) {
+    task.reject(new Error(`Task ${task.name} was cancelled`));
+  }
+
   // 从队列中移除
   const queue = queues.get(task.priority);
   if (queue) {
@@ -307,6 +341,12 @@ export function cancelAllPendingTasks(): number {
         task.cancelled = true;
         task.status = TaskStatus.CANCELLED;
         task.completedAt = Date.now();
+
+        // 通知调用方任务已取消
+        if (task.reject) {
+          task.reject(new Error(`Task ${task.name} was cancelled`));
+        }
+
         count++;
       }
     }
