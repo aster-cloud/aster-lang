@@ -14,7 +14,6 @@ import {
   CodeActionKind,
 } from 'vscode-languageserver/node.js';
 
-import { promises as fsPromises } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -43,8 +42,6 @@ import {
   getWatcherStatus,
   configureTaskQueue,
   getQueueStats,
-  cleanupCompletedTasks,
-  getRunningTasks,
 } from './index.js';
 import {
   registerDiagnosticHandlers,

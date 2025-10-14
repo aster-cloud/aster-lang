@@ -3,7 +3,6 @@
  * 提供文本处理、偏移量转换和 AST 辅助功能
  */
 
-import { SymbolKind } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { typeText } from '../completion.js';
 import { canonicalize } from '../../canonicalizer.js';
@@ -11,7 +10,6 @@ import { lex } from '../../lexer.js';
 import { TokenKind } from '../../tokens.js';
 import {
   getSpan,
-  getNameSpan,
   getVariantSpans,
   getStatements,
   isAstFunc,
@@ -23,8 +21,6 @@ import type {
   Module as AstModule,
   Declaration as AstDecl,
   Func as AstFunc,
-  Data as AstData,
-  Enum as AstEnum,
   Block as AstBlock,
   Span,
 } from '../../types.js';

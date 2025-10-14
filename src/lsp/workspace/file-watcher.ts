@@ -55,7 +55,7 @@ const defaultConfig: FileWatcherConfig = {
 
 let currentConfig: FileWatcherConfig = { ...defaultConfig };
 let pollingTimer: NodeJS.Timeout | null = null;
-let fileSnapshots: Map<string, FileSnapshot> = new Map();
+const fileSnapshots: Map<string, FileSnapshot> = new Map();
 let workspaceFolders: string[] = [];
 let isRunning = false;
 
@@ -169,13 +169,13 @@ async function detectChanges(dir: string): Promise<FileChangeEvent[]> {
 
   try {
     await scanDirectory(dir, currentFiles, changes);
-  } catch (error) {
+  } catch {
     // 目录不存在或无法访问
     return changes;
   }
 
   // 检查已删除的文件
-  for (const [path, _] of fileSnapshots) {
+  for (const [path] of fileSnapshots) {
     if (path.startsWith(dir) && !currentFiles.has(path)) {
       changes.push({
         uri: pathToFileURL(path).href,

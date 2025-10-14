@@ -301,7 +301,7 @@ export function cancelTask(taskId: string): boolean {
  */
 export function cancelAllPendingTasks(): number {
   let count = 0;
-  for (const [_, queue] of queues) {
+  for (const queue of queues.values()) {
     for (const task of queue) {
       if (task.status === TaskStatus.PENDING) {
         task.cancelled = true;
@@ -325,7 +325,7 @@ export function getQueueStats(): QueueStats {
   let failed = 0;
   let cancelled = 0;
 
-  for (const [_, task] of allTasks) {
+  for (const task of allTasks.values()) {
     switch (task.status) {
       case TaskStatus.PENDING:
         pending++;

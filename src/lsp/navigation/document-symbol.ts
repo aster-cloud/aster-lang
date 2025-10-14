@@ -17,9 +17,6 @@ import {
   getNameSpan,
   getVariantSpans,
   getStatements,
-  isAstFunc,
-  isAstData,
-  isAstEnum,
   isAstBlock,
 } from '../type-guards.js';
 import { spanOrDoc, funcDetail } from './shared.js';
