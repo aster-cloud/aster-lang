@@ -37,10 +37,10 @@ function getOrParse(doc: TextDocument): { text: string; tokens: readonly any[]; 
 }
 
 async function prepareSmallScenario(): Promise<TestScenario> {
-  const greetPath = 'cnl/examples/greet.cnl';
+  const greetPath = 'cnl/examples/greet.aster';
   const text = await fs.readFile(greetPath, 'utf8');
   const files = new Map<string, string>();
-  files.set('greet.cnl', text);
+  files.set('greet.aster', text);
   return { name: 'small', files };
 }
 
@@ -48,7 +48,7 @@ async function prepareMediumScenario(): Promise<TestScenario> {
   const modules = generateMediumProject(40, 42);
   const files = new Map<string, string>();
   for (const [moduleName, content] of modules) {
-    const fileName = moduleName.split('.').join('/') + '.cnl';
+    const fileName = moduleName.split('.').join('/') + '.aster';
     files.set(fileName, content);
   }
   return { name: 'medium', files };
@@ -57,7 +57,7 @@ async function prepareMediumScenario(): Promise<TestScenario> {
 async function prepareLargeScenario(): Promise<TestScenario> {
   const content = generateLargeProgram(50);
   const files = new Map<string, string>();
-  files.set('large.cnl', content);
+  files.set('large.aster', content);
   return { name: 'large', files };
 }
 

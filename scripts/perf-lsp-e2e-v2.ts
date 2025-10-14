@@ -338,15 +338,15 @@ function countLines(files: Map<string, string>): number {
 }
 
 async function prepareSmallProject(): Promise<ProjectDefinition> {
-  const greetPath = path.resolve('cnl/examples/greet.cnl');
+  const greetPath = path.resolve('cnl/examples/greet.aster');
   const text = await fs.readFile(greetPath, 'utf8');
   const files = new Map<string, string>();
-  files.set('examples/greet.cnl', text);
+  files.set('examples/greet.aster', text);
 
   return {
     name: 'small',
     files,
-    testFiles: ['examples/greet.cnl'],
+    testFiles: ['examples/greet.aster'],
   };
 }
 
@@ -356,7 +356,7 @@ async function prepareMediumProject(): Promise<ProjectDefinition> {
   const testFiles: string[] = [];
 
   for (const [moduleName, content] of modules) {
-    const relPath = moduleName.split('.').join('/') + '.cnl';
+    const relPath = moduleName.split('.').join('/') + '.aster';
     files.set(relPath, content);
     testFiles.push(relPath);  // ✅ 测试所有文件！
   }
@@ -371,7 +371,7 @@ async function prepareMediumProject(): Promise<ProjectDefinition> {
 async function prepareLargeProject(): Promise<ProjectDefinition> {
   const moduleName = 'benchmark.test';
   const content = generateLargeProgram(50);
-  const relativePath = moduleName.split('.').join('/') + '.cnl';
+  const relativePath = moduleName.split('.').join('/') + '.aster';
   const files = new Map<string, string>();
   files.set(relativePath, content);
 

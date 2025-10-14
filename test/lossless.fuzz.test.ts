@@ -9,7 +9,7 @@ function readExamples(): string[] {
   const dir = path.join(process.cwd(), 'cnl', 'examples');
   return fsn
     .readdirSync(dir)
-    .filter(f => f.endsWith('.cnl'))
+    .filter(f => f.endsWith('.aster'))
     .map(f => fsn.readFileSync(path.join(dir, f), 'utf8'));
 }
 

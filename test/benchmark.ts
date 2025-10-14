@@ -32,8 +32,8 @@ function main(): void {
   console.log('Running performance benchmarks...\n');
   
   // Load test files
-  const greetProgram = fs.readFileSync('cnl/examples/greet.cnl', 'utf8');
-  const loginProgram = fs.readFileSync('cnl/examples/login.cnl', 'utf8');
+  const greetProgram = fs.readFileSync('cnl/examples/greet.aster', 'utf8');
+  const loginProgram = fs.readFileSync('cnl/examples/login.aster', 'utf8');
   const largeProgram = generateLargeProgram(50); // 50 functions
   
   console.log('=== Small Programs ===');

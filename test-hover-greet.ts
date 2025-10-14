@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 /**
- * 测试greet.cnl的hover - 使用修复后的position
+ * 测试greet.aster的hover - 使用修复后的position
  */
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -46,10 +46,10 @@ function send(msg: any) {
 }
 
 async function test() {
-  console.log('[测试] 使用实际greet.cnl内容测试hover...');
+  console.log('[测试] 使用实际greet.aster内容测试hover...');
 
-  const greetText = readFileSync('cnl/examples/greet.cnl', 'utf8');
-  console.log('[测试] greet.cnl内容:');
+  const greetText = readFileSync('cnl/examples/greet.aster', 'utf8');
+  console.log('[测试] greet.aster内容:');
   console.log(greetText);
   console.log('[测试] ---');
 
@@ -86,7 +86,7 @@ async function test() {
   send({ jsonrpc: '2.0', method: 'initialized', params: {} });
 
   // Open document
-  const uri = 'file:///tmp/greet.cnl';
+  const uri = 'file:///tmp/greet.aster';
 
   send({
     jsonrpc: '2.0',

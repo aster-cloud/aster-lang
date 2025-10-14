@@ -83,13 +83,13 @@ function compareDirs(a: string, b: string): { ok: boolean; errors: string[] } {
 
 async function main(): Promise<void> {
   const inputs = [
-    'cnl/examples/login.cnl',
-    'cnl/examples/greet.cnl',
-    'cnl/examples/enum_exhaustiveness.cnl',
-    'cnl/examples/match_enum.cnl',
-    'cnl/examples/result_trycatch.cnl',
-    'cnl/examples/list_ops.cnl',
-    'cnl/examples/map_ops.cnl',
+    'cnl/examples/login.aster',
+    'cnl/examples/greet.aster',
+    'cnl/examples/enum_exhaustiveness.aster',
+    'cnl/examples/match_enum.aster',
+    'cnl/examples/result_trycatch.aster',
+    'cnl/examples/list_ops.aster',
+    'cnl/examples/map_ops.aster',
   ];
   // Ensure build
   sh('npm run build');

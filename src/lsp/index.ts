@@ -257,9 +257,9 @@ export function invalidateDocument(uri: string): void {
 }
 
 /**
- * 递归扫描目录下所有 .cnl 文件。
+ * 递归扫描目录下所有 .aster 文件。
  * @param dir 目录路径。
- * @returns 所有 .cnl 文件的绝对路径列表。
+ * @returns 所有 .aster 文件的绝对路径列表。
  */
 async function scanCnlFiles(dir: string): Promise<string[]> {
   const debugLog: string[] = [];
@@ -280,10 +280,10 @@ async function scanCnlFiles(dir: string): Promise<string[]> {
         }
         debugLog.push(`[scanCnlFiles] Recursing into subdirectory: ${entry.name}`);
         const subFiles = await scanCnlFiles(fullPath);
-        debugLog.push(`[scanCnlFiles] Found ${subFiles.length} .cnl files in ${entry.name}`);
+        debugLog.push(`[scanCnlFiles] Found ${subFiles.length} .aster files in ${entry.name}`);
         results.push(...subFiles);
-      } else if (entry.isFile() && extname(entry.name) === '.cnl') {
-        debugLog.push(`[scanCnlFiles] Found .cnl file: ${entry.name}`);
+      } else if (entry.isFile() && extname(entry.name) === '.aster') {
+        debugLog.push(`[scanCnlFiles] Found .aster file: ${entry.name}`);
         results.push(fullPath);
       }
     }
@@ -291,7 +291,7 @@ async function scanCnlFiles(dir: string): Promise<string[]> {
     debugLog.push(`[scanCnlFiles] Error reading directory ${dir}: ${error?.message ?? String(error)}`);
   }
 
-  debugLog.push(`[scanCnlFiles] Scan complete: ${results.length} .cnl files found`);
+  debugLog.push(`[scanCnlFiles] Scan complete: ${results.length} .aster files found`);
   await fs.writeFile('/tmp/lsp-scan-debug.log', debugLog.join('\n') + '\n', { flag: 'a' }).catch(() => {});
 
   return results;
@@ -306,7 +306,7 @@ export async function rebuildWorkspaceIndex(folders: string[]): Promise<void> {
   debugLog.push(`[rebuildWorkspaceIndex] Started at ${new Date().toISOString()}`);
   debugLog.push(`[rebuildWorkspaceIndex] Folders: ${JSON.stringify(folders)}`);
 
-  // 1. 扫描所有 .cnl 文件
+  // 1. 扫描所有 .aster 文件
   const allFiles: string[] = [];
   for (const folder of folders) {
     debugLog.push(`[scanCnlFiles] Scanning folder: ${folder}`);

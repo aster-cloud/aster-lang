@@ -36,7 +36,7 @@
 2. 可选 `npm run docs:build`：构建 VitePress 文档（GitHub Pages 同步使用该命令）。
 3. 若需要 JVM 产物，可执行：
    ```bash
-   npm run emit:class -- cnl/examples/greet.cnl
+   npm run emit:class -- cnl/examples/greet.aster
    npm run javap:verify
    ```
 4. 确认能力校验默认开启：`src/config/runtime.ts` 将 `ASTER_CAP_EFFECTS_ENFORCE` 视作默认 true，仅当值为 `0` 时关闭。
@@ -87,7 +87,7 @@
 3. 执行 `npm run ci` 验证核心流程。
 4. 验证结构化日志与错误 ID：
    ```bash
-   LOG_LEVEL=DEBUG node dist/scripts/cli.js cnl/examples/greet.cnl
+   LOG_LEVEL=DEBUG node dist/scripts/cli.js cnl/examples/greet.aster
    ```
    - 输出的 JSON 日志会包含 `timestamp`、`component`、`message` 等字段。
 

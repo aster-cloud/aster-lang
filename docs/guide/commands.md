@@ -4,18 +4,18 @@ This page lists common npm scripts and the unified `aster` CLI subcommands.
 
 ## Unified CLI (`aster`)
 
-- `aster parse <file.cnl> [--watch]`
+- `aster parse <file.aster> [--watch]`
   - Parse CNL to AST (JSON). `--watch` re-parses on change.
-- `aster core <file.cnl> [--watch]`
+- `aster core <file.aster> [--watch]`
   - Lower to Core IR (JSON). `--watch` re-lowers on change.
-- `aster jvm <file.cnl> [--out DIR] [--watch]`
+- `aster jvm <file.aster> [--out DIR] [--watch]`
   - Emit Java sources into `DIR` (default `build/jvm-src`).
-- `aster class <file.cnl> [--out DIR] [--watch]`
+- `aster class <file.aster> [--out DIR] [--watch]`
   - Emit JVM classfiles (ASM) into `DIR` (default `build/jvm-classes`).
-- `aster jar [<file.cnl>] [--out FILE]`
+- `aster jar [<file.aster>] [--out FILE]`
   - Create a jar from `build/jvm-classes`; if a CNL file is provided, emits classes first.
 - `aster truffle <file.(cnl|json)> [-- args...]`
-  - Run Core IR on the Truffle interpreter. Auto-lowers `.cnl` to JSON.
+  - Run Core IR on the Truffle interpreter. Auto-lowers `.aster` to JSON.
   - Extra args after `--` bind to function parameters as strings.
 
 ## Build & Typecheck
@@ -73,8 +73,8 @@ This page lists common npm scripts and the unified `aster` CLI subcommands.
 ## Truffle
 
 - `npm run truffle:run` — Run Truffle demo runner.
-- `npm run truffle:run:core` — Lower `greet.cnl` and run on Truffle.
-- `npm run truffle:run:ifparam` — Lower `if_param.cnl` and run on Truffle with a flag.
+- `npm run truffle:run:core` — Lower `greet.aster` and run on Truffle.
+- `npm run truffle:run:ifparam` — Lower `if_param.aster` and run on Truffle with a flag.
 
 ## Misc
 

@@ -65,7 +65,7 @@ Create a `.aster/effects.json` file in your project root to customize effect inf
 Override the default config location using `ASTER_EFFECT_CONFIG`:
 
 ```bash
-ASTER_EFFECT_CONFIG=/path/to/custom-effects.json npx tsx scripts/typecheck-cli.ts myfile.cnl
+ASTER_EFFECT_CONFIG=/path/to/custom-effects.json npx tsx scripts/typecheck-cli.ts myfile.aster
 ```
 
 ### Configuration Fallback
@@ -100,7 +100,7 @@ Without declaring `It performs io`, this will trigger a typecheck error.
 Enable checks by setting `ASTER_CAPS` to a JSON manifest file.
 
 Environment examples:
-- CLI: `ASTER_CAPS=cnl/examples/capabilities.json node dist/scripts/typecheck-cli.js cnl/examples/capdemo.cnl`
+- CLI: `ASTER_CAPS=cnl/examples/capabilities.json node dist/scripts/typecheck-cli.js cnl/examples/capdemo.aster`
 - LSP: `ASTER_CAPS=cnl/examples/capabilities.json npm run lsp`
 
 Manifest schema (JSON):
@@ -160,7 +160,7 @@ These will dump diagnostics and code action titles to the console to help debug.
 ## Golden tests
 
 Two example goldens are included to validate behavior:
-- `capabilities_deny.json` denies all IO/CPU: both IO functions in `capdemo.cnl` report errors.
+- `capabilities_deny.json` denies all IO/CPU: both IO functions in `capdemo.aster` report errors.
 - `capabilities_mixed.json` allows the module but denies a specific function: only that function reports an error.
 
 Run: `npm run test:golden`

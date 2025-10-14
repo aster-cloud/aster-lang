@@ -57,8 +57,8 @@ function startClient(): void {
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: 'file', language: 'aster' }],
     synchronize: {
-      // 监视工作区中所有 .cnl 文件的变化
-      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.cnl'),
+      // 监视工作区中所有 .aster 文件的变化
+      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.aster'),
     },
   };
 
@@ -81,7 +81,7 @@ function startClient(): void {
 /**
  * 扩展激活入口
  *
- * 当 VSCode 激活此扩展时调用（打开 .cnl 文件或执行扩展命令时）
+ * 当 VSCode 激活此扩展时调用（打开 .aster 文件或执行扩展命令时）
  */
 export function activate(context: vscode.ExtensionContext): void {
   // 注册命令：手动启动语言服务器
@@ -100,7 +100,7 @@ export function activate(context: vscode.ExtensionContext): void {
     startClient();
   } else {
     vscode.window.showInformationMessage(
-      'Aster: 未检测到工作区。打开包含 .cnl 文件的文件夹后，使用 "Aster: Start Language Server" 命令启动。'
+      'Aster: 未检测到工作区。打开包含 .aster 文件的文件夹后，使用 "Aster: Start Language Server" 命令启动。'
     );
   }
 }

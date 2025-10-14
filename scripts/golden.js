@@ -52,10 +52,10 @@ async function runOneCore(inputPath, expectPath) {
   }
 }
 async function main() {
-  runOneAst('cnl/examples/greet.cnl', 'cnl/examples/expected_greet.ast.json');
-  runOneAst('cnl/examples/login.cnl', 'cnl/examples/expected_login.ast.json');
-  await runOneCore('cnl/examples/greet.cnl', 'cnl/examples/expected_greet_core.json');
-  await runOneCore('cnl/examples/login.cnl', 'cnl/examples/expected_login_core.json');
+  runOneAst('cnl/examples/greet.aster', 'cnl/examples/expected_greet.ast.json');
+  runOneAst('cnl/examples/login.aster', 'cnl/examples/expected_login.ast.json');
+  await runOneCore('cnl/examples/greet.aster', 'cnl/examples/expected_greet_core.json');
+  await runOneCore('cnl/examples/login.aster', 'cnl/examples/expected_login_core.json');
 }
 main().catch(e => {
   console.error('Golden test runner failed:', e.message);

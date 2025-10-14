@@ -47,7 +47,7 @@ npm run build
 npm test
 
 # Run the CLI
-npm run build && node dist/scripts/cli.js cnl/examples/greet.cnl
+npm run build && node dist/scripts/cli.js cnl/examples/greet.aster
 ```
 
 ### Development Commands

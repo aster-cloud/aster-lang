@@ -32,7 +32,7 @@ function createMockGetOrParse(): (doc: TextDocument) => { text: string; tokens: 
 async function measureDiagnosticsPerformance(): Promise<void> {
   const examplesDir = 'cnl/examples';
   const files = readdirSync(examplesDir)
-    .filter(f => f.endsWith('.cnl'))
+    .filter(f => f.endsWith('.aster'))
     .map(f => join(examplesDir, f));
 
   console.log(`测试 ${files.length} 个文件的诊断性能...\n`);

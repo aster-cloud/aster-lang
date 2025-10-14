@@ -6,8 +6,8 @@
 - 指令与结果：
   - `npm run typecheck` → 通过（tsc --noEmit）。
   - `npm run test` → 通过（黄金测试、属性测试全部成功，输出结构化 JSON 日志）。
-  - `LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.cnl` → 通过，输出 INFO 级日志与性能指标。
-  - `ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.cnl` → 通过，输出与上次一致。
+  - `LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.aster` → 通过，输出 INFO 级日志与性能指标。
+  - `ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.aster` → 通过，输出与上次一致。
 
 ## 2025-10-08 Typecheck 能力验证
 - 日期：2025-10-08 16:33 NZDT
@@ -29,4 +29,4 @@
   - `npm run typecheck` → 通过（tsc --noEmit，确认 TypeScript 侧无回归）。
   - `npm run test:golden` → 通过（黄金测试与格式化流程完整执行）。
   - `npm run build` → 通过（生成 PEG 解析器）。
-  - `node dist/scripts/typecheck-cli.js test/capability-v2.cnl` → 通过但提示 `mixed` 无直接 IO 操作；用于验证 legacy `@io` 与细粒度 `Http`/`Files`/`Secrets` 注解可被解析。
+  - `node dist/scripts/typecheck-cli.js test/capability-v2.aster` → 通过但提示 `mixed` 无直接 IO 操作；用于验证 legacy `@io` 与细粒度 `Http`/`Files`/`Secrets` 注解可被解析。

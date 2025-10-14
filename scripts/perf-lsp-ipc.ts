@@ -23,7 +23,7 @@ async function measureIPCLatency(client: LSPClient): Promise<number[]> {
     try {
       // 发送空的 hover 请求（最小有效消息）
       await client.request('textDocument/hover', {
-        textDocument: { uri: 'file:///nonexistent.cnl' },
+        textDocument: { uri: 'file:///nonexistent.aster' },
         position: { line: 0, character: 0 },
       });
     } catch {
@@ -73,7 +73,7 @@ async function main(): Promise<void> {
     for (let i = 0; i < WARMUP_ITERATIONS; i++) {
       try {
         await client.request('textDocument/hover', {
-          textDocument: { uri: 'file:///warmup.cnl' },
+          textDocument: { uri: 'file:///warmup.aster' },
           position: { line: 0, character: 0 },
         });
       } catch {

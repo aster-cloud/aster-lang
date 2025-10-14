@@ -39,7 +39,7 @@ To greet with user: User, produce Text:
   Return "Hello, {user.name}".
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const doc = TextDocument.create('file:///test.aster', 'aster', 1, code);
   const getOrParse = createMockGetOrParse();
 
   const diagnostics = await computeDiagnostics(doc, getOrParse);
@@ -52,7 +52,7 @@ To greet with user: User, produce Text:
 async function testMissingModuleHeader(): Promise<void> {
   const code = `Define User with id: Text.`;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const doc = TextDocument.create('file:///test.aster', 'aster', 1, code);
   const getOrParse = createMockGetOrParse();
 
   const diagnostics = await computeDiagnostics(doc, getOrParse);
@@ -79,7 +79,7 @@ To leakData produce Text with effect HttpGet:
   Return data.
 `;
 
-  const doc = TextDocument.create('file:///pii_test.cnl', 'cnl', 1, code);
+  const doc = TextDocument.create('file:///pii_test.aster', 'aster', 1, code);
   const getOrParse = createMockGetOrParse();
 
   setDiagnosticConfig({ workspaceDiagnosticsEnabled: true });

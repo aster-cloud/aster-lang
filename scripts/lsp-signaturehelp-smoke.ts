@@ -13,9 +13,9 @@ function send(server: ChildProcessWithoutNullStreams, msg: Json): void {
 }
 
 async function main(): Promise<void> {
-  const filePath = path.resolve('test-signature-help.cnl');
+  const filePath = path.resolve('test-signature-help.aster');
   if (!fs.existsSync(filePath)) {
-    console.error('lsp-signaturehelp-smoke: missing test-signature-help.cnl');
+    console.error('lsp-signaturehelp-smoke: missing test-signature-help.aster');
     process.exit(1);
   }
   const content = fs.readFileSync(filePath, 'utf8');

@@ -46,7 +46,7 @@ async function main(): Promise<void> {
 
   // Document with a missing colon at end of header line
   const content = ['This module is demo.p', 'To f, produce Text', '  Return "x"', ''].join('\n');
-  const uri = 'file:///punct-smoke.cnl';
+  const uri = 'file:///punct-smoke.aster';
   send(server, { jsonrpc: '2.0', method: 'textDocument/didOpen', params: { textDocument: { uri, languageId: 'cnl', version: 1, text: content } } });
   // Pull diagnostics
   send(server, { jsonrpc: '2.0', id: 2, method: 'textDocument/diagnostic', params: { textDocument: { uri } } });

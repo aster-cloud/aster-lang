@@ -68,7 +68,7 @@ async function main(): Promise<void> {
   console.log('LSP health (before):', JSON.stringify(health));
 
   // Create a temporary CNL file and notify the server via watchedFiles
-  const tmpFile = path.join(process.cwd(), 'tmp-smoke.cnl');
+  const tmpFile = path.join(process.cwd(), 'tmp-smoke.aster');
   try { fs.writeFileSync(tmpFile, 'This module is smoke.tmp.\n\nTo id, produce Int:\n  Return 1.\n'); } catch {}
   const tmpUri = 'file://' + tmpFile;
   // FileChangeType.Created = 1

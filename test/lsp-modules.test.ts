@@ -67,10 +67,10 @@ async function testFormattingModule(): Promise<void> {
 To greet with name: Text, produce Text:
   Return "Hello " + name.`;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const doc = TextDocument.create('file:///test.aster', 'aster', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set('file:///test.aster', doc);
 
   const getDocumentSettings = async () => ({ format: { mode: 'lossless', reflow: false } });
 
@@ -78,7 +78,7 @@ To greet with name: Text, produce Text:
 
   // Test full document formatting
   const formatResult = await mockConnection.handlers.onDocumentFormatting({
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: 'file:///test.aster' },
     options: { tabSize: 2, insertSpaces: true },
   });
 
@@ -92,10 +92,10 @@ async function testCodeActionModule(): Promise<void> {
 To greet with name: Text, produce Text:
   Return "Hello " + name.`;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const doc = TextDocument.create('file:///test.aster', 'aster', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set('file:///test.aster', doc);
   const getOrParse = createMockGetOrParse();
   const uriToFsPath = (uri: string) => uri.replace('file://', '');
 
@@ -103,7 +103,7 @@ To greet with name: Text, produce Text:
 
   // Test with no diagnostics
   const actions = await mockConnection.handlers.onCodeAction({
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: 'file:///test.aster' },
     range: { start: { line: 0, character: 0 }, end: { line: 0, character: 10 } },
     context: { diagnostics: [] },
   });
@@ -118,7 +118,7 @@ async function testSymbolsModule(): Promise<void> {
 
   const getAllModules = () => [
     {
-      uri: 'file:///test.cnl',
+      uri: 'file:///test.aster',
       moduleName: 'test_app',
       symbols: [
         { name: 'greet', kind: 'function', range: { start: { line: 0, character: 0 }, end: { line: 1, character: 0 } } },
@@ -144,10 +144,10 @@ async function testTokensModule(): Promise<void> {
 To greet with name: Text, produce Text:
   Return "Hello " + name.`;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const doc = TextDocument.create('file:///test.aster', 'aster', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set('file:///test.aster', doc);
   const getOrParse = createMockGetOrParse();
 
   const typeText = (ty: any) => 'Text';
@@ -159,7 +159,7 @@ To greet with name: Text, produce Text:
 
   // Test semantic tokens
   const semanticTokens = mockConnection.handlers.semanticTokens({
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: 'file:///test.aster' },
   });
 
   assert(semanticTokens && typeof semanticTokens === 'object', 'SemanticTokens 应返回对象');
@@ -203,7 +203,7 @@ async function testEdgeCases(): Promise<void> {
 
   // Test formatting with non-existent document
   const result = await mockConnection.handlers.onDocumentFormatting({
-    textDocument: { uri: 'file:///nonexistent.cnl' },
+    textDocument: { uri: 'file:///nonexistent.aster' },
     options: { tabSize: 2, insertSpaces: true },
   });
 

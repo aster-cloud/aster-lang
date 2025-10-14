@@ -30,7 +30,7 @@ function ensureTmpDir(): string {
 
 function createTempModule(baseName: string, content: string): { uri: string } {
   const dir = ensureTmpDir();
-  const filePath = join(dir, `${baseName}-${++tmpCounter}.cnl`);
+  const filePath = join(dir, `${baseName}-${++tmpCounter}.aster`);
   writeFileSync(filePath, content, 'utf8');
   return { uri: pathToFileURL(filePath).href };
 }
@@ -307,7 +307,7 @@ async function testEdgeCases(): Promise<void> {
 
   // 测试不存在的文档
   const params = {
-    textDocument: { uri: 'file:///nonexistent.cnl' },
+    textDocument: { uri: 'file:///nonexistent.aster' },
     position: { line: 0, character: 0 },
   };
 

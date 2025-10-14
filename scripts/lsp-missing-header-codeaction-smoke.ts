@@ -54,7 +54,7 @@ async function main(): Promise<void> {
 
   // Open a document with no module header
   const content = ['To hello, produce Text:', '  Return "x".', ''].join('\n');
-  const uri = 'file:///missing-header.cnl';
+  const uri = 'file:///missing-header.aster';
   send(server, { jsonrpc: '2.0', method: 'textDocument/didOpen', params: { textDocument: { uri, languageId: 'cnl', version: 1, text: content } } });
 
   // Pull diagnostics for the document

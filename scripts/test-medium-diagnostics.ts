@@ -33,7 +33,7 @@ function getOrParse(doc: TextDocument): { text: string; tokens: readonly any[]; 
 async function loadExampleFiles(): Promise<TextDocument[]> {
   console.log('📂 Loading CNL example files...');
   const files = await fs.readdir(EXAMPLES_PATH);
-  const cnlFiles = files.filter(f => f.endsWith('.cnl'));
+  const cnlFiles = files.filter(f => f.endsWith('.aster'));
 
   const documents: TextDocument[] = [];
   for (const file of cnlFiles) {

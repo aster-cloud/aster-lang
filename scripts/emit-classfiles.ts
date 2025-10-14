@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 
   const inputs = process.argv.slice(2);
   if (inputs.length === 0) {
-    console.error('Usage: emit-classfiles <file.cnl> [more.cnl ...]');
+    console.error('Usage: emit-classfiles <file.aster> [more.aster ...]');
     process.exit(2);
   }
 

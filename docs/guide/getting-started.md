@@ -60,10 +60,10 @@ npm run test:golden
 
 ### 创建文件
 
-在项目根目录创建 `hello.cnl`：
+在项目根目录创建 `hello.aster`：
 
 ```bash
-cat > hello.cnl << 'EOF'
+cat > hello.aster << 'EOF'
 This module is tutorial.hello.
 
 To sayHello, produce Text:
@@ -76,7 +76,7 @@ EOF
 运行以下命令查看 Aster 如何解析您的代码：
 
 ```bash
-node dist/scripts/cli.js hello.cnl
+node dist/scripts/cli.js hello.aster
 ```
 
 **预期输出**：您将看到程序的 AST（抽象语法树）JSON 表示，包含模块声明和函数定义。
@@ -86,7 +86,7 @@ node dist/scripts/cli.js hello.cnl
 Aster 使用一个小型、严格的 Core IR（中间表示）作为优化和后端生成的基础：
 
 ```bash
-node dist/scripts/emit-core.js hello.cnl
+node dist/scripts/emit-core.js hello.aster
 ```
 
 **预期输出**：Core IR JSON，展示了函数的规范化表示。
@@ -114,7 +114,7 @@ To sayHello, produce Text:
 
 ### 创建用户问候程序
 
-创建 `greet_user.cnl`：
+创建 `greet_user.aster`：
 
 ```text
 This module is tutorial.greet.
@@ -155,10 +155,10 @@ Match user:
 
 ```bash
 # 解析并查看 AST
-node dist/scripts/cli.js greet_user.cnl
+node dist/scripts/cli.js greet_user.aster
 
 # 生成 Core IR
-node dist/scripts/emit-core.js greet_user.cnl
+node dist/scripts/emit-core.js greet_user.aster
 
 # 运行黄金测试（如果添加了期望输出）
 npm run test:golden
@@ -170,7 +170,7 @@ Aster 的核心特性之一是**编译时效果跟踪**。让我们创建一个�
 
 ### 创建带效果的程序
 
-创建 `login_demo.cnl`：
+创建 `login_demo.aster`：
 
 ```text
 This module is tutorial.auth.
@@ -225,7 +225,7 @@ Aster 使用**效果格**（effect lattice）来跟踪副作用：
 
 ```bash
 # 如果移除 "It performs io"，编译器会报错
-node dist/scripts/cli.js login_demo.cnl
+node dist/scripts/cli.js login_demo.aster
 ```
 
 尝试删除 `It performs io` 并重新运行，您会看到类型检查错误！
@@ -236,14 +236,14 @@ Aster 使用**黄金测试**（golden tests）来验证编译器行为的正确�
 
 ### 黄金测试工作流程
 
-1. **编写 CNL 程序**：例如 `cnl/examples/my_test.cnl`
+1. **编写 CNL 程序**：例如 `cnl/examples/my_test.aster`
 2. **生成期望输出**：
    ```bash
    # 生成 AST 期望输出
-   node dist/scripts/cli.js cnl/examples/my_test.cnl > cnl/examples/expected_my_test.ast.json
+   node dist/scripts/cli.js cnl/examples/my_test.aster > cnl/examples/expected_my_test.ast.json
 
    # 生成 Core IR 期望输出
-   node dist/scripts/emit-core.js cnl/examples/my_test.cnl > cnl/examples/expected_my_test_core.json
+   node dist/scripts/emit-core.js cnl/examples/my_test.aster > cnl/examples/expected_my_test_core.json
    ```
 
 3. **运行测试**：
@@ -252,19 +252,19 @@ Aster 使用**黄金测试**（golden tests）来验证编译器行为的正确�
    ```
 
 测试框架会自动：
-- 解析所有 `cnl/examples/*.cnl` 文件
+- 解析所有 `cnl/examples/*.aster` 文件
 - 比较实际输出与 `expected_*.ast.json` 和 `expected_*_core.json`
 - 报告任何差异
 
 ### 示例：测试您的程序
 
 ```bash
-# 将您的 greet_user.cnl 复制到 examples
-cp greet_user.cnl cnl/examples/
+# 将您的 greet_user.aster 复制到 examples
+cp greet_user.aster cnl/examples/
 
 # 生成期望输出
-node dist/scripts/cli.js cnl/examples/greet_user.cnl > cnl/examples/expected_greet_user.ast.json
-node dist/scripts/emit-core.js cnl/examples/greet_user.cnl > cnl/examples/expected_greet_user_core.json
+node dist/scripts/cli.js cnl/examples/greet_user.aster > cnl/examples/expected_greet_user.ast.json
+node dist/scripts/emit-core.js cnl/examples/greet_user.aster > cnl/examples/expected_greet_user_core.json
 
 # 运行测试
 npm run test:golden
@@ -278,10 +278,10 @@ npm run test:golden
 
 查看 `cnl/examples/` 目录中的示例程序：
 
-- `cnl/examples/greet.cnl` - 简单的问候函数（模式匹配）
-- `cnl/examples/login.cnl` - 认证逻辑（Result 类型 + I/O 效果）
-- `cnl/examples/fetch_dashboard.cnl` - 异步并发（`Start` 和 `Wait`）
-- `cnl/examples/policy_demo.cnl` - 策略引擎演示
+- `cnl/examples/greet.aster` - 简单的问候函数（模式匹配）
+- `cnl/examples/login.aster` - 认证逻辑（Result 类型 + I/O 效果）
+- `cnl/examples/fetch_dashboard.aster` - 异步并发（`Start` 和 `Wait`）
+- `cnl/examples/policy_demo.aster` - 策略引擎演示
 
 ### 阅读文档
 
@@ -297,7 +297,7 @@ npm run test:golden
 
 ```bash
 # 生成 .class 文件
-node dist/scripts/emit-classfiles.js cnl/examples/greet.cnl
+node dist/scripts/emit-classfiles.js cnl/examples/greet.aster
 
 # 创建 JAR 包
 node dist/scripts/jar-jvm.js

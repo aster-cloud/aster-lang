@@ -7,7 +7,7 @@ import { lowerModule } from '../src/lower_to_core.js';
 import { typecheckModuleWithCapabilities } from '../src/typecheck.js';
 
 function main(): void {
-  const src = fs.readFileSync('cnl/examples/capdemo.cnl', 'utf8');
+  const src = fs.readFileSync('cnl/examples/capdemo.aster', 'utf8');
   const manifest = JSON.parse(fs.readFileSync('cnl/examples/capabilities.json', 'utf8'));
   const ast = parse(lex(canonicalize(src)));
   const core = lowerModule(ast);

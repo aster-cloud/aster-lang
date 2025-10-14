@@ -22,7 +22,7 @@
 
 ### 🐛 Bug Fixes
 
-- **Type system**: Fixed TypeVar comparison logic in `tEquals` to check name equality instead of unconditionally returning true. Added negative test case `bad_generic_return_type.cnl`. (#阶段1.3)
+- **Type system**: Fixed TypeVar comparison logic in `tEquals` to check name equality instead of unconditionally returning true. Added negative test case `bad_generic_return_type.aster`. (#阶段1.3)
 - **Type inference**: Upgraded type mismatch warnings to errors in `unifyTypes` function to prevent type safety issues at runtime. (#阶段1.3)
 
 ### 📚 Documentation

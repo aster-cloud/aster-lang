@@ -50,20 +50,20 @@ Additional LSP settings:
 
 ## CLI Usage
 
-Use the built CLI to format arbitrary `.cnl` files.
+Use the built CLI to format arbitrary `.aster` files.
 
 ```bash
 # Strict normalize mode (overwrite file)
-npm run format:file -- --write path/to/file.cnl
+npm run format:file -- --write path/to/file.aster
 
 # Lossless print to stdout (preserve whitespace/comments)
-npm run format:file -- --lossless path/to/file.cnl
+npm run format:file -- --lossless path/to/file.aster
 
 # Lossless with minimal seam reflow to stdout
-npm run format:file -- --lossless --lossless-reflow path/to/file.cnl
+npm run format:file -- --lossless --lossless-reflow path/to/file.aster
 
 # Lossless reflow (overwrite file)
-npm run format:file -- --write --lossless --lossless-reflow path/to/file.cnl
+npm run format:file -- --write --lossless --lossless-reflow path/to/file.aster
 ```
 
 ## Client-side File Watch (VS Code Extension)
@@ -81,14 +81,14 @@ import {
 
 // After creating and starting the client
 client.onReady().then(() => {
-  // Inform server to watch all .cnl files in the workspace (if supported)
+  // Inform server to watch all .aster files in the workspace (if supported)
   client.sendNotification(DidChangeWatchedFilesNotification.type, {
-    watchers: [{ globPattern: '**/*.cnl' }],
+    watchers: [{ globPattern: '**/*.aster' }],
   } as any);
 });
 
 // Or via VS Code native watchers
-const watcher = workspace.createFileSystemWatcher('**/*.cnl');
+const watcher = workspace.createFileSystemWatcher('**/*.aster');
 watcher.onDidChange(uri => {/* optional client-side handling */});
 watcher.onDidCreate(uri => {/* optional */});
 watcher.onDidDelete(uri => {/* optional */});

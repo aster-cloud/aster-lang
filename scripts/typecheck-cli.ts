@@ -20,7 +20,7 @@ function readManifest(): import('../src/capabilities.js').CapabilityManifest | n
 function main(): void {
   const file = process.argv[2];
   if (!file) {
-    console.error('Usage: typecheck <file.cnl>');
+    console.error('Usage: typecheck <file.aster>');
     process.exit(2);
   }
   const input = fs.readFileSync(file, 'utf8');

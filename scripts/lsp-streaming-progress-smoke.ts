@@ -54,7 +54,7 @@ async function main(): Promise<void> {
   send(server, { jsonrpc: '2.0', method: 'workspace/didChangeConfiguration', params: { settings: { asterLanguageServer: { streaming: { referencesChunk: 1, logChunks: true } } } } });
 
   // open a document with many occurrences of the same word to trigger multiple chunks
-  const uri = 'file:///streaming.cnl';
+  const uri = 'file:///streaming.aster';
   const many = 'greet '.repeat(20).trim();
   const text = `This module is streaming.test.\n\nTo greet, produce Text:\n  Return "x".\n\n# refs below\n${many}\n`;
   send(server, { jsonrpc: '2.0', method: 'textDocument/didOpen', params: { textDocument: { uri, languageId: 'cnl', version: 1, text } } });

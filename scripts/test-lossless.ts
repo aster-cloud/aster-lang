@@ -5,7 +5,7 @@ import { formatCNL } from '../src/formatter.js';
 
 function main(): void {
   const dir = path.join(process.cwd(), 'cnl', 'examples');
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.cnl')).map(f => path.join(dir, f));
+  const files = fs.readdirSync(dir).filter(f => f.endsWith('.aster')).map(f => path.join(dir, f));
   let ok = 0;
   let changed = 0;
   for (const file of files) {

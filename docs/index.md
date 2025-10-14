@@ -34,8 +34,8 @@ To greet user: maybe User, produce Text:
 ```bash
 # Try it
 npm run build
-node dist/scripts/cli.js cnl/examples/greet.cnl
-node dist/scripts/emit-core.js cnl/examples/greet.cnl
+node dist/scripts/cli.js cnl/examples/greet.aster
+node dist/scripts/emit-core.js cnl/examples/greet.aster
 ```
 
 ## Quickstart & Commands

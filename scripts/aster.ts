@@ -12,12 +12,12 @@ type Cmd = 'parse' | 'core' | 'jvm' | 'class' | 'jar' | 'truffle' | 'help';
 function usage(code = 2): never {
   console.error(
     `Usage: aster <command> [options]\n\nCommands:\n` +
-      `  parse <file.cnl> [--watch]     Parse CNL → AST (JSON)\n` +
-      `  core <file.cnl> [--watch]      Lower AST → Core IR (JSON)\n` +
-      `  jvm <file.cnl> [--out DIR] [--watch]    Emit Java sources (default build/jvm-src)\n` +
-      `  class <file.cnl> [--out DIR] [--watch]  Emit .class files (default build/jvm-classes)\n` +
-      `  jar [<file.cnl>] [--out FILE]  Create JAR from classes; if file given, build classes first\n` +
-      `  truffle <file.(cnl|json)> [-- args...]  Run Core IR on Truffle (auto-lower .cnl to JSON)\n` +
+      `  parse <file.aster> [--watch]     Parse CNL → AST (JSON)\n` +
+      `  core <file.aster> [--watch]      Lower AST → Core IR (JSON)\n` +
+      `  jvm <file.aster> [--out DIR] [--watch]    Emit Java sources (default build/jvm-src)\n` +
+      `  class <file.aster> [--out DIR] [--watch]  Emit .class files (default build/jvm-classes)\n` +
+      `  jar [<file.aster>] [--out FILE]  Create JAR from classes; if file given, build classes first\n` +
+      `  truffle <file.(cnl|json)> [-- args...]  Run Core IR on Truffle (auto-lower .aster to JSON)\n` +
       `  help                     Show this help\n`
   );
   process.exit(code);
@@ -126,11 +126,11 @@ async function cmdJar(
 async function cmdTruffle(input: string, passthrough: string[]): Promise<void> {
   // Prepare Core JSON path
   let corePath = input;
-  if (input.endsWith('.cnl')) {
+  if (input.endsWith('.aster')) {
     const src = readFileStrict(input);
     const core = lowerModule(parseAst(lex(canonicalize(src))));
     fs.mkdirSync('build', { recursive: true });
-    corePath = path.join('build', `${path.basename(input, '.cnl')}_core.json`);
+    corePath = path.join('build', `${path.basename(input, '.aster')}_core.json`);
     fs.writeFileSync(corePath, JSON.stringify(core));
   }
   // Run Truffle runner via Gradle

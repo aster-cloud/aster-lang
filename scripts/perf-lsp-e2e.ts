@@ -304,15 +304,15 @@ function countLines(files: Map<string, string>): number {
 }
 
 async function prepareSmallProject(): Promise<ProjectDefinition> {
-  const greetPath = path.resolve('cnl/examples/greet.cnl');
+  const greetPath = path.resolve('cnl/examples/greet.aster');
   const text = await fs.readFile(greetPath, 'utf8');
   const files = new Map<string, string>();
-  files.set('examples/greet.cnl', text);
+  files.set('examples/greet.aster', text);
 
   return {
     name: 'small',
     files,
-    entryRelativePath: 'examples/greet.cnl',
+    entryRelativePath: 'examples/greet.aster',
     hoverPosition: locatePosition(text, 'user', 0, 'parameter'),
     completionPosition: locatePosition(text, 'Return ', 7),
   };
@@ -322,11 +322,11 @@ async function prepareMediumProject(): Promise<ProjectDefinition> {
   const modules = generateMediumProject(40, 42);
   const files = new Map<string, string>();
   for (const [moduleName, content] of modules) {
-    const relPath = moduleName.split('.').join('/') + '.cnl';
+    const relPath = moduleName.split('.').join('/') + '.aster';
     files.set(relPath, content);
   }
   const entryModule = 'benchmark.medium.common';
-  const entryPath = entryModule.split('.').join('/') + '.cnl';
+  const entryPath = entryModule.split('.').join('/') + '.aster';
   const entryText = files.get(entryPath);
   if (!entryText) throw new Error('中型项目缺少入口模块 benchmark.medium.common');
 
@@ -342,7 +342,7 @@ async function prepareMediumProject(): Promise<ProjectDefinition> {
 async function prepareLargeProject(): Promise<ProjectDefinition> {
   const moduleName = 'benchmark.test';
   const content = generateLargeProgram(50);
-  const relativePath = moduleName.split('.').join('/') + '.cnl';
+  const relativePath = moduleName.split('.').join('/') + '.aster';
   const files = new Map<string, string>();
   files.set(relativePath, content);
 

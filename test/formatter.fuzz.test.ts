@@ -8,7 +8,7 @@ function idempotenceOnExamples(): void {
   const dir = path.join(process.cwd(), 'cnl', 'examples');
   const files = fs
     .readdirSync(dir)
-    .filter(f => f.endsWith('.cnl'))
+    .filter(f => f.endsWith('.aster'))
     .map(f => path.join(dir, f));
   let checked = 0;
   for (const f of files) {

@@ -134,13 +134,13 @@ async function main(): Promise<void> {
 async function prepareProjects(): Promise<
   [Map<string, string>, Map<string, string>, Map<string, string>]
 > {
-  const smallText = await fs.readFile('cnl/examples/greet.cnl', 'utf8');
-  const smallProject = new Map<string, string>([['examples/greet.cnl', smallText]]);
+  const smallText = await fs.readFile('cnl/examples/greet.aster', 'utf8');
+  const smallProject = new Map<string, string>([['examples/greet.aster', smallText]]);
 
   const mediumProject = generateMediumProject(40, 42);
 
   const largeProgram = generateLargeProgram(50);
-  const largeProject = new Map<string, string>([['benchmark/test.cnl', largeProgram]]);
+  const largeProject = new Map<string, string>([['benchmark/test.aster', largeProgram]]);
 
   return [smallProject, mediumProject, largeProject];
 }

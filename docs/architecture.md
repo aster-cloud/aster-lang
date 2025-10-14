@@ -21,7 +21,7 @@ Aster 是一种静态类型、面向对象的编程语言，编译到 JVM 字节
 
 ```mermaid
 flowchart LR
-    Source[".cnl 源文件"]
+    Source[".aster 源文件"]
     Canon["canonicalize<br/>(Unicode 规范化)"]
     Lex["lex<br/>(词法分析)"]
     Parse["parse<br/>(语法分析)"]
@@ -69,12 +69,12 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    Source[".cnl 源文件"]
+    Source[".aster 源文件"]
     CSTBuild["buildCstLossless<br/>(构建无损CST)"]
     CST["CstModule<br/>(含trivia/comments)"]
     Transform["transform<br/>(代码修改)"]
     Print["printCNLFromCst<br/>(重建源码)"]
-    Output["格式化的.cnl"]
+    Output["格式化的.aster"]
 
     Source --> CSTBuild --> CST --> Transform --> Print --> Output
 ```
@@ -124,7 +124,7 @@ type Token = {
 
 ```mermaid
 flowchart TD
-    Source[".cnl 源文件<br/>(含注释)"]
+    Source[".aster 源文件<br/>(含注释)"]
     Lex["lex(text)<br/>词法分析"]
     CommentToken["COMMENT Token<br/>(channel=trivia)"]
     Parser["parse(tokens)<br/>语法分析"]
@@ -133,7 +133,7 @@ flowchart TD
     CST["CST<br/>(提取注释)"]
     Format["formatCNL()<br/>格式化"]
     Reattach["reattachInlineComments()<br/>重新附加注释"]
-    Output["格式化的.cnl<br/>(保留注释)"]
+    Output["格式化的.aster<br/>(保留注释)"]
 
     Source --> Lex
     Lex --> CommentToken
@@ -716,7 +716,7 @@ To fetchData with u: User, produce Text. It performs io:
 **诊断输出**：
 ```
 error[ASYNC_START_NOT_WAITED]: Async task "profile" was started but not waited
-  --> src/demo.cnl:3:3
+  --> src/demo.aster:3:3
    |
  3 |   Start profile as async fetchProfile(u.id).
    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ task started here
@@ -733,7 +733,7 @@ To fetchData with u: User, produce Text. It performs io:
 **诊断输出**：
 ```
 error[ASYNC_WAIT_NOT_STARTED]: Async task "profile" was never started
-  --> src/demo.cnl:2:3
+  --> src/demo.aster:2:3
    |
  2 |   Wait for profile.
    |   ^^^^^^^^^^^^^^^^^ waiting for never-started task
@@ -752,7 +752,7 @@ To fetchData with u: User, produce Text. It performs io:
 **诊断输出**：
 ```
 error[ASYNC_DUPLICATE_START]: Async task "profile" was started multiple times (2 times)
-  --> src/demo.cnl:2:3
+  --> src/demo.aster:2:3
 ```
 
 #### 错误场景4：重复 Wait（警告）
@@ -768,7 +768,7 @@ To fetchData with u: User, produce Text. It performs io:
 **诊断输出**：
 ```
 warning[ASYNC_DUPLICATE_WAIT]: Async task "profile" was waited multiple times (2 times)
-  --> src/demo.cnl:3:3
+  --> src/demo.aster:3:3
 ```
 
 #### 混合错误场景
@@ -895,7 +895,7 @@ sequenceDiagram
 
     Client->>Server: initialize(rootUri)
     Server->>Index: buildInitialIndex(rootUri)
-    Index->>Index: 扫描 .cnl 文件
+    Index->>Index: 扫描 .aster 文件
     Index->>Index: 构建模块依赖图
     Index-->>Server: WorkspaceIndex
     Server-->>Client: initializeResult
@@ -1280,7 +1280,7 @@ npm run test:lsp      # LSP属性测试
 
 1. 更新 `.aster/effects.json` 配置
 2. 更新 `src/config/effects.ts` 常量定义
-3. 添加测试用例到 `cnl/examples/eff_*.cnl`
+3. 添加测试用例到 `cnl/examples/eff_*.aster`
 
 ### 3. 新增 LSP 功能
 

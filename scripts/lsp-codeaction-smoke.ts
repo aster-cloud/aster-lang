@@ -34,7 +34,7 @@ async function main(): Promise<void> {
       const obj = JSON.parse(jsonText);
       // initialized response received
       if (obj.method === 'textDocument/publishDiagnostics') {
-        if (obj.params?.uri === 'file:///cap-smoke.cnl') {
+        if (obj.params?.uri === 'file:///cap-smoke.aster') {
           diags = obj.params.diagnostics || [];
         }
       }
@@ -77,7 +77,7 @@ async function main(): Promise<void> {
     jsonrpc: '2.0',
     method: 'textDocument/didOpen',
     params: {
-      textDocument: { uri: 'file:///cap-smoke.cnl', languageId: 'cnl', version: 1, text: content },
+      textDocument: { uri: 'file:///cap-smoke.aster', languageId: 'cnl', version: 1, text: content },
     },
   });
 
@@ -89,7 +89,7 @@ async function main(): Promise<void> {
       id: 2,
       method: 'textDocument/codeAction',
       params: {
-        textDocument: { uri: 'file:///cap-smoke.cnl' },
+        textDocument: { uri: 'file:///cap-smoke.aster' },
         range: { start: { line: 2, character: 0 }, end: { line: 2, character: 1 } },
         context: { diagnostics: diags },
       },

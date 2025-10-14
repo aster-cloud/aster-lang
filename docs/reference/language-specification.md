@@ -643,7 +643,7 @@ To greet with user: User?, produce Text:
     When null, Return "Hi, guest".
     When User(id, name), Return "Welcome, {name}".
 ```
-**文件**: `cnl/examples/greet.cnl`
+**文件**: `cnl/examples/greet.aster`
 
 ### 示例 2：异步仪表板获取
 ```
@@ -657,7 +657,7 @@ To fetchDashboard with u: User, produce Result of Dash and AuthErr. It performs 
   Wait for profile and timeline.
   Return ok of Dash(profile, timeline).
 ```
-**文件**: `cnl/examples/fetch_dashboard.cnl`
+**文件**: `cnl/examples/fetch_dashboard.aster`
 
 ### 示例 3：策略引擎示例
 ```
@@ -669,7 +669,7 @@ To demonstratePolicyEngine, produce Text:
 To runPolicyTest1, produce Text:
   Return "Test 1: Admin access granted".
 ```
-**文件**: `cnl/examples/policy_demo.cnl`
+**文件**: `cnl/examples/policy_demo.aster`
 
 ### 示例 4：列表操作
 ```
@@ -684,7 +684,7 @@ To map of T and U with f: {T, U}, list: List of T, produce List of U:
   # 映射列表元素
   Return [].
 ```
-**文件**: `cnl/examples/list_ops.cnl`
+**文件**: `cnl/examples/list_ops.aster`
 
 ### 示例 5：枚举穷尽性检查
 ```
@@ -696,7 +696,7 @@ To colorName with c: Color, produce Text:
     When Green, Return "绿色".
     When Blue, Return "蓝色".
 ```
-**文件**: `cnl/examples/enum_exhaustiveness.cnl`
+**文件**: `cnl/examples/enum_exhaustiveness.aster`
 
 ### 示例 6：效果能力细化
 ```
@@ -705,7 +705,7 @@ To fetchAndSave, produce User. It performs io with Http and Sql:
   Let user = Db.save(data).
   Return user.
 ```
-**文件**: `cnl/examples/eff_caps_enforce.cnl`
+**文件**: `cnl/examples/eff_caps_enforce.aster`
 
 ### 示例 7：Maybe 和 Result 类型
 ```
@@ -717,7 +717,7 @@ To divide with a: Int, b: Int, produce Result of Int and Text:
   If b == 0, then Return err of "Division by zero".
   Return ok of (a / b).
 ```
-**文件**: `cnl/examples/stdlib_maybe_result.cnl`
+**文件**: `cnl/examples/stdlib_maybe_result.aster`
 
 ### 示例 8：文本操作
 ```
@@ -727,7 +727,7 @@ To concat with a: Text, b: Text, produce Text:
 To length with s: Text, produce Int:
   Return Text.length(s).
 ```
-**文件**: `cnl/examples/text_ops.cnl`
+**文件**: `cnl/examples/text_ops.aster`
 
 ### 示例 9：映射操作
 ```
@@ -737,14 +737,14 @@ To createUser with id: Text, name: Text, produce Map of Text and Text:
     "name": name
   ).
 ```
-**文件**: `cnl/examples/map_ops.cnl`
+**文件**: `cnl/examples/map_ops.aster`
 
 ### 示例 10：Lambda 表达式
 ```
 To filterPositive with numbers: List of Int, produce List of Int:
   Return List.filter(numbers, {x, x > 0}).
 ```
-**文件**: `cnl/examples/lambda_cnl.cnl`
+**文件**: `cnl/examples/lambda_cnl.aster`
 
 ---
 
@@ -799,19 +799,19 @@ JVM 字节码
 ### 8.2 命令行工具
 ```bash
 # 编译 CNL 文件
-aster compile example.cnl
+aster compile example.aster
 
 # 类型检查
-aster typecheck example.cnl
+aster typecheck example.aster
 
 # 运行 REPL
 aster repl
 
 # 生成 Core IR
-aster emit-core example.cnl
+aster emit-core example.aster
 
 # 生成 JVM 字节码
-aster emit-jvm example.cnl
+aster emit-jvm example.aster
 ```
 
 ### 8.3 LSP 支持

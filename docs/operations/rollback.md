@@ -56,7 +56,7 @@
    ```
 4. **CLI/LSP 烟雾测试**
    ```bash
-   node dist/scripts/cli.js cnl/examples/greet.cnl > /tmp/greet.json
+   node dist/scripts/cli.js cnl/examples/greet.aster > /tmp/greet.json
    npm run lsp:workspace-diags:smoke
    ```
 5. **依赖安全**

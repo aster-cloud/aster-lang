@@ -17,7 +17,7 @@ Aster 语言的 Visual Studio Code 扩展，提供完整的语言支持。
 - **悬停提示**：显示类型信息和函数签名
 - **错误检查**：实时类型检查和能力验证
 - **重命名**：安全的符号重命名
-- **代码格式化**：自动格式化 .cnl 文件
+- **代码格式化**：自动格式化 .aster 文件
 - **工作区符号**：跨文件符号搜索
 
 ### 📝 代码片段
@@ -60,7 +60,7 @@ code --install-extension aster-vscode-0.1.0.vsix
 ```
 
 ### 3. 打开 Aster 项目
-使用 VSCode 打开包含 `.cnl` 文件的文件夹，扩展会自动启动语言服务器。
+使用 VSCode 打开包含 `.aster` 文件的文件夹，扩展会自动启动语言服务器。
 
 ## 配置选项
 
@@ -192,18 +192,18 @@ A Status is one of:
 **解决方案**:
 1. 重启 VSCode
 2. 查看输出面板：`View > Output` → 选择 "Aster Language Server"
-3. 确认工作区中有 `.cnl` 文件
+3. 确认工作区中有 `.aster` 文件
 4. 检查 Node.js 版本 >= 16
 
 ### 语法高亮不工作
 **解决方案**:
-1. 确认文件扩展名为 `.cnl`
+1. 确认文件扩展名为 `.aster`
 2. 手动设置语言模式：右下角点击语言 → 选择 "Aster"
 3. 重新加载窗口：`Cmd/Ctrl+Shift+P` → "Developer: Reload Window"
 
 ### 代码片段无提示
 **解决方案**:
-1. 确认在 `.cnl` 文件中输入
+1. 确认在 `.aster` 文件中输入
 2. 检查 VSCode 设置中 `editor.snippetSuggestions` 未设置为 `"none"`
 
 ## 开发指南

@@ -4,7 +4,7 @@
   "root": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture",
   "files": [
     {
-      "uri": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture/cnl/bar.cnl",
+      "uri": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture/cnl/bar.aster",
       "moduleName": "fixture.bar",
       "decls": [
         {
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "uri": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture/cnl/foo.cnl",
+      "uri": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture/cnl/foo.aster",
       "moduleName": "fixture.foo",
       "decls": [
         {

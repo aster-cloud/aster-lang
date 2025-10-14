@@ -15,7 +15,7 @@ Usage
 
 Examples
 - Parse a file:
-  node cnl/src/cli.mjs cnl/examples/login.cnl
+  node cnl/src/cli.mjs cnl/examples/login.aster
 
 Design notes
 - Articles (a/an/the) are ignored as grammar noise in specific positions.

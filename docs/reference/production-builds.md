@@ -269,7 +269,7 @@ GitHub Release 自动创建，附带:
   -Pgraalvm.native.extra-args=--pgo-instrument
 
 # 2. 运行代表性工作负载，生成 profile
-./aster-lang-native/build/native/nativeCompile/aster compile workload.cnl
+./aster-lang-native/build/native/nativeCompile/aster compile workload.aster
 
 # 3. 使用 profile 重新构建
 ./gradlew :aster-lang-native:nativeCompile \

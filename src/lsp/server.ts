@@ -234,7 +234,7 @@ connection.onInitialized(() => {
   if (hasWatchedFilesCapability) {
     try {
       connection.client.register(DidChangeWatchedFilesNotification.type, {
-        watchers: [{ globPattern: '**/*.cnl' }],
+        watchers: [{ globPattern: '**/*.aster' }],
       });
       watcherRegistered = true;
     } catch {

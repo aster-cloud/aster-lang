@@ -20,7 +20,7 @@
 1. 所有核心模块使用结构化 JSON 日志，默认最小级别 `INFO`。
 2. 本地调试：
    ```bash
-   LOG_LEVEL=DEBUG node dist/scripts/cli.js cnl/examples/greet.cnl | jq
+   LOG_LEVEL=DEBUG node dist/scripts/cli.js cnl/examples/greet.aster | jq
    ```
 3. 服务器排障：
    - 日志行均为单行 JSON，采集时按行分割即可。
@@ -72,15 +72,15 @@
 ## 6. 调试技巧
 - 启用解析调试：
   ```bash
-  ASTER_DEBUG_TYPES=1 node dist/scripts/cli.js cnl/examples/map.cnl
+  ASTER_DEBUG_TYPES=1 node dist/scripts/cli.js cnl/examples/map.aster
   ```
 - 追踪特定函数的能力检查：
   ```bash
-  LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/capdemo.cnl
+  LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/capdemo.aster
   ```
 - Node Inspector：
   ```bash
-  node --inspect-brk dist/scripts/cli.js cnl/examples/greet.cnl
+  node --inspect-brk dist/scripts/cli.js cnl/examples/greet.aster
   ```
 - 快速验证 manifest 变更：
   ```bash

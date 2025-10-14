@@ -13,9 +13,9 @@ function send(server: ChildProcessWithoutNullStreams, msg: Json): void {
 }
 
 async function main(): Promise<void> {
-  const filePath = path.resolve('test-highlight.cnl');
+  const filePath = path.resolve('test-highlight.aster');
   if (!fs.existsSync(filePath)) {
-    console.error('lsp-highlight-smoke: missing test-highlight.cnl');
+    console.error('lsp-highlight-smoke: missing test-highlight.aster');
     process.exit(1);
   }
   const content = fs.readFileSync(filePath, 'utf8');

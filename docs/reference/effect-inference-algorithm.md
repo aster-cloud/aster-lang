@@ -745,7 +745,7 @@ export function checkEffects(
 5. **效果多态**：泛型函数的效果实例化
 6. **诊断测试**：效果缺失、冗余、不足的错误消息
 
-测试文件位置：`cnl/examples/effect_infer_*.cnl`
+测试文件位置：`cnl/examples/effect_infer_*.aster`
 
 ## 10. 未来扩展
 

@@ -777,12 +777,12 @@ aster-finance/
 │   ├── plugin.ts          # Plugin registration
 │   ├── types.ts           # Domain types (Money, CreditScore, etc.)
 │   ├── policies/          # Pre-built policies
-│   │   ├── loan-approval.cnl
-│   │   ├── fraud-detection.cnl
-│   │   └── risk-assessment.cnl
+│   │   ├── loan-approval.aster
+│   │   ├── fraud-detection.aster
+│   │   └── risk-assessment.aster
 │   ├── workflows/         # Pre-built workflows
-│   │   ├── payment-processing.cnl
-│   │   └── account-opening.cnl
+│   │   ├── payment-processing.aster
+│   │   └── account-opening.aster
 │   └── runtime/           # Java runtime helpers
 │       └── FinanceInterop.java
 ├── test/

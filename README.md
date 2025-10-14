@@ -41,10 +41,10 @@ To greet user: maybe User, produce Text:
 npm run build
 
 # Parse CNL → AST (JSON)
-node dist/scripts/cli.js cnl/examples/greet.cnl
+node dist/scripts/cli.js cnl/examples/greet.aster
 
 # Lower to Core IR (JSON)
-node dist/scripts/emit-core.js cnl/examples/greet.cnl
+node dist/scripts/emit-core.js cnl/examples/greet.aster
 ```
 
 ## Installation & Requirements
@@ -73,16 +73,16 @@ Examples:
 
 ```bash
 # Parse to AST
-node dist/scripts/cli.js cnl/examples/greet.cnl
+node dist/scripts/cli.js cnl/examples/greet.aster
 
 # Emit Core IR
-node dist/scripts/emit-core.js cnl/examples/greet.cnl
+node dist/scripts/emit-core.js cnl/examples/greet.aster
 
 # Emit Java sources to build/jvm-src
-node dist/scripts/emit-jvm.js cnl/examples/greet.cnl
+node dist/scripts/emit-jvm.js cnl/examples/greet.aster
 
-# Run Core IR on Truffle (auto-lower .cnl)
-node dist/scripts/aster.js truffle cnl/examples/if_param.cnl -- true
+# Run Core IR on Truffle (auto-lower .aster)
+node dist/scripts/aster.js truffle cnl/examples/if_param.aster -- true
 ```
 
 Truffle can also run an existing Core IR JSON:
@@ -102,13 +102,13 @@ Typical flow to produce a runnable JAR for examples:
 
 ```bash
 # Generate class files from a CNL program
-node dist/scripts/emit-classfiles.js cnl/examples/greet.cnl
+node dist/scripts/emit-classfiles.js cnl/examples/greet.aster
 
 # Create a jar from emitted classes
 node dist/scripts/jar-jvm.js
 
 # Or run the end-to-end example workflows
-npm run login:jar   # emit classes for login.cnl and jar them
+npm run login:jar   # emit classes for login.aster and jar them
 npm run login:run   # run Java example using generated classes
 ```
 
@@ -187,7 +187,7 @@ Examples:
 
 ```
 # Auto-lower CNL to Core and run with arg(s)
-node dist/scripts/aster.js truffle cnl/examples/if_param.cnl -- true
+node dist/scripts/aster.js truffle cnl/examples/if_param.aster -- true
 
 # Run an existing Core JSON with arg(s)
 node dist/scripts/aster.js truffle build/if_param_core.json -- false
@@ -294,23 +294,23 @@ VS Code (formatOnSave via LSP):
 
 ## CLI: Format Arbitrary Files
 
-You can format any `.cnl` file from the command line:
+You can format any `.aster` file from the command line:
 
 ```bash
 # Overwrite files in place (normalize)
-npm run format:file -- --write path/to/file.cnl
+npm run format:file -- --write path/to/file.aster
 
 # Lossless print to stdout
-npm run format:file -- --lossless path/to/file.cnl
+npm run format:file -- --lossless path/to/file.aster
 
 # Lossless with minimal seam reflow (to stdout)
-npm run format:file -- --lossless --lossless-reflow path/to/file.cnl
+npm run format:file -- --lossless --lossless-reflow path/to/file.aster
 
 # Overwrite with lossless reflow
-npm run format:file -- --write --lossless --lossless-reflow path/to/file.cnl
+npm run format:file -- --write --lossless --lossless-reflow path/to/file.aster
 
 # Normalize with inline comment preservation (best effort)
-npm run format:file -- --write --preserve-comments path/to/file.cnl
+npm run format:file -- --write --preserve-comments path/to/file.aster
 ```
 
 

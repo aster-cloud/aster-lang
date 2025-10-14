@@ -104,17 +104,17 @@ To greet with name: Text, age: Int, produce Text:
   Return "Hello".
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const doc = TextDocument.create('file:///test.aster', 'aster', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set('file:///test.aster', doc);
   const getOrParse = createMockGetOrParse();
 
   registerCompletionHandlers(mockConnection, mockDocuments, getOrParse);
 
   // 模拟在函数调用位置请求签名
   const params = {
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: 'file:///test.aster' },
     position: { line: 5, character: 10 }, // 在某个位置
   };
 
@@ -138,17 +138,17 @@ To main produce Text:
   Return result.
 `;
 
-  const doc = TextDocument.create('file:///test.cnl', 'cnl', 1, code);
+  const doc = TextDocument.create('file:///test.aster', 'aster', 1, code);
   const mockConnection = createMockConnection() as any;
   const mockDocuments = createMockDocuments();
-  mockDocuments.set('file:///test.cnl', doc);
+  mockDocuments.set('file:///test.aster', doc);
   const getOrParse = createMockGetOrParse();
 
   registerCompletionHandlers(mockConnection, mockDocuments, getOrParse);
 
   // 在 greet( 调用处请求签名
   const params = {
-    textDocument: { uri: 'file:///test.cnl' },
+    textDocument: { uri: 'file:///test.aster' },
     position: { line: 6, character: 24 }, // 在 greet("World") 的位置
   };
 
@@ -180,7 +180,7 @@ async function testEdgeCases(): Promise<void> {
 
   // 测试不存在的文档
   const params = {
-    textDocument: { uri: 'file:///nonexistent.cnl' },
+    textDocument: { uri: 'file:///nonexistent.aster' },
     position: { line: 0, character: 0 },
   };
 

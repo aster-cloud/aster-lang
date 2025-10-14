@@ -8,7 +8,7 @@ function sh(cmd: string): void {
 function main(): void {
   // Ensure some classes emitted to produce package-map.json for module packages
   try {
-    sh('node dist/scripts/emit-classfiles.js cnl/examples/greet.cnl');
+    sh('node dist/scripts/emit-classfiles.js cnl/examples/greet.aster');
   } catch {
     // non-fatal; examples run shouldn't depend on this
   }

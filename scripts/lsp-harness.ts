@@ -7,7 +7,7 @@ import { findAmbiguousInteropCalls, computeDisambiguationEdits, findDottedCallRa
 function main(): void {
   const file = process.argv[2];
   if (!file) {
-    console.error('Usage: lsp-harness <file.cnl>');
+    console.error('Usage: lsp-harness <file.aster>');
     process.exit(2);
   }
   const src = fs.readFileSync(file, 'utf8');

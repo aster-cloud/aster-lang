@@ -8,8 +8,8 @@
 - `npm run test` → 通过。黄金测试与属性测试完整跑通，期间可见来自 `typecheck` 与 `performance` 组件的 JSON 日志，字段包含 `moduleName`、`errorCount`、`duration_ms`。
 
 ## 手动验证
-- `LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.cnl` → 输出 INFO 级日志与性能指标；命令结束后打印 `Typecheck OK` 说明结果一致。
-- `ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.cnl` → 与上次输出一致，因示例未触发类型调试钩子，暂无额外 DEBUG 日志，确认不会产生非 JSON 噪声。
+- `LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.aster` → 输出 INFO 级日志与性能指标；命令结束后打印 `Typecheck OK` 说明结果一致。
+- `ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.aster` → 与上次输出一致，因示例未触发类型调试钩子，暂无额外 DEBUG 日志，确认不会产生非 JSON 噪声。
 
 ## 观察
 - JSON 日志均按单行输出，便于被收集器解析。

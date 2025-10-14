@@ -47,7 +47,7 @@ function send(msg: any) {
 async function test() {
   console.log('[测试] 使用通用 locatePosition 函数计算的位置测试 hover...');
 
-  const greetText = readFileSync('cnl/examples/greet.cnl', 'utf8');
+  const greetText = readFileSync('cnl/examples/greet.aster', 'utf8');
 
   const allMessages: any[] = [];
   server.stdout.on('data', (chunk) => {
@@ -82,7 +82,7 @@ async function test() {
   send({ jsonrpc: '2.0', method: 'initialized', params: {} });
 
   // Open document
-  const uri = 'file:///tmp/greet.cnl';
+  const uri = 'file:///tmp/greet.aster';
 
   send({
     jsonrpc: '2.0',

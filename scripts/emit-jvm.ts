@@ -9,7 +9,7 @@ import { emitJava } from '../src/jvm/emitter.js';
 async function main(): Promise<void> {
   const inputPath = process.argv[2];
   if (!inputPath) {
-    console.error('Usage: emit-jvm <file.cnl>');
+    console.error('Usage: emit-jvm <file.aster>');
     process.exit(2);
   }
   const src = fs.readFileSync(inputPath, 'utf8');

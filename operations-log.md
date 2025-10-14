@@ -76,7 +76,7 @@
 ## 补充内容
 
 ### 1. 增强版别名导入测试
-- **文件**：`cnl/examples/eff_alias_import.cnl`
+- **文件**：`cnl/examples/eff_alias_import.aster`
 - **内容**：
   - 多别名混用测试（Http as H, Db as D, Time as T）
   - 别名与直接导入混用（H.get + Http.get）
@@ -84,7 +84,7 @@
 - **期望输出**：6条错误（3条英文+3条中文），验证别名解析正确
 
 ### 2. 未映射别名边界测试
-- **文件**：`cnl/examples/eff_alias_unmapped.cnl`
+- **文件**：`cnl/examples/eff_alias_unmapped.aster`
 - **测试场景**：
   - 未定义别名调用（X.get - 未声明导入）
   - 正常别名调用（H.get - 已声明导入Http as H）
@@ -101,7 +101,7 @@
 在 `scripts/golden.ts:277-280` 注册：
 ```typescript
 await runOneTypecheck(
-  'cnl/examples/eff_alias_unmapped.cnl',
+  'cnl/examples/eff_alias_unmapped.aster',
   'cnl/examples/expected_eff_alias_unmapped.diag.txt'
 );
 ```
@@ -239,7 +239,7 @@ await runOneTypecheck(
 - `src/config/effect_config.ts` - 效果推断配置模块，支持从 `.aster/effects.json` 加载自定义配置
 - `.aster/effects.example.json` - 示例配置文件（包含自定义前缀如 MyHttpClient、MyORM 等）
 - `.aster/README.md` - 配置文件使用文档
-- `cnl/examples/eff_custom_prefix.cnl` - 自定义前缀测试用例
+- `cnl/examples/eff_custom_prefix.aster` - 自定义前缀测试用例
 - `cnl/examples/expected_eff_custom_prefix.diag.txt` - 测试预期输出
 
 ### 修改文件
@@ -337,7 +337,7 @@ await runOneTypecheck(
     - 增补覆盖访问器路径的针对性单测（特别是 LSP 诊断与 Formatter），确保行为与 golden 长期一致。
     - 若后续扩展发射器映射，建议为常见模式添加 golden 代码生成用例，锁定输出。
 2025-10-06 10:59 NZST - Ran `npm run build` → success. Output: Built headers PEG parser → dist/peg/headers-parser.js
-2025-10-06 10:59 NZST - Ran `npm run test` → failed during `fmt:examples`. Error: cnl/examples/fetch_dashboard.cnl contains bare expression statements (AST/CORE). Suggest using 'Return <expr>.' or 'Let _ be <expr>.'
+2025-10-06 10:59 NZST - Ran `npm run test` → failed during `fmt:examples`. Error: cnl/examples/fetch_dashboard.aster contains bare expression statements (AST/CORE). Suggest using 'Return <expr>.' or 'Let _ be <expr>.'
 2025-10-06 11:05 NZST - Patched `src/parser.ts` to move bare-expression error check after `Start`/`Wait` handlers to allow keyword statements. Rebuilt and re-ran tests: all passed (golden + property).
 2025-10-06 11:10 NZST - 依据 `.claude/CODE_REVIEW_GUIDE.md` 重做代码审查；生成 `.claude/review-report.md`（评分、五层法、建议），结论：通过。 
 2025-10-06 11:14 NZST - 新增解析顺序回归测试：`test/property.test.ts` 中增加 `testStartWaitPrecedence`，验证 Start/Wait 优先于裸表达式报错；运行 `npm run test:property` 全部通过。
@@ -349,12 +349,12 @@ await runOneTypecheck(
 2025-10-07 12:06 NZST - 文档标注：为 `research/goal.md`、`docs/reference/language-specification.md`、`docs/reference/lambdas.md` 添加状态/更新时间/维护者标注。
 2025-10-07 14:00 NZST - 调用 MCP 工具 `sequential-thinking` 进行泛型类型解析故障初步分析，记录任务假设与风险。
 2025-10-07 14:01 NZST - 执行 `npm run build` 验证现有产物可编译；结果成功，输出 `Built headers PEG parser → dist/peg/headers-parser.js`。
-2025-10-07 14:02 NZST - 执行 `node dist/scripts/cli.js test-generic-inference.cnl`，确认 `List of Int` 场景当前可解析。
-2025-10-07 14:03 NZST - 执行 `node dist/scripts/cli.js tmp_map.cnl` 复现 `Map of Text and Int` 报错 `Expected type`，定位问题入口。
+2025-10-07 14:02 NZST - 执行 `node dist/scripts/cli.js test-generic-inference.aster`，确认 `List of Int` 场景当前可解析。
+2025-10-07 14:03 NZST - 执行 `node dist/scripts/cli.js tmp_map.aster` 复现 `Map of Text and Int` 报错 `Expected type`，定位问题入口。
 2025-10-07 14:05 NZST - 通过 `apply_patch` 修改 `src/parser.ts`，新增 `ASTER_DEBUG_TYPES` 受控调试日志，并重构 `parseType` 返回路径；随后 `npm run build` 成功。
-2025-10-07 14:07 NZST - 以 `ASTER_DEBUG_TYPES=1` 运行 `node dist/scripts/cli.js tmp_map.cnl`，收集 map 分支调试日志，确认卡在键类型解析前的 `of` 关键字。
+2025-10-07 14:07 NZST - 以 `ASTER_DEBUG_TYPES=1` 运行 `node dist/scripts/cli.js tmp_map.aster`，收集 map 分支调试日志，确认卡在键类型解析前的 `of` 关键字。
 2025-10-07 14:09 NZST - 再次 `apply_patch` 扩展 map 语法，支持 `map of <K> and <V>` 与原有 `map <K> to <V>`；`npm run build` 通过。
-2025-10-07 14:10 NZST - 执行 `node dist/scripts/cli.js test-generic-inference.cnl`，验证新增 `Map of Text and Int` 返回类型解析成功。
+2025-10-07 14:10 NZST - 执行 `node dist/scripts/cli.js test-generic-inference.aster`，验证新增 `Map of Text and Int` 返回类型解析成功。
 2025-10-07 14:11 NZST - 运行 `npm run build`（最新代码）与 `npm run test:golden`，全部 97 个 golden 测试通过。
 2025-10-07 14:24 NZST - 使用 `rg --files docs/workstreams` 与 `rg --files -g 'operations-log.md'` 检索日志位置；确认仅根目录存在 `operations-log.md`。
 2025-10-07 14:25 NZST - 运行 `tail -n 40 operations-log.md` 与 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`，获取既有记录与 NZ 时间。
@@ -387,14 +387,14 @@ await runOneTypecheck(
 2025-10-07 21:06 NZDT - `cat .claude/context-p2-1-question-1.json` 与 `cat .claude/context-p2-1-question-2.json` 复盘既有调研要点。
 2025-10-07 21:06 NZDT - 使用 `sed -n '1140,1240p' src/lsp/server.ts` 参考 `onHover` 模式与复用工具。
 
-2025-10-07 21:18 NZST - 更新 `src/lsp/server.ts` 签名提示支持，新增 `textDocument/signatureHelp` 处理；写入 `test-signature-help.cnl` 与 `scripts/lsp-signaturehelp-smoke.ts` 验证脚本。
+2025-10-07 21:18 NZST - 更新 `src/lsp/server.ts` 签名提示支持，新增 `textDocument/signatureHelp` 处理；写入 `test-signature-help.aster` 与 `scripts/lsp-signaturehelp-smoke.ts` 验证脚本。
 2025-10-07 21:44 NZST - 运行 `npm run build` → 成功；随后执行 `node dist/scripts/lsp-signaturehelp-smoke.js` 校验签名提示响应，返回 activeParameter=0/1。
 2025-10-07 21:44 NZST - 尝试直接运行 `node scripts/lsp-signaturehelp-smoke.ts` → Node.js 不识别 .ts 扩展（ERR_UNKNOWN_FILE_EXTENSION）；改用 `NODE_OPTIONS='--loader=ts-node/esm' node scripts/lsp-signaturehelp-smoke.ts` 验证通过。
 
 2025-10-07 21:52 NZDT - 调用 MCP 工具 `sequential-thinking` 梳理 documentHighlight 需求、风险与执行步骤。
 2025-10-07 21:52 NZDT - 使用 `code-index__set_project_path`、`code-index__build_deep_index` 初始化索引以便检索 `src/lsp/server.ts`。
 2025-10-07 21:55 NZDT - 通过 `apply_patch` 更新 `src/lsp/server.ts`，引入 DocumentHighlight 能力声明与处理逻辑。
-2025-10-07 21:56 NZDT - 使用 `apply_patch` 新增 `test-highlight.cnl` 与 `scripts/lsp-highlight-smoke.ts`，准备冒烟测试样例。
+2025-10-07 21:56 NZDT - 使用 `apply_patch` 新增 `test-highlight.aster` 与 `scripts/lsp-highlight-smoke.ts`，准备冒烟测试样例。
 2025-10-07 21:57 NZDT - 更新 `src/types.ts` 与 `src/lexer.ts` 引入 `TokenKind.STAR`，确保 `*` 可被词法分析。
 2025-10-07 21:58 NZDT - 执行 `npm run build && node dist/scripts/lsp-highlight-smoke.js`，documentHighlight 冒烟测试通过。
 2025-10-07 22:04 NZDT - 调用 MCP 工具 `sequential-thinking`，梳理 P2-4 Parser 重构上下文扫描的目标与约束。
@@ -445,36 +445,36 @@ await runOneTypecheck(
 2025-10-08 10:47 NZDT - 调用 MCP 工具 `sequential-thinking` 分析 Effect Violation Tests 修复任务的执行重点与潜在风险。
 2025-10-08 10:47 NZDT - 使用 `code-index__set_project_path` 将索引根目录设为 `/Users/rpang/IdeaProjects/aster-lang`，便于后续检索。
 2025-10-08 10:47 NZDT - 调用 `code-index__build_deep_index` 重建索引（473 个文件），准备文件分析。
-2025-10-08 10:48 NZDT - 调用 `code-index__get_file_summary` 以读取 `cnl/examples/eff_violation_files_calls_secrets.cnl`，提示仍需 deep index 支持。
+2025-10-08 10:48 NZDT - 调用 `code-index__get_file_summary` 以读取 `cnl/examples/eff_violation_files_calls_secrets.aster`，提示仍需 deep index 支持。
 2025-10-08 10:48 NZDT - 运行 `ls` 查看仓库根目录现状，为确认相关文件位置。
 2025-10-08 10:48 NZDT - 运行 `cat operations-log.md` 回顾既有日志内容，避免重复记录。
 2025-10-08 10:49 NZDT - 运行 `TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"` 获取最新 NZDT 时间用于记录。
 2025-10-08 10:49 NZDT - 运行 `tail -n 5 operations-log.md` 获取补丁上下文，准备追加日志。
-2025-10-08 10:48 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_files_calls_secrets.cnl`：删除辅助函数，直接调用 `Secrets.get` 与 `Files.write` 制造直接违规。
-2025-10-08 10:49 NZDT - 运行 `for f in eff_violation_*.cnl ... cat` 扫描 5 个效应违规示例，确认是否存在跨函数调用。
-2025-10-08 10:49 NZDT - 使用 `apply_patch` 精简 `cnl/examples/eff_violation_http_calls_sql.cnl`，直接在 `web_handler` 中调用 `Db.query` 制造即时违规。
-2025-10-08 10:49 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_secrets_calls_ai.cnl`，让 `secure_flow` 直接调用 `AiModel.generate`。
-2025-10-08 10:49 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_sql_calls_files.cnl`，在 `db_init` 中直接执行 `Files.read` 与 `Db.connect`。
-2025-10-08 10:50 NZDT - 使用 `apply_patch` 将 `cnl/examples/eff_violation_transitive.cnl` 简化为单一 `top_http`，直接调用 `Secrets.get` 制造直接违规。
+2025-10-08 10:48 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_files_calls_secrets.aster`：删除辅助函数，直接调用 `Secrets.get` 与 `Files.write` 制造直接违规。
+2025-10-08 10:49 NZDT - 运行 `for f in eff_violation_*.aster ... cat` 扫描 5 个效应违规示例，确认是否存在跨函数调用。
+2025-10-08 10:49 NZDT - 使用 `apply_patch` 精简 `cnl/examples/eff_violation_http_calls_sql.aster`，直接在 `web_handler` 中调用 `Db.query` 制造即时违规。
+2025-10-08 10:49 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_secrets_calls_ai.aster`，让 `secure_flow` 直接调用 `AiModel.generate`。
+2025-10-08 10:49 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_sql_calls_files.aster`，在 `db_init` 中直接执行 `Files.read` 与 `Db.connect`。
+2025-10-08 10:50 NZDT - 使用 `apply_patch` 将 `cnl/examples/eff_violation_transitive.aster` 简化为单一 `top_http`，直接调用 `Secrets.get` 制造直接违规。
 2025-10-08 10:50 NZDT - 读取 `cnl/examples/expected_eff_violation_*.diag.txt` 现有内容，确认此前仅包含 @io 提示。
-2025-10-08 10:50 NZDT - 运行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_files_calls_secrets.cnl` 并重定向输出，生成新的 expected 诊断文件。
+2025-10-08 10:50 NZDT - 运行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_files_calls_secrets.aster` 并重定向输出，生成新的 expected 诊断文件。
 2025-10-08 10:51 NZDT - 尝试改用 `./node_modules/.bin/tsx` 执行同一命令以消除 npx 警告，但因未安装本地 tsx（退出 127）而失败。
 2025-10-08 10:51 NZDT - 采用 `node --loader ts-node/esm` 执行 typecheck，随后加上 `NODE_NO_WARNINGS=1` 再运行以去除警告并刷新 expected 文件。
-2025-10-08 10:52 NZDT - 修正 `cnl/examples/eff_violation_secrets_calls_ai.cnl`，将违规调用调整为 `Ai.predict` 以匹配 `Ai.` 前缀。
+2025-10-08 10:52 NZDT - 修正 `cnl/examples/eff_violation_secrets_calls_ai.aster`，将违规调用调整为 `Ai.predict` 以匹配 `Ai.` 前缀。
 2025-10-08 10:52 NZDT - 批量运行 `NODE_NO_WARNINGS=1 ASTER_CAP_EFFECTS_ENFORCE=1 node --loader ts-node/esm scripts/typecheck-cli.ts` 刷新 http/sql/secrets/transitive 四个效应违规示例的 expected 诊断。
-2025-10-08 10:53 NZDT - 对 `eff_violation_empty_caps.cnl` 执行同一 typecheck，输出 `Typecheck OK`，未出现预期错误。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_http_calls_sql.cnl` 确认示例直接调用违规 capability，无需辅助函数。
+2025-10-08 10:53 NZDT - 对 `eff_violation_empty_caps.aster` 执行同一 typecheck，输出 `Typecheck OK`，未出现预期错误。
+2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_http_calls_sql.aster` 确认示例直接调用违规 capability，无需辅助函数。
 2025-10-08 10:55 NZST - 运行 `cat cnl/examples/expected_eff_violation_http_calls_sql.diag.txt` 核对现有诊断输出。
-2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_http_calls_sql.cnl` 验证错误信息与 expected 一致。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_secrets_calls_ai.cnl` 检查是否存在跨函数调用。
+2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_http_calls_sql.aster` 验证错误信息与 expected 一致。
+2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_secrets_calls_ai.aster` 检查是否存在跨函数调用。
 2025-10-08 10:55 NZST - 运行 `cat cnl/examples/expected_eff_violation_secrets_calls_ai.diag.txt` 核对旧有诊断文本。
-2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_secrets_calls_ai.cnl`，确认 ERROR/WARN 输出符合预期。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_sql_calls_files.cnl` 核查是否需调整。
+2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_secrets_calls_ai.aster`，确认 ERROR/WARN 输出符合预期。
+2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_sql_calls_files.aster` 核查是否需调整。
 2025-10-08 10:55 NZST - 运行 `cat cnl/examples/expected_eff_violation_sql_calls_files.diag.txt` 比对诊断文件。
-2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_sql_calls_files.cnl` 确认错误文本匹配。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_transitive.cnl` 检查是否存在辅助函数。
+2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_sql_calls_files.aster` 确认错误文本匹配。
+2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_transitive.aster` 检查是否存在辅助函数。
 2025-10-08 10:55 NZST - 运行 `cat cnl/examples/expected_eff_violation_transitive.diag.txt` 审阅现有 expected 输出。
-2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_transitive.cnl` 验证诊断信息与 expected 一致。
+2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_transitive.aster` 验证诊断信息与 expected 一致。
 2025-10-08 10:55 NZST - 运行 `npm run build`，构建任务顺利完成。
 2025-10-08 10:55 NZST - 尝试执行 `npm run golden`，因缺少 `golden` 脚本失败（npm error Missing script: "golden"）。
 2025-10-08 10:57 NZDT - 运行 `npm run test:golden`，命令执行失败；`eff_violation_*` 多个黄金测试缺少预期错误输出（输出为空或仅 Typecheck OK），详见终端日志。
@@ -487,7 +487,7 @@ await runOneTypecheck(
 2025-10-08 11:15 NZST - 执行 `git diff --scripts/golden.ts`（工作目录 `/Users/rpang/IdeaProjects/aster-lang`）失败：Git 报错 `invalid option: --scripts/golden.ts`。
 2025-10-08 11:15 NZST - 执行 `git diff scripts/golden.ts`，确认新增 try/finally 包裹并恢复 `ASTER_CAP_EFFECTS_ENFORCE` 环境变量。
 2025-10-08 11:16 NZST - 运行 `npm run build`，结果成功，输出 `Built headers PEG parser → dist/peg/headers-parser.js`。
-2025-10-08 11:16 NZST - 执行 `npm run test:golden`，失败：`eff_violation_empty_caps.cnl` 等仍缺少预期诊断（Actual 为空或仅 Typecheck OK），需进一步定位。
+2025-10-08 11:16 NZST - 执行 `npm run test:golden`，失败：`eff_violation_empty_caps.aster` 等仍缺少预期诊断（Actual 为空或仅 Typecheck OK），需进一步定位。
 2025-10-08 11:21 NZST - 使用 `apply_patch` 调整 `scripts/golden.ts`：新增 `formatSeverityTag`，当诊断为空时输出 `Typecheck OK`，并将 warning/info 标签与 CLI 对齐（`WARN`/`INFO`），以匹配 expected 文本。
 2025-10-08 11:21 NZST - 使用 `apply_patch` 统一 `runOneTypecheckWithCaps` 的严重级别格式，复用 `formatSeverityTag` 生成标签。
 2025-10-08 11:22 NZST - 再次运行 `npm run build`，确保最新 TypeScript 变更编译进 `dist/`，输出 `Built headers PEG parser → dist/peg/headers-parser.js`。
@@ -632,7 +632,7 @@ await runOneTypecheck(
 2025-10-08 15:38 NZST - 执行 `nl -ba src/capabilities.ts`、`nl -ba src/config/semantic.ts | sed -n '1,220p'`，提取能力枚举、前缀映射及 Effect 枚举定义。
 2025-10-08 15:38 NZST - 执行 `nl -ba src/typecheck.ts | sed -n '180,340p'` 与 `sed -n '430,520p'`，收集 manifest 校验与效果/能力推断核心实现。
 2025-10-08 15:39 NZST - 执行 `nl -ba src/lsp/server.ts | sed -n '730,830p'`、`nl -ba scripts/typecheck-cli.ts`，记录 manifest 解析与加载路径。
-2025-10-08 15:39 NZST - 读取 `cnl/examples/eff_violation_*.cnl` 及对应 `expected_*.diag.txt`，采样三组黄金用例内容。
+2025-10-08 15:39 NZST - 读取 `cnl/examples/eff_violation_*.aster` 及对应 `expected_*.diag.txt`，采样三组黄金用例内容。
 2025-10-08 15:40 NZST - 执行 `nl -ba scripts/golden.ts | sed -n '1,520p'`，确认 golden 框架中 capability enforcement 用例执行方式。
 2025-10-08 15:40 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'` 获取文档时间戳。
 2025-10-08 15:47 NZDT - 调用 MCP 工具 `sequential-thinking` 分析任务 78dafcf7-fa65-4175-bbea-9b8b6efa5850 的类型调整范围与潜在风险。
@@ -722,7 +722,7 @@ await runOneTypecheck(
   - typecheck 建立 `imports` 映射，但效果收集未使用
   - 效果前缀匹配基于原始名称字符串，未解析别名
   - examples 未覆盖 alias 导入场景
-2025-10-09 01:00 NZDT - 修正解析器 parseDottedIdent 允许首段 TYPE_IDENT，并在 `use` 语句的 `as` 别名位置接受 TYPE_IDENT（支持 `use Http as H.`）。新增/确认用例：`cnl/examples/eff_alias_import.cnl`；创建期望文件 `cnl/examples/expected_eff_alias_import.diag.txt`（为空）。执行 `npm run test:golden` → 全部通过（115/115）。
+2025-10-09 01:00 NZDT - 修正解析器 parseDottedIdent 允许首段 TYPE_IDENT，并在 `use` 语句的 `as` 别名位置接受 TYPE_IDENT（支持 `use Http as H.`）。新增/确认用例：`cnl/examples/eff_alias_import.aster`；创建期望文件 `cnl/examples/expected_eff_alias_import.diag.txt`（为空）。执行 `npm run test:golden` → 全部通过（115/115）。
 2025-10-09 09:52 NZDT - 使用 `sequential-thinking__sequentialthinking` 工具梳理 Medium 规模项目生成器需求与风险。
 2025-10-09 09:52 NZDT - 调用 `code-index__set_project_path` 与 `code-index__find_files`，定位 `test/benchmark.ts` 以便扩展生成逻辑。
 2025-10-09 09:52 NZDT - 使用 `apply_patch` 更新 `test/benchmark.ts`，实现 Medium 项目生成器及相关辅助函数。

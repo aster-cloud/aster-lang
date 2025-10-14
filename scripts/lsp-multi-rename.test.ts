@@ -45,8 +45,8 @@ async function main(): Promise<void> {
   const path = await import('node:path');
   const url = await import('node:url');
   const fs = await import('node:fs');
-  const aFs = path.join(process.cwd(), 'test', 'lsp-multi', 'a.cnl');
-  const bFs = path.join(process.cwd(), 'test', 'lsp-multi', 'b.cnl');
+  const aFs = path.join(process.cwd(), 'test', 'lsp-multi', 'a.aster');
+  const bFs = path.join(process.cwd(), 'test', 'lsp-multi', 'b.aster');
   const aUri = String(url.pathToFileURL(aFs));
   const bUri = String(url.pathToFileURL(bFs));
   const aText = fs.readFileSync(aFs, 'utf8');
@@ -55,7 +55,7 @@ async function main(): Promise<void> {
   send(server, { jsonrpc: '2.0', method: 'textDocument/didOpen', params: { textDocument: { uri: aUri, languageId: 'cnl', version: 1, text: aText } } });
   send(server, { jsonrpc: '2.0', method: 'textDocument/didOpen', params: { textDocument: { uri: bUri, languageId: 'cnl', version: 1, text: bText } } });
 
-  // rename 'greet' to 'greet2' at its declaration in a.cnl
+  // rename 'greet' to 'greet2' at its declaration in a.aster
   const lines = aText.split(/\n/);
   const lineIdx = lines.findIndex(l => /To\s+greet\b/.test(l));
   const charIdx = Math.max(0, lines[lineIdx]!.indexOf('greet'));
