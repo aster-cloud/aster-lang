@@ -34,3 +34,19 @@ export {
   handleNativeFileChanges,
 } from './workspace/file-watcher.js';
 export type { FileWatcherConfig } from './workspace/file-watcher.js';
+
+// 导出任务队列
+export {
+  configureTaskQueue,
+  submitTask,
+  cancelTask,
+  cancelAllPendingTasks,
+  getQueueStats,
+  cleanupCompletedTasks,
+  waitForAllTasks,
+  getTaskStatus,
+  getRunningTasks,
+  TaskPriority,
+  TaskStatus,
+} from './task-queue.js';
+export type { Task, TaskQueueConfig, QueueStats } from './task-queue.js';

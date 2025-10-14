@@ -41,6 +41,10 @@ import {
   stopFileWatcher,
   handleNativeFileChanges,
   getWatcherStatus,
+  configureTaskQueue,
+  getQueueStats,
+  cleanupCompletedTasks,
+  getRunningTasks,
 } from './index.js';
 import {
   registerDiagnosticHandlers,
@@ -226,6 +230,13 @@ connection.onInitialize(async (params: InitializeParams) => {
 });
 
 connection.onInitialized(() => {
+  // 初始化任务队列
+  configureTaskQueue({
+    maxConcurrent: 2,
+    taskTimeout: 60000, // 60 秒
+    enabled: true,
+  });
+
   if (hasConfigurationCapability) {
     // Register for all configuration changes.
     connection.client.register(DidChangeConfigurationNotification.type, undefined);
@@ -288,7 +299,7 @@ connection.onInitialized(() => {
   }
 
   // Register health handlers
-  registerHealthHandlers(connection, hasWatchedFilesCapability, watcherRegistered, getAllModules, getWatcherStatus);
+  registerHealthHandlers(connection, hasWatchedFilesCapability, watcherRegistered, getAllModules, getWatcherStatus, getQueueStats);
 
   // Register diagnostic handlers
   registerDiagnosticHandlers(connection, documents, getOrParse);

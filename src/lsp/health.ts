@@ -20,6 +20,13 @@ export interface HealthStatus {
     files: number;
     modules: number;
   };
+  queue?: {
+    pending: number;
+    running: number;
+    completed: number;
+    failed: number;
+    total: number;
+  };
 }
 
 /**
@@ -29,6 +36,7 @@ export interface HealthStatus {
  * @param watcherRegistered 文件监视器是否已注册
  * @param getAllModules 获取所有模块的函数
  * @param getWatcherStatus 获取文件监控状态的函数（可选）
+ * @param getQueueStats 获取任务队列统计的函数（可选）
  */
 export function registerHealthHandlers(
   connection: Connection,
@@ -40,6 +48,14 @@ export function registerHealthHandlers(
     mode: 'native' | 'polling';
     isRunning: boolean;
     trackedFiles: number;
+  },
+  getQueueStats?: () => {
+    pending: number;
+    running: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
+    total: number;
   }
 ): void {
   const HEALTH_METHOD = 'aster/health';
@@ -50,6 +66,7 @@ export function registerHealthHandlers(
     for (const m of modules) if (m.moduleName) moduleNames.add(m.moduleName);
 
     const watcherStatus = getWatcherStatus?.();
+    const queueStats = getQueueStats?.();
 
     const result: HealthStatus = {
       watchers: {
@@ -67,6 +84,17 @@ export function registerHealthHandlers(
       result.watchers.mode = watcherStatus.mode;
       result.watchers.isRunning = watcherStatus.isRunning;
       result.watchers.trackedFiles = watcherStatus.trackedFiles;
+    }
+
+    // 添加队列统计
+    if (queueStats) {
+      result.queue = {
+        pending: queueStats.pending,
+        running: queueStats.running,
+        completed: queueStats.completed,
+        failed: queueStats.failed,
+        total: queueStats.total,
+      };
     }
 
     return result;

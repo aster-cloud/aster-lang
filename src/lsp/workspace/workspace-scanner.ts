@@ -7,6 +7,7 @@ import { promises as fs } from 'node:fs';
 import { join, extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { updateDocumentIndex } from './document-indexer.js';
+import { submitTask, TaskPriority } from '../task-queue.js';
 
 /**
  * 递归扫描目录下所有 .aster 文件。
@@ -50,10 +51,10 @@ async function scanCnlFiles(dir: string): Promise<string[]> {
 }
 
 /**
- * 重新构建工作区内给定文件夹的索引信息。
+ * 重新构建工作区内给定文件夹的索引信息（内部实现）。
  * @param folders 工作区根文件夹路径列表。
  */
-export async function rebuildWorkspaceIndex(folders: string[]): Promise<void> {
+async function rebuildWorkspaceIndexImpl(folders: string[]): Promise<void> {
   const debugLog: string[] = [];
   debugLog.push(`[rebuildWorkspaceIndex] Started at ${new Date().toISOString()}`);
   debugLog.push(`[rebuildWorkspaceIndex] Folders: ${JSON.stringify(folders)}`);
@@ -111,4 +112,22 @@ export async function rebuildWorkspaceIndex(folders: string[]): Promise<void> {
 
   // Write debug log to temp file
   await fs.writeFile('/tmp/lsp-index-debug.log', debugLog.join('\n'), 'utf8').catch(() => {});
+}
+
+/**
+ * 重新构建工作区内给定文件夹的索引信息（公共接口，使用任务队列）。
+ * @param folders 工作区根文件夹路径列表。
+ * @param useQueue 是否使用任务队列（默认 true）
+ */
+export async function rebuildWorkspaceIndex(folders: string[], useQueue: boolean = true): Promise<void> {
+  if (!useQueue) {
+    return rebuildWorkspaceIndexImpl(folders);
+  }
+
+  // 使用低优先级任务队列，避免阻塞用户交互
+  return submitTask(
+    'Rebuild Workspace Index',
+    TaskPriority.LOW,
+    () => rebuildWorkspaceIndexImpl(folders)
+  );
 }
