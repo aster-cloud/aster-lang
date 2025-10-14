@@ -24,3 +24,13 @@ export { findSymbolReferences } from './workspace/symbol-finder.js';
 
 // 导出工作区扫描器
 export { rebuildWorkspaceIndex } from './workspace/workspace-scanner.js';
+
+// 导出文件监控器
+export {
+  configureFileWatcher,
+  startFileWatcher,
+  stopFileWatcher,
+  getWatcherStatus,
+  handleNativeFileChanges,
+} from './workspace/file-watcher.js';
+export type { FileWatcherConfig } from './workspace/file-watcher.js';

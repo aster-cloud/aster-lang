@@ -12,6 +12,9 @@ export interface HealthStatus {
   watchers: {
     capability: boolean;
     registered: boolean;
+    mode?: 'native' | 'polling';
+    isRunning?: boolean;
+    trackedFiles?: number;
   };
   index: {
     files: number;
@@ -25,12 +28,19 @@ export interface HealthStatus {
  * @param hasWatchedFilesCapability 客户端是否支持文件监视
  * @param watcherRegistered 文件监视器是否已注册
  * @param getAllModules 获取所有模块的函数
+ * @param getWatcherStatus 获取文件监控状态的函数（可选）
  */
 export function registerHealthHandlers(
   connection: Connection,
   hasWatchedFilesCapability: boolean,
   watcherRegistered: boolean,
-  getAllModules: () => Array<{ moduleName: string | null }>
+  getAllModules: () => Array<{ moduleName: string | null }>,
+  getWatcherStatus?: () => {
+    enabled: boolean;
+    mode: 'native' | 'polling';
+    isRunning: boolean;
+    trackedFiles: number;
+  }
 ): void {
   const HEALTH_METHOD = 'aster/health';
 
@@ -38,7 +48,10 @@ export function registerHealthHandlers(
     const modules = getAllModules();
     const moduleNames = new Set<string>();
     for (const m of modules) if (m.moduleName) moduleNames.add(m.moduleName);
-    return {
+
+    const watcherStatus = getWatcherStatus?.();
+
+    const result: HealthStatus = {
       watchers: {
         capability: hasWatchedFilesCapability,
         registered: watcherRegistered,
@@ -47,6 +60,15 @@ export function registerHealthHandlers(
         files: modules.length,
         modules: moduleNames.size,
       },
-    } as const;
+    };
+
+    // 仅在 watcherStatus 存在时添加可选字段
+    if (watcherStatus) {
+      result.watchers.mode = watcherStatus.mode;
+      result.watchers.isRunning = watcherStatus.isRunning;
+      result.watchers.trackedFiles = watcherStatus.trackedFiles;
+    }
+
+    return result;
   });
 }

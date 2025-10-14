@@ -36,6 +36,11 @@ import {
   saveIndex,
   setIndexConfig,
   rebuildWorkspaceIndex,
+  configureFileWatcher,
+  startFileWatcher,
+  stopFileWatcher,
+  handleNativeFileChanges,
+  getWatcherStatus,
 } from './index.js';
 import {
   registerDiagnosticHandlers,
@@ -237,29 +242,29 @@ connection.onInitialized(() => {
         watchers: [{ globPattern: '**/*.aster' }],
       });
       watcherRegistered = true;
+      // 配置为 native 模式（由客户端提供文件监控）
+      configureFileWatcher({ mode: 'native', enabled: true });
     } catch {
       // ignore registration failure
     }
     connection.onDidChangeWatchedFiles(async ev => {
       try {
-        for (const ch of ev.changes) {
-          const path = uriToFsPath(ch.uri);
-          if (!path) continue;
-          try {
-            const text = await fsPromises.readFile(path, 'utf8');
-            const doc = TextDocument.create(ch.uri, 'cnl', 0, text);
-            await updateDocumentIndex(doc.uri, doc.getText()).catch(() => {});
-          } catch {
-            // File doesn't exist or can't be read
-            invalidateDocument(ch.uri);
-          }
-        }
+        await handleNativeFileChanges(ev.changes);
       } catch {
         // ignore
       }
     });
   } else {
-    connection.console.warn('Client does not advertise didChangeWatchedFiles; workspace index updates may be limited to open documents.');
+    connection.console.warn(
+      'Client does not advertise didChangeWatchedFiles; falling back to polling mode.'
+    );
+    // 降级到 polling 模式
+    configureFileWatcher({
+      mode: 'polling',
+      enabled: true,
+      pollingInterval: 3000, // 3 秒轮询一次
+    });
+    startFileWatcher(workspaceFolders);
   }
 
   // Background warmup: Rebuild workspace index and pre-compute diagnostics
@@ -283,7 +288,7 @@ connection.onInitialized(() => {
   }
 
   // Register health handlers
-  registerHealthHandlers(connection, hasWatchedFilesCapability, watcherRegistered, getAllModules);
+  registerHealthHandlers(connection, hasWatchedFilesCapability, watcherRegistered, getAllModules, getWatcherStatus);
 
   // Register diagnostic handlers
   registerDiagnosticHandlers(connection, documents, getOrParse);
@@ -463,6 +468,7 @@ documents.onDidClose(e => {
 documents.listen(connection);
 
 connection.onExit(() => {
+  stopFileWatcher();
   if (!currentIndexPath || !indexPersistenceActive) return;
   void saveIndex(currentIndexPath).catch(() => {});
 });
