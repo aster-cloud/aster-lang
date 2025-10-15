@@ -1,0 +1,11 @@
+# Gradle JVM arguments for Java 25 compatibility
+# Source this file or export GRADLE_OPTS before running gradle commands
+#
+# Usage:
+#   source .gradle-jvmargs
+#   ./gradlew build
+#
+# Or for a single command:
+#   GRADLE_OPTS="--enable-native-access=ALL-UNNAMED" ./gradlew build
+
+export GRADLE_OPTS="--enable-native-access=ALL-UNNAMED"

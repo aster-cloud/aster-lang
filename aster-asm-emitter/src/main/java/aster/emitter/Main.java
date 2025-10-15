@@ -336,7 +336,6 @@ public final class Main {
         var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
         if (st instanceof CoreModel.Let let) {
           Character inferred = typeResolver.inferType(let.expr);
-          System.err.println("DEBUG Let " + let.name + " 推断类型: " + inferred + " 表达式: " + let.expr.getClass().getSimpleName());
           if (inferred == null && Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
             inferred = 'Z';
           }

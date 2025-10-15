@@ -17,6 +17,9 @@ dependencies {
   implementation("org.ow2.asm:asm-util:9.8")
   implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
   implementation(project(":aster-runtime"))
+
+  testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 application {
@@ -37,4 +40,8 @@ tasks.withType<JavaExec>().configureEach {
 tasks.withType<Jar> {
   manifest { attributes["Main-Class"] = "aster.emitter.Main" }
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.test {
+  useJUnitPlatform()
 }
