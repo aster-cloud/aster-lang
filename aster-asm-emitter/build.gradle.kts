@@ -12,8 +12,9 @@ java {
 repositories { mavenCentral() }
 
 dependencies {
-  implementation("org.ow2.asm:asm:9.6")
-  implementation("org.ow2.asm:asm-commons:9.6")
+  implementation("org.ow2.asm:asm:9.8")
+  implementation("org.ow2.asm:asm-commons:9.8")
+  implementation("org.ow2.asm:asm-util:9.8")
   implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
   implementation(project(":aster-runtime"))
 }

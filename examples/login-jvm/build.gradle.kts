@@ -21,19 +21,19 @@ application { mainClass.set("example.LoginMain") }
 val generateAsterJar by tasks.registering(Exec::class) {
   workingDir = rootProject.projectDir
   // Emit required CNL modules for this example before creating the JAR.
-  // In addition to login.cnl (app.service.*), PolicyTest.java depends on demo.policy and demo.policy_demo.
+  // In addition to login.aster (app.service.*), PolicyTest.java depends on demo.policy and demo.policy_demo.
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
     listOf(
       "cmd", "/c",
       "npm", "run", "emit:class",
-      "cnl/examples/login.cnl",
-      "cnl/examples/policy_engine.cnl",
-      "cnl/examples/policy_demo.cnl",
+      "cnl/examples/login.aster",
+      "cnl/examples/policy_engine.aster",
+      "cnl/examples/policy_demo.aster",
       "&&", "npm", "run", "jar:jvm"
     )
   else listOf(
     "sh", "-c",
-    "ASTER_OUT_DIR=examples/login-jvm/build/aster-out npm run emit:class cnl/examples/login.cnl cnl/examples/policy_engine.cnl cnl/examples/policy_demo.cnl && ASTER_OUT_DIR=examples/login-jvm/build/aster-out npm run jar:jvm"
+    "ASTER_OUT_DIR=examples/login-jvm/build/aster-out npm run emit:class cnl/examples/login.aster cnl/examples/policy_engine.aster cnl/examples/policy_demo.aster && ASTER_OUT_DIR=examples/login-jvm/build/aster-out npm run jar:jvm"
   )
   // 输出声明：生成合并 Jar
   outputs.file(moduleOut.map { it.file("aster.jar") })

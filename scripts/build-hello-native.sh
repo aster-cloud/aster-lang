@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # 1) Emit classfiles for greet
-npm run emit:class cnl/examples/greet.cnl
+npm run emit:class cnl/examples/greet.aster
 
 # 2) Package to jar
 npm run jar:jvm

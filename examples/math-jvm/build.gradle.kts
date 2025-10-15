@@ -20,8 +20,8 @@ application { mainClass.set("example.MathMain") }
 val generateAsterJar by tasks.registering(Exec::class) {
   workingDir = rootProject.projectDir
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
-    listOf("cmd", "/c", "set", "ASTER_OUT_DIR=examples/math-jvm/build/aster-out", "&&", "npm", "run", "emit:class", "cnl/examples/arith_compare.cnl", "&&", "set", "ASTER_OUT_DIR=examples/math-jvm/build/aster-out", "&&", "npm", "run", "jar:jvm")
-  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/math-jvm/build/aster-out npm run emit:class cnl/examples/arith_compare.cnl && ASTER_OUT_DIR=examples/math-jvm/build/aster-out npm run jar:jvm")
+    listOf("cmd", "/c", "set", "ASTER_OUT_DIR=examples/math-jvm/build/aster-out", "&&", "npm", "run", "emit:class", "cnl/examples/arith_compare.aster", "&&", "set", "ASTER_OUT_DIR=examples/math-jvm/build/aster-out", "&&", "npm", "run", "jar:jvm")
+  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/math-jvm/build/aster-out npm run emit:class cnl/examples/arith_compare.aster && ASTER_OUT_DIR=examples/math-jvm/build/aster-out npm run jar:jvm")
 }
 tasks.withType<JavaCompile>().configureEach {
   dependsOn(generateAsterJar)

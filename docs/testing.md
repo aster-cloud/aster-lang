@@ -30,3 +30,9 @@
   - `npm run test:golden` → 通过（黄金测试与格式化流程完整执行）。
   - `npm run build` → 通过（生成 PEG 解析器）。
   - `node dist/scripts/typecheck-cli.js test/capability-v2.aster` → 通过但提示 `mixed` 无直接 IO 操作；用于验证 legacy `@io` 与细粒度 `Http`/`Files`/`Secrets` 注解可被解析。
+
+## 2025-10-15 P0 缓存修复验证
+- 日期：2025-10-15 19:21 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:test` → 失败（缺少 `cnl/stdlib/finance/loan.cnl` 等策略资产，任务 `generateAsterJar` 退出码 1）

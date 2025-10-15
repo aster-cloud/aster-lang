@@ -1,19 +1,25 @@
 package io.aster.policy.api;
 
+import io.quarkus.cache.Cache;
+import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheInvalidateAll;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -26,11 +32,18 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class PolicyEvaluationService {
 
+    @Inject
+    @CacheName("policy-results")
+    Cache policyResultCache;
+
     // Cache for compiled policy metadata (avoids repeated reflection)
     private final ConcurrentHashMap<String, PolicyMetadata> metadataCache = new ConcurrentHashMap<>();
 
     // Cache for constructor metadata (avoids repeated reflection for object construction)
     private final ConcurrentHashMap<Class<?>, ConstructorMetadata> constructorCache = new ConcurrentHashMap<>();
+
+    // 维护按租户划分的缓存键索引，用于精准失效
+    private final ConcurrentHashMap<String, Set<PolicyCacheKey>> tenantCacheIndex = new ConcurrentHashMap<>();
 
     /**
      * Cached metadata for a policy method
@@ -73,12 +86,14 @@ public class PolicyEvaluationService {
      * @return Uni包装的评估结果
      */
     public Uni<PolicyEvaluationResult> evaluatePolicy(
+            String tenantId,
             String policyModule,
             String policyFunction,
             Object[] context) {
 
-        // Create cache key
-        PolicyCacheKey cacheKey = new PolicyCacheKey(policyModule, policyFunction, context);
+        Object[] normalizedContext = normalizeContext(tenantId, context);
+        PolicyCacheKey cacheKey = new PolicyCacheKey(tenantId, policyModule, policyFunction, normalizedContext);
+        trackTenantCacheKey(cacheKey);
         return evaluatePolicyWithKey(cacheKey);
     }
 
@@ -157,9 +172,58 @@ public class PolicyEvaluationService {
     /**
      * 使缓存失效（针对特定策略，reactive版本）
      */
-    public Uni<Void> invalidateCache(String policyModule, String policyFunction, Object[] context) {
-        PolicyCacheKey cacheKey = new PolicyCacheKey(policyModule, policyFunction, context);
-        return invalidateCacheWithKey(cacheKey);
+    public Uni<Void> invalidateCache(String tenantId, String policyModule, String policyFunction, Object[] context) {
+        Object[] normalizedContext = normalizeContext(tenantId, context);
+        PolicyCacheKey cacheKey = new PolicyCacheKey(tenantId, policyModule, policyFunction, normalizedContext);
+        return invalidateCacheWithKey(cacheKey)
+            .invoke(() -> removeTrackedKey(cacheKey));
+    }
+
+    /**
+     * 按租户维度批量失效缓存，可选过滤模块与函数
+     */
+    public Uni<Void> invalidateCache(String tenantId, String policyModule, String policyFunction) {
+        String normalizedTenant = normalizeTenant(tenantId);
+        Set<PolicyCacheKey> keys = tenantCacheIndex.get(normalizedTenant);
+        if (keys == null || keys.isEmpty()) {
+            return Uni.createFrom().voidItem();
+        }
+
+        boolean filterByModule = policyModule != null && !policyModule.isBlank();
+        boolean filterByFunction = policyFunction != null && !policyFunction.isBlank();
+
+        java.util.List<PolicyCacheKey> targets = keys.stream()
+            .filter(key -> !filterByModule || Objects.equals(key.getPolicyModule(), policyModule))
+            .filter(key -> !filterByFunction || Objects.equals(key.getPolicyFunction(), policyFunction))
+            .collect(java.util.stream.Collectors.toList());
+
+        if (targets.isEmpty()) {
+            return Uni.createFrom().voidItem();
+        }
+
+        java.util.List<Uni<Void>> invalidations = new java.util.ArrayList<>();
+        for (PolicyCacheKey key : targets) {
+            invalidations.add(policyResultCache.invalidate(key));
+        }
+
+        keys.removeAll(targets);
+        if (keys.isEmpty()) {
+            tenantCacheIndex.remove(normalizedTenant, keys);
+        }
+
+        return Uni.combine().all().unis(invalidations).discardItems();
+    }
+
+    /**
+     * 仅用于测试：返回指定租户当前缓存键快照
+     */
+    public Set<PolicyCacheKey> snapshotTenantCacheKeys(String tenantId) {
+        String normalizedTenant = normalizeTenant(tenantId);
+        Set<PolicyCacheKey> keys = tenantCacheIndex.get(normalizedTenant);
+        if (keys == null || keys.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return Collections.unmodifiableSet(new HashSet<>(keys));
     }
 
     /**
@@ -169,6 +233,44 @@ public class PolicyEvaluationService {
     Uni<Void> invalidateCacheWithKey(PolicyCacheKey cacheKey) {
         // 返回completed Uni，缓存失效由注解处理
         return Uni.createFrom().voidItem();
+    }
+
+    private Object[] normalizeContext(String tenantId, Object[] context) {
+        if (context == null || context.length == 0) {
+            return new Object[0];
+        }
+
+        Object[] copy = Arrays.copyOf(context, context.length);
+        Object first = copy[0];
+        String normalizedTenant = normalizeTenant(tenantId);
+        if (first instanceof String tenantMarker &&
+                normalizeTenant(tenantMarker).equals(normalizedTenant)) {
+            return Arrays.copyOfRange(copy, 1, copy.length);
+        }
+
+        return copy;
+    }
+
+    private String normalizeTenant(String tenantId) {
+        return tenantId == null || tenantId.isBlank() ? "default" : tenantId.trim();
+    }
+
+    private void trackTenantCacheKey(PolicyCacheKey cacheKey) {
+        String normalizedTenant = cacheKey.getTenantId();
+        tenantCacheIndex
+            .computeIfAbsent(normalizedTenant, key -> ConcurrentHashMap.newKeySet())
+            .add(cacheKey);
+    }
+
+    private void removeTrackedKey(PolicyCacheKey cacheKey) {
+        String normalizedTenant = cacheKey.getTenantId();
+        Set<PolicyCacheKey> keys = tenantCacheIndex.get(normalizedTenant);
+        if (keys != null) {
+            keys.remove(cacheKey);
+            if (keys.isEmpty()) {
+                tenantCacheIndex.remove(normalizedTenant, keys);
+            }
+        }
     }
 
     /**
@@ -182,7 +284,7 @@ public class PolicyEvaluationService {
 
         // 并行执行所有策略评估
         java.util.List<Uni<PolicyEvaluationResult>> unis = requests.stream()
-            .map(req -> evaluatePolicy(req.policyModule, req.policyFunction, req.context))
+            .map(req -> evaluatePolicy(req.tenantId, req.policyModule, req.policyFunction, req.context))
             .collect(java.util.stream.Collectors.toList());
 
         // 合并所有Uni结果使用现代API（任一失败则全部失败）
@@ -205,7 +307,7 @@ public class PolicyEvaluationService {
             final int index = i;
             final BatchRequest req = requests.get(i);
 
-            Uni<EvaluationAttempt> attempt = evaluatePolicy(req.policyModule, req.policyFunction, req.context)
+            Uni<EvaluationAttempt> attempt = evaluatePolicy(req.tenantId, req.policyModule, req.policyFunction, req.context)
                 .onItem().transform(result -> new EvaluationAttempt(
                     index,
                     req.policyModule,
@@ -257,6 +359,7 @@ public class PolicyEvaluationService {
      * @return Uni包装的最终评估结果和中间结果列表
      */
     public Uni<PolicyCompositionResult> evaluateComposition(
+            String tenantId,
             java.util.List<CompositionStep> steps,
             Object[] initialContext) {
 
@@ -267,7 +370,7 @@ public class PolicyEvaluationService {
         }
 
         // 从初始上下文开始，顺序链接所有步骤
-        return evaluateCompositionStep(steps, 0, initialContext,
+        return evaluateCompositionStep(tenantId, steps, 0, initialContext,
             new PolicyCompositionResult(new java.util.ArrayList<>(), null));
     }
 
@@ -275,6 +378,7 @@ public class PolicyEvaluationService {
      * 递归执行组合步骤
      */
     private Uni<PolicyCompositionResult> evaluateCompositionStep(
+            String tenantId,
             java.util.List<CompositionStep> steps,
             int stepIndex,
             Object[] context,
@@ -287,7 +391,7 @@ public class PolicyEvaluationService {
         CompositionStep step = steps.get(stepIndex);
 
         // 执行当前步骤
-        return evaluatePolicy(step.policyModule, step.policyFunction, context)
+        return evaluatePolicy(tenantId, step.policyModule, step.policyFunction, context)
             .chain(stepResult -> {
                 // 记录步骤结果
                 accumulator.getStepResults().add(new StepResult(
@@ -312,7 +416,7 @@ public class PolicyEvaluationService {
                 }
 
                 // 递归执行下一步
-                return evaluateCompositionStep(steps, stepIndex + 1, nextContext, accumulator);
+                return evaluateCompositionStep(tenantId, steps, stepIndex + 1, nextContext, accumulator);
             });
     }
 
@@ -320,13 +424,15 @@ public class PolicyEvaluationService {
      * 批量请求数据类
      */
     public static class BatchRequest {
+        public String tenantId;
         public String policyModule;
         public String policyFunction;
         public Object[] context;
 
         public BatchRequest() {}
 
-        public BatchRequest(String policyModule, String policyFunction, Object[] context) {
+        public BatchRequest(String tenantId, String policyModule, String policyFunction, Object[] context) {
+            this.tenantId = tenantId;
             this.policyModule = policyModule;
             this.policyFunction = policyFunction;
             this.context = context;
@@ -341,6 +447,7 @@ public class PolicyEvaluationService {
         // 同时清空元数据缓存，允许重新加载策略类
         metadataCache.clear();
         constructorCache.clear();
+        tenantCacheIndex.clear();
         // 返回completed Uni，缓存清空由注解处理
         return Uni.createFrom().voidItem();
     }

@@ -2,8 +2,8 @@ import { readFileSync } from 'fs';
 import { lex, parse, canonicalize, lowerModule } from './dist/src/index.js';
 
 const files = [
-  'cnl/examples/nested_generic_function.cnl',
-  'cnl/examples/nested_generic_lambda.cnl'
+  'cnl/examples/nested_generic_function.aster',
+  'cnl/examples/nested_generic_lambda.aster'
 ];
 
 for (const file of files) {

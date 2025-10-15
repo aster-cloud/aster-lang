@@ -205,7 +205,7 @@ public final class Main {
   static void emitData(Ctx ctx, String pkg, CoreModel.Data d) throws IOException {
     var cw = cwFrames();
     var internal = toInternal(pkg, d.name);
-    cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
+    cw.visit(V25, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
     addOriginAnnotation(cw, d.origin);
     cw.visitSource((d.name == null ? "Data" : d.name) + ".java", null);
     // fields
@@ -244,7 +244,7 @@ public final class Main {
   static void emitEnum(Ctx ctx, String pkg, CoreModel.Enum en) throws IOException {
     var cw = new ClassWriter(0);
     var internal = toInternal(pkg, en.name);
-    cw.visit(V17, ACC_PUBLIC | ACC_FINAL | ACC_ENUM, internal, null, "java/lang/Enum", null);
+    cw.visit(V25, ACC_PUBLIC | ACC_FINAL | ACC_ENUM, internal, null, "java/lang/Enum", null);
     addOriginAnnotation(cw, en.origin);
     cw.visitSource((en.name == null ? "Enum" : en.name) + ".java", null);
     for (var v : en.variants) {
@@ -257,7 +257,7 @@ public final class Main {
     var className = fn.name + "_fn";
     var internal = toInternal(pkg, className);
     var cw = cwFrames();
-    cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
+    cw.visit(V25, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
     // Use the actual class file name to avoid javac auxiliary-class warnings in downstream builds
     cw.visitSource(className + ".java", null);
 
@@ -319,169 +319,401 @@ public final class Main {
 
     int nextSlot = fn.params.size();
     var env = new java.util.LinkedHashMap<String,Integer>();
-    var intLocals = new java.util.LinkedHashSet<String>();
-    var longLocals = new java.util.LinkedHashSet<String>();
-    var doubleLocals = new java.util.LinkedHashSet<String>();
+    var scopeStack = new ScopeStack();
     for (int i=0;i<fn.params.size();i++) {
       var p = fn.params.get(i);
       env.put(p.name, i);
-      if (p.type instanceof CoreModel.TypeName tn) {
-        if ("Int".equals(tn.name) || "Bool".equals(tn.name)) intLocals.add(p.name);
-        else if ("Long".equals(tn.name)) longLocals.add(p.name);
-        else if ("Double".equals(tn.name)) doubleLocals.add(p.name);
-      }
+      var desc = jDesc(pkg, p.type);
+      scopeStack.declare(p.name, i, desc, kindForDescriptor(desc));
     }
-
 
     // Handle a small subset: sequence of statements with Let/If/Match/Return
     if (fn.body != null && fn.body.statements != null && !fn.body.statements.isEmpty()) {
       // slot plan: params in [0..N-1], temp locals start at N
     Map<String, Character> fnHints = ctx.funcHints.getOrDefault(pkg + "." + fn.name, java.util.Collections.emptyMap());
-    java.util.function.Function<CoreModel.Expr, Character> classify = (expr) -> classifyNumeric(expr, intLocals, longLocals, doubleLocals, ctx);
+    var typeResolver = new TypeResolver(scopeStack, fnHints, ctx.functionSchemas(), ctx.dataSchema());
     for (var st : fn.body.statements) {
         var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
         if (st instanceof CoreModel.Let let) {
-          // MVP: recognize boolean let ok = AuthRepo.verify(user, pass)
-          if (Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
-            emitExpr(ctx, mv, let.expr, "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(ISTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            intLocals.add(let.name);
-            lvars.add(new LV(let.name, "Z", nextSlot));
-          } else if (let.expr instanceof CoreModel.LongE) {
-            emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(LSTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            longLocals.add(let.name);
-            lvars.add(new LV(let.name, "J", nextSlot));
-          } else if (let.expr instanceof CoreModel.DoubleE) {
-            emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(DSTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            doubleLocals.add(let.name);
-            lvars.add(new LV(let.name, "D", nextSlot));
-          } else if (let.expr instanceof CoreModel.IntE) {
-            emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(ISTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            intLocals.add(let.name);
-            lvars.add(new LV(let.name, "I", nextSlot));
-          } else if (let.expr instanceof CoreModel.Name nn) {
-            // Propagate primitive kind from source local
-            if (doubleLocals.contains(nn.name)) {
-              emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
-              mv.visitVarInsn(DSTORE, nextSlot);
-              env.put(let.name, nextSlot);
-              doubleLocals.add(let.name);
-              lvars.add(new LV(let.name, "D", nextSlot));
-            } else if (longLocals.contains(nn.name)) {
-              emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
-              mv.visitVarInsn(LSTORE, nextSlot);
-              env.put(let.name, nextSlot);
-              longLocals.add(let.name);
-              lvars.add(new LV(let.name, "J", nextSlot));
-            } else if (intLocals.contains(nn.name)) {
-              emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
-              mv.visitVarInsn(ISTORE, nextSlot);
-              env.put(let.name, nextSlot);
-              intLocals.add(let.name);
-              lvars.add(new LV(let.name, "I", nextSlot));
-            } else {
-              emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
-              mv.visitVarInsn(ASTORE, nextSlot);
-              env.put(let.name, nextSlot);
-              lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
-            }
-          } else if (let.expr instanceof CoreModel.Call c2) {
-            // Attempt to classify arbitrary numeric expression recursively
-            Character k = classify.apply(let.expr);
-            if (k != null) {
-              if (k == 'D') {
-                emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
-                mv.visitVarInsn(DSTORE, nextSlot);
-                env.put(let.name, nextSlot);
-                doubleLocals.add(let.name);
-                lvars.add(new LV(let.name, "D", nextSlot));
-              } else if (k == 'J') {
-                emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
-                mv.visitVarInsn(LSTORE, nextSlot);
-                env.put(let.name, nextSlot);
-                longLocals.add(let.name);
-                lvars.add(new LV(let.name, "J", nextSlot));
-              } else {
-                emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
-                mv.visitVarInsn(ISTORE, nextSlot);
-                env.put(let.name, nextSlot);
-                intLocals.add(let.name);
-                lvars.add(new LV(let.name, "I", nextSlot));
-              }
-            } else {
-              // Unknown call — consider hints
-              Character h = fnHints.get(let.name);
-              if (h != null) {
-                if (h == 'D') { emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(DSTORE, nextSlot); doubleLocals.add(let.name); lvars.add(new LV(let.name, "D", nextSlot)); }
-                else if (h == 'J') { emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(LSTORE, nextSlot); longLocals.add(let.name); lvars.add(new LV(let.name, "J", nextSlot)); }
-                else { emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(ISTORE, nextSlot); intLocals.add(let.name); lvars.add(new LV(let.name, "I", nextSlot)); }
-                env.put(let.name, nextSlot);
-              } else {
-                emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                mv.visitVarInsn(ASTORE, nextSlot);
-                env.put(let.name, nextSlot);
-                lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
-              }
-            }
-          } else {
-            emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(ASTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
+          Character inferred = typeResolver.inferType(let.expr);
+          System.err.println("DEBUG Let " + let.name + " 推断类型: " + inferred + " 表达式: " + let.expr.getClass().getSimpleName());
+          if (inferred == null && Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
+            inferred = 'Z';
           }
+          if (inferred == null) {
+            Character hint = fnHints.get(let.name);
+            if (hint != null) inferred = hint;
+          }
+
+          String expectedDesc = null;
+          String localDesc = "Ljava/lang/Object;";
+          int storeOpcode = ASTORE;
+
+          if (inferred != null) {
+            switch (inferred) {
+              case 'D' -> {
+                expectedDesc = "D";
+                localDesc = "D";
+                storeOpcode = DSTORE;
+              }
+              case 'J' -> {
+                expectedDesc = "J";
+                localDesc = "J";
+                storeOpcode = LSTORE;
+              }
+              case 'Z' -> {
+                expectedDesc = "Z";
+                localDesc = "Z";
+                storeOpcode = ISTORE;
+              }
+              case 'I' -> {
+                expectedDesc = "I";
+                localDesc = "I";
+                storeOpcode = ISTORE;
+              }
+              default -> { /* fall back to object */ }
+            }
+          }
+
+          if (expectedDesc != null) {
+            emitExpr(ctx, mv, let.expr, expectedDesc, pkg, 0, env, scopeStack, typeResolver);
+          } else {
+            emitExpr(ctx, mv, let.expr, null, pkg, 0, env, scopeStack, typeResolver);
+            localDesc = resolveObjectDescriptor(let.expr, pkg, scopeStack, ctx);
+          }
+
+          mv.visitVarInsn(storeOpcode, nextSlot);
+          env.put(let.name, nextSlot);
+          lvars.add(new LV(let.name, localDesc, nextSlot));
+          scopeStack.declare(let.name, nextSlot, localDesc, kindForDescriptor(localDesc));
           nextSlot++;
           continue;
         }
         if (st instanceof CoreModel.If iff) {
+          if (iff.thenBlock != null && iff.thenBlock.statements != null) {
+            for (var stmtInner : iff.thenBlock.statements) {
+              if (stmtInner instanceof CoreModel.Let letInner && !env.containsKey(letInner.name)) {
+                Character inferredVal = typeResolver.inferType(letInner.expr);
+                if (inferredVal == null && Objects.equals(letInner.name, "ok") && letInner.expr instanceof CoreModel.Call) {
+                  inferredVal = 'Z';
+                }
+                if (inferredVal == null) {
+                  Character hintVal = fnHints.get(letInner.name);
+                  if (hintVal != null) inferredVal = hintVal;
+                }
+                String descVal = "Ljava/lang/Object;";
+                int storeOp = ASTORE;
+                if (inferredVal != null) {
+                  switch (inferredVal) {
+                    case 'D' -> {
+                      descVal = "D";
+                      storeOp = DSTORE;
+                    }
+                    case 'J' -> {
+                      descVal = "J";
+                      storeOp = LSTORE;
+                    }
+                    case 'I' -> {
+                      descVal = "I";
+                      storeOp = ISTORE;
+                    }
+                    case 'Z' -> {
+                      descVal = "Z";
+                      storeOp = ISTORE;
+                    }
+                    default -> { /* keep object default */ }
+                  }
+                }
+                if (storeOp == ASTORE) {
+                  descVal = resolveObjectDescriptor(letInner.expr, pkg, scopeStack, ctx);
+                }
+                if (descVal == null || descVal.isEmpty()) descVal = "Ljava/lang/Object;";
+
+                emitDefaultValue(mv, descVal);
+                mv.visitVarInsn(storeOp, nextSlot);
+                env.put(letInner.name, nextSlot);
+                var lvInfo = new LV(letInner.name, descVal, nextSlot);
+                lvars.add(lvInfo);
+                scopeStack.declare(letInner.name, nextSlot, descVal, kindForDescriptor(descVal));
+                nextSlot++;
+              }
+            }
+          }
+          if (iff.elseBlock != null && iff.elseBlock.statements != null) {
+            for (var stmtInner : iff.elseBlock.statements) {
+              if (stmtInner instanceof CoreModel.Let letInner && !env.containsKey(letInner.name)) {
+                Character inferredVal = typeResolver.inferType(letInner.expr);
+                if (inferredVal == null && Objects.equals(letInner.name, "ok") && letInner.expr instanceof CoreModel.Call) {
+                  inferredVal = 'Z';
+                }
+                if (inferredVal == null) {
+                  Character hintVal = fnHints.get(letInner.name);
+                  if (hintVal != null) inferredVal = hintVal;
+                }
+                String descVal = "Ljava/lang/Object;";
+                int storeOp = ASTORE;
+                if (inferredVal != null) {
+                  switch (inferredVal) {
+                    case 'D' -> {
+                      descVal = "D";
+                      storeOp = DSTORE;
+                    }
+                    case 'J' -> {
+                      descVal = "J";
+                      storeOp = LSTORE;
+                    }
+                    case 'I' -> {
+                      descVal = "I";
+                      storeOp = ISTORE;
+                    }
+                    case 'Z' -> {
+                      descVal = "Z";
+                      storeOp = ISTORE;
+                    }
+                    default -> { /* keep object default */ }
+                  }
+                }
+                if (storeOp == ASTORE) {
+                  descVal = resolveObjectDescriptor(letInner.expr, pkg, scopeStack, ctx);
+                }
+                if (descVal == null || descVal.isEmpty()) descVal = "Ljava/lang/Object;";
+
+                emitDefaultValue(mv, descVal);
+                mv.visitVarInsn(storeOp, nextSlot);
+                env.put(letInner.name, nextSlot);
+                var lvInfo = new LV(letInner.name, descVal, nextSlot);
+                lvars.add(lvInfo);
+                scopeStack.declare(letInner.name, nextSlot, descVal, kindForDescriptor(descVal));
+                nextSlot++;
+              }
+            }
+          }
           var lElse = new Label();
           var lEnd = new Label();
           // cond
           if (iff.cond instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn && Objects.equals(nn.name, "not")) {
             // not(x): if x is true, go to else; if x is false, go to then
-            emitExpr(ctx, mv, c.args.get(0), "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
+            emitExpr(ctx, mv, c.args.get(0), "Z", pkg, 0, env, scopeStack, typeResolver);
             mv.visitJumpInsn(IFNE, lElse);
           } else if (iff.cond instanceof CoreModel.Name n && env.containsKey(n.name)) {
             var slot = env.get(n.name);
             mv.visitVarInsn(ILOAD, slot);
             mv.visitJumpInsn(IFEQ, lElse);
           } else {
-            emitExpr(ctx, mv, iff.cond, "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
+            emitExpr(ctx, mv, iff.cond, "Z", pkg, 0, env, scopeStack, typeResolver);
             mv.visitJumpInsn(IFEQ, lElse);
           }
           // then
+          scopeStack.pushScope();
           { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
           if (iff.thenBlock != null && iff.thenBlock.statements != null && !iff.thenBlock.statements.isEmpty()) {
-            var last = iff.thenBlock.statements.get(iff.thenBlock.statements.size()-1);
-            if (last instanceof CoreModel.Return r) {
-              emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-              if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+            java.util.List<CoreModel.Stmt> stmts = iff.thenBlock.statements;
+            for (int i = 0; i < stmts.size(); i++) {
+              var inner = stmts.get(i);
+              boolean isLast = (i == stmts.size() - 1);
+              if (isLast && inner instanceof CoreModel.Return r) {
+                emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
+                if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+              } else if (inner instanceof CoreModel.Let innerLet) {
+                boolean existing = env.containsKey(innerLet.name);
+                Character inferredInner = typeResolver.inferType(innerLet.expr);
+                if (inferredInner == null && Objects.equals(innerLet.name, "ok") && innerLet.expr instanceof CoreModel.Call) {
+                  inferredInner = 'Z';
+                }
+                if (inferredInner == null) {
+                  Character hintInner = fnHints.get(innerLet.name);
+                  if (hintInner != null) inferredInner = hintInner;
+                }
+
+                if (existing) {
+                  int slot = env.get(innerLet.name);
+                  String localDescInner = scopeStack.getDescriptor(slot);
+                  if (localDescInner == null) localDescInner = scopeStack.getDescriptor(innerLet.name);
+                  if (localDescInner == null || localDescInner.isEmpty() || "Ljava/lang/Object;".equals(localDescInner)) {
+                    if (inferredInner != null) {
+                      localDescInner = switch (inferredInner) {
+                        case 'D' -> "D";
+                        case 'J' -> "J";
+                        case 'I' -> "I";
+                        case 'Z' -> "Z";
+                        default -> "Ljava/lang/Object;";
+                      };
+                    }
+                    if (localDescInner == null || localDescInner.isEmpty()) {
+                      localDescInner = resolveObjectDescriptor(innerLet.expr, pkg, scopeStack, ctx);
+                    }
+                  }
+                  if (localDescInner == null || localDescInner.isEmpty()) localDescInner = "Ljava/lang/Object;";
+
+                  String expectedDescInner = localDescInner;
+                  int storeOpcodeInner = switch (kindForDescriptor(localDescInner)) {
+                    case DOUBLE -> DSTORE;
+                    case LONG -> LSTORE;
+                    case INT, BOOLEAN -> ISTORE;
+                    default -> ASTORE;
+                  };
+
+                  emitExpr(ctx, mv, innerLet.expr, expectedDescInner, pkg, 0, env, scopeStack, typeResolver);
+                  mv.visitVarInsn(storeOpcodeInner, slot);
+                } else {
+                  String expectedDescInner = null;
+                  String localDescInner = "Ljava/lang/Object;";
+                  int storeOpcodeInner = ASTORE;
+
+                  if (inferredInner != null) {
+                    switch (inferredInner) {
+                      case 'D' -> {
+                        expectedDescInner = "D";
+                        localDescInner = "D";
+                        storeOpcodeInner = DSTORE;
+                      }
+                      case 'J' -> {
+                        expectedDescInner = "J";
+                        localDescInner = "J";
+                        storeOpcodeInner = LSTORE;
+                      }
+                      case 'I' -> {
+                        expectedDescInner = "I";
+                        localDescInner = "I";
+                        storeOpcodeInner = ISTORE;
+                      }
+                      case 'Z' -> {
+                        expectedDescInner = "Z";
+                        localDescInner = "Z";
+                        storeOpcodeInner = ISTORE;
+                      }
+                      default -> { /* fall back to object */ }
+                    }
+                  }
+
+                  if (expectedDescInner != null) {
+                    emitExpr(ctx, mv, innerLet.expr, expectedDescInner, pkg, 0, env, scopeStack, typeResolver);
+                  } else {
+                    emitExpr(ctx, mv, innerLet.expr, null, pkg, 0, env, scopeStack, typeResolver);
+                    localDescInner = resolveObjectDescriptor(innerLet.expr, pkg, scopeStack, ctx);
+                  }
+
+                  emitDefaultValue(mv, localDescInner);
+                  mv.visitVarInsn(storeOpcodeInner, nextSlot);
+                  env.put(innerLet.name, nextSlot);
+                  lvars.add(new LV(innerLet.name, localDescInner, nextSlot));
+                  scopeStack.declare(innerLet.name, nextSlot, localDescInner, kindForDescriptor(localDescInner));
+                  nextSlot++;
+                }
+              }
             }
           }
+          scopeStack.popScope();
           mv.visitJumpInsn(GOTO, lEnd);
           // else
           mv.visitLabel(lElse);
+          scopeStack.pushScope();
           { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
           if (iff.elseBlock != null && iff.elseBlock.statements != null && !iff.elseBlock.statements.isEmpty()) {
-            var last2 = iff.elseBlock.statements.get(iff.elseBlock.statements.size()-1);
-            if (last2 instanceof CoreModel.Return r2) {
-              emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-              if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+            java.util.List<CoreModel.Stmt> stmtsElse = iff.elseBlock.statements;
+            for (int i = 0; i < stmtsElse.size(); i++) {
+              var inner = stmtsElse.get(i);
+              boolean isLast = (i == stmtsElse.size() - 1);
+              if (isLast && inner instanceof CoreModel.Return r2) {
+                emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
+                if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+              } else if (inner instanceof CoreModel.Let innerLet2) {
+                boolean existing2 = env.containsKey(innerLet2.name);
+                Character inferredInner2 = typeResolver.inferType(innerLet2.expr);
+                if (inferredInner2 == null && Objects.equals(innerLet2.name, "ok") && innerLet2.expr instanceof CoreModel.Call) {
+                  inferredInner2 = 'Z';
+                }
+                if (inferredInner2 == null) {
+                  Character hintInner2 = fnHints.get(innerLet2.name);
+                  if (hintInner2 != null) inferredInner2 = hintInner2;
+                }
+
+                if (existing2) {
+                  int slot2 = env.get(innerLet2.name);
+                  String localDescInner2 = scopeStack.getDescriptor(slot2);
+                  if (localDescInner2 == null) localDescInner2 = scopeStack.getDescriptor(innerLet2.name);
+                  if (localDescInner2 == null || localDescInner2.isEmpty() || "Ljava/lang/Object;".equals(localDescInner2)) {
+                    if (inferredInner2 != null) {
+                      localDescInner2 = switch (inferredInner2) {
+                        case 'D' -> "D";
+                        case 'J' -> "J";
+                        case 'I' -> "I";
+                        case 'Z' -> "Z";
+                        default -> "Ljava/lang/Object;";
+                      };
+                    }
+                    if (localDescInner2 == null || localDescInner2.isEmpty()) {
+                      localDescInner2 = resolveObjectDescriptor(innerLet2.expr, pkg, scopeStack, ctx);
+                    }
+                  }
+                  if (localDescInner2 == null || localDescInner2.isEmpty()) localDescInner2 = "Ljava/lang/Object;";
+
+                  String expectedDescInner2 = localDescInner2;
+                  int storeOpcodeInner2 = switch (kindForDescriptor(localDescInner2)) {
+                    case DOUBLE -> DSTORE;
+                    case LONG -> LSTORE;
+                    case INT, BOOLEAN -> ISTORE;
+                    default -> ASTORE;
+                  };
+
+                  emitExpr(ctx, mv, innerLet2.expr, expectedDescInner2, pkg, 0, env, scopeStack, typeResolver);
+                  mv.visitVarInsn(storeOpcodeInner2, slot2);
+                } else {
+                  String expectedDescInner2 = null;
+                  String localDescInner2 = "Ljava/lang/Object;";
+                  int storeOpcodeInner2 = ASTORE;
+
+                  if (inferredInner2 != null) {
+                    switch (inferredInner2) {
+                      case 'D' -> {
+                        expectedDescInner2 = "D";
+                        localDescInner2 = "D";
+                        storeOpcodeInner2 = DSTORE;
+                      }
+                      case 'J' -> {
+                        expectedDescInner2 = "J";
+                        localDescInner2 = "J";
+                        storeOpcodeInner2 = LSTORE;
+                      }
+                      case 'I' -> {
+                        expectedDescInner2 = "I";
+                        localDescInner2 = "I";
+                        storeOpcodeInner2 = ISTORE;
+                      }
+                      case 'Z' -> {
+                        expectedDescInner2 = "Z";
+                        localDescInner2 = "Z";
+                        storeOpcodeInner2 = ISTORE;
+                      }
+                      default -> { /* fall back to object */ }
+                    }
+                  }
+
+                  if (expectedDescInner2 != null) {
+                    emitExpr(ctx, mv, innerLet2.expr, expectedDescInner2, pkg, 0, env, scopeStack, typeResolver);
+                  } else {
+                    emitExpr(ctx, mv, innerLet2.expr, null, pkg, 0, env, scopeStack, typeResolver);
+                    localDescInner2 = resolveObjectDescriptor(innerLet2.expr, pkg, scopeStack, ctx);
+                  }
+
+                  mv.visitVarInsn(storeOpcodeInner2, nextSlot);
+                  env.put(innerLet2.name, nextSlot);
+                  var lvInfo2 = new LV(innerLet2.name, localDescInner2, nextSlot);
+                  lvars.add(lvInfo2);
+                  scopeStack.declare(innerLet2.name, nextSlot, localDescInner2, kindForDescriptor(localDescInner2));
+                  nextSlot++;
+                }
+              }
             }
           }
+          scopeStack.popScope();
           mv.visitLabel(lEnd);
           continue;
         }
         if (st instanceof CoreModel.Match mm) {
           // Evaluate scrutinee once into a temp local
           int scrSlot = nextSlot++;
-          emitExpr(ctx, mv, mm.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
+          emitExpr(ctx, mv, mm.expr, null, pkg, 0, env, scopeStack, typeResolver);
           mv.visitVarInsn(ASTORE, scrSlot);
           lvars.add(new LV("_scr", "Ljava/lang/Object;", scrSlot));
 
@@ -524,7 +756,9 @@ public final class Main {
                   mv.visitLabel(_caseLbl);
                   mv.visitLineNumber(lineNo.getAndIncrement(), _caseLbl);
                   seen[idx] = true;
-                  boolean returned = emitCaseStmt(ctx, mv, c.body, retDesc, pkg, 0, env, intLocals, lineNo);
+                  scopeStack.pushScope();
+                  boolean returned = emitCaseStmt(ctx, mv, c.body, retDesc, pkg, 0, env, scopeStack, typeResolver, lineNo);
+                  scopeStack.popScope();
                   if (!returned) mv.visitJumpInsn(GOTO, endLabel);
                 }
                 // Visit any labels not covered by cases to ensure valid control flow targets
@@ -569,16 +803,22 @@ public final class Main {
                       mv.visitLabel(labels[idx]);
                       seen[idx] = true;
                       { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                      if (c.body instanceof CoreModel.Return rr) {
-                        emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                      } else if (c.body instanceof CoreModel.Block bb) {
-                        for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
-                          emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                      scopeStack.pushScope();
+                      try {
+                        if (c.body instanceof CoreModel.Return rr) {
+                          emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                           if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                        } else if (c.body instanceof CoreModel.Block bb) {
+                          for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
+                            emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
+                            if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                          }
+                          mv.visitJumpInsn(GOTO, endLabelInt);
+                          usedEndInt = true;
+                          continue;
                         }
-                        mv.visitJumpInsn(GOTO, endLabelInt);
-                        usedEndInt = true;
+                      } finally {
+                        scopeStack.popScope();
                       }
                     }
                     // Visit any gaps to satisfy ASM frame computation and route to default
@@ -599,16 +839,22 @@ public final class Main {
                     for (var c : mm.cases) if (c.pattern instanceof CoreModel.PatInt) {
                       mv.visitLabel(labels[k++]);
                       { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                      if (c.body instanceof CoreModel.Return rr) {
-                        emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                      } else if (c.body instanceof CoreModel.Block bb) {
-                        for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
-                          emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                      scopeStack.pushScope();
+                      try {
+                        if (c.body instanceof CoreModel.Return rr) {
+                          emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                           if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                        } else if (c.body instanceof CoreModel.Block bb) {
+                          for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
+                            emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
+                            if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                          }
+                          mv.visitJumpInsn(GOTO, endLabelInt);
+                          usedEndInt = true;
+                          continue;
                         }
-                        mv.visitJumpInsn(GOTO, endLabelInt);
-                        usedEndInt = true;
+                      } finally {
+                        scopeStack.popScope();
                       }
                     }
                   }
@@ -616,16 +862,18 @@ public final class Main {
                   mv.visitLabel(defaultLInt);
                   { var lCaseD = new Label(); mv.visitLabel(lCaseD); mv.visitLineNumber(lineNo.getAndIncrement(), lCaseD); }
                   var cdef = nonInt.get(0);
+                  scopeStack.pushScope();
                   if (cdef.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                     if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                   } else if (cdef.body instanceof CoreModel.Block bb) {
                     for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
-                      emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                      emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                       if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                     }
                     // Default body falls through; do not jump to shared end label
                   }
+                  scopeStack.popScope();
                   // Always mark the end label to stabilize frame computation for branch targets
                   mv.visitLabel(endLabelInt);
                   continue;
@@ -653,19 +901,25 @@ public final class Main {
                   int idx = ((CoreModel.PatInt)c.pattern).value - min;
                   mv.visitLabel(labels[idx]);
                   { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                  if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                  } else if (c.body instanceof CoreModel.Block bb) {
-                    // Minimal: evaluate last statement if Return; otherwise fall-through to end
-                    for (var st2 : bb.statements) {
-                      if (st2 instanceof CoreModel.Return r2) {
-                        emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                  scopeStack.pushScope();
+                  try {
+                    if (c.body instanceof CoreModel.Return rr) {
+                      emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
+                      if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                    } else if (c.body instanceof CoreModel.Block bb) {
+                      // Minimal: evaluate last statement if Return; otherwise fall-through to end
+                      for (var st2 : bb.statements) {
+                        if (st2 instanceof CoreModel.Return r2) {
+                          emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
+                          if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                        }
                       }
+                      mv.visitJumpInsn(GOTO, endLabelInt);
+                      usedEndInt = true;
+                      continue;
                     }
-                    mv.visitJumpInsn(GOTO, endLabelInt);
-                    usedEndInt = true;
+                  } finally {
+                    scopeStack.popScope();
                   }
                 }
                 mv.visitLabel(defaultLInt);
@@ -685,18 +939,24 @@ public final class Main {
                   var c = mm.cases.get(i2);
                   mv.visitLabel(labels[i2]);
                   { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                  if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                  } else if (c.body instanceof CoreModel.Block bb) {
-                    for (var st2 : bb.statements) {
-                      if (st2 instanceof CoreModel.Return r2) {
-                        emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                  scopeStack.pushScope();
+                  try {
+                    if (c.body instanceof CoreModel.Return rr) {
+                      emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
+                      if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                    } else if (c.body instanceof CoreModel.Block bb) {
+                      for (var st2 : bb.statements) {
+                        if (st2 instanceof CoreModel.Return r2) {
+                          emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
+                          if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                        }
                       }
+                      mv.visitJumpInsn(GOTO, endLabelInt);
+                      usedEndInt = true;
+                      continue;
                     }
-                    mv.visitJumpInsn(GOTO, endLabelInt);
-                    usedEndInt = true;
+                  } finally {
+                    scopeStack.popScope();
                   }
                 }
                 mv.visitLabel(defaultLInt);
@@ -707,13 +967,15 @@ public final class Main {
             for (var c : mm.cases) {
               var nextCase = new Label();
               if (c.pattern instanceof CoreModel.PatNull) {
+                scopeStack.pushScope();
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitJumpInsn(IFNONNULL, nextCase);
                 { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                 if (c.body instanceof CoreModel.Return rr) {
-                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                   if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                 }
+                scopeStack.popScope();
                 mv.visitLabel(nextCase);
               } else if (c.pattern instanceof CoreModel.PatCtor pc) {
                 var targetInternal = pc.typeName.contains(".") ? pc.typeName.replace('.', '/') : toInternal(pkg, pc.typeName);
@@ -722,6 +984,7 @@ public final class Main {
                 mv.visitJumpInsn(IFEQ, nextCase);
                 // Bind fields to env
                 { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+                scopeStack.pushScope();
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(CHECKCAST, targetInternal);
                 int objSlot = nextSlot++;
@@ -735,24 +998,42 @@ public final class Main {
                     var f = data.fields.get(i2);
                     mv.visitFieldInsn(GETFIELD, targetInternal, f.name, jDesc(pkg, f.type));
                     int slot = nextSlot++;
-                    if (f.type instanceof CoreModel.TypeName tn && (Objects.equals(tn.name, "Int") || Objects.equals(tn.name, "Bool"))) {
-                      mv.visitVarInsn(ISTORE, slot);
-                      intLocals.add(bindName);
-                    } else {
-                      mv.visitVarInsn(ASTORE, slot);
+                    var fieldDesc = jDesc(pkg, f.type);
+                    var fieldKind = kindForDescriptor(fieldDesc);
+                    switch (fieldKind) {
+                      case DOUBLE -> {
+                        mv.visitVarInsn(DSTORE, slot);
+                        fieldDesc = "D";
+                      }
+                      case LONG -> {
+                        mv.visitVarInsn(LSTORE, slot);
+                        fieldDesc = "J";
+                      }
+                      case INT -> {
+                        mv.visitVarInsn(ISTORE, slot);
+                        fieldDesc = "I";
+                      }
+                      case BOOLEAN -> {
+                        mv.visitVarInsn(ISTORE, slot);
+                        fieldDesc = "Z";
+                      }
+                      default -> mv.visitVarInsn(ASTORE, slot);
                     }
                     env.put(bindName, slot);
+                    scopeStack.declare(bindName, slot, fieldDesc, fieldKind);
                   }
                 }
                 if (c.body instanceof CoreModel.Return rr) {
-                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                   if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                 }
+                scopeStack.popScope();
                 mv.visitLabel(nextCase);
               } else if (c.pattern instanceof CoreModel.PatName pn) {
                 // Enum variant match: compare reference equality with enum constant
                 var variant = pn.name;
                 var enumName = ctx.enumVarToEnum.get(variant);
+                scopeStack.pushScope();
                 if (enumName != null) {
                   var enumInternal = enumName.contains(".") ? enumName.replace('.', '/') : toInternal(pkg, enumName);
                   mv.visitVarInsn(ALOAD, scrSlot);
@@ -760,10 +1041,9 @@ public final class Main {
                   mv.visitJumpInsn(IF_ACMPNE, nextCase);
                   { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                   if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                     if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                   }
-                  mv.visitLabel(nextCase);
                 } else {
                   // Treat as wildcard/catch-all with optional binding to the given name
                   // Bind the scrutinee to the pattern name if it's a valid identifier
@@ -773,15 +1053,18 @@ public final class Main {
                     mv.visitVarInsn(ASTORE, bind);
                     env.put(variant, bind);
                     lvars.add(new LV(variant, "Ljava/lang/Object;", bind));
+                    scopeStack.declare(variant, bind, "Ljava/lang/Object;", ScopeStack.JvmKind.OBJECT);
                   }
                   if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                     if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                   }
-                  mv.visitLabel(nextCase);
                 }
+                scopeStack.popScope();
+                mv.visitLabel(nextCase);
               } else if (c.pattern instanceof CoreModel.PatInt pi) {
                 // Compare Integer scrutinee value with literal
+                scopeStack.pushScope();
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
                 mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
@@ -789,9 +1072,10 @@ public final class Main {
                 mv.visitJumpInsn(IF_ICMPNE, nextCase);
                 { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
                 if (c.body instanceof CoreModel.Return rr) {
-                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
                   if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
                 }
+                scopeStack.popScope();
                 mv.visitLabel(nextCase);
               }
             }
@@ -835,7 +1119,7 @@ public final class Main {
             // Reserve a local for the final Result to return
             int res = nextSlot++;
             mv.visitLabel(lTryStart);
-            emitExpr(ctx, mv, r.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals); // leave object on stack
+            emitExpr(ctx, mv, r.expr, null, pkg, 0, env, scopeStack, typeResolver); // leave object on stack
             // store in temp then construct Ok(temp)
             int tmp = nextSlot++;
             mv.visitVarInsn(ASTORE, tmp);
@@ -867,7 +1151,7 @@ public final class Main {
             mv.visitLocalVariable("_ex", "Ljava/lang/Throwable;", null, lCatch, lRet, ex);
             continue;
           }
-          emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
+          emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, scopeStack, typeResolver);
           if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
           var lEnd2 = new Label(); mv.visitLabel(lEnd2);
           for (var lv : lvars) mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEnd2, lv.slot);
@@ -890,21 +1174,21 @@ public final class Main {
     writeClass(ctx, internal, cw.toByteArray());
   }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e) { emitExpr(ctx, mv, e, null, null, 0); }
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e) { emitExpr(ctx, mv, e, null, null, 0, null, null, null); }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, null, null, null, null); }
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, null, null, null); }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, java.util.Set<String> intLocals) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, env, intLocals, null, null); }
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, env, null, null); }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals) {
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, ScopeStack scopeStack, TypeResolver typeResolver) {
     // Result erasure: if expectedDesc looks like Result, we just leave object on stack
 
     if (e instanceof CoreModel.StringE s) { emitConstString(ctx, mv, s.value); return; }
-    if (e instanceof CoreModel.Bool b) { mv.visitInsn(b.value ? ICONST_1 : ICONST_0); return; }
+    if (e instanceof CoreModel.Bool b) { mv.visitInsn(b.value ? ICONST_1 : ICONST_0); boxPrimitiveResult(mv, 'Z', expectedDesc); return; }
     // Boolean not intrinsic: if expectedDesc is Z and expr is Call(Name("not"), [x])
     if (e instanceof CoreModel.Call c1 && c1.target instanceof CoreModel.Name nn1 && Objects.equals(nn1.name, "not") && "Z".equals(expectedDesc)) {
       var lTrue = new Label(); var lEnd = new Label();
-      emitExpr(ctx, mv, c1.args.get(0), "Z", currentPkg, paramBase, env, intLocals);
+      emitExpr(ctx, mv, c1.args.get(0), "Z", currentPkg, paramBase, env, scopeStack, typeResolver);
       mv.visitJumpInsn(IFEQ, lTrue); // if arg == 0 -> true
       mv.visitInsn(ICONST_0);
       mv.visitJumpInsn(GOTO, lEnd);
@@ -918,10 +1202,26 @@ public final class Main {
       if ("J".equals(expectedDesc)) { emitConstLong(mv, i.value); return; }
       if ("D".equals(expectedDesc)) { emitConstDouble(mv, (double)i.value); return; }
       emitConstInt(mv, i.value);
+      boxPrimitiveResult(mv, 'I', expectedDesc);
       return;
     }
-    if (e instanceof CoreModel.LongE li) { emitConstLong(mv, li.value); return; }
-    if (e instanceof CoreModel.DoubleE di) { emitConstDouble(mv, di.value); return; }
+    if (e instanceof CoreModel.LongE li) {
+      emitConstLong(mv, li.value);
+      if ("I".equals(expectedDesc) || "Z".equals(expectedDesc)) {
+        mv.visitInsn(L2I);
+      } else if ("D".equals(expectedDesc)) {
+        mv.visitInsn(L2D);
+        boxPrimitiveResult(mv, 'D', expectedDesc);
+      } else {
+        boxPrimitiveResult(mv, 'J', expectedDesc);
+      }
+      return;
+    }
+    if (e instanceof CoreModel.DoubleE di) {
+      emitConstDouble(mv, di.value);
+      boxPrimitiveResult(mv, 'D', expectedDesc);
+      return;
+    }
 
 
 
@@ -941,9 +1241,16 @@ public final class Main {
         if (slot == null) {
           mv.visitInsn(ACONST_NULL);
         } else {
-          if (intLocals != null && intLocals.contains(cname)) {
+          Character capKind = (scopeStack != null) ? scopeStack.getType(slot) : null;
+          if (capKind != null && (capKind == 'I' || capKind == 'Z')) {
             mv.visitVarInsn(ILOAD, slot);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+          } else if (capKind != null && capKind == 'J') {
+            mv.visitVarInsn(LLOAD, slot);
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+          } else if (capKind != null && capKind == 'D') {
+            mv.visitVarInsn(DLOAD, slot);
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
           } else {
             mv.visitVarInsn(ALOAD, slot);
           }
@@ -956,97 +1263,191 @@ public final class Main {
       return;
     }
     if (e instanceof CoreModel.Name n) {
-      // Param/local quick mapping
-      // Locals/params via env
       if (env != null && env.containsKey(n.name)) {
         var slot = env.get(n.name);
-        if ("J".equals(expectedDesc)) {
-          if (intLocals != null && intLocals.contains(n.name)) { mv.visitVarInsn(ILOAD, slot); mv.visitInsn(I2L); }
-          else if (longLocals != null && longLocals.contains(n.name)) { mv.visitVarInsn(LLOAD, slot); }
-          else if (doubleLocals != null && doubleLocals.contains(n.name)) { mv.visitVarInsn(DLOAD, slot); mv.visitInsn(D2L); }
-          else { mv.visitVarInsn(ALOAD, slot); }
+        Character localType = (scopeStack != null) ? scopeStack.getType(slot) : null;
+        if ("Ljava/lang/Object;".equals(expectedDesc)) {
+          if (localType != null) {
+            switch (localType) {
+              case 'I' -> {
+                mv.visitVarInsn(ILOAD, slot);
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+              }
+              case 'Z' -> {
+                mv.visitVarInsn(ILOAD, slot);
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+              }
+              case 'J' -> {
+                mv.visitVarInsn(LLOAD, slot);
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+              }
+              case 'D' -> {
+                mv.visitVarInsn(DLOAD, slot);
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
+              }
+              default -> mv.visitVarInsn(ALOAD, slot);
+            }
+          } else {
+            mv.visitVarInsn(ALOAD, slot);
+          }
+        } else if ("J".equals(expectedDesc)) {
+          if (localType != null && (localType == 'I' || localType == 'Z')) { mv.visitVarInsn(ILOAD, slot); mv.visitInsn(I2L); }
+          else if (localType != null && localType == 'J') mv.visitVarInsn(LLOAD, slot);
+          else if (localType != null && localType == 'D') { mv.visitVarInsn(DLOAD, slot); mv.visitInsn(D2L); }
+          else mv.visitVarInsn(ALOAD, slot);
         } else if ("D".equals(expectedDesc)) {
-          if (intLocals != null && intLocals.contains(n.name)) { mv.visitVarInsn(ILOAD, slot); mv.visitInsn(I2D); }
-          else if (longLocals != null && longLocals.contains(n.name)) { mv.visitVarInsn(LLOAD, slot); mv.visitInsn(L2D); }
-          else if (doubleLocals != null && doubleLocals.contains(n.name)) { mv.visitVarInsn(DLOAD, slot); }
-          else { mv.visitVarInsn(ALOAD, slot); }
-        } else if (intLocals != null && intLocals.contains(n.name)) mv.visitVarInsn(ILOAD, slot);
-        else mv.visitVarInsn(ALOAD, slot);
+          if (localType != null && (localType == 'I' || localType == 'Z')) { mv.visitVarInsn(ILOAD, slot); mv.visitInsn(I2D); }
+          else if (localType != null && localType == 'J') { mv.visitVarInsn(LLOAD, slot); mv.visitInsn(L2D); }
+          else if (localType != null && localType == 'D') mv.visitVarInsn(DLOAD, slot);
+          else mv.visitVarInsn(ALOAD, slot);
+        } else if ("Z".equals(expectedDesc)) {
+          if (localType != null && (localType == 'I' || localType == 'Z')) {
+            mv.visitVarInsn(ILOAD, slot);
+          } else if (localType != null && localType == 'J') {
+            mv.visitVarInsn(LLOAD, slot);
+            mv.visitInsn(L2I);
+          } else if (localType != null && localType == 'D') {
+            mv.visitVarInsn(DLOAD, slot);
+            mv.visitInsn(D2I);
+          } else {
+            mv.visitVarInsn(ALOAD, slot);
+          }
+        } else {
+          if (localType != null) {
+            switch (localType) {
+              case 'J' -> mv.visitVarInsn(LLOAD, slot);
+              case 'D' -> mv.visitVarInsn(DLOAD, slot);
+              case 'I', 'Z' -> mv.visitVarInsn(ILOAD, slot);
+              default -> mv.visitVarInsn(ALOAD, slot);
+            }
+          } else {
+            mv.visitVarInsn(ALOAD, slot);
+          }
+        }
         return;
       }
 
-      // Enum variant without enum prefix (e.g., InvalidCreds)
       if (currentPkg != null && ctx.enumVarToEnum.containsKey(n.name)) {
         var owner = toInternal(currentPkg, ctx.enumVarToEnum.get(n.name));
         mv.visitFieldInsn(GETSTATIC, owner, n.name, internalDesc(owner));
         return;
-
       }
-      // Field access: obj.field (e.g., applicant.age)
+
       int dot = n.name.lastIndexOf('.');
       if (dot > 0) {
-        var objName = n.name.substring(0, dot);
-        var fieldName = n.name.substring(dot+1);
+        var baseName = n.name.substring(0, dot);
+        var fieldName = n.name.substring(dot + 1);
 
-        // Check if objName is a local variable/parameter
-        if (env != null && env.containsKey(objName)) {
-          // This is field access: load the object, then get the field
-          var objSlot = env.get(objName);
-          mv.visitVarInsn(ALOAD, objSlot);
-
-          // Determine the owner class from the object
-          // For now, we need to infer the type - this is a simplified approach
-          // that assumes the object type matches the field access pattern
-          // In a full implementation, we'd need type information from Core IR
-
-          // Try to find the data type by checking dataSchema
-          // We'll need to search for a type that has this field
-          String ownerClass = null;
-          char fieldTypeDesc = 'L'; // default to object reference
-
-          for (var entry : ctx.dataSchema.entrySet()) {
-            var dataType = entry.getValue();
-            for (var field : dataType.fields) {
-              if (field.name.equals(fieldName)) {
-                ownerClass = toInternal(currentPkg, entry.getKey());
-                // Determine field type descriptor
-                if (field.type instanceof CoreModel.TypeName tn) {
-                  if (tn.name.equals("Int")) fieldTypeDesc = 'I';
-                  else if (tn.name.equals("Bool")) fieldTypeDesc = 'Z';
-                  else if (tn.name.equals("Long")) fieldTypeDesc = 'J';
-                  else if (tn.name.equals("Double")) fieldTypeDesc = 'D';
-                  else if (tn.name.equals("Text")) fieldTypeDesc = 'L';
-                }
-                break;
+        if (env != null && env.containsKey(baseName)) {
+          var baseSlot = env.get(baseName);
+          String ownerDesc = (scopeStack != null) ? scopeStack.getDescriptor(baseSlot) : null;
+          if (ownerDesc == null && scopeStack != null) ownerDesc = scopeStack.getDescriptor(baseName);
+          if (ownerDesc != null && ownerDesc.startsWith("L") && ownerDesc.endsWith(";")) {
+            var ownerInternal = ownerDesc.substring(1, ownerDesc.length() - 1);
+            mv.visitVarInsn(ALOAD, baseSlot);
+            String fieldDesc = resolveFieldDescriptor(ctx, currentPkg, ownerInternal, fieldName);
+            if (fieldDesc == null) fieldDesc = "Ljava/lang/Object;";
+            mv.visitFieldInsn(GETFIELD, ownerInternal, fieldName, fieldDesc);
+            if ("J".equals(expectedDesc)) {
+              if ("I".equals(fieldDesc) || "Z".equals(fieldDesc)) {
+                mv.visitInsn(I2L);
+              } else if ("D".equals(fieldDesc)) {
+                mv.visitInsn(D2L);
+              } else if ("Ljava/lang/Long;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Long");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false);
+              } else if ("Ljava/lang/Integer;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+                mv.visitInsn(I2L);
+              } else if ("Ljava/lang/Double;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Double");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false);
+                mv.visitInsn(D2L);
               }
+            } else if ("D".equals(expectedDesc)) {
+              if ("I".equals(fieldDesc) || "Z".equals(fieldDesc)) {
+                mv.visitInsn(I2D);
+              } else if ("J".equals(fieldDesc)) {
+                mv.visitInsn(L2D);
+              } else if ("D".equals(fieldDesc)) {
+                // already double
+              } else if ("Ljava/lang/Double;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Double");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false);
+              } else if ("Ljava/lang/Integer;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+                mv.visitInsn(I2D);
+              } else if ("Ljava/lang/Long;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Long");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false);
+                mv.visitInsn(L2D);
+              }
+            } else if ("Z".equals(expectedDesc)) {
+              if ("J".equals(fieldDesc)) {
+                mv.visitInsn(L2I);
+              } else if ("D".equals(fieldDesc)) {
+                mv.visitInsn(D2I);
+              } else if ("Ljava/lang/Boolean;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+              } else if ("Ljava/lang/Integer;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+              }
+            } else if ("I".equals(expectedDesc)) {
+              if ("J".equals(fieldDesc)) {
+                mv.visitInsn(L2I);
+              } else if ("D".equals(fieldDesc)) {
+                mv.visitInsn(D2I);
+              } else if ("Ljava/lang/Integer;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+              } else if ("Ljava/lang/Long;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Long");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false);
+                mv.visitInsn(L2I);
+              } else if ("Ljava/lang/Double;".equals(fieldDesc)) {
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Double");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false);
+                mv.visitInsn(D2I);
+              }
+            } else if ("Ljava/lang/Object;".equals(expectedDesc)) {
+              if ("I".equals(fieldDesc)) {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+              } else if ("Z".equals(fieldDesc)) {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+              } else if ("J".equals(fieldDesc)) {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+              } else if ("D".equals(fieldDesc)) {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
+              }
+            } else if (expectedDesc != null && expectedDesc.startsWith("L") && !Objects.equals(fieldDesc, expectedDesc)) {
+              String targetInternal = expectedDesc.substring(1, expectedDesc.length() - 1);
+              mv.visitTypeInsn(CHECKCAST, targetInternal);
             }
-            if (ownerClass != null) break;
-          }
-
-          if (ownerClass != null) {
-            String fieldDesc = (fieldTypeDesc == 'L') ? "Ljava/lang/String;" : String.valueOf(fieldTypeDesc);
-            mv.visitFieldInsn(GETFIELD, ownerClass, fieldName, fieldDesc);
             return;
           }
         }
 
-        // Enum constant with enum prefix like AuthErr.InvalidCreds
         if (currentPkg != null) {
           var cls = n.name.substring(0, dot);
-          var constName = n.name.substring(dot+1);
+          var constName = n.name.substring(dot + 1);
           var owner = toInternal(currentPkg, cls);
           mv.visitFieldInsn(GETSTATIC, owner, constName, internalDesc(owner));
           return;
         }
       }
-      // Check if this is a built-in operator
+
       String builtinField = getBuiltinField(n.name);
       if (builtinField != null) {
         mv.visitFieldInsn(GETSTATIC, "aster/runtime/Builtins", builtinField,
             builtinField.equals("NOT") ? "Laster/runtime/Fn1;" : "Laster/runtime/Fn2;");
         return;
       }
-      mv.visitInsn(ACONST_NULL); return;
+      mv.visitInsn(ACONST_NULL);
+      return;
     }
     if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name tn) {
       var name = tn.name;
@@ -1061,36 +1462,40 @@ public final class Main {
       if (Objects.equals(name, "+")) {
         // IADD
         if (c.args.size() == 2) {
-          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
-          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
           mv.visitInsn(IADD);
+          boxPrimitiveResult(mv, 'I', expectedDesc);
           return;
         }
       }
       if (Objects.equals(name, "-")) {
         // ISUB
         if (c.args.size() == 2) {
-          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
-          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
           mv.visitInsn(ISUB);
+          boxPrimitiveResult(mv, 'I', expectedDesc);
           return;
         }
       }
       if (Objects.equals(name, "*")) {
         // IMUL
         if (c.args.size() == 2) {
-          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
-          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
           mv.visitInsn(IMUL);
+          boxPrimitiveResult(mv, 'I', expectedDesc);
           return;
         }
       }
       if (Objects.equals(name, "/")) {
         // IDIV
         if (c.args.size() == 2) {
-          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
-          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
           mv.visitInsn(IDIV);
+          boxPrimitiveResult(mv, 'I', expectedDesc);
           return;
         }
       }
@@ -1098,14 +1503,15 @@ public final class Main {
         // ILT -> Z
         if (c.args.size() == 2) {
           var lTrue = new Label(); var lEnd = new Label();
-          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
-          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
           mv.visitJumpInsn(IF_ICMPLT, lTrue);
           mv.visitInsn(ICONST_0);
           mv.visitJumpInsn(GOTO, lEnd);
           mv.visitLabel(lTrue);
           mv.visitInsn(ICONST_1);
           mv.visitLabel(lEnd);
+          boxPrimitiveResult(mv, 'Z', expectedDesc);
           return;
         }
       }
@@ -1113,14 +1519,15 @@ public final class Main {
         // IGT -> Z
         if (c.args.size() == 2) {
           var lTrue = new Label(); var lEnd = new Label();
-          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
-          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
+          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
           mv.visitJumpInsn(IF_ICMPGT, lTrue);
           mv.visitInsn(ICONST_0);
           mv.visitJumpInsn(GOTO, lEnd);
           mv.visitLabel(lTrue);
           mv.visitInsn(ICONST_1);
           mv.visitLabel(lEnd);
+          boxPrimitiveResult(mv, 'Z', expectedDesc);
           return;
         }
       }
@@ -1128,68 +1535,75 @@ public final class Main {
       // Text/String interop mappings (MVP)
       if (Objects.equals(name, "Text.concat") && c.args.size() == 2) {
         warnNullability("Text.concat", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
+        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "concat", "(Ljava/lang/String;)Ljava/lang/String;", false);
         return;
       }
       if (Objects.equals(name, "Text.contains") && c.args.size() == 2) {
         warnNullability("Text.contains", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
+        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "contains", "(Ljava/lang/CharSequence;)Z", false);
+        boxPrimitiveResult(mv, 'Z', expectedDesc);
         return;
       }
       if (Objects.equals(name, "Text.equals") && c.args.size() == 2) {
         warnNullability("Text.equals", c.args);
-        emitExpr(ctx, mv, c.args.get(0), null, currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), null, currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), null, currentPkg, paramBase, env, scopeStack, typeResolver);
+        emitExpr(ctx, mv, c.args.get(1), null, currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
+        boxPrimitiveResult(mv, 'Z', expectedDesc);
         return;
       }
       if (Objects.equals(name, "Text.toUpper") && c.args.size() == 1) {
         warnNullability("Text.toUpper", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "toUpperCase", "()Ljava/lang/String;", false);
         return;
       }
       if (Objects.equals(name, "Text.indexOf") && c.args.size() == 2) {
         warnNullability("Text.indexOf", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
+        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "indexOf", "(Ljava/lang/String;)I", false);
+        boxPrimitiveResult(mv, 'I', expectedDesc);
         return;
       }
       if (Objects.equals(name, "Text.startsWith") && c.args.size() == 2) {
         warnNullability("Text.startsWith", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
+        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "startsWith", "(Ljava/lang/String;)Z", false);
+        boxPrimitiveResult(mv, 'Z', expectedDesc);
         return;
       }
       if (Objects.equals(name, "Text.length") && c.args.size() == 1) {
         warnNullability("Text.length", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
+        boxPrimitiveResult(mv, 'I', expectedDesc);
         return;
       }
       // List/Map interop
       if (Objects.equals(name, "List.length") && c.args.size() == 1) {
         warnNullability("List.length", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "size", "()I", true);
+        boxPrimitiveResult(mv, 'I', expectedDesc);
         return;
       }
       if (Objects.equals(name, "List.isEmpty") && c.args.size() == 1) {
         warnNullability("List.isEmpty", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "isEmpty", "()Z", true);
+        boxPrimitiveResult(mv, 'Z', expectedDesc);
         return;
       }
       if (Objects.equals(name, "List.get") && c.args.size() == 2) {
         warnNullability("List.get", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack, typeResolver);
+        emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "get", "(I)Ljava/lang/Object;", true);
         // cast if expecting a specific reference type
         if ("Ljava/lang/String;".equals(expectedDesc)) {
@@ -1199,8 +1613,8 @@ public final class Main {
       }
       if (Objects.equals(name, "Map.get") && c.args.size() == 2) {
         warnNullability("Map.get", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/Map;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, intLocals);
+        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/Map;", currentPkg, paramBase, env, scopeStack, typeResolver);
+        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack, typeResolver);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
         if ("Ljava/lang/String;".equals(expectedDesc)) {
           mv.visitTypeInsn(CHECKCAST, "java/lang/String");
@@ -1216,8 +1630,9 @@ public final class Main {
         String ownerInternal = cls.contains(".") ? cls.replace('.', '/') : toInternal(currentPkg, cls);
         // Very narrow special-case kept for AuthRepo.verify
         if (Objects.equals(name, "AuthRepo.verify") && c.args.size() == 2) {
-          for (var arg : c.args) emitExpr(ctx, mv, arg, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+          for (var arg : c.args) emitExpr(ctx, mv, arg, null, currentPkg, paramBase, env, scopeStack, typeResolver);
           mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
+          boxPrimitiveResult(mv, 'Z', expectedDesc);
           return;
         }
         // Overload selection heuristic:
@@ -1227,7 +1642,7 @@ public final class Main {
         StringBuilder mdesc = new StringBuilder("(");
         boolean hasLong = false, hasDouble = false;
         for (var a : c.args) {
-          Character k = classifyNumeric(a, intLocals, longLocals, doubleLocals);
+          Character k = classifyNumeric(a, scopeStack, typeResolver);
           if (k != null) { if (k == 'D') hasDouble = true; else if (k == 'J') hasLong = true; }
         }
         // If both present, Double dominates
@@ -1240,7 +1655,7 @@ public final class Main {
           } else if (a instanceof CoreModel.Bool) ad = "Z";
           else if (a instanceof CoreModel.StringE) ad = "Ljava/lang/String;";
           else {
-            Character k = classifyNumeric(a, intLocals, longLocals, doubleLocals);
+            Character k = classifyNumeric(a, scopeStack, typeResolver);
             if (k != null) {
               if (k == 'D' || hasDouble) ad = "D";
               else if (k == 'J' || hasLong) ad = "J";
@@ -1269,9 +1684,18 @@ public final class Main {
         for (int i = 0; i < c.args.size(); i++) {
           var a = c.args.get(i);
           var ad = argDescs.get(i);
-          emitExpr(ctx, mv, a, ad, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+          emitExpr(ctx, mv, a, ad, currentPkg, paramBase, env, scopeStack, typeResolver);
         }
         mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, finalDesc, false);
+        if (finalDesc.endsWith(")I")) {
+          boxPrimitiveResult(mv, 'I', expectedDesc);
+        } else if (finalDesc.endsWith(")Z")) {
+          boxPrimitiveResult(mv, 'Z', expectedDesc);
+        } else if (finalDesc.endsWith(")J")) {
+          boxPrimitiveResult(mv, 'J', expectedDesc);
+        } else if (finalDesc.endsWith(")D")) {
+          boxPrimitiveResult(mv, 'D', expectedDesc);
+        }
         return;
       }
     }
@@ -1305,7 +1729,7 @@ public final class Main {
               }
             }
 
-            emitExpr(ctx, mv, cgen.args.get(i), paramDesc, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+            emitExpr(ctx, mv, cgen.args.get(i), paramDesc, currentPkg, paramBase, env, scopeStack, typeResolver);
             mdesc.append(paramDesc);
           }
 
@@ -1326,13 +1750,22 @@ public final class Main {
           mdesc.append(")").append(retDesc);
 
           mv.visitMethodInsn(INVOKESTATIC, ownerInternal, funcName, mdesc.toString(), false);
+          if ("I".equals(retDesc)) {
+            boxPrimitiveResult(mv, 'I', expectedDesc);
+          } else if ("Z".equals(retDesc)) {
+            boxPrimitiveResult(mv, 'Z', expectedDesc);
+          } else if ("J".equals(retDesc)) {
+            boxPrimitiveResult(mv, 'J', expectedDesc);
+          } else if ("D".equals(retDesc)) {
+            boxPrimitiveResult(mv, 'D', expectedDesc);
+          }
           return;
         }
       }
 
       // Generic function value call: target is a closure implementing FnN
       int ar = (cgen.args == null) ? 0 : cgen.args.size();
-      emitExpr(ctx, mv, cgen.target, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+      emitExpr(ctx, mv, cgen.target, null, currentPkg, paramBase, env, scopeStack, typeResolver);
       String intf;
       String desc;
       if (ar == 0) { intf = "aster/runtime/Fn0"; desc = "()Ljava/lang/Object;"; }
@@ -1342,7 +1775,7 @@ public final class Main {
       else { intf = "aster/runtime/Fn1"; desc = "(Ljava/lang/Object;)Ljava/lang/Object;"; }
       for (int i = 0; i < ar; i++) {
         // Pass arguments as Objects; for MVP, only reference types in examples
-        emitExpr(ctx, mv, cgen.args.get(i), "Ljava/lang/Object;", currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+        emitExpr(ctx, mv, cgen.args.get(i), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack, typeResolver);
       }
       mv.visitMethodInsn(INVOKEINTERFACE, intf, "apply", desc, true);
       if ("Ljava/lang/String;".equals(expectedDesc)) {
@@ -1360,14 +1793,14 @@ public final class Main {
     if (e instanceof CoreModel.Ok ok) {
       mv.visitTypeInsn(NEW, "aster/runtime/Ok");
       mv.visitInsn(DUP);
-      emitExpr(ctx, mv, ok.expr, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+      emitExpr(ctx, mv, ok.expr, null, currentPkg, paramBase, env, scopeStack, typeResolver);
       mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Ok", "<init>", "(Ljava/lang/Object;)V", false);
       return;
     }
     if (e instanceof CoreModel.Err er) {
       mv.visitTypeInsn(NEW, "aster/runtime/Err");
       mv.visitInsn(DUP);
-      emitExpr(ctx, mv, er.expr, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+      emitExpr(ctx, mv, er.expr, null, currentPkg, paramBase, env, scopeStack, typeResolver);
       mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Err", "<init>", "(Ljava/lang/Object;)V", false);
       return;
     }
@@ -1413,7 +1846,7 @@ public final class Main {
         }
 
         // Emit the expression with the appropriate expected type
-        emitExpr(ctx, mv, f.expr, fieldDesc, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+        emitExpr(ctx, mv, f.expr, fieldDesc, currentPkg, paramBase, env, scopeStack, typeResolver);
         descSb.append(fieldDesc);
       }
 
@@ -1434,7 +1867,7 @@ public final class Main {
       else if (arity == 2) { ifaces = new String[] { "aster/runtime/Fn2" }; applyDesc = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
       else if (arity == 3) { ifaces = new String[] { "aster/runtime/Fn3" }; applyDesc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
       else { ifaces = new String[] { "aster/runtime/Fn4" }; applyDesc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
-    cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", ifaces);
+    cw.visit(V25, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", ifaces);
     addOriginAnnotation(cw, lam.origin);
     // captured fields as Object
     int capN = (lam.captures == null) ? 0 : lam.captures.size();
@@ -2044,74 +2477,157 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     if (v == 1.0d) { mv.visitInsn(DCONST_1); return; }
     mv.visitLdcInsn(Double.valueOf(v));
   }
-  // Overload with Ctx to support user-defined function return type classification
-  static Character classifyNumeric(CoreModel.Expr e, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals, Ctx ctx) {
-    // Direct literal types
+  static Character classifyNumeric(CoreModel.Expr e, ScopeStack scopeStack, TypeResolver typeResolver, Ctx ctx) {
     if (e instanceof CoreModel.DoubleE) return 'D';
     if (e instanceof CoreModel.LongE) return 'J';
     if (e instanceof CoreModel.IntE || e instanceof CoreModel.Bool) return 'I';
 
-    // Local variables
-    if (e instanceof CoreModel.Name n) {
-      if (doubleLocals != null && doubleLocals.contains(n.name)) return 'D';
-      if (longLocals != null && longLocals.contains(n.name)) return 'J';
-      if (intLocals != null && intLocals.contains(n.name)) return 'I';
-
-      // Check for field access in Name expressions (e.g., "vehicle.year")
-      if (ctx != null) {
-        int dot = n.name.lastIndexOf('.');
-        if (dot > 0) {
-          String fieldName = n.name.substring(dot+1);
-          // Search dataSchema for this field
-          for (var entry : ctx.dataSchema.entrySet()) {
-            var dataType = entry.getValue();
-            for (var field : dataType.fields) {
-              if (field.name.equals(fieldName)) {
-                if (field.type instanceof CoreModel.TypeName tn) {
-                  if (tn.name.equals("Int") || tn.name.equals("Bool")) return 'I';
-                  if (tn.name.equals("Long")) return 'J';
-                  if (tn.name.equals("Double")) return 'D';
-                }
-                return null; // Found field but not a numeric type
-              }
-            }
-          }
-        }
-      }
-      return null;
+    if (typeResolver != null) {
+      Character inferred = typeResolver.inferType(e);
+      if (inferred != null) return inferred == 'Z' ? 'I' : inferred;
     }
 
-    // Operator calls (arithmetic/comparison) - recursively classify with ctx
+    if (e instanceof CoreModel.Name n && scopeStack != null) {
+      Character kind = scopeStack.getType(n.name);
+      if (kind != null) return kind == 'Z' ? 'I' : kind;
+    }
+
     if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn) {
       String op = nn.name;
-      if (("+".equals(op) || "-".equals(op) || "*".equals(op) || "/".equals(op) || "times".equals(op) || "divided by".equals(op)) && c.args != null && c.args.size() == 2) {
-        Character k0 = classifyNumeric(c.args.get(0), intLocals, longLocals, doubleLocals, ctx);
-        Character k1 = classifyNumeric(c.args.get(1), intLocals, longLocals, doubleLocals, ctx);
+      if (c.args != null && c.args.size() == 2 && isNumericBinary(op)) {
+        Character k0 = classifyNumeric(c.args.get(0), scopeStack, typeResolver, ctx);
+        Character k1 = classifyNumeric(c.args.get(1), scopeStack, typeResolver, ctx);
         if (k0 != null && k1 != null) {
           if (k0 == 'D' || k1 == 'D') return 'D';
           if (k0 == 'J' || k1 == 'J') return 'J';
           return 'I';
         }
       }
-
-      // Check for user-defined function calls
-      if (ctx != null) {
-        String funcName = op;
-        if (ctx.functionSchemas().containsKey(funcName)) {
-          CoreModel.Func funcSchema = ctx.functionSchemas().get(funcName);
-          if (funcSchema.ret instanceof CoreModel.TypeName rtn) {
-            if (rtn.name.equals("Int") || rtn.name.equals("Bool")) return 'I';
-            if (rtn.name.equals("Long")) return 'J';
-            if (rtn.name.equals("Double")) return 'D';
-          }
+      if (ctx != null && ctx.functionSchemas().containsKey(op)) {
+        var schema = ctx.functionSchemas().get(op);
+        if (schema.ret instanceof CoreModel.TypeName rtn) {
+          return switch (rtn.name) {
+            case "Int", "Bool" -> 'I';
+            case "Long" -> 'J';
+            case "Double" -> 'D';
+            default -> null;
+          };
         }
       }
     }
     return null;
   }
 
-  static Character classifyNumeric(CoreModel.Expr e, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals) {
-    return classifyNumeric(e, intLocals, longLocals, doubleLocals, null);
+  static Character classifyNumeric(CoreModel.Expr e, ScopeStack scopeStack, TypeResolver typeResolver) {
+    return classifyNumeric(e, scopeStack, typeResolver, null);
+  }
+
+  private static void boxPrimitiveResult(MethodVisitor mv, char kind, String expectedDesc) {
+    if (!"Ljava/lang/Object;".equals(expectedDesc)) return;
+    switch (kind) {
+      case 'I' -> mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+      case 'Z' -> mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+      case 'J' -> mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+      case 'D' -> mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
+      default -> { /* no-op */ }
+    }
+  }
+
+  private static String resolveObjectDescriptor(CoreModel.Expr expr, String pkg, ScopeStack scopeStack, Ctx ctx) {
+    if (expr instanceof CoreModel.StringE) return "Ljava/lang/String;";
+    if (expr instanceof CoreModel.Construct cons) {
+      String internal = cons.typeName.contains(".") ? cons.typeName.replace('.', '/') : toInternal(pkg, cons.typeName);
+      return "L" + internal + ';';
+    }
+    if (expr instanceof CoreModel.Name name) {
+      if (scopeStack != null) {
+        String desc = scopeStack.getDescriptor(name.name);
+        if (desc != null && desc.startsWith("L")) return desc;
+      }
+      if (scopeStack != null) {
+        int dot = name.name.lastIndexOf('.');
+        if (dot > 0) {
+          String base = name.name.substring(0, dot);
+          String field = name.name.substring(dot + 1);
+          String ownerDesc = scopeStack.getDescriptor(base);
+          if (ownerDesc != null && ownerDesc.startsWith("L") && ownerDesc.endsWith(";")) {
+            String resolved = resolveFieldDescriptor(ctx, pkg, ownerDesc.substring(1, ownerDesc.length() - 1), field);
+            if (resolved != null) {
+              if (resolved.length() == 1) return "Ljava/lang/Object;";
+              return resolved;
+            }
+          }
+        }
+      }
+    }
+    if (expr instanceof CoreModel.Call call && call.target instanceof CoreModel.Name target && ctx != null) {
+      var schema = ctx.functionSchemas().get(target.name);
+      if (schema != null && schema.ret instanceof CoreModel.TypeName rtn) {
+        return switch (rtn.name) {
+          case "Text" -> "Ljava/lang/String;";
+          default -> {
+            String internal = rtn.name.contains(".") ? rtn.name.replace('.', '/') : toInternal(pkg, rtn.name);
+            yield "L" + internal + ';';
+          }
+        };
+      }
+    }
+    return "Ljava/lang/Object;";
+  }
+
+  private static String resolveFieldDescriptor(Ctx ctx, String pkg, String ownerInternal, String fieldName) {
+    if (ctx == null) return null;
+    var data = lookupData(ctx, ownerInternal);
+    if (data == null || data.fields == null) return null;
+    for (var field : data.fields) {
+      if (Objects.equals(field.name, fieldName)) {
+        return jDesc(pkg, field.type);
+      }
+    }
+    return null;
+  }
+
+  private static CoreModel.Data lookupData(Ctx ctx, String ownerInternal) {
+    if (ctx == null || ownerInternal == null || ownerInternal.isEmpty()) return null;
+    String dotName = ownerInternal.replace('/', '.');
+    String current = dotName;
+    while (current != null && !current.isEmpty()) {
+      var data = ctx.dataSchema.get(current);
+      if (data != null) return data;
+      int idx = current.indexOf('.');
+      if (idx < 0) break;
+      current = current.substring(idx + 1);
+    }
+    int lastDot = dotName.lastIndexOf('.');
+    if (lastDot >= 0) {
+      var data = ctx.dataSchema.get(dotName.substring(lastDot + 1));
+      if (data != null) return data;
+    }
+    return null;
+  }
+
+  private static boolean isNumericBinary(String op) {
+    return "+".equals(op)
+        || "-".equals(op)
+        || "*".equals(op)
+        || "/".equals(op)
+        || "times".equals(op)
+        || "divided by".equals(op);
+  }
+
+  private static void emitDefaultValue(MethodVisitor mv, String desc) {
+    if (desc == null || desc.isEmpty()) {
+      mv.visitInsn(ACONST_NULL);
+      return;
+    }
+    char c = desc.charAt(0);
+    switch (c) {
+      case 'D' -> mv.visitInsn(DCONST_0);
+      case 'J' -> mv.visitInsn(LCONST_0);
+      case 'F' -> mv.visitInsn(FCONST_0);
+      case 'I', 'Z' -> mv.visitInsn(ICONST_0);
+      default -> mv.visitInsn(ACONST_NULL);
+    }
   }
   static final java.util.Map<String,String> REFLECT_CACHE = new java.util.LinkedHashMap<>();
   static final java.util.Map<String, java.util.List<String>> METHOD_CACHE = new java.util.LinkedHashMap<>();
@@ -2329,6 +2845,17 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     return "Ljava/lang/Object;";
   }
 
+  private static ScopeStack.JvmKind kindForDescriptor(String desc) {
+    if (desc == null || desc.isEmpty()) return ScopeStack.JvmKind.UNKNOWN;
+    return switch (desc.charAt(0)) {
+      case 'I' -> ScopeStack.JvmKind.INT;
+      case 'Z' -> ScopeStack.JvmKind.BOOLEAN;
+      case 'J' -> ScopeStack.JvmKind.LONG;
+      case 'D' -> ScopeStack.JvmKind.DOUBLE;
+      default -> ScopeStack.JvmKind.OBJECT;
+    };
+  }
+
   // Emit a statement body inside a switch case; return true if we emitted a return on all paths
   static boolean emitCaseStmt(
     Ctx ctx,
@@ -2338,11 +2865,12 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     String pkg,
     int paramBase,
     java.util.Map<String,Integer> env,
-    java.util.Set<String> intLocals,
+    ScopeStack scopeStack,
+    TypeResolver typeResolver,
     java.util.concurrent.atomic.AtomicInteger lineNo
   ) {
     if (stmt instanceof CoreModel.Return r) {
-      emitExpr(ctx, mv, r.expr, retDesc, pkg, paramBase, env, intLocals);
+      emitExpr(ctx, mv, r.expr, retDesc, pkg, paramBase, env, scopeStack, typeResolver);
       if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
       return true;
     }
@@ -2352,21 +2880,21 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
         for (var st : sc.statements) {
           { var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl); }
           if (st instanceof CoreModel.Return r2) {
-            emitExpr(ctx, mv, r2.expr, retDesc, pkg, paramBase, env, intLocals);
+            emitExpr(ctx, mv, r2.expr, retDesc, pkg, paramBase, env, scopeStack, typeResolver);
             if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
             anyReturn = true;
           } else if (st instanceof CoreModel.If iff) {
             var lElse = new Label();
             var lEnd = new Label();
-            emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, intLocals);
+            emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, scopeStack, typeResolver);
             mv.visitJumpInsn(IFEQ, lElse);
             { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
-            boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
+            boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, scopeStack, typeResolver, lineNo);
             if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
             mv.visitLabel(lElse);
             { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
             boolean elseRet = false;
-            if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
+            if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, scopeStack, typeResolver, lineNo);
             if (!elseRet) mv.visitLabel(lEnd);
             anyReturn = anyReturn || (thenRet && elseRet);
           }
@@ -2377,15 +2905,15 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     if (stmt instanceof CoreModel.If iff) {
       var lElse = new Label();
       var lEnd = new Label();
-      emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, intLocals);
+      emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, scopeStack, typeResolver);
       mv.visitJumpInsn(IFEQ, lElse);
       { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
-      boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
+      boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, scopeStack, typeResolver, lineNo);
       if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
       mv.visitLabel(lElse);
       { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
       boolean elseRet = false;
-      if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
+      if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, scopeStack, typeResolver, lineNo);
       if (!elseRet) mv.visitLabel(lEnd);
       return thenRet && elseRet;
     }

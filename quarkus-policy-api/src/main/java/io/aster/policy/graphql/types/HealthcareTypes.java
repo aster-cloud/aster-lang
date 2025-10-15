@@ -25,8 +25,12 @@ public class HealthcareTypes {
         public String insuranceType;
 
         @NonNull
-        @Description("是否有慢性病 / Has chronic conditions")
-        public Boolean hasChronicConditions;
+        @Description("是否持有保险 / Has insurance")
+        public Boolean hasInsurance;
+
+        @NonNull
+        @Description("慢性疾病数量 / Chronic conditions count")
+        public Integer chronicConditions;
 
         @NonNull
         @Description("账户余额 / Account balance")
@@ -35,11 +39,12 @@ public class HealthcareTypes {
         public Patient() {}
 
         public Patient(String patientId, Integer age, String insuranceType,
-                      Boolean hasChronicConditions, Integer accountBalance) {
+                      Boolean hasInsurance, Integer chronicConditions, Integer accountBalance) {
             this.patientId = patientId;
             this.age = age;
             this.insuranceType = insuranceType;
-            this.hasChronicConditions = hasChronicConditions;
+            this.hasInsurance = hasInsurance;
+            this.chronicConditions = chronicConditions;
             this.accountBalance = accountBalance;
         }
     }
@@ -52,19 +57,24 @@ public class HealthcareTypes {
         public String serviceCode;
 
         @NonNull
-        @Description("服务费用 / Service cost")
-        public Integer cost;
+        @Description("服务名称 / Service name")
+        public String serviceName;
 
         @NonNull
-        @Description("是否为必需服务 / Is essential service")
-        public Boolean isEssential;
+        @Description("基础价格 / Base price")
+        public Integer basePrice;
+
+        @NonNull
+        @Description("是否需要预授权 / Requires pre-authorization")
+        public Boolean requiresPreAuth;
 
         public Service() {}
 
-        public Service(String serviceCode, Integer cost, Boolean isEssential) {
+        public Service(String serviceCode, String serviceName, Integer basePrice, Boolean requiresPreAuth) {
             this.serviceCode = serviceCode;
-            this.cost = cost;
-            this.isEssential = isEssential;
+            this.serviceName = serviceName;
+            this.basePrice = basePrice;
+            this.requiresPreAuth = requiresPreAuth;
         }
     }
 
@@ -81,20 +91,25 @@ public class HealthcareTypes {
 
         @NonNull
         @Description("覆盖百分比 / Coverage percentage")
-        public Integer coveragePercentage;
+        public Integer coveragePercent;
 
         @NonNull
         @Description("患者需支付金额 / Patient cost")
-        public Integer patientCost;
+        public Integer estimatedCost;
+
+        @NonNull
+        @Description("是否需要预授权 / Requires pre-authorization")
+        public Boolean requiresPreAuth;
 
         public EligibilityCheck() {}
 
-        public EligibilityCheck(Boolean eligible, String reason, Integer coveragePercentage,
-                               Integer patientCost) {
+        public EligibilityCheck(Boolean eligible, String reason, Integer coveragePercent,
+                               Integer estimatedCost, Boolean requiresPreAuth) {
             this.eligible = eligible;
             this.reason = reason;
-            this.coveragePercentage = coveragePercentage;
-            this.patientCost = patientCost;
+            this.coveragePercent = coveragePercent;
+            this.estimatedCost = estimatedCost;
+            this.requiresPreAuth = requiresPreAuth;
         }
     }
 
@@ -107,7 +122,7 @@ public class HealthcareTypes {
 
         @NonNull
         @Description("索赔金额 / Claim amount")
-        public Integer claimAmount;
+        public Integer amount;
 
         @NonNull
         @Description("服务日期 / Service date")
@@ -125,16 +140,27 @@ public class HealthcareTypes {
         @Description("是否有文档 / Has documentation")
         public Boolean hasDocumentation;
 
+        @NonNull
+        @Description("患者ID / Patient ID")
+        public String patientId;
+
+        @NonNull
+        @Description("提供者ID / Provider ID")
+        public String providerId;
+
         public Claim() {}
 
-        public Claim(String claimId, Integer claimAmount, String serviceDate,
-                    String specialtyType, String diagnosisCode, Boolean hasDocumentation) {
+        public Claim(String claimId, Integer amount, String serviceDate,
+                    String specialtyType, String diagnosisCode, Boolean hasDocumentation,
+                    String patientId, String providerId) {
             this.claimId = claimId;
-            this.claimAmount = claimAmount;
+            this.amount = amount;
             this.serviceDate = serviceDate;
             this.specialtyType = specialtyType;
             this.diagnosisCode = diagnosisCode;
             this.hasDocumentation = hasDocumentation;
+            this.patientId = patientId;
+            this.providerId = providerId;
         }
     }
 
@@ -153,12 +179,17 @@ public class HealthcareTypes {
         @Description("质量评分 / Quality score (0-100)")
         public Integer qualityScore;
 
+        @NonNull
+        @Description("专科类型 / Specialty type")
+        public String specialtyType;
+
         public Provider() {}
 
-        public Provider(String providerId, Boolean inNetwork, Integer qualityScore) {
+        public Provider(String providerId, Boolean inNetwork, Integer qualityScore, String specialtyType) {
             this.providerId = providerId;
             this.inNetwork = inNetwork;
             this.qualityScore = qualityScore;
+            this.specialtyType = specialtyType;
         }
     }
 
@@ -181,14 +212,18 @@ public class HealthcareTypes {
         @Description("需要审查 / Requires review")
         public Boolean requiresReview;
 
+        @Description("拒赔代码 / Denial code")
+        public String denialCode;
+
         public ClaimDecision() {}
 
         public ClaimDecision(Boolean approved, String reason, Integer approvedAmount,
-                            Boolean requiresReview) {
+                            Boolean requiresReview, String denialCode) {
             this.approved = approved;
             this.reason = reason;
             this.approvedAmount = approvedAmount;
             this.requiresReview = requiresReview;
+            this.denialCode = denialCode;
         }
     }
 }

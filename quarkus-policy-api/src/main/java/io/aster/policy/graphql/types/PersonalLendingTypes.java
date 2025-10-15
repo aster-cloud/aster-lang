@@ -165,24 +165,28 @@ public class PersonalLendingTypes {
     @Description("债务状况 / Debt profile")
     public static class DebtProfile {
         @NonNull
-        @Description("月房贷 / Monthly mortgage")
-        public Integer monthlyMortgage;
+        @Description("总月债务 / Total monthly debt")
+        public Integer totalMonthlyDebt;
 
         @NonNull
-        @Description("月车贷 / Monthly car payment")
-        public Integer monthlyCarPayment;
+        @Description("房贷月供 / Mortgage payment")
+        public Integer mortgagePayment;
 
         @NonNull
-        @Description("月学贷 / Monthly student loan")
-        public Integer monthlyStudentLoan;
+        @Description("车贷月供 / Car payment")
+        public Integer carPayment;
 
         @NonNull
-        @Description("月信用卡还款 / Monthly credit card payment")
-        public Integer monthlyCreditCardPayment;
+        @Description("学贷月供 / Student loan payment")
+        public Integer studentLoanPayment;
 
         @NonNull
-        @Description("其他月债务 / Other monthly debt")
-        public Integer otherMonthlyDebt;
+        @Description("信用卡最低还款 / Credit card minimum payment")
+        public Integer creditCardMinPayment;
+
+        @NonNull
+        @Description("其他月度债务 / Other debt payment")
+        public Integer otherDebtPayment;
 
         @NonNull
         @Description("总未偿债务 / Total outstanding debt")
@@ -190,13 +194,15 @@ public class PersonalLendingTypes {
 
         public DebtProfile() {}
 
-        public DebtProfile(Integer monthlyMortgage, Integer monthlyCarPayment, Integer monthlyStudentLoan,
-                          Integer monthlyCreditCardPayment, Integer otherMonthlyDebt, Integer totalOutstandingDebt) {
-            this.monthlyMortgage = monthlyMortgage;
-            this.monthlyCarPayment = monthlyCarPayment;
-            this.monthlyStudentLoan = monthlyStudentLoan;
-            this.monthlyCreditCardPayment = monthlyCreditCardPayment;
-            this.otherMonthlyDebt = otherMonthlyDebt;
+        public DebtProfile(Integer totalMonthlyDebt, Integer mortgagePayment, Integer carPayment,
+                          Integer studentLoanPayment, Integer creditCardMinPayment, Integer otherDebtPayment,
+                          Integer totalOutstandingDebt) {
+            this.totalMonthlyDebt = totalMonthlyDebt;
+            this.mortgagePayment = mortgagePayment;
+            this.carPayment = carPayment;
+            this.studentLoanPayment = studentLoanPayment;
+            this.creditCardMinPayment = creditCardMinPayment;
+            this.otherDebtPayment = otherDebtPayment;
             this.totalOutstandingDebt = totalOutstandingDebt;
         }
     }
@@ -210,11 +216,11 @@ public class PersonalLendingTypes {
 
         @NonNull
         @Description("贷款用途 / Loan purpose")
-        public String loanPurpose;
+        public String purpose;
 
         @NonNull
         @Description("期望期限(月) / Desired term in months")
-        public Integer desiredTermMonths;
+        public Integer termMonths;
 
         @NonNull
         @Description("首付金额 / Down payment")
@@ -226,11 +232,11 @@ public class PersonalLendingTypes {
 
         public LoanRequest() {}
 
-        public LoanRequest(Integer requestedAmount, String loanPurpose, Integer desiredTermMonths,
+        public LoanRequest(Integer requestedAmount, String purpose, Integer termMonths,
                           Integer downPayment, Integer collateralValue) {
             this.requestedAmount = requestedAmount;
-            this.loanPurpose = loanPurpose;
-            this.desiredTermMonths = desiredTermMonths;
+            this.purpose = purpose;
+            this.termMonths = termMonths;
             this.downPayment = downPayment;
             this.collateralValue = collateralValue;
         }

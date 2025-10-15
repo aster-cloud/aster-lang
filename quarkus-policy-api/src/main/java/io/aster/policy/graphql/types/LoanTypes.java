@@ -18,6 +18,10 @@ public class LoanTypes {
         public String loanId;
 
         @NonNull
+        @Description("申请人ID / Applicant ID")
+        public String applicantId;
+
+        @NonNull
         @Description("申请金额 / Amount requested")
         public Integer amountRequested;
 
@@ -31,8 +35,9 @@ public class LoanTypes {
 
         public Application() {}
 
-        public Application(String loanId, Integer amountRequested, String purposeCode, Integer termMonths) {
+        public Application(String loanId, String applicantId, Integer amountRequested, String purposeCode, Integer termMonths) {
             this.loanId = loanId;
+            this.applicantId = applicantId;
             this.amountRequested = amountRequested;
             this.purposeCode = purposeCode;
             this.termMonths = termMonths;
@@ -63,15 +68,20 @@ public class LoanTypes {
         @Description("月债务 / Existing debt monthly")
         public Integer existingDebtMonthly;
 
+        @NonNull
+        @Description("在职年限 / Years employed")
+        public Integer yearsEmployed;
+
         public Applicant() {}
 
         public Applicant(String applicantId, Integer age, Integer annualIncome,
-                        Integer creditScore, Integer existingDebtMonthly) {
+                        Integer creditScore, Integer existingDebtMonthly, Integer yearsEmployed) {
             this.applicantId = applicantId;
             this.age = age;
             this.annualIncome = annualIncome;
             this.creditScore = creditScore;
             this.existingDebtMonthly = existingDebtMonthly;
+            this.yearsEmployed = yearsEmployed;
         }
     }
 

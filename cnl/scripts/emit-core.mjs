@@ -7,7 +7,7 @@ import { lowerModule } from '../src/lower_to_core.mjs';
 
 function main() {
   const file = process.argv[2];
-  if (!file) { console.error('Usage: emit-core <file.cnl>'); process.exit(2); }
+  if (!file) { console.error('Usage: emit-core <file.aster>'); process.exit(2); }
   const input = fs.readFileSync(file, 'utf8');
   try {
     const can = canonicalize(input);

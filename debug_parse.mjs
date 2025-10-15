@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { lex, parse } from './dist/src/index.js';
 
-const file = 'cnl/examples/nested_generic_lambda.cnl';
+const file = 'cnl/examples/nested_generic_lambda.aster';
 const source = readFileSync(file, 'utf8');
 console.log('Source:\n', source);
 

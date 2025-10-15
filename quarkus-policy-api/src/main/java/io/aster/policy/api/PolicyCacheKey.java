@@ -10,12 +10,14 @@ import java.util.Objects;
  * 实现了equals和hashCode以确保缓存正确工作。
  */
 public class PolicyCacheKey {
+    private final String tenantId;
     private final String policyModule;
     private final String policyFunction;
     private final Object[] context;
     private final int hashCode;
 
-    public PolicyCacheKey(String policyModule, String policyFunction, Object[] context) {
+    public PolicyCacheKey(String tenantId, String policyModule, String policyFunction, Object[] context) {
+        this.tenantId = tenantId == null || tenantId.isBlank() ? "default" : tenantId;
         this.policyModule = policyModule;
         this.policyFunction = policyFunction;
         this.context = context;
@@ -24,7 +26,7 @@ public class PolicyCacheKey {
     }
 
     private int computeHashCode() {
-        int result = Objects.hash(policyModule, policyFunction);
+        int result = Objects.hash(tenantId, policyModule, policyFunction);
         result = 31 * result + Arrays.deepHashCode(context);
         return result;
     }
@@ -34,7 +36,8 @@ public class PolicyCacheKey {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PolicyCacheKey that = (PolicyCacheKey) o;
-        return Objects.equals(policyModule, that.policyModule) &&
+        return Objects.equals(tenantId, that.tenantId) &&
+               Objects.equals(policyModule, that.policyModule) &&
                Objects.equals(policyFunction, that.policyFunction) &&
                Arrays.deepEquals(context, that.context);
     }
@@ -47,10 +50,15 @@ public class PolicyCacheKey {
     @Override
     public String toString() {
         return "PolicyCacheKey{" +
-                "policyModule='" + policyModule + '\'' +
+                "tenantId='" + tenantId + '\'' +
+                ", policyModule='" + policyModule + '\'' +
                 ", policyFunction='" + policyFunction + '\'' +
                 ", contextSize=" + (context != null ? context.length : 0) +
                 '}';
+    }
+
+    public String getTenantId() {
+        return tenantId;
     }
 
     public String getPolicyModule() {

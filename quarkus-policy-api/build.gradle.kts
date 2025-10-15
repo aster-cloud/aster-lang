@@ -61,31 +61,55 @@ val generateAsterJar by tasks.registering(Exec::class) {
     commandLine = if (System.getProperty("os.name").lowercase().contains("win")) {
         listOf("cmd", "/c",
             "npm", "run", "emit:class",
-            "cnl/stdlib/finance/loan.cnl",
-            "cnl/stdlib/finance/creditcard.cnl",
-            "cnl/stdlib/finance/lending/enterprise.cnl",
-            "cnl/stdlib/finance/lending/personal.cnl",
-            "cnl/stdlib/healthcare/eligibility.cnl",
-            "cnl/stdlib/healthcare/claims.cnl",
-            "cnl/stdlib/insurance/auto.cnl",
-            "cnl/stdlib/insurance/life.cnl",
+            "cnl/stdlib/finance/loan.aster",
+            "cnl/stdlib/finance/creditcard.aster",
+            "cnl/stdlib/finance/lending/enterprise.aster",
+            "cnl/stdlib/finance/lending/personal.aster",
+            "cnl/stdlib/healthcare/eligibility.aster",
+            "cnl/stdlib/healthcare/claims.aster",
+            "cnl/stdlib/insurance/auto.aster",
+            "cnl/stdlib/insurance/life.aster",
             "&&",
             "npm", "run", "jar:jvm")
     } else {
         listOf("sh", "-c",
             "npm run emit:class " +
-            "cnl/stdlib/finance/loan.cnl " +
-            "cnl/stdlib/finance/creditcard.cnl " +
-            "cnl/stdlib/finance/lending/enterprise.cnl " +
-            "cnl/stdlib/finance/lending/personal.cnl " +
-            "cnl/stdlib/healthcare/eligibility.cnl " +
-            "cnl/stdlib/healthcare/claims.cnl " +
-            "cnl/stdlib/insurance/auto.cnl " +
-            "cnl/stdlib/insurance/life.cnl " +
+            "cnl/stdlib/finance/loan.aster " +
+            "cnl/stdlib/finance/creditcard.aster " +
+            "cnl/stdlib/finance/lending/enterprise.aster " +
+            "cnl/stdlib/finance/lending/personal.aster " +
+            "cnl/stdlib/healthcare/eligibility.aster " +
+            "cnl/stdlib/healthcare/claims.aster " +
+            "cnl/stdlib/insurance/auto.aster " +
+            "cnl/stdlib/insurance/life.aster " +
             "&& npm run jar:jvm")
     }
 }
 
 tasks.named("compileJava") {
     dependsOn(generateAsterJar)
+}
+
+val syncPolicyJar by tasks.registering(Copy::class) {
+    dependsOn(generateAsterJar)
+    from(rootProject.layout.projectDirectory.file("build/aster-out/aster.jar"))
+    into(layout.projectDirectory.dir("src/main/resources"))
+    rename { "policy-rules-merged.jar" }
+}
+
+val cleanPolicyClasses by tasks.registering(Delete::class) {
+    delete(
+        layout.projectDirectory.dir("src/main/resources/classes"),
+        layout.projectDirectory.dir("src/main/resources/aster")
+    )
+}
+
+val syncPolicyClasses by tasks.registering(Copy::class) {
+    dependsOn(generateAsterJar, cleanPolicyClasses)
+    from(rootProject.layout.projectDirectory.dir("build/jvm-classes"))
+    into(layout.projectDirectory.dir("src/main/resources"))
+}
+
+tasks.named("processResources") {
+    dependsOn(syncPolicyJar, syncPolicyClasses)
 }

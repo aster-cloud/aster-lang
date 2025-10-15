@@ -1,10 +1,16 @@
 package io.aster.policy.graphql;
 
+import io.aster.policy.api.PolicyCacheKey;
+import io.aster.policy.api.PolicyEvaluationService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.Set;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -20,6 +26,14 @@ import static org.hamcrest.Matchers.*;
 @QuarkusTest
 public class PolicyGraphQLResourceTest {
 
+    @Inject
+    PolicyEvaluationService policyEvaluationService;
+
+    @BeforeEach
+    public void resetCache() {
+        policyEvaluationService.clearAllCache().await().indefinitely();
+    }
+
     // Helper method to create GraphQL request body
     private Map<String, String> graphQLRequest(String query) {
         return Map.of("query", query);
@@ -34,6 +48,7 @@ public class PolicyGraphQLResourceTest {
               evaluateLoanEligibility(
                 application: {
                   loanId: "LOAN-001"
+                  applicantId: "APP-001"
                   amountRequested: 50000
                   purposeCode: "HOME"
                   termMonths: 360
@@ -44,6 +59,7 @@ public class PolicyGraphQLResourceTest {
                   annualIncome: 120000
                   creditScore: 750
                   existingDebtMonthly: 1500
+                  yearsEmployed: 10
                 }
               ) {
                 approved
@@ -75,6 +91,7 @@ public class PolicyGraphQLResourceTest {
               evaluateLoanEligibility(
                 application: {
                   loanId: "LOAN-002"
+                  applicantId: "APP-002"
                   amountRequested: 100000
                   purposeCode: "HOME"
                   termMonths: 360
@@ -85,6 +102,7 @@ public class PolicyGraphQLResourceTest {
                   annualIncome: 40000
                   creditScore: 550
                   existingDebtMonthly: 2000
+                  yearsEmployed: 2
                 }
               ) {
                 approved
@@ -235,19 +253,22 @@ public class PolicyGraphQLResourceTest {
                   patientId: "PAT-001"
                   age: 45
                   insuranceType: "GOLD"
-                  hasChronicConditions: false
+                  hasInsurance: true
+                  chronicConditions: 0
                   accountBalance: 0
                 }
                 service: {
                   serviceCode: "MRI-001"
-                  cost: 1500
-                  isEssential: true
+                  serviceName: "MRI Scan"
+                  basePrice: 1500
+                  requiresPreAuth: true
                 }
               ) {
                 eligible
                 reason
-                coveragePercentage
-                patientCost
+                coveragePercent
+                estimatedCost
+                requiresPreAuth
               }
             }
             """;
@@ -260,7 +281,8 @@ public class PolicyGraphQLResourceTest {
             .then()
             .statusCode(200)
             .body("data.checkServiceEligibility.eligible", notNullValue())
-            .body("data.checkServiceEligibility.coveragePercentage", greaterThanOrEqualTo(0));
+            .body("data.checkServiceEligibility.coveragePercent", greaterThanOrEqualTo(0))
+            .body("data.checkServiceEligibility.requiresPreAuth", notNullValue());
     }
 
     @Test
@@ -270,29 +292,27 @@ public class PolicyGraphQLResourceTest {
               processClaim(
                 claim: {
                   claimId: "CLM-001"
-                  claimAmount: 5000
+                  amount: 5000
                   serviceDate: "2025-01-01"
                   specialtyType: "Cardiology"
                   diagnosisCode: "I50.9"
                   hasDocumentation: true
+                  patientId: "PAT-001"
+                  providerId: "PRV-001"
                 }
                 provider: {
                   providerId: "PRV-001"
                   inNetwork: true
                   qualityScore: 90
+                  specialtyType: "Cardiology"
                 }
-                patient: {
-                  patientId: "PAT-001"
-                  age: 55
-                  insuranceType: "GOLD"
-                  hasChronicConditions: true
-                  accountBalance: 500
-                }
+                patientCoverage: 80
               ) {
                 approved
                 reason
                 approvedAmount
                 requiresReview
+                denialCode
               }
             }
             """;
@@ -305,7 +325,8 @@ public class PolicyGraphQLResourceTest {
             .then()
             .statusCode(200)
             .body("data.processClaim.approved", notNullValue())
-            .body("data.processClaim.approvedAmount", greaterThanOrEqualTo(0));
+            .body("data.processClaim.approvedAmount", greaterThanOrEqualTo(0))
+            .body("data.processClaim.denialCode", notNullValue());
     }
 
     // ==================== Query Tests - 信用卡评估 ====================
@@ -452,7 +473,7 @@ public class PolicyGraphQLResourceTest {
                   additionalIncome: 1000
                   spouseIncome: 5000
                   rentIncome: 0
-                  incomeStability: 90
+                  incomeStability: "PERMANENT"
                   incomeGrowthRate: 10
                 }
                 credit: {
@@ -467,19 +488,20 @@ public class PolicyGraphQLResourceTest {
                   inquiries: 2
                 }
                 debt: {
-                  monthlyMortgage: 2000
-                  monthlyCarPayment: 500
-                  monthlyStudentLoan: 300
-                  monthlyCreditCardPayment: 200
-                  otherMonthlyDebt: 0
+                  totalMonthlyDebt: 3000
+                  mortgagePayment: 2000
+                  carPayment: 500
+                  studentLoanPayment: 300
+                  creditCardMinPayment: 200
+                  otherDebtPayment: 0
                   totalOutstandingDebt: 50000
                 }
                 request: {
                   requestedAmount: 25000
-                  loanPurpose: "HOME_IMPROVEMENT"
-                  desiredTermMonths: 60
+                  purpose: "HOME_IMPROVEMENT"
+                  termMonths: 60
                   downPayment: 5000
-                  collateralValue: 0
+                  collateralValue: 30000
                 }
               ) {
                 approved
@@ -511,6 +533,68 @@ public class PolicyGraphQLResourceTest {
     // ==================== Mutation Tests - 缓存管理 ====================
 
     @Test
+    public void testMultiTenantCacheIsolation() {
+        String query = """
+            query {
+              evaluateLoanEligibility(
+                application: {
+                  loanId: \"TENANT-CACHE\"
+                  applicantId: \"APP-TENANT\"
+                  amountRequested: 75000
+                  purposeCode: \"HOME\"
+                  termMonths: 240
+                }
+                applicant: {
+                  applicantId: \"APP-TENANT\"
+                  age: 42
+                  annualIncome: 95000
+                  creditScore: 720
+                  existingDebtMonthly: 1200
+                  yearsEmployed: 12
+                }
+              ) {
+                approved
+                reason
+                maxApprovedAmount
+              }
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "tenant-a")
+            .body(graphQLRequest(query))
+            .when()
+            .post("/graphql")
+            .then()
+            .statusCode(200)
+            .body("data.evaluateLoanEligibility.approved", notNullValue());
+
+        given()
+            .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "tenant-b")
+            .body(graphQLRequest(query))
+            .when()
+            .post("/graphql")
+            .then()
+            .statusCode(200)
+            .body("data.evaluateLoanEligibility.approved", notNullValue());
+
+        Set<PolicyCacheKey> tenantAKeys = policyEvaluationService.snapshotTenantCacheKeys("tenant-a");
+        Set<PolicyCacheKey> tenantBKeys = policyEvaluationService.snapshotTenantCacheKeys("tenant-b");
+
+        Assertions.assertEquals(1, tenantAKeys.size(), "tenant-a 应仅创建一条缓存记录");
+        Assertions.assertEquals(1, tenantBKeys.size(), "tenant-b 应仅创建一条缓存记录");
+
+        PolicyCacheKey keyA = tenantAKeys.iterator().next();
+        PolicyCacheKey keyB = tenantBKeys.iterator().next();
+
+        Assertions.assertEquals("tenant-a", keyA.getTenantId(), "tenant-a 缓存键应包含正确租户");
+        Assertions.assertEquals("tenant-b", keyB.getTenantId(), "tenant-b 缓存键应包含正确租户");
+        Assertions.assertNotEquals(keyA, keyB, "不同租户的缓存键必须不同");
+    }
+
+    @Test
     public void testClearAllCache() {
         String mutation = """
             mutation {
@@ -535,12 +619,50 @@ public class PolicyGraphQLResourceTest {
     }
 
     @Test
-    public void testInvalidateCache() {
+    public void testCacheInvalidation() {
+        String tenant = "tenant-cache";
+        String query = """
+            query {
+              evaluateLoanEligibility(
+                application: {
+                  loanId: \"CACHE-001\"
+                  applicantId: \"CACHE-APPLICANT\"
+                  amountRequested: 65000
+                  purposeCode: \"HOME\"
+                  termMonths: 180
+                }
+                applicant: {
+                  applicantId: \"CACHE-APPLICANT\"
+                  age: 37
+                  annualIncome: 88000
+                  creditScore: 710
+                  existingDebtMonthly: 900
+                  yearsEmployed: 8
+                }
+              ) {
+                approved
+                maxApprovedAmount
+              }
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", tenant)
+            .body(graphQLRequest(query))
+            .when()
+            .post("/graphql")
+            .then()
+            .statusCode(200)
+            .body("data.evaluateLoanEligibility.approved", notNullValue());
+
+        Assertions.assertEquals(1, policyEvaluationService.snapshotTenantCacheKeys(tenant).size(), "首次调用后应生成一条缓存");
+
         String mutation = """
             mutation {
               invalidateCache(
-                policyModule: "aster.finance.loan"
-                policyFunction: "evaluateLoanEligibility"
+                policyModule: \"aster.finance.loan\"
+                policyFunction: \"evaluateLoanEligibility\"
               ) {
                 success
                 message
@@ -551,14 +673,29 @@ public class PolicyGraphQLResourceTest {
 
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", tenant)
             .body(graphQLRequest(mutation))
             .when()
             .post("/graphql")
             .then()
             .statusCode(200)
             .body("data.invalidateCache.success", equalTo(true))
-            .body("data.invalidateCache.message", containsString("invalidated"))
+            .body("data.invalidateCache.message", allOf(containsString("tenant-cache"), containsString("aster.finance.loan")))
             .body("data.invalidateCache.timestamp", notNullValue());
+
+        Assertions.assertTrue(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "缓存失效后不应保留旧键");
+
+        given()
+            .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", tenant)
+            .body(graphQLRequest(query))
+            .when()
+            .post("/graphql")
+            .then()
+            .statusCode(200)
+            .body("data.evaluateLoanEligibility.approved", notNullValue());
+
+        Assertions.assertEquals(1, policyEvaluationService.snapshotTenantCacheKeys(tenant).size(), "重新调用后应重新建立缓存");
     }
 
     // ==================== Error Handling Tests ====================
@@ -570,6 +707,7 @@ public class PolicyGraphQLResourceTest {
               evaluateLoanEligibility(
                 application: {
                   loanId: "LOAN-003"
+                  applicantId: "APP-003"
                   amountRequested: 50000
                   termMonths: 360
                 }
@@ -579,6 +717,7 @@ public class PolicyGraphQLResourceTest {
                   annualIncome: 80000
                   creditScore: 700
                   existingDebtMonthly: 1000
+                  yearsEmployed: 7
                 }
               ) {
                 approved
@@ -628,6 +767,7 @@ public class PolicyGraphQLResourceTest {
               loan: evaluateLoanEligibility(
                 application: {
                   loanId: "LOAN-004"
+                  applicantId: "APP-004"
                   amountRequested: 30000
                   purposeCode: "AUTO"
                   termMonths: 60
@@ -638,6 +778,7 @@ public class PolicyGraphQLResourceTest {
                   annualIncome: 60000
                   creditScore: 680
                   existingDebtMonthly: 800
+                  yearsEmployed: 5
                 }
               ) {
                 approved
@@ -701,6 +842,7 @@ public class PolicyGraphQLResourceTest {
               evaluateLoanEligibility(
                 application: {
                   loanId: "LOAN-005"
+                  applicantId: "APP-005"
                   amountRequested: 40000
                   purposeCode: "EDUCATION"
                   termMonths: 120
@@ -711,6 +853,7 @@ public class PolicyGraphQLResourceTest {
                   annualIncome: 30000
                   creditScore: 650
                   existingDebtMonthly: 300
+                  yearsEmployed: 1
                 }
               ) {
                 ...DecisionFields

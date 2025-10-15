@@ -21,8 +21,8 @@ To wrap with x: T, produce Maybe of T:
 for (const { name, code } of testCases) {
   console.log(`\n=== ${name} ===`);
   try {
-    const tokens = lex(code, 'test.cnl');
-    const astMod = parse(tokens, code, 'test.cnl');
+    const tokens = lex(code, 'test.aster');
+    const astMod = parse(tokens, code, 'test.aster');
     console.log('✓ Succeeded');
   } catch (err) {
     console.error('✗ Failed:', err.message);

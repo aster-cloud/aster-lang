@@ -74,8 +74,8 @@ public final class Main {
     System.out.println("  help              Show this help message");
     System.out.println();
     System.out.println("Examples:");
-    System.out.println("  aster compile hello.cnl");
-    System.out.println("  aster typecheck hello.cnl");
+    System.out.println("  aster compile hello.aster");
+    System.out.println("  aster typecheck hello.aster");
   }
 
   private static void compile(String filePath) {

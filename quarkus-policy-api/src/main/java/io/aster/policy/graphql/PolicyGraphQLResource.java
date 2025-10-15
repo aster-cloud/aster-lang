@@ -67,13 +67,16 @@ public class PolicyGraphQLResource {
             LifeInsuranceTypes.PolicyRequest request
     ) {
         // 将GraphQL类型转换为CNL策略需要的格式
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.insurance.life",
                 "generateLifeQuote",
-                new Object[]{
+                buildContext(
+                    tenant,
                     convertToAsterApplicant(applicant),
                     convertToAsterPolicyRequest(request)
-                }
+                )
             )
             .onItem().transform(result -> {
                 // 将结果转换为GraphQL类型
@@ -88,10 +91,15 @@ public class PolicyGraphQLResource {
             @NonNull @Description("申请人信息 / Applicant information")
             LifeInsuranceTypes.Applicant applicant
     ) {
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.insurance.life",
                 "calculateRiskScore",
-                new Object[]{convertToAsterApplicant(applicant)}
+                buildContext(
+                    tenant,
+                    convertToAsterApplicant(applicant)
+                )
             )
             .onItem().transform(result -> (Integer) result.getResult());
     }
@@ -110,14 +118,17 @@ public class PolicyGraphQLResource {
             @NonNull @Description("保险类型 / Coverage type (Premium/Standard/Basic)")
             String coverageType
     ) {
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.insurance.auto",
                 "generateAutoQuote",
-                new Object[]{
+                buildContext(
+                    tenant,
                     convertToAsterDriver(driver),
                     convertToAsterVehicle(vehicle),
                     coverageType
-                }
+                )
             )
             .onItem().transform(result -> convertToGraphQLPolicyQuote(result.getResult()));
     }
@@ -133,13 +144,16 @@ public class PolicyGraphQLResource {
             @NonNull @Description("服务信息 / Service information")
             HealthcareTypes.Service service
     ) {
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.healthcare.eligibility",
                 "checkServiceEligibility",
-                new Object[]{
+                buildContext(
+                    tenant,
                     convertToAsterPatient(patient),
                     convertToAsterService(service)
-                }
+                )
             )
             .onItem().transform(result -> convertToGraphQLEligibilityCheck(result.getResult()));
     }
@@ -153,17 +167,20 @@ public class PolicyGraphQLResource {
             @NonNull @Description("提供者信息 / Provider information")
             HealthcareTypes.Provider provider,
 
-            @NonNull @Description("患者信息 / Patient information")
-            HealthcareTypes.Patient patient
+            @NonNull @Description("患者保障比例 / Patient coverage percentage")
+            Integer patientCoverage
     ) {
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.healthcare.claims",
                 "processClaim",
-                new Object[]{
+                buildContext(
+                    tenant,
                     convertToAsterClaim(claim),
                     convertToAsterProvider(provider),
-                    convertToAsterPatient(patient)
-                }
+                    patientCoverage
+                )
             )
             .onItem().transform(result -> convertToGraphQLClaimDecision(result.getResult()));
     }
@@ -179,13 +196,16 @@ public class PolicyGraphQLResource {
             @NonNull @Description("申请人信息 / Applicant profile")
             LoanTypes.Applicant applicant
     ) {
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.finance.loan",
                 "evaluateLoanEligibility",
-                new Object[]{
+                buildContext(
+                    tenant,
                     convertToAsterLoanApplication(application),
                     convertToAsterLoanApplicant(applicant)
-                }
+                )
             )
             .onItem().transform(result -> convertToGraphQLLoanDecision(result.getResult()));
     }
@@ -204,14 +224,17 @@ public class PolicyGraphQLResource {
             @NonNull @Description("信用卡产品 / Credit card offer")
             CreditCardTypes.CreditCardOffer offer
     ) {
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.finance.creditcard",
                 "evaluateCreditCardApplication",
-                new Object[]{
+                buildContext(
+                    tenant,
                     convertToAsterCreditCardApplicant(applicant),
                     convertToAsterFinancialHistory(history),
                     convertToAsterCreditCardOffer(offer)
-                }
+                )
             )
             .onItem().transform(result -> convertToGraphQLApprovalDecision(result.getResult()));
     }
@@ -233,15 +256,18 @@ public class PolicyGraphQLResource {
             @NonNull @Description("贷款申请 / Loan application")
             EnterpriseLendingTypes.LoanApplication application
     ) {
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.finance.enterprise_lending",
                 "evaluateEnterpriseLoan",
-                new Object[]{
+                buildContext(
+                    tenant,
                     convertToAsterEnterpriseInfo(enterprise),
                     convertToAsterFinancialPosition(position),
                     convertToAsterBusinessHistory(history),
                     convertToAsterEnterpriseLoanApplication(application)
-                }
+                )
             )
             .onItem().transform(result -> convertToGraphQLEnterpriseLendingDecision(result.getResult()));
     }
@@ -266,16 +292,19 @@ public class PolicyGraphQLResource {
             @NonNull @Description("贷款申请 / Loan request")
             PersonalLendingTypes.LoanRequest request
     ) {
+        final String tenant = tenantId();
         return policyEvaluationService.evaluatePolicy(
+                tenant,
                 "aster.finance.personal_lending",
                 "evaluatePersonalLoan",
-                new Object[]{
+                buildContext(
+                    tenant,
                     convertToAsterPersonalInfo(personal),
                     convertToAsterIncomeProfile(income),
                     convertToAsterCreditProfile(credit),
                     convertToAsterDebtProfile(debt),
                     convertToAsterPersonalLoanRequest(request)
-                }
+                )
             )
             .onItem().transform(result -> convertToGraphQLPersonalLoanDecision(result.getResult()));
     }
@@ -330,7 +359,8 @@ public class PolicyGraphQLResource {
             "patientId", patient.patientId,
             "age", patient.age,
             "insuranceType", patient.insuranceType,
-            "hasChronicConditions", patient.hasChronicConditions,
+            "hasInsurance", patient.hasInsurance,
+            "chronicConditions", patient.chronicConditions,
             "accountBalance", patient.accountBalance
         );
     }
@@ -338,19 +368,22 @@ public class PolicyGraphQLResource {
     private java.util.Map<String, Object> convertToAsterService(HealthcareTypes.Service service) {
         return java.util.Map.of(
             "serviceCode", service.serviceCode,
-            "cost", service.cost,
-            "isEssential", service.isEssential
+            "serviceName", service.serviceName,
+            "basePrice", service.basePrice,
+            "requiresPreAuth", service.requiresPreAuth
         );
     }
 
     private java.util.Map<String, Object> convertToAsterClaim(HealthcareTypes.Claim claim) {
         return java.util.Map.of(
             "claimId", claim.claimId,
-            "claimAmount", claim.claimAmount,
+            "amount", claim.amount,
             "serviceDate", claim.serviceDate,
             "specialtyType", claim.specialtyType,
             "diagnosisCode", claim.diagnosisCode,
-            "hasDocumentation", claim.hasDocumentation
+            "hasDocumentation", claim.hasDocumentation,
+            "patientId", claim.patientId,
+            "providerId", claim.providerId
         );
     }
 
@@ -358,7 +391,8 @@ public class PolicyGraphQLResource {
         return java.util.Map.of(
             "providerId", provider.providerId,
             "inNetwork", provider.inNetwork,
-            "qualityScore", provider.qualityScore
+            "qualityScore", provider.qualityScore,
+            "specialtyType", provider.specialtyType
         );
     }
 
@@ -411,10 +445,11 @@ public class PolicyGraphQLResource {
             Class<?> resultClass = asterResult.getClass();
             Boolean eligible = (Boolean) resultClass.getField("eligible").get(asterResult);
             String reason = (String) resultClass.getField("reason").get(asterResult);
-            Integer coveragePercentage = (Integer) resultClass.getField("coveragePercentage").get(asterResult);
-            Integer patientCost = (Integer) resultClass.getField("patientCost").get(asterResult);
+            Integer coveragePercent = (Integer) resultClass.getField("coveragePercent").get(asterResult);
+            Integer estimatedCost = (Integer) resultClass.getField("estimatedCost").get(asterResult);
+            Boolean requiresPreAuth = (Boolean) resultClass.getField("requiresPreAuth").get(asterResult);
 
-            return new HealthcareTypes.EligibilityCheck(eligible, reason, coveragePercentage, patientCost);
+            return new HealthcareTypes.EligibilityCheck(eligible, reason, coveragePercent, estimatedCost, requiresPreAuth);
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert Aster result to GraphQL type", e);
         }
@@ -431,8 +466,9 @@ public class PolicyGraphQLResource {
             String reason = (String) resultClass.getField("reason").get(asterResult);
             Integer approvedAmount = (Integer) resultClass.getField("approvedAmount").get(asterResult);
             Boolean requiresReview = (Boolean) resultClass.getField("requiresReview").get(asterResult);
+            String denialCode = (String) resultClass.getField("denialCode").get(asterResult);
 
-            return new HealthcareTypes.ClaimDecision(approved, reason, approvedAmount, requiresReview);
+            return new HealthcareTypes.ClaimDecision(approved, reason, approvedAmount, requiresReview, denialCode);
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert Aster result to GraphQL type", e);
         }
@@ -440,7 +476,8 @@ public class PolicyGraphQLResource {
 
     private java.util.Map<String, Object> convertToAsterLoanApplication(LoanTypes.Application application) {
         return java.util.Map.of(
-            "applicantId", application.loanId,
+            "loanId", application.loanId,
+            "applicantId", application.applicantId,
             "amount", application.amountRequested,
             "termMonths", application.termMonths,
             "purpose", application.purposeCode
@@ -452,7 +489,8 @@ public class PolicyGraphQLResource {
             "age", applicant.age,
             "creditScore", applicant.creditScore,
             "annualIncome", applicant.annualIncome,
-            "monthlyDebt", applicant.existingDebtMonthly
+            "monthlyDebt", applicant.existingDebtMonthly,
+            "yearsEmployed", applicant.yearsEmployed
         );
     }
 
@@ -646,11 +684,12 @@ public class PolicyGraphQLResource {
 
     private java.util.Map<String, Object> convertToAsterDebtProfile(PersonalLendingTypes.DebtProfile debt) {
         return java.util.Map.of(
-            "monthlyMortgage", debt.monthlyMortgage,
-            "monthlyCarPayment", debt.monthlyCarPayment,
-            "monthlyStudentLoan", debt.monthlyStudentLoan,
-            "monthlyCreditCardPayment", debt.monthlyCreditCardPayment,
-            "otherMonthlyDebt", debt.otherMonthlyDebt,
+            "totalMonthlyDebt", debt.totalMonthlyDebt,
+            "mortgagePayment", debt.mortgagePayment,
+            "carPayment", debt.carPayment,
+            "studentLoanPayment", debt.studentLoanPayment,
+            "creditCardMinPayment", debt.creditCardMinPayment,
+            "otherDebtPayment", debt.otherDebtPayment,
             "totalOutstandingDebt", debt.totalOutstandingDebt
         );
     }
@@ -658,8 +697,8 @@ public class PolicyGraphQLResource {
     private java.util.Map<String, Object> convertToAsterPersonalLoanRequest(PersonalLendingTypes.LoanRequest request) {
         return java.util.Map.of(
             "requestedAmount", request.requestedAmount,
-            "loanPurpose", request.loanPurpose,
-            "desiredTermMonths", request.desiredTermMonths,
+            "purpose", request.purpose,
+            "termMonths", request.termMonths,
             "downPayment", request.downPayment,
             "collateralValue", request.collateralValue
         );
@@ -826,6 +865,32 @@ public class PolicyGraphQLResource {
         return new PolicyTypes.PolicyRuleSet(gqlRules);
     }
 
+    private Object[] buildContext(String tenant, Object... args) {
+        String normalizedTenant = tenant == null || tenant.isBlank() ? "default" : tenant.trim();
+        Object[] context = new Object[args.length + 1];
+        context[0] = normalizedTenant;
+        System.arraycopy(args, 0, context, 1, args.length);
+        return context;
+    }
+
+    private String sanitize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String buildInvalidateMessage(String tenant, String module, String function) {
+        String normalizedTenant = tenant == null || tenant.isBlank() ? "default" : tenant.trim();
+        if (module == null && function == null) {
+            return "Cache invalidated for tenant " + normalizedTenant + " (all entries)";
+        }
+        if (module != null && function == null) {
+            return "Cache invalidated for tenant " + normalizedTenant + " module " + module;
+        }
+        if (module == null) {
+            return "Cache invalidated for tenant " + normalizedTenant + " function " + function;
+        }
+        return "Cache invalidated for tenant " + normalizedTenant + " policy " + module + "." + function;
+    }
+
     private static String safe(Object v) { return v == null ? "<null>" : String.valueOf(v); }
 
     // ==================== Cache Management Mutations ====================
@@ -844,16 +909,20 @@ public class PolicyGraphQLResource {
     @Mutation("invalidateCache")
     @Description("使特定策略的缓存失效 / Invalidate cache for specific policy")
     public Uni<CacheOperationResult> invalidateCache(
-            @NonNull @Description("策略模块名称 / Policy module name")
+            @Description("策略模块名称 / Policy module name")
             String policyModule,
 
-            @NonNull @Description("策略函数名称 / Policy function name")
+            @Description("策略函数名称 / Policy function name")
             String policyFunction
     ) {
-        return policyEvaluationService.invalidateCache(policyModule, policyFunction, new Object[0])
+        final String tenant = tenantId();
+        String normalizedModule = sanitize(policyModule);
+        String normalizedFunction = sanitize(policyFunction);
+
+        return policyEvaluationService.invalidateCache(tenant, normalizedModule, normalizedFunction)
             .onItem().transform(v -> new CacheOperationResult(
                 true,
-                "Cache invalidated for " + policyModule + "." + policyFunction,
+                buildInvalidateMessage(tenant, normalizedModule, normalizedFunction),
                 System.currentTimeMillis()
             ));
     }
