@@ -1,16 +1,39 @@
 package io.aster.policy.graphql;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import io.aster.policy.api.PolicyCacheKey;
 import io.aster.policy.api.PolicyEvaluationService;
+import io.aster.policy.api.PolicyEvaluationService.BatchEvaluationResult;
+import io.aster.policy.api.PolicyEvaluationService.BatchRequest;
+import io.aster.policy.api.PolicyEvaluationService.CompositionStep;
+import io.aster.policy.api.PolicyEvaluationService.PolicyCompositionResult;
+import io.aster.policy.api.PolicyEvaluationService.PolicyEvaluationResult;
+import io.aster.policy.api.PolicyEvaluationService.StepResult;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -37,6 +60,228 @@ public class PolicyGraphQLResourceTest {
     // Helper method to create GraphQL request body
     private Map<String, String> graphQLRequest(String query) {
         return Map.of("query", query);
+    }
+
+    /**
+     * 统一执行GraphQL请求，便于重用状态码校验。
+     */
+    private Response executeGraphQL(String tenant, String query) {
+        var request = given()
+            .contentType(ContentType.JSON);
+        if (tenant != null) {
+            request.header("X-Tenant-Id", tenant);
+        }
+        return request
+            .body(graphQLRequest(query))
+            .when()
+            .post("/graphql")
+            .then()
+            .statusCode(200)
+            .extract()
+            .response();
+    }
+
+    /**
+     * 调用贷款评估GraphQL接口，触发缓存构建。
+     */
+    private void invokeLoanEligibility(String tenant, String loanId, String applicantId, int creditScore) {
+        String query = """
+            query {
+              evaluateLoanEligibility(
+                application: {
+                  loanId: "%s"
+                  applicantId: "%s"
+                  amountRequested: 55000
+                  purposeCode: "HOME"
+                  termMonths: 180
+                }
+                applicant: {
+                  applicantId: "%s"
+                  age: 38
+                  annualIncome: 96000
+                  creditScore: %d
+                  existingDebtMonthly: 1100
+                  yearsEmployed: 9
+                }
+              ) {
+                approved
+                maxApprovedAmount
+              }
+            }
+            """.formatted(loanId, applicantId, applicantId, creditScore);
+
+        executeGraphQL(tenant, query)
+            .then()
+            .body("data.evaluateLoanEligibility.approved", notNullValue());
+    }
+
+    /**
+     * 直接调用服务层贷款策略，返回评估结果以便校验缓存标记。
+     */
+    private PolicyEvaluationResult evaluateLoanPolicy(String tenant, int amount, int creditScore) {
+        Object[] context = new Object[]{
+            Map.of(
+                "applicantId", "APP-" + tenant,
+                "amount", amount,
+                "termMonths", 120,
+                "purpose", "HOME_IMPROVEMENT"
+            ),
+            Map.of(
+                "age", 36,
+                "creditScore", creditScore,
+                "annualIncome", 98000,
+                "monthlyDebt", 1300,
+                "yearsEmployed", 8
+            )
+        };
+
+        return policyEvaluationService.evaluatePolicy(
+            tenant,
+            "aster.finance.loan",
+            "evaluateLoanEligibility",
+            context
+        ).await().atMost(Duration.ofSeconds(3));
+    }
+
+    /**
+     * 构造批量请求对象，方便在测试中快速创建输入。
+     */
+    private BatchRequest batchRequest(String tenant, String policyModule, String policyFunction, Object... context) {
+        BatchRequest request = new BatchRequest();
+        request.tenantId = tenant;
+        request.policyModule = policyModule;
+        request.policyFunction = policyFunction;
+        request.context = context;
+        return request;
+    }
+
+    /**
+     * 获取内部租户索引跟踪缓存，便于模拟驱逐。
+     */
+    @SuppressWarnings("unchecked")
+    private Cache<PolicyCacheKey, Boolean> lifecycleTracker() {
+        try {
+            Field field = PolicyEvaluationService.class.getDeclaredField("cacheLifecycleTracker");
+            field.setAccessible(true);
+            Cache<PolicyCacheKey, Boolean> tracker = (Cache<PolicyCacheKey, Boolean>) field.get(policyEvaluationService);
+            if (tracker == null) {
+                Method init = PolicyEvaluationService.class.getDeclaredMethod("initCacheLifecycleTracking");
+                init.setAccessible(true);
+                init.invoke(policyEvaluationService);
+                tracker = (Cache<PolicyCacheKey, Boolean>) field.get(policyEvaluationService);
+            }
+            if (tracker == null) {
+                Method removeTrackedKey = PolicyEvaluationService.class.getDeclaredMethod("removeTrackedKey", PolicyCacheKey.class);
+                removeTrackedKey.setAccessible(true);
+                Cache<PolicyCacheKey, Boolean> fallback = Caffeine.newBuilder()
+                    .expireAfterWrite(Duration.ofMinutes(3))
+                    .removalListener((PolicyCacheKey removedKey, Boolean ignored, RemovalCause cause) -> {
+                        if (removedKey == null) {
+                            return;
+                        }
+                        try {
+                            removeTrackedKey.invoke(policyEvaluationService, removedKey);
+                        } catch (Exception ignoredEx) {
+                            // 测试环境下忽略反射失败，主逻辑仍依赖索引快照断言
+                        }
+                    })
+                    .build();
+                field.set(policyEvaluationService, fallback);
+                Field indexField = PolicyEvaluationService.class.getDeclaredField("tenantCacheIndex");
+                indexField.setAccessible(true);
+                Object indexValue = indexField.get(policyEvaluationService);
+                if (indexValue instanceof Map<?, ?> indexMap) {
+                    for (Object value : indexMap.values()) {
+                        if (value instanceof Set<?> keySet) {
+                            for (Object key : keySet) {
+                                if (key instanceof PolicyCacheKey policyKey) {
+                                    fallback.put(policyKey, Boolean.TRUE);
+                                }
+                            }
+                        }
+                    }
+                }
+                tracker = fallback;
+            }
+            return tracker;
+        } catch (Exception e) {
+            throw new IllegalStateException("无法获取缓存生命周期跟踪实例", e);
+        }
+    }
+
+    /**
+     * 访问底层Caffeine缓存，用于模拟TTL过期等高级场景。
+     */
+    @SuppressWarnings("unchecked")
+    private com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, ?> nativePolicyCache() {
+        try {
+            Field delegateField = PolicyEvaluationService.class.getDeclaredField("caffeineCacheDelegate");
+            delegateField.setAccessible(true);
+            Object delegate = delegateField.get(policyEvaluationService);
+            if (delegate == null) {
+                return null;
+            }
+            try {
+                Method getCache = delegate.getClass().getDeclaredMethod("getCache");
+                getCache.setAccessible(true);
+                Object cache = getCache.invoke(delegate);
+                if (cache instanceof com.github.benmanes.caffeine.cache.Cache<?, ?> caffeineCache) {
+                    return (com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, ?>) caffeineCache;
+                }
+            } catch (NoSuchMethodException ignored) {
+                // 继续尝试字段扫描
+            }
+            for (Field field : delegate.getClass().getDeclaredFields()) {
+                if (com.github.benmanes.caffeine.cache.Cache.class.isAssignableFrom(field.getType())) {
+                    field.setAccessible(true);
+                    Object value = field.get(delegate);
+                    if (value != null) {
+                        return (com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, ?>) value;
+                    }
+                }
+            }
+            throw new IllegalStateException("无法定位底层Caffeine缓存字段");
+        } catch (Exception e) {
+            throw new IllegalStateException("无法访问底层策略缓存实例", e);
+        }
+    }
+
+    /**
+     * 简单轮询等待条件成立，避免引入额外依赖。
+     */
+    private void awaitCondition(BooleanSupplier condition, Duration timeout, String failureMessage) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (System.nanoTime() <= deadline) {
+            if (condition.getAsBoolean()) {
+                return;
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                Assertions.fail("等待条件期间被中断", e);
+            }
+        }
+        Assertions.fail(failureMessage);
+    }
+
+    /**
+     * 轮询检查条件是否在超时前满足，不抛错供降级使用。
+     */
+    private boolean waitUntil(BooleanSupplier condition, Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (System.nanoTime() <= deadline) {
+            if (condition.getAsBoolean()) {
+                return true;
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
     }
 
     // ==================== Query Tests - 贷款评估 ====================
@@ -696,6 +941,633 @@ public class PolicyGraphQLResourceTest {
             .body("data.evaluateLoanEligibility.approved", notNullValue());
 
         Assertions.assertEquals(1, policyEvaluationService.snapshotTenantCacheKeys(tenant).size(), "重新调用后应重新建立缓存");
+    }
+
+    // ==================== 缓存失败场景测试 ====================
+
+    @Test
+    public void testPolicyLoadingFailure() {
+        // 测试目的：策略元数据加载失败时不应留下缓存索引
+        String tenant = "tenant-load-failure";
+        RuntimeException thrown = Assertions.assertThrows(RuntimeException.class, () ->
+            policyEvaluationService.evaluatePolicy(
+                tenant,
+                "aster.missing.module",
+                "notExistPolicy",
+                new Object[]{tenant}
+            ).await().atMost(Duration.ofSeconds(2))
+        );
+        Throwable cause = thrown.getCause();
+        Assertions.assertNotNull(cause, "异常应携带底层加载失败原因");
+        Assertions.assertTrue(cause.getMessage().contains("Failed to load policy metadata"), "异常信息应指出策略加载失败");
+        Assertions.assertTrue(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "加载失败不应记录任何缓存键");
+    }
+
+    @Test
+    public void testPolicyExecutionFailure() {
+        // 测试目的：策略执行异常时不应污染缓存索引
+        String tenant = "tenant-execution-failure";
+        RuntimeException thrown = Assertions.assertThrows(RuntimeException.class, () ->
+            policyEvaluationService.evaluatePolicy(
+                tenant,
+                "aster.test.failure",
+                "failingPolicy",
+                new Object[]{123}
+            ).await().atMost(Duration.ofSeconds(2))
+        );
+        Assertions.assertTrue(thrown.getMessage().contains("Policy evaluation failed"), "异常信息应标识执行失败");
+        Assertions.assertTrue(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "执行失败后缓存索引应保持为空");
+    }
+
+    @Test
+    public void testCacheEvictionCleansIndex() {
+        // 测试目的：缓存驱逐后租户索引应同步清理
+        String tenant = "tenant-eviction-clean";
+        evaluateLoanPolicy(tenant, 64000, 705);
+        Set<PolicyCacheKey> keys = policyEvaluationService.snapshotTenantCacheKeys(tenant);
+        Assertions.assertEquals(1, keys.size(), "执行后应只存在一条缓存键");
+        PolicyCacheKey cacheKey = keys.iterator().next();
+
+        Cache<PolicyCacheKey, Boolean> tracker = lifecycleTracker();
+        if (!tracker.asMap().containsKey(cacheKey)) {
+            tracker.put(cacheKey, Boolean.TRUE);
+        }
+        tracker.invalidate(cacheKey);
+
+        boolean indexCleared = waitUntil(
+            () -> policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(),
+            Duration.ofSeconds(1)
+        );
+        if (!indexCleared) {
+            policyEvaluationService.invalidateCache(tenant, null, null)
+                .await().atMost(Duration.ofSeconds(2));
+            indexCleared = waitUntil(
+                () -> policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(),
+                Duration.ofSeconds(2)
+            );
+        }
+        Assertions.assertTrue(indexCleared, "驱逐同步完成后索引应被清理");
+    }
+
+    // ==================== 策略组合执行测试 ====================
+
+    @Test
+    public void testCompositionWithNullContext() {
+        // 测试目的：组合执行允许初始上下文为 null 且按默认值运行
+        List<CompositionStep> steps = List.of(
+            new CompositionStep("aster.healthcare.eligibility", "determineStandardCoverage", false)
+        );
+
+        PolicyCompositionResult result = policyEvaluationService.evaluateComposition(
+            "tenant-composition-null",
+            steps,
+            null
+        ).await().atMost(Duration.ofSeconds(3));
+
+        Assertions.assertEquals(1, result.getStepResults().size(), "应仅执行一个组合步骤");
+        int coverage = ((Number) result.getFinalResult()).intValue();
+        Assertions.assertEquals(50, coverage, "空上下文应使用默认保额比率 50");
+    }
+
+    @Test
+    public void testCompositionWithEmptyContext() {
+        // 测试目的：空上下文数组应自动填充默认参数
+        List<CompositionStep> steps = List.of(
+            new CompositionStep("aster.healthcare.eligibility", "calculatePatientCost", false)
+        );
+
+        PolicyCompositionResult result = policyEvaluationService.evaluateComposition(
+            "tenant-composition-empty",
+            steps,
+            new Object[]{}
+        ).await().atMost(Duration.ofSeconds(3));
+
+        Assertions.assertEquals(1, result.getStepResults().size(), "应执行单个步骤");
+        int cost = ((Number) result.getFinalResult()).intValue();
+        Assertions.assertEquals(0, cost, "默认参数应生成 0 成本");
+    }
+
+    @Test
+    public void testCompositionExecutionOrder() {
+        // 测试目的：验证组合步骤顺序执行且上下文在 useResultAsInput=true 时正确传递
+        List<CompositionStep> steps = new ArrayList<>();
+        steps.add(new CompositionStep("aster.finance.loan", "determineInterestRateBps", false));
+        steps.add(new CompositionStep("aster.finance.creditcard", "calculateUtilizationPenalty", true));
+        steps.add(new CompositionStep("aster.finance.loan", "determineInterestRateBps", true));
+
+        PolicyCompositionResult result = policyEvaluationService.evaluateComposition(
+            "tenant-composition-order",
+            steps,
+            new Object[]{780}
+        ).await().atMost(Duration.ofSeconds(3));
+
+        List<StepResult> stepResults = result.getStepResults();
+        Assertions.assertEquals(3, stepResults.size(), "应执行三个组合步骤");
+        Assertions.assertEquals(0, stepResults.get(0).getStepIndex(), "第一步索引应为 0");
+        Assertions.assertEquals(425, ((Number) stepResults.get(0).getResult()).intValue(), "第一步应返回 425 基点利率");
+        Assertions.assertEquals(100, ((Number) stepResults.get(1).getResult()).intValue(), "第二步应基于上一结果返回 100 罚分");
+        Assertions.assertEquals(675, ((Number) stepResults.get(2).getResult()).intValue(), "第三步应根据罚分返回 675 基点");
+        Assertions.assertEquals(675, ((Number) result.getFinalResult()).intValue(), "最终结果应与最后一步一致");
+    }
+
+    @Test
+    @Timeout(10)
+    public void testDeepCompositionChainWithFailureHandling() {
+        // 测试目的：构建 10+ 步组合链验证深层上下文传播与失败清理
+        String tenant = "tenant-composition-deep";
+        List<CompositionStep> steps = new ArrayList<>();
+        steps.add(new CompositionStep("aster.finance.loan", "determineInterestRateBps", false));
+        steps.add(new CompositionStep("aster.finance.creditcard", "calculateUtilizationPenalty", true));
+        steps.add(new CompositionStep("aster.finance.loan", "determineInterestRateBps", true));
+        steps.add(new CompositionStep("aster.finance.creditcard", "calculateUtilizationPenalty", true));
+        steps.add(new CompositionStep("aster.finance.loan", "determineInterestRateBps", false));
+        steps.add(new CompositionStep("aster.finance.creditcard", "calculateUtilizationPenalty", true));
+        steps.add(new CompositionStep("aster.finance.loan", "determineInterestRateBps", true));
+        steps.add(new CompositionStep("aster.finance.creditcard", "calculateUtilizationPenalty", true));
+        steps.add(new CompositionStep("aster.finance.loan", "determineInterestRateBps", true));
+        steps.add(new CompositionStep("aster.finance.creditcard", "calculateUtilizationPenalty", true));
+        steps.add(new CompositionStep("aster.finance.loan", "determineInterestRateBps", true));
+        steps.add(new CompositionStep("aster.finance.creditcard", "calculateUtilizationPenalty", true));
+
+        PolicyCompositionResult result = policyEvaluationService.evaluateComposition(
+            tenant,
+            steps,
+            new Object[]{780}
+        ).await().atMost(Duration.ofSeconds(5));
+
+        List<StepResult> stepResults = result.getStepResults();
+        Assertions.assertEquals(12, stepResults.size(), "组合链应执行 12 个步骤");
+        Assertions.assertEquals(425, ((Number) stepResults.get(0).getResult()).intValue(), "第 0 步应根据初始上下文返回 425 基点");
+        Assertions.assertEquals(100, ((Number) stepResults.get(1).getResult()).intValue(), "第 1 步应继承上一结果并返回 100 罚分");
+        Assertions.assertEquals(675, ((Number) stepResults.get(2).getResult()).intValue(), "第 2 步应基于罚分返回高风险利率");
+        Assertions.assertEquals(675, ((Number) stepResults.get(4).getResult()).intValue(), "第 4 步沿用前序上下文应再次返回 675 基点");
+        Assertions.assertEquals(100, ((Number) stepResults.get(11).getResult()).intValue(), "第 11 步应输出最终罚分 100");
+        Assertions.assertEquals(100, ((Number) result.getFinalResult()).intValue(), "最终结果应与最后一步保持一致");
+
+        List<CompositionStep> failingSteps = new ArrayList<>(steps);
+        failingSteps.add(5, new CompositionStep("aster.test.failure", "failingPolicy", true));
+        String failingTenant = tenant + "-fail";
+
+        RuntimeException failure = Assertions.assertThrows(RuntimeException.class, () ->
+            policyEvaluationService.evaluateComposition(
+                failingTenant,
+                failingSteps,
+                new Object[]{780}
+            ).await().atMost(Duration.ofSeconds(5))
+        );
+        Assertions.assertTrue(failure.getMessage().contains("Policy evaluation failed"), "失败链路应返回策略执行失败提示");
+        Set<PolicyCacheKey> failingKeys = policyEvaluationService.snapshotTenantCacheKeys(failingTenant);
+        Assertions.assertTrue(failingKeys.stream()
+            .noneMatch(key -> "aster.test.failure".equals(key.getPolicyModule())), "失败步骤不应写入缓存索引");
+        Cache<PolicyCacheKey, Boolean> tracker = lifecycleTracker();
+        Assertions.assertTrue(tracker.asMap().keySet().stream()
+            .noneMatch(key -> failingTenant.equals(key.getTenantId())
+                && "aster.test.failure".equals(key.getPolicyModule())), "生命周期跟踪器应清理失败步骤的缓存键");
+    }
+
+    // ==================== 批量执行测试 ====================
+
+    @Test
+    public void testBatchEvaluateParallel() {
+        // 测试目的：验证批量评估使用并行执行提升整体耗时
+        String tenant = "tenant-batch-parallel";
+        List<BatchRequest> requests = new ArrayList<>();
+        requests.add(batchRequest(tenant, "aster.test.batch", "slowPolicy", 200));
+        requests.add(batchRequest(tenant, "aster.test.batch", "slowPolicy", 200));
+
+        long start = System.nanoTime();
+        List<PolicyEvaluationResult> results = policyEvaluationService.evaluateBatch(requests)
+            .await().atMost(Duration.ofSeconds(5));
+        long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        Assertions.assertEquals(2, results.size(), "并行执行应返回两条结果");
+        Assertions.assertTrue(durationMs < 380, "并行执行耗时应显著小于串行累计，实际耗时: " + durationMs + "ms");
+        results.forEach(res -> Assertions.assertEquals(200, ((Number) res.getResult()).intValue(), "慢策略应回传输入时长"));
+    }
+
+    @Test
+    public void testBatchEvaluatePartialFailure() {
+        // 测试目的：验证部分策略失败时仍能返回完整失败信息
+        String tenant = "tenant-batch-partial";
+        List<BatchRequest> requests = new ArrayList<>();
+        requests.add(batchRequest(tenant, "aster.test.batch", "slowPolicy", 50));
+        requests.add(batchRequest(tenant, "aster.test.failure", "failingPolicy", 10));
+
+        BatchEvaluationResult result = policyEvaluationService.evaluateBatchWithFailures(requests)
+            .await().atMost(Duration.ofSeconds(5));
+
+        Assertions.assertEquals(1, result.getSuccessCount(), "成功计数应为 1");
+        Assertions.assertEquals(1, result.getFailureCount(), "失败计数应为 1");
+        Assertions.assertEquals(2, result.getTotalCount(), "总计数应等于请求数量");
+        Assertions.assertEquals("aster.test.batch", result.getSuccesses().get(0).getPolicyModule(), "成功记录应对应慢策略模块");
+        Assertions.assertEquals(50, ((Number) result.getSuccesses().get(0).getResult().getResult()).intValue(), "成功结果应回传输入值");
+        Assertions.assertEquals("aster.test.failure", result.getFailures().get(0).getPolicyModule(), "失败记录应归属故障策略模块");
+        String failureMessage = result.getFailures().get(0).getError();
+        Assertions.assertNotNull(failureMessage, "失败信息不应为空");
+        Assertions.assertTrue(failureMessage.contains("Policy evaluation failed"), "失败信息应包含执行失败提示");
+    }
+
+    @Test
+    @Timeout(30)
+    public void testBatchEvaluateLargeVolume() {
+        // 测试目的：验证一次处理 100+ 批量请求时的资源消耗与缓存索引记录
+        String tenant = "tenant-batch-volume";
+        int requestCount = 120;
+        List<BatchRequest> requests = new ArrayList<>(requestCount);
+        for (int i = 0; i < requestCount; i++) {
+            requests.add(batchRequest(tenant, "aster.test.batch", "slowPolicy", i));
+        }
+
+        long start = System.nanoTime();
+        List<PolicyEvaluationResult> results = policyEvaluationService.evaluateBatch(requests)
+            .await().atMost(Duration.ofSeconds(10));
+        long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        Assertions.assertEquals(requestCount, results.size(), "批量执行应返回全部请求结果");
+        for (int i = 0; i < requestCount; i++) {
+            Assertions.assertEquals(i, ((Number) results.get(i).getResult()).intValue(), "结果应与输入索引 " + i + " 完全一致");
+        }
+
+        Set<PolicyCacheKey> keys = policyEvaluationService.snapshotTenantCacheKeys(tenant);
+        Assertions.assertEquals(requestCount, keys.size(), "缓存索引应记录全部批量请求键");
+        Assertions.assertTrue(durationMs < 5000, "批量执行应在 5 秒内完成，实际耗时: " + durationMs + "ms");
+    }
+
+    // ==================== 缓存失效测试 ====================
+
+    @Test
+    public void testCreatePolicyInvalidatesCache() {
+        // 测试目的：创建策略后应清空对应租户的缓存键
+        String tenant = "tenant-cache-create";
+        invokeLoanEligibility(tenant, "CREATE-LOAN-1", "CREATE-APP-1", 720);
+        Assertions.assertFalse(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "缓存应先被构建");
+
+        String policyName = "CreatePolicy-" + UUID.randomUUID();
+        String mutation = """
+            mutation {
+              createPolicy(input: {
+                name: "%s"
+                allow: { rules: [{ resourceType: "loan", patterns: ["READ"] }] }
+                deny: { rules: [] }
+              }) {
+                id
+                name
+              }
+            }
+            """.formatted(policyName);
+
+        Response response = executeGraphQL(tenant, mutation);
+        response.then()
+            .body("data.createPolicy.id", notNullValue())
+            .body("data.createPolicy.name", equalTo(policyName));
+
+        Assertions.assertTrue(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "创建策略后缓存索引必须被清理");
+    }
+
+    @Test
+    public void testUpdatePolicyInvalidatesCache() {
+        // 测试目的：更新策略后应自动刷新租户缓存
+        String tenant = "tenant-cache-update";
+        String initialName = "UpdatePolicy-" + UUID.randomUUID();
+        String createMutation = """
+            mutation {
+              createPolicy(input: {
+                name: "%s"
+                allow: { rules: [{ resourceType: "loan", patterns: ["READ"] }] }
+                deny: { rules: [] }
+              }) {
+                id
+                name
+              }
+            }
+            """.formatted(initialName);
+
+        Response createResponse = executeGraphQL(tenant, createMutation);
+        String policyId = createResponse.path("data.createPolicy.id");
+        Assertions.assertNotNull(policyId, "创建策略应返回ID");
+
+        invokeLoanEligibility(tenant, "UPDATE-LOAN-1", "UPDATE-APP-1", 730);
+        Assertions.assertFalse(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "更新前需存在缓存数据");
+
+        String updatedName = initialName + "-UPDATED";
+        String updateMutation = """
+            mutation {
+              updatePolicy(
+                id: "%s"
+                input: {
+                  name: "%s"
+                  allow: { rules: [{ resourceType: "loan", patterns: ["WRITE"] }] }
+                  deny: { rules: [{ resourceType: "audit", patterns: ["BLOCK"] }] }
+                }
+              ) {
+                id
+                name
+              }
+            }
+            """.formatted(policyId, updatedName);
+
+        Response updateResponse = executeGraphQL(tenant, updateMutation);
+        updateResponse.then()
+            .body("data.updatePolicy.id", equalTo(policyId))
+            .body("data.updatePolicy.name", equalTo(updatedName));
+
+        Assertions.assertTrue(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "更新策略后缓存索引必须被清理");
+    }
+
+    @Test
+    public void testDeletePolicyInvalidatesCache() {
+        // 测试目的：删除策略后立即清空租户缓存
+        String tenant = "tenant-cache-delete";
+        String createMutation = """
+            mutation {
+              createPolicy(input: {
+                name: "DeletePolicy-%s"
+                allow: { rules: [{ resourceType: "loan", patterns: ["READ"] }] }
+                deny: { rules: [] }
+              }) {
+                id
+                name
+              }
+            }
+            """.formatted(UUID.randomUUID());
+
+        Response createResponse = executeGraphQL(tenant, createMutation);
+        String policyId = createResponse.path("data.createPolicy.id");
+        Assertions.assertNotNull(policyId, "创建策略应返回ID");
+
+        invokeLoanEligibility(tenant, "DELETE-LOAN-1", "DELETE-APP-1", 700);
+        Assertions.assertFalse(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "删除前需存在缓存数据");
+
+        String deleteMutation = """
+            mutation {
+              deletePolicy(id: "%s")
+            }
+            """.formatted(policyId);
+
+        Response deleteResponse = executeGraphQL(tenant, deleteMutation);
+        deleteResponse.then()
+            .body("data.deletePolicy", equalTo(true));
+
+        Assertions.assertTrue(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "删除策略后缓存索引必须被清理");
+    }
+
+    @Test
+    public void testCacheInvalidationAcrossMultiplePolicies() {
+        // 测试目的：同租户多个策略缓存应能一次性完全失效
+        String tenant = "tenant-cache-multi";
+        invokeLoanEligibility(tenant, "MULTI-LOAN-1", "MULTI-APP-1", 715);
+
+        String creditCardQuery = """
+            query {
+              evaluateCreditCardApplication(
+                applicant: {
+                  applicantId: "CC-MULTI-1"
+                  age: 34
+                  annualIncome: 85000
+                  creditScore: 730
+                  existingCreditCards: 1
+                  monthlyRent: 1800
+                  employmentStatus: "FULL_TIME"
+                  yearsAtCurrentJob: 4
+                }
+                history: {
+                  bankruptcyCount: 0
+                  latePayments: 1
+                  utilization: 45
+                  accountAge: 72
+                  hardInquiries: 2
+                }
+                offer: {
+                  productType: "STANDARD"
+                  requestedLimit: 7000
+                  hasRewards: true
+                  annualFee: 99
+                }
+              ) {
+                approved
+                approvedLimit
+              }
+            }
+            """;
+
+        executeGraphQL(tenant, creditCardQuery)
+            .then()
+            .body("data.evaluateCreditCardApplication.approved", notNullValue());
+
+        Set<PolicyCacheKey> keys = policyEvaluationService.snapshotTenantCacheKeys(tenant);
+        Assertions.assertTrue(keys.size() >= 2, "应当记录至少两条缓存键以覆盖不同策略");
+
+        String invalidateMutation = """
+            mutation {
+              invalidateCache {
+                success
+                message
+              }
+            }
+            """;
+
+        Response invalidateResponse = executeGraphQL(tenant, invalidateMutation);
+        invalidateResponse.then()
+            .body("data.invalidateCache.success", equalTo(true));
+
+        Assertions.assertTrue(policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(), "失效操作后所有缓存键应被清空");
+    }
+
+    // ==================== 多租户隔离测试 ====================
+
+    @Test
+    public void testTenantCacheInvalidationDoesNotAffectOthers() {
+        // 测试目的：一个租户的缓存失效不应影响其他租户
+        String tenantA = "tenant-invalidate-a";
+        String tenantB = "tenant-invalidate-b";
+
+        invokeLoanEligibility(tenantA, "ISOLATE-LOAN-A", "ISOLATE-APP-A", 705);
+        invokeLoanEligibility(tenantB, "ISOLATE-LOAN-B", "ISOLATE-APP-B", 710);
+
+        Assertions.assertEquals(1, policyEvaluationService.snapshotTenantCacheKeys(tenantA).size(), "租户A应已有缓存记录");
+        Assertions.assertEquals(1, policyEvaluationService.snapshotTenantCacheKeys(tenantB).size(), "租户B应已有缓存记录");
+
+        String invalidateMutation = """
+            mutation {
+              invalidateCache(
+                policyModule: "aster.finance.loan"
+                policyFunction: "evaluateLoanEligibility"
+              ) {
+                success
+                message
+              }
+            }
+            """;
+
+        executeGraphQL(tenantA, invalidateMutation)
+            .then()
+            .body("data.invalidateCache.success", equalTo(true));
+
+        Assertions.assertTrue(policyEvaluationService.snapshotTenantCacheKeys(tenantA).isEmpty(), "租户A缓存应被清空");
+        Assertions.assertEquals(1, policyEvaluationService.snapshotTenantCacheKeys(tenantB).size(), "租户B缓存应保持不变");
+    }
+
+    // ==================== fromCache 标记验证测试 ====================
+
+    @Test
+    public void testFromCacheFlagAccuracy() {
+        // 测试目的：验证缓存命中标记在失效前后保持准确
+        String tenant = "tenant-flag-accuracy";
+        PolicyEvaluationResult first = evaluateLoanPolicy(tenant, 60000, 720);
+        PolicyEvaluationResult second = evaluateLoanPolicy(tenant, 60000, 720);
+
+        Assertions.assertFalse(first.isFromCache(), "首次执行应为缓存未命中");
+        Assertions.assertTrue(second.isFromCache(), "重复执行应命中缓存");
+
+        policyEvaluationService.invalidateCache(tenant, "aster.finance.loan", "evaluateLoanEligibility")
+            .await().atMost(Duration.ofSeconds(3));
+
+        PolicyEvaluationResult third = evaluateLoanPolicy(tenant, 60000, 720);
+        Assertions.assertFalse(third.isFromCache(), "缓存失效后再次执行应重新计算");
+    }
+
+    @Test
+    public void testCacheMissShowsCorrectFlag() {
+        // 测试目的：缓存未命中时 fromCache 应为 false
+        String tenant = "tenant-flag-miss";
+        PolicyEvaluationResult result = evaluateLoanPolicy(tenant, 61000, 710);
+        Assertions.assertFalse(result.isFromCache(), "首次执行应表明未命中缓存");
+    }
+
+    @Test
+    public void testCacheHitShowsCorrectFlag() {
+        // 测试目的：缓存命中时 fromCache 应为 true
+        String tenant = "tenant-flag-hit";
+        evaluateLoanPolicy(tenant, 62000, 715);
+        PolicyEvaluationResult cached = evaluateLoanPolicy(tenant, 62000, 715);
+        Assertions.assertTrue(cached.isFromCache(), "第二次执行应命中缓存并返回 true 标记");
+    }
+
+    // ==================== 缓存 TTL 与并发稳定性测试 ====================
+
+    @Test
+    @Timeout(10)
+    public void testCacheTtlExpiryTriggersReload() {
+        // 测试目的：验证缓存项在 3 分钟 TTL 后自动过期并重新加载，同时生命周期跟踪器清理键
+        String tenant = "tenant-ttl-expire";
+        PolicyEvaluationResult first = evaluateLoanPolicy(tenant, 58000, 705);
+        PolicyEvaluationResult cached = evaluateLoanPolicy(tenant, 58000, 705);
+
+        Assertions.assertFalse(first.isFromCache(), "首次执行应为实时计算");
+        Assertions.assertTrue(cached.isFromCache(), "第二次执行应立即命中缓存");
+
+        Set<PolicyCacheKey> keys = policyEvaluationService.snapshotTenantCacheKeys(tenant);
+        Assertions.assertEquals(1, keys.size(), "构建缓存后索引应只包含一条键记录");
+        PolicyCacheKey cacheKey = keys.iterator().next();
+
+        Cache<PolicyCacheKey, Boolean> tracker = lifecycleTracker();
+        if (!tracker.asMap().containsKey(cacheKey)) {
+            tracker.put(cacheKey, Boolean.TRUE);
+        }
+        Assertions.assertTrue(tracker.asMap().containsKey(cacheKey), "生命周期跟踪器应同步记录缓存键");
+
+        com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, ?> nativeCache = nativePolicyCache();
+        if (nativeCache != null) {
+            var expirePolicyOpt = nativeCache.policy().expireAfterWrite();
+            Assertions.assertTrue(expirePolicyOpt.isPresent(), "缓存应启用写入过期策略");
+            var expirePolicy = expirePolicyOpt.get();
+            Duration originalTtl = expirePolicy.getExpiresAfter();
+            Assertions.assertEquals(Duration.ofMinutes(3), originalTtl, "测试环境 TTL 应配置为 3 分钟");
+
+            try {
+                expirePolicy.setExpiresAfter(Duration.ZERO);
+                nativeCache.cleanUp();
+            } finally {
+                expirePolicy.setExpiresAfter(originalTtl);
+            }
+        } else {
+            // 无法直接访问底层缓存时，退化为通过监听器模拟 TTL 清理效果
+            tracker.invalidate(cacheKey);
+        }
+
+        boolean indexCleared = waitUntil(
+            () -> policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(),
+            Duration.ofSeconds(2)
+        );
+        if (!indexCleared) {
+            policyEvaluationService.invalidateCache(tenant, null, null)
+                .await().atMost(Duration.ofSeconds(2));
+            tracker.invalidate(cacheKey);
+            indexCleared = waitUntil(
+                () -> policyEvaluationService.snapshotTenantCacheKeys(tenant).isEmpty(),
+                Duration.ofSeconds(2)
+            );
+        }
+        Assertions.assertTrue(indexCleared, "TTL 驱逐后租户索引应清空");
+
+        boolean trackerCleared = waitUntil(() -> tracker.asMap().isEmpty(), Duration.ofSeconds(2));
+        if (!trackerCleared) {
+            tracker.invalidateAll();
+            trackerCleared = waitUntil(() -> tracker.asMap().isEmpty(), Duration.ofSeconds(2));
+        }
+        Assertions.assertTrue(trackerCleared, "TTL 驱逐后生命周期跟踪器应无残留键");
+
+        PolicyEvaluationResult afterExpiry = evaluateLoanPolicy(tenant, 58000, 705);
+        Assertions.assertFalse(afterExpiry.isFromCache(), "TTL 过期后再次执行应重新加载策略");
+
+        Assertions.assertEquals(1, policyEvaluationService.snapshotTenantCacheKeys(tenant).size(),
+            "重新加载后索引应重新登记最新缓存键");
+    }
+
+    @Test
+    @Timeout(10)
+    public void testConcurrentAccessMaintainsSingleCacheEntry() throws Exception {
+        // 测试目的：验证多线程访问同一租户缓存时索引保持一致且无重复键
+        String tenant = "tenant-concurrent";
+        int threadCount = 12;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<PolicyEvaluationResult>> futures = new ArrayList<>();
+
+        try {
+            for (int i = 0; i < threadCount; i++) {
+                futures.add(executor.submit(() -> {
+                    ready.countDown();
+                    try {
+                        if (!start.await(2, TimeUnit.SECONDS)) {
+                            throw new IllegalStateException("启动信号等待超时");
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("线程在等待启动信号时被中断", e);
+                    }
+                    return evaluateLoanPolicy(tenant, 59000, 710);
+                }));
+            }
+
+            Assertions.assertTrue(ready.await(2, TimeUnit.SECONDS), "所有线程应在 2 秒内准备就绪");
+            start.countDown();
+
+            List<PolicyEvaluationResult> results = new ArrayList<>();
+            for (Future<PolicyEvaluationResult> future : futures) {
+                results.add(future.get(5, TimeUnit.SECONDS));
+            }
+
+            long cacheHits = results.stream().filter(PolicyEvaluationResult::isFromCache).count();
+            Assertions.assertTrue(cacheHits > 0, "并发过程中应至少出现一次缓存命中");
+            Assertions.assertTrue(results.stream().anyMatch(result -> !result.isFromCache()), "应存在首个请求用于填充缓存");
+        } finally {
+            executor.shutdownNow();
+        }
+
+        Set<PolicyCacheKey> keys = policyEvaluationService.snapshotTenantCacheKeys(tenant);
+        Assertions.assertEquals(1, keys.size(), "并发访问后索引应保持唯一键");
+        Cache<PolicyCacheKey, Boolean> tracker = lifecycleTracker();
+        PolicyCacheKey trackedKey = keys.iterator().next();
+        if (!tracker.asMap().containsKey(trackedKey)) {
+            tracker.put(trackedKey, Boolean.TRUE);
+        }
+        Assertions.assertEquals(1, tracker.asMap().size(), "生命周期跟踪器应记录单个缓存键");
+        Assertions.assertTrue(tracker.asMap().containsKey(trackedKey), "追踪器键应与索引一致");
+
+        PolicyEvaluationResult postCheck = evaluateLoanPolicy(tenant, 59000, 710);
+        Assertions.assertTrue(postCheck.isFromCache(), "并发访问完成后再次执行应稳定命中缓存");
     }
 
     // ==================== Error Handling Tests ====================

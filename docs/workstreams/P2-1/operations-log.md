@@ -101,3 +101,15 @@
 | 2025-10-14 10:27 | apply_patch | 更新 p2-1 实施日志 | 记录阶段性变更 |
 | 2025-10-14 10:29 | shell (gradlew build) | - | 失败：缺少 UndertowDeploymentInfoCustomizerBuildItem |
 | 2025-10-14 10:29 | shell (git status -sb) | - | 查看当前改动概况 |
+| 2025-10-16 15:49 | sequential-thinking | totalThoughts=6 | 梳理缓存TTL、并发、批量与组合测试扩展方案 |
+| 2025-10-16 15:49 | code-index__set_project_path | path=. | 定位项目根目录，索引 830 个文件 |
+| 2025-10-16 15:49 | code-index__find_files | **/PolicyGraphQLResourceTest.java | 找到 GraphQL 测试主文件 |
+| 2025-10-16 15:49 | code-index__build_deep_index | - | 重建深度索引供结构分析 |
+| 2025-10-16 15:50 | code-index__get_file_summary | PolicyGraphQLResourceTest.java | 获取测试文件结构概况 |
+| 2025-10-16 15:50 | shell (sed/rg) | 查看 PolicyGraphQLResourceTest.java 关键片段 | 收集现有缓存与组合测试上下文 |
+| 2025-10-16 15:50 | shell (sed) | PolicyEvaluationService.java 相关段落 | 理解缓存生命周期与批量执行实现 |
+| 2025-10-16 15:50 | shell (cat) | application.properties | 确认缓存 TTL 与容量配置 |
+| 2025-10-16 16:03 | apply_patch | 新增 quarkus-policy-api/src/test/resources/application.properties | 测试环境覆盖策略缓存 TTL |
+| 2025-10-16 16:03 | apply_patch | 更新 PolicyGraphQLResourceTest.java | 添加 TTL、并发、批量与复杂组合测试 |
+| 2025-10-16 16:03 | shell (./gradlew :quarkus-policy-api:cleanTest) | - | 清理上一轮测试产物 |
+| 2025-10-16 16:03 | shell (./gradlew :quarkus-policy-api:test) | - | quarkus-policy-api 模块测试全部通过 |
