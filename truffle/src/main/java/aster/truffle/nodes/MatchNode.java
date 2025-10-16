@@ -1,5 +1,6 @@
 package aster.truffle.nodes;
 
+import aster.truffle.runtime.AsterConfig;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
@@ -17,12 +18,12 @@ public final class MatchNode extends Node {
   public Object execute(VirtualFrame frame) {
     Profiler.inc("match");
     Object s = Exec.exec(scrutinee, frame);
-    if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+    if (AsterConfig.DEBUG) {
       System.err.println("DEBUG: match scrutinee=" + s);
     }
     for (CaseNode c : cases) {
       if (c.matchesAndBind(s, env)) {
-        if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+        if (AsterConfig.DEBUG) {
           System.err.println("DEBUG: case matched");
         }
         return c.execute(frame);

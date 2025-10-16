@@ -1,5 +1,6 @@
 package aster.truffle.nodes;
 
+import aster.truffle.runtime.AsterConfig;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.*;
@@ -8,7 +9,9 @@ public final class LambdaValue {
   private final Env env;
   private final List<String> params;
   private final Map<String,Object> captures;
-  @Node.Child
+  // Note: LambdaValue is a runtime value object, not a Node subclass.
+  // The body Node is stored as-is without @Child annotation.
+  // TODO: Refactor to use CallTarget for proper Truffle integration.
   private Node body;
 
   public LambdaValue(Env env, List<String> params, Map<String,Object> captures, Node body) {
@@ -20,7 +23,7 @@ public final class LambdaValue {
 
   public Object apply(Object[] args, VirtualFrame frame) {
     Profiler.inc("lambda_apply");
-    if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+    if (AsterConfig.DEBUG) {
       System.err.println("DEBUG: lambda_apply params=" + params + ", captures=" + captures);
     }
     // Save previous values
@@ -41,7 +44,7 @@ public final class LambdaValue {
       // Execute body; return first Return value or null
       try {
         Object v = Exec.exec(body, frame);
-        if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+        if (AsterConfig.DEBUG) {
           System.err.println("DEBUG: lambda body returned=" + v);
         }
         return v;

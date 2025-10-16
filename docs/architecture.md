@@ -371,7 +371,7 @@ function reattachInlineComments(
 
 #### 输入（含注释）
 
-```aster
+```typescript
 This module is demo.comments.
 
 # Standalone comment at top
@@ -393,7 +393,7 @@ To greet with name: Text, produce Text: // inline comment after header
 
 #### 输出（保留注释）
 
-```aster
+```typescript
 # Standalone comment at top
 This module is demo.comments.
 
@@ -693,7 +693,7 @@ case 'Block':
 
 #### 正常场景：单个 Start-Wait 对
 
-```aster
+```typescript
 To fetchData with u: User, produce Text. It performs io:
   Start profile as async fetchProfile(u.id).
   Wait for profile.
@@ -707,7 +707,7 @@ To fetchData with u: User, produce Text. It performs io:
 
 #### 错误场景1：Start 未 Wait
 
-```aster
+```typescript
 To fetchData with u: User, produce Text. It performs io:
   Start profile as async fetchProfile(u.id).
   Return "Done".  // 忘记 Wait
@@ -724,7 +724,7 @@ error[ASYNC_START_NOT_WAITED]: Async task "profile" was started but not waited
 
 #### 错误场景2：Wait 未 Start
 
-```aster
+```typescript
 To fetchData with u: User, produce Text. It performs io:
   Wait for profile.  // 从未 Start
   Return "Done".
@@ -741,7 +741,7 @@ error[ASYNC_WAIT_NOT_STARTED]: Async task "profile" was never started
 
 #### 错误场景3：重复 Start
 
-```aster
+```typescript
 To fetchData with u: User, produce Text. It performs io:
   Start profile as async fetchProfile(u.id).
   Start profile as async fetchProfile(u.id).  // 重复启动
@@ -757,7 +757,7 @@ error[ASYNC_DUPLICATE_START]: Async task "profile" was started multiple times (2
 
 #### 错误场景4：重复 Wait（警告）
 
-```aster
+```typescript
 To fetchData with u: User, produce Text. It performs io:
   Start profile as async fetchProfile(u.id).
   Wait for profile.
@@ -773,7 +773,7 @@ warning[ASYNC_DUPLICATE_WAIT]: Async task "profile" was waited multiple times (2
 
 #### 混合错误场景
 
-```aster
+```typescript
 To fetchData with u: User, produce Text. It performs io:
   Start profile as async fetchProfile(u.id).
   Start profile as async fetchProfile(u.id).  // 错误1：重复 Start
@@ -810,7 +810,7 @@ warning[ASYNC_DUPLICATE_WAIT]: Async task "profile" was waited multiple times (2
 
 **权衡**：
 - 可能产生误报，例如：
-  ```aster
+  ```typescript
   If condition,:
     Start task1 as async foo().
   Otherwise,:

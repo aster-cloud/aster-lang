@@ -1,5 +1,6 @@
 package aster.truffle.nodes;
 
+import aster.truffle.runtime.AsterConfig;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
@@ -12,7 +13,7 @@ public final class LetNode extends Node {
     Profiler.inc("let");
     Object v = Exec.exec(init, frame);
     env.set(name, v);
-    if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+    if (AsterConfig.DEBUG) {
       System.err.println("DEBUG: let " + name + "=" + v);
     }
     return v;

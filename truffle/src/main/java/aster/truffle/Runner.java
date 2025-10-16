@@ -1,4 +1,5 @@
 package aster.truffle;
+import aster.truffle.runtime.AsterConfig;
 
 import aster.truffle.nodes.*;
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -8,7 +9,7 @@ public final class Runner {
     if (args.length > 0) {
       var loader = new Loader();
       // Parse optional function selection flags from args after the JSON path
-      String funcName = System.getenv("ASTER_TRUFFLE_FUNC");
+      String funcName = AsterConfig.DEFAULT_FUNCTION;
       java.util.List<String> argList = new java.util.ArrayList<>(java.util.Arrays.asList(args));
       java.io.File f = new java.io.File(argList.get(0));
       // Support --func=<name>, --fn=<name>, --entry=<name>, or --func <name>
@@ -34,7 +35,7 @@ public final class Runner {
           if (f2.exists()) f = f2;
         }
       }
-      if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+      if (AsterConfig.DEBUG) {
         System.err.println("DEBUG: input=" + f.getAbsolutePath());
       }
       // Build program with possible overload resolution using remaining CLI args
@@ -50,7 +51,7 @@ public final class Runner {
       }
       try {
         Object v = Exec.exec(program.root, null);
-        if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+        if (AsterConfig.DEBUG) {
           System.err.println("DEBUG: v=" + v + ", x=" + program.env.get("x") + ", o=" + program.env.get("o"));
         }
         if (v != null) {
@@ -67,7 +68,7 @@ public final class Runner {
           }
         }
       } catch (ReturnNode.ReturnException rex) { System.out.println(rex.value); }
-      if (System.getenv("ASTER_TRUFFLE_PROFILE") != null) {
+      if (AsterConfig.PROFILE) {
         System.out.print(aster.truffle.nodes.Profiler.dump());
       }
       return;

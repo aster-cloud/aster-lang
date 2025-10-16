@@ -1,5 +1,6 @@
 package aster.truffle.nodes;
 
+import aster.truffle.runtime.AsterConfig;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
@@ -22,7 +23,7 @@ public final class CallNode extends Node {
   public Object execute(VirtualFrame frame) {
     Profiler.inc("call");
     Object t = Exec.exec(target, frame);
-    if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+    if (AsterConfig.DEBUG) {
       System.err.println("DEBUG: call target=" + t + " (" + (t==null?"null":t.getClass().getName()) + ")");
     }
 
@@ -30,7 +31,7 @@ public final class CallNode extends Node {
     if (t instanceof LambdaValue lv) {
       Object[] av = new Object[args.length];
       for (int i = 0; i < args.length; i++) av[i] = Exec.exec(args[i], frame);
-      if (System.getenv("ASTER_TRUFFLE_DEBUG") != null) {
+      if (AsterConfig.DEBUG) {
         System.err.println("DEBUG: call args=" + java.util.Arrays.toString(av));
       }
       return lv.apply(av, frame);
