@@ -42,8 +42,11 @@ dependencies {
 
     // 测试依赖
     testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation("io.quarkus:quarkus-junit5-mockito")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.smallrye.reactive:smallrye-mutiny-vertx-junit5")
+    testImplementation("org.assertj:assertj-core:3.26.0")
+    testImplementation("org.mockito:mockito-core:5.7.0")
 }
 
 tasks.withType<JavaCompile>().configureEach {

@@ -2,6 +2,8 @@ package io.aster.policy.api;
 
 import io.aster.policy.api.cache.PolicyCacheManager;
 import io.aster.policy.api.convert.PolicyTypeConverter;
+import io.aster.policy.api.metadata.ConstructorMetadataCache;
+import io.aster.policy.api.metadata.PolicyMetadataLoader;
 import io.aster.policy.api.model.BatchEvaluationResult;
 import io.aster.policy.api.model.BatchRequest;
 import io.aster.policy.api.model.CompositionStep;
@@ -19,14 +21,10 @@ import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.logging.Logger;
 
@@ -46,11 +44,13 @@ public class PolicyEvaluationService {
     @Inject
     PolicyTypeConverter policyTypeConverter;
 
-    private static final Logger LOG = Logger.getLogger(PolicyEvaluationService.class);
+    @Inject
+    PolicyMetadataLoader policyMetadataLoader;
 
-    // Cache for compiled policy metadata (avoids repeated reflection)
-    private final ConcurrentHashMap<String, PolicyMetadata> metadataCache = new ConcurrentHashMap<>();
-    // constructor metadata cache moved to PolicyTypeConverter
+    @Inject
+    ConstructorMetadataCache constructorMetadataCache;
+
+    private static final Logger LOG = Logger.getLogger(PolicyEvaluationService.class);
 
     /**
      * 评估策略（带缓存，reactive版本，优化了反射性能）
@@ -93,10 +93,8 @@ public class PolicyEvaluationService {
             try {
                 long startTime = System.nanoTime();
 
-                // Get or load policy metadata (cached)
-                String metadataKey = cacheKey.getPolicyModule() + "." + cacheKey.getPolicyFunction();
-                PolicyMetadata metadata = metadataCache.computeIfAbsent(metadataKey,
-                    key -> loadPolicyMetadata(cacheKey.getPolicyModule(), cacheKey.getPolicyFunction()));
+                // 获取策略元数据（委托给加载器处理缓存）
+                PolicyMetadata metadata = loadPolicyMetadata(cacheKey.getPolicyModule(), cacheKey.getPolicyFunction());
 
                 // 准备参数
                 Object[] args = policyTypeConverter.prepareArguments(metadata.getParameters(), cacheKey.getContext());
@@ -121,38 +119,8 @@ public class PolicyEvaluationService {
      * 加载策略元数据（仅首次调用时执行）
      */
     private PolicyMetadata loadPolicyMetadata(String policyModule, String policyFunction) {
-        try {
-            // 动态加载策略类
-            String className = policyModule + "." + policyFunction + "_fn";
-            Class<?> policyClass = Class.forName(className);
-
-            // 查找函数方法
-            Method functionMethod = null;
-            for (Method m : policyClass.getDeclaredMethods()) {
-                if (m.getName().equals(policyFunction) &&
-                    java.lang.reflect.Modifier.isStatic(m.getModifiers())) {
-                    functionMethod = m;
-                    break;
-                }
-            }
-
-            if (functionMethod == null) {
-                throw new IllegalArgumentException(
-                    "Policy method not found: " + policyFunction);
-            }
-
-            // 创建MethodHandle用于快速调用
-            MethodHandle methodHandle = MethodHandles.lookup().unreflect(functionMethod);
-
-            return new PolicyMetadata(
-                policyClass,
-                functionMethod,
-                methodHandle,
-                functionMethod.getParameters()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load policy metadata: " + policyModule + "." + policyFunction, e);
-        }
+        String metadataKey = policyModule + "." + policyFunction;
+        return policyMetadataLoader.loadPolicyMetadata(metadataKey);
     }
 
     /**
@@ -394,7 +362,8 @@ public class PolicyEvaluationService {
     @CacheInvalidateAll(cacheName = "policy-results")
     public Uni<Void> clearAllCache() {
         // 同时清空元数据缓存，允许重新加载策略类
-        metadataCache.clear();
+        policyMetadataLoader.clear();
+        constructorMetadataCache.clear();
         policyCacheManager.clearAllCache();
         // 返回completed Uni，缓存清空由注解处理
         return Uni.createFrom().voidItem();
@@ -411,9 +380,7 @@ public class PolicyEvaluationService {
         return Uni.createFrom().item(() -> {
             try {
                 // 尝试加载策略元数据
-                String metadataKey = policyModule + "." + policyFunction;
-                PolicyMetadata metadata = metadataCache.computeIfAbsent(metadataKey,
-                    key -> loadPolicyMetadata(policyModule, policyFunction));
+                PolicyMetadata metadata = loadPolicyMetadata(policyModule, policyFunction);
 
                 // 获取参数信息
                 java.util.List<ParameterInfo> parameters = new java.util.ArrayList<>();

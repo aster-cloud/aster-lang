@@ -22,6 +22,7 @@ allprojects {
   tasks.withType<JavaCompile>().configureEach {
     // 固定编译参数
     options.compilerArgs.addAll(listOf(
+      "-parameters",
       "-Xlint:all",
       "-Werror"
     ))

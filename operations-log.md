@@ -1299,3 +1299,35 @@ await runOneTypecheck(
 - 2025-10-16 12:10 NZDT | shell(sed) | `sed -n '1,200p' truffle/src/main/java/aster/truffle/nodes/WaitNode.java` 检查Wait节点
 - 2025-10-16 12:10 NZDT | shell(sed) | `sed -n '1,200p' truffle/src/main/java/aster/truffle/nodes/AwaitNode.java` 检查Await节点
 - 2025-10-16 12:10 NZDT | shell(cat) | `cat truffle/build.gradle.kts` 查看Truffle模块构建配置
+- 2025-10-16 17:48 NZDT | sequential-thinking | 分析PolicyGraphQLResource第二阶段重构需求，拆解元数据与转换器迁移步骤
+- 2025-10-16 17:49 NZDT | apply_patch | 新增 `quarkus-policy-api/src/main/java/io/aster/policy/api/metadata/PolicyMetadataLoader.java`，抽离策略元数据缓存逻辑
+- 2025-10-16 17:50 NZDT | apply_patch | 新增 `quarkus-policy-api/src/main/java/io/aster/policy/api/metadata/ConstructorMetadataCache.java`，封装构造器元数据缓存
+- 2025-10-16 17:51 NZDT | apply_patch | 更新 `quarkus-policy-api/src/main/java/io/aster/policy/api/PolicyEvaluationService.java`，替换内部缓存并集成新组件
+- 2025-10-16 17:52 NZDT | apply_patch | 更新 `quarkus-policy-api/src/main/java/io/aster/policy/api/convert/PolicyTypeConverter.java`，改用ConstructorMetadataCache
+- 2025-10-16 17:53 NZDT | apply_patch | 调整 `PolicyMetadataLoader` 异常消息以满足现有测试断言
+- 2025-10-16 17:54 NZDT | shell(gradlew) | `../gradlew :quarkus-policy-api:test` 确认元数据组件迁移后的37项测试全部通过
+- 2025-10-16 17:53 NZDT | apply_patch | 新增 `PolicyGraphQLConverter` 接口定义，建立领域转换统一约定
+- 2025-10-16 17:53 NZDT | apply_patch | 新增 `LoanConverter` 并迁移贷款输入输出转换逻辑
+- 2025-10-16 17:53 NZDT | apply_patch | 更新 `PolicyGraphQLResource` 引入 `LoanConverter` 并改写贷款评估流程
+- 2025-10-16 17:54 NZDT | shell(gradlew) | `../gradlew :quarkus-policy-api:test` 验证Loan转换器集成后全部测试通过
+- 2025-10-16 17:55 NZDT | sequential-thinking | 拆解剩余六个领域转换器的迁移步骤与风险
+- 2025-10-16 17:56 NZDT | apply_patch | 新增 `LifeInsuranceConverter`，封装人寿领域上下文与结果转换
+- 2025-10-16 17:56 NZDT | apply_patch | 新增 `AutoInsuranceConverter`，抽离汽车领域转换逻辑
+- 2025-10-16 17:56 NZDT | apply_patch | 新增 `HealthcareConverter`，整合医疗资格与索赔转换
+- 2025-10-16 17:57 NZDT | apply_patch | 新增 `CreditCardConverter`，迁移信用卡领域转换
+- 2025-10-16 17:57 NZDT | apply_patch | 新增 `EnterpriseLendingConverter`，迁移企业贷款领域转换
+- 2025-10-16 17:57 NZDT | apply_patch | 新增 `PersonalLendingConverter`，迁移个人贷款领域转换
+- 2025-10-16 17:58 NZDT | apply_patch | 批量更新 `PolicyGraphQLResource` 注入各转换器并替换上下文构建逻辑
+- 2025-10-16 17:58 NZDT | shell(python3) | 移除 `PolicyGraphQLResource` 旧版领域转换辅助方法块
+- 2025-10-16 17:59 NZDT | shell(gradlew) | `../gradlew :quarkus-policy-api:test` 首次运行失败（企业财务字段命名不匹配），用于捕获问题
+- 2025-10-16 18:02 NZDT | shell(gradlew) | `../gradlew :quarkus-policy-api:test` 修正后全部37项测试通过
+- 2025-10-16 18:05 NZDT | apply_patch | 更新 `.claude/refactoring-report.md`，补充第二阶段重构成果与累计统计
+- 2025-10-17 00:05 NZDT | apply_patch | 更新 `gradle/reproducible-builds.gradle.kts` 为所有 Java 编译任务追加 `-parameters` 选项
+- 2025-10-17 00:05 NZDT | shell(gradlew) | 执行 `./gradlew clean` 清理旧版编译产物
+- 2025-10-17 00:06 NZDT | shell(gradlew) | 执行 `./gradlew build` 触发 `:aster-vaadin-native-deployment:compileJava` 缺少 Undertow 依赖导致失败
+- 2025-10-17 00:08 NZDT | apply_patch | 调整 `PolicyGraphQLResourceTest` 提高并发测试等待阈值并为缓存键断言增加重试
+- 2025-10-17 00:10 NZDT | apply_patch | 为并发测试引入 `AtomicBoolean` 控制首个执行线程，保证缓存预热窗口
+- 2025-10-17 00:11 NZDT | apply_patch | 更新 ASM 发射器在构造器与函数方法上写入 `MethodParameters` 元数据
+- 2025-10-17 00:12 NZDT | shell(gradlew) | 执行 `./gradlew :aster-asm-emitter:build` 重新编译发射器
+- 2025-10-17 00:14 NZDT | shell(gradlew) | 连续 10 次执行 `:quarkus-policy-api:test` 并全部通过，确认并发缓存测试稳定
+- 2025-10-17 00:14 NZDT | apply_patch | 新增 `quarkus-policy-api/.claude/parameter-concurrency-fix-report.md` 记录修复与验证细节

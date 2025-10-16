@@ -1,12 +1,13 @@
 package io.aster.policy.api.convert;
 
+import io.aster.policy.api.metadata.ConstructorMetadataCache;
 import io.aster.policy.api.model.ConstructorMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.lang.reflect.Parameter;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 策略参数类型转换器，集中处理上下文映射。
@@ -14,7 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class PolicyTypeConverter {
 
-    private final ConcurrentHashMap<Class<?>, ConstructorMetadata> constructorCache = new ConcurrentHashMap<>();
+    @Inject
+    ConstructorMetadataCache constructorMetadataCache;
 
     public Object[] prepareArguments(Parameter[] parameters, Object[] context) throws Exception {
         if (parameters.length == 0) {
@@ -74,30 +76,25 @@ public class PolicyTypeConverter {
     }
 
     private Object constructFromMap(Class<?> targetClass, Map<String, Object> map) throws Exception {
-        ConstructorMetadata metadata = constructorCache.computeIfAbsent(targetClass, key -> {
-            var constructors = key.getConstructors();
-            if (constructors.length == 0) {
-                throw new IllegalArgumentException("No public constructors found for " + key.getName());
+        ConstructorMetadata metadata = constructorMetadataCache.getConstructorMetadata(targetClass);
+
+        var parameters = metadata.getParameters();
+        Object[] args = new Object[parameters.length];
+
+        for (int i = 0; i < parameters.length; i++) {
+            args[i] = getDefaultValue(parameters[i].getType());
+        }
+
+        for (Map.Entry<String, Integer> entry : metadata.getFieldNameToParameterIndex().entrySet()) {
+            Integer index = entry.getValue();
+            if (index == null || index < 0 || index >= parameters.length) {
+                continue;
             }
-            var constructor = constructors[0];
-            return new ConstructorMetadata(
-                constructor,
-                constructor.getParameters(),
-                key.getDeclaredFields()
-            );
-        });
-
-        Object[] args = new Object[metadata.getParameters().length];
-
-        for (int i = 0; i < metadata.getParameters().length && i < metadata.getFields().length; i++) {
-            String fieldName = metadata.getFields()[i].getName();
-            Object value = map.get(fieldName);
-            Class<?> paramType = metadata.getParameters()[i].getType();
+            Class<?> paramType = parameters[index].getType();
+            Object value = map.get(entry.getKey());
 
             if (value != null) {
-                args[i] = convertValue(value, paramType);
-            } else {
-                args[i] = getDefaultValue(paramType);
+                args[index] = convertValue(value, paramType);
             }
         }
 

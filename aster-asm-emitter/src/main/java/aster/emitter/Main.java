@@ -214,6 +214,9 @@ public final class Main {
     }
     // ctor
     var mv = cw.visitMethod(ACC_PUBLIC, "<init>", ctorDesc(pkg, d.fields), null, null);
+    for (var f : d.fields) {
+      mv.visitParameter(f.name, 0);
+    }
     mv.visitCode();
     var lCtorStart = new Label();
     mv.visitLabel(lCtorStart);
@@ -267,6 +270,9 @@ public final class Main {
     paramsDesc.append(")").append(retDesc);
 
     var mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, fn.name, paramsDesc.toString(), null, null);
+    for (var p : fn.params) {
+      mv.visitParameter(p.name, 0);
+    }
     addOriginAnnotation(mv, fn.origin);
     mv.visitCode();
     var lStart = new Label();
