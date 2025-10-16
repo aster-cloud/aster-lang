@@ -1,16 +1,15 @@
 package io.aster.policy.graphql;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalCause;
 import io.aster.policy.api.PolicyCacheKey;
 import io.aster.policy.api.PolicyEvaluationService;
-import io.aster.policy.api.PolicyEvaluationService.BatchEvaluationResult;
-import io.aster.policy.api.PolicyEvaluationService.BatchRequest;
-import io.aster.policy.api.PolicyEvaluationService.CompositionStep;
-import io.aster.policy.api.PolicyEvaluationService.PolicyCompositionResult;
-import io.aster.policy.api.PolicyEvaluationService.PolicyEvaluationResult;
-import io.aster.policy.api.PolicyEvaluationService.StepResult;
+import io.aster.policy.api.model.BatchEvaluationResult;
+import io.aster.policy.api.model.BatchRequest;
+import io.aster.policy.api.model.CompositionStep;
+import io.aster.policy.api.model.PolicyCompositionResult;
+import io.aster.policy.api.model.PolicyEvaluationResult;
+import io.aster.policy.api.model.StepResult;
+import io.aster.policy.api.cache.PolicyCacheManager;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -20,8 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +48,9 @@ public class PolicyGraphQLResourceTest {
 
     @Inject
     PolicyEvaluationService policyEvaluationService;
+
+    @Inject
+    PolicyCacheManager policyCacheManager;
 
     @BeforeEach
     public void resetCache() {
@@ -158,92 +158,19 @@ public class PolicyGraphQLResourceTest {
     /**
      * 获取内部租户索引跟踪缓存，便于模拟驱逐。
      */
-    @SuppressWarnings("unchecked")
     private Cache<PolicyCacheKey, Boolean> lifecycleTracker() {
-        try {
-            Field field = PolicyEvaluationService.class.getDeclaredField("cacheLifecycleTracker");
-            field.setAccessible(true);
-            Cache<PolicyCacheKey, Boolean> tracker = (Cache<PolicyCacheKey, Boolean>) field.get(policyEvaluationService);
-            if (tracker == null) {
-                Method init = PolicyEvaluationService.class.getDeclaredMethod("initCacheLifecycleTracking");
-                init.setAccessible(true);
-                init.invoke(policyEvaluationService);
-                tracker = (Cache<PolicyCacheKey, Boolean>) field.get(policyEvaluationService);
-            }
-            if (tracker == null) {
-                Method removeTrackedKey = PolicyEvaluationService.class.getDeclaredMethod("removeTrackedKey", PolicyCacheKey.class);
-                removeTrackedKey.setAccessible(true);
-                Cache<PolicyCacheKey, Boolean> fallback = Caffeine.newBuilder()
-                    .expireAfterWrite(Duration.ofMinutes(3))
-                    .removalListener((PolicyCacheKey removedKey, Boolean ignored, RemovalCause cause) -> {
-                        if (removedKey == null) {
-                            return;
-                        }
-                        try {
-                            removeTrackedKey.invoke(policyEvaluationService, removedKey);
-                        } catch (Exception ignoredEx) {
-                            // 测试环境下忽略反射失败，主逻辑仍依赖索引快照断言
-                        }
-                    })
-                    .build();
-                field.set(policyEvaluationService, fallback);
-                Field indexField = PolicyEvaluationService.class.getDeclaredField("tenantCacheIndex");
-                indexField.setAccessible(true);
-                Object indexValue = indexField.get(policyEvaluationService);
-                if (indexValue instanceof Map<?, ?> indexMap) {
-                    for (Object value : indexMap.values()) {
-                        if (value instanceof Set<?> keySet) {
-                            for (Object key : keySet) {
-                                if (key instanceof PolicyCacheKey policyKey) {
-                                    fallback.put(policyKey, Boolean.TRUE);
-                                }
-                            }
-                        }
-                    }
-                }
-                tracker = fallback;
-            }
-            return tracker;
-        } catch (Exception e) {
-            throw new IllegalStateException("无法获取缓存生命周期跟踪实例", e);
+        Cache<PolicyCacheKey, Boolean> tracker = policyCacheManager.getLifecycleTracker();
+        if (tracker == null) {
+            throw new IllegalStateException("缓存生命周期跟踪未初始化");
         }
+        return tracker;
     }
 
     /**
      * 访问底层Caffeine缓存，用于模拟TTL过期等高级场景。
      */
-    @SuppressWarnings("unchecked")
     private com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, ?> nativePolicyCache() {
-        try {
-            Field delegateField = PolicyEvaluationService.class.getDeclaredField("caffeineCacheDelegate");
-            delegateField.setAccessible(true);
-            Object delegate = delegateField.get(policyEvaluationService);
-            if (delegate == null) {
-                return null;
-            }
-            try {
-                Method getCache = delegate.getClass().getDeclaredMethod("getCache");
-                getCache.setAccessible(true);
-                Object cache = getCache.invoke(delegate);
-                if (cache instanceof com.github.benmanes.caffeine.cache.Cache<?, ?> caffeineCache) {
-                    return (com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, ?>) caffeineCache;
-                }
-            } catch (NoSuchMethodException ignored) {
-                // 继续尝试字段扫描
-            }
-            for (Field field : delegate.getClass().getDeclaredFields()) {
-                if (com.github.benmanes.caffeine.cache.Cache.class.isAssignableFrom(field.getType())) {
-                    field.setAccessible(true);
-                    Object value = field.get(delegate);
-                    if (value != null) {
-                        return (com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, ?>) value;
-                    }
-                }
-            }
-            throw new IllegalStateException("无法定位底层Caffeine缓存字段");
-        } catch (Exception e) {
-            throw new IllegalStateException("无法访问底层策略缓存实例", e);
-        }
+        return policyCacheManager.getNativePolicyCache();
     }
 
     /**

@@ -1,30 +1,32 @@
 package io.aster.policy.api;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalCause;
+import io.aster.policy.api.cache.PolicyCacheManager;
+import io.aster.policy.api.convert.PolicyTypeConverter;
+import io.aster.policy.api.model.BatchEvaluationResult;
+import io.aster.policy.api.model.BatchRequest;
+import io.aster.policy.api.model.CompositionStep;
+import io.aster.policy.api.model.EvaluationAttempt;
+import io.aster.policy.api.model.ParameterInfo;
+import io.aster.policy.api.model.PolicyCompositionResult;
+import io.aster.policy.api.model.PolicyEvaluationResult;
+import io.aster.policy.api.model.PolicyMetadata;
+import io.aster.policy.api.model.PolicyValidationResult;
+import io.aster.policy.api.model.StepResult;
 import io.quarkus.cache.Cache;
-import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CacheInvalidateAll;
-import io.quarkus.cache.CaffeineCache;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import java.time.Duration;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CompletableFuture;
 
 import org.jboss.logging.Logger;
 
@@ -39,98 +41,16 @@ import org.jboss.logging.Logger;
 public class PolicyEvaluationService {
 
     @Inject
-    @CacheName("policy-results")
-    Cache policyResultCache;
+    PolicyCacheManager policyCacheManager;
+
+    @Inject
+    PolicyTypeConverter policyTypeConverter;
 
     private static final Logger LOG = Logger.getLogger(PolicyEvaluationService.class);
 
-    // 引用底层Caffeine缓存以便识别命中与同步生命周期
-    private CaffeineCache caffeineCacheDelegate;
-
-    // 使用Caffeine监听清理租户索引，确保驱逐和过期场景下同步删除
-    private com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, Boolean> cacheLifecycleTracker;
-
     // Cache for compiled policy metadata (avoids repeated reflection)
     private final ConcurrentHashMap<String, PolicyMetadata> metadataCache = new ConcurrentHashMap<>();
-
-    // Cache for constructor metadata (avoids repeated reflection for object construction)
-    private final ConcurrentHashMap<Class<?>, ConstructorMetadata> constructorCache = new ConcurrentHashMap<>();
-
-    // 维护按租户划分的缓存键索引，用于精准失效
-    private final ConcurrentHashMap<String, Set<PolicyCacheKey>> tenantCacheIndex = new ConcurrentHashMap<>();
-
-    @PostConstruct
-    void initCacheLifecycleTracking() {
-        Duration expireAfterWrite = null;
-        Long maximumSize = null;
-        Integer initialCapacity = null;
-
-        try {
-            caffeineCacheDelegate = policyResultCache.as(CaffeineCache.class);
-            if (caffeineCacheDelegate instanceof io.quarkus.cache.runtime.caffeine.CaffeineCacheImpl impl) {
-                var info = impl.getCacheInfo();
-                initialCapacity = info.initialCapacity;
-                maximumSize = info.maximumSize;
-                expireAfterWrite = info.expireAfterWrite;
-            }
-        } catch (IllegalStateException ex) {
-            LOG.warn("政策评估缓存未使用Caffeine后端，租户索引将使用默认监听配置", ex);
-            caffeineCacheDelegate = null;
-        }
-
-        Caffeine<Object, Object> builder = Caffeine.newBuilder();
-        if (initialCapacity != null) {
-            builder.initialCapacity(initialCapacity);
-        }
-        if (maximumSize != null) {
-            builder.maximumSize(maximumSize);
-        }
-        if (expireAfterWrite != null) {
-            builder.expireAfterWrite(expireAfterWrite);
-        }
-
-        cacheLifecycleTracker = builder.removalListener((PolicyCacheKey removedKey, Boolean ignored, RemovalCause cause) -> {
-            if (removedKey != null) {
-                // 使用移除监听同步清理租户索引，避免悬挂键值
-                removeTrackedKey(removedKey);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debugf("Caffeine移除缓存键, cause=%s, key=%s", cause, removedKey);
-                }
-            }
-        }).build();
-    }
-
-    /**
-     * Cached metadata for a policy method
-     */
-    private static class PolicyMetadata {
-        final Class<?> policyClass;
-        final Method method;
-        final MethodHandle methodHandle;
-        final Parameter[] parameters;
-
-        PolicyMetadata(Class<?> policyClass, Method method, MethodHandle methodHandle, Parameter[] parameters) {
-            this.policyClass = policyClass;
-            this.method = method;
-            this.methodHandle = methodHandle;
-            this.parameters = parameters;
-        }
-    }
-
-    /**
-     * Cached constructor metadata for fast object construction
-     */
-    private static class ConstructorMetadata {
-        final java.lang.reflect.Constructor<?> constructor;
-        final Parameter[] parameters;
-        final java.lang.reflect.Field[] fields;
-
-        ConstructorMetadata(java.lang.reflect.Constructor<?> constructor, Parameter[] parameters, java.lang.reflect.Field[] fields) {
-            this.constructor = constructor;
-            this.parameters = parameters;
-            this.fields = fields;
-        }
-    }
+    // constructor metadata cache moved to PolicyTypeConverter
 
     /**
      * 评估策略（带缓存，reactive版本，优化了反射性能）
@@ -150,15 +70,16 @@ public class PolicyEvaluationService {
         final PolicyCacheKey cacheKey = new PolicyCacheKey(tenantId, policyModule, policyFunction, normalizedContext);
 
         // 使用底层Caffeine缓存探测命中状态，避免fromCache标记失真
-        final boolean cacheHit = isCacheHit(cacheKey);
+        Cache cache = policyCacheManager.getPolicyResultCache();
+        final boolean cacheHit = policyCacheManager.isCacheHit(cacheKey);
 
-        return policyResultCache
+        return cache
             .getAsync(cacheKey, this::evaluatePolicyWithKey)
-            .invoke(result -> registerCacheKey(cacheKey))
+            .invoke(result -> policyCacheManager.registerCacheEntry(cacheKey, tenantId))
             .onItem().transform(result -> adjustFromCacheFlag(result, cacheHit))
             .onFailure().invoke(throwable -> {
                 if (!cacheHit) {
-                    unregisterCacheKey(cacheKey);
+                    policyCacheManager.removeCacheEntry(cacheKey, tenantId);
                 }
             });
     }
@@ -178,10 +99,10 @@ public class PolicyEvaluationService {
                     key -> loadPolicyMetadata(cacheKey.getPolicyModule(), cacheKey.getPolicyFunction()));
 
                 // 准备参数
-                Object[] args = prepareArguments(metadata.parameters, cacheKey.getContext());
+                Object[] args = policyTypeConverter.prepareArguments(metadata.getParameters(), cacheKey.getContext());
 
                 // 使用MethodHandle调用策略 (比reflection快2-3倍)
-                Object result = metadata.methodHandle.invokeWithArguments(args);
+                Object result = metadata.getMethodHandle().invokeWithArguments(args);
                 long durationNanos = System.nanoTime() - startTime;
 
                 // 构建结果
@@ -247,9 +168,8 @@ public class PolicyEvaluationService {
      * 按租户维度批量失效缓存，可选过滤模块与函数
      */
     public Uni<Void> invalidateCache(String tenantId, String policyModule, String policyFunction) {
-        String normalizedTenant = normalizeTenant(tenantId);
-        Set<PolicyCacheKey> keys = tenantCacheIndex.get(normalizedTenant);
-        if (keys == null || keys.isEmpty()) {
+        Set<PolicyCacheKey> keys = policyCacheManager.snapshotTenantCacheKeys(tenantId);
+        if (keys.isEmpty()) {
             return Uni.createFrom().voidItem();
         }
 
@@ -266,13 +186,10 @@ public class PolicyEvaluationService {
         }
 
         java.util.List<Uni<Void>> invalidations = new java.util.ArrayList<>();
+        Cache cache = policyCacheManager.getPolicyResultCache();
         for (PolicyCacheKey key : targets) {
-            invalidations.add(invalidateCacheWithKey(key));
-        }
-
-        keys.removeAll(targets);
-        if (keys.isEmpty()) {
-            tenantCacheIndex.remove(normalizedTenant, keys);
+            invalidations.add(cache.invalidate(key)
+                .invoke(() -> policyCacheManager.removeCacheEntry(key, key.getTenantId())));
         }
 
         return Uni.combine().all().unis(invalidations).discardItems();
@@ -282,20 +199,15 @@ public class PolicyEvaluationService {
      * 仅用于测试：返回指定租户当前缓存键快照
      */
     public Set<PolicyCacheKey> snapshotTenantCacheKeys(String tenantId) {
-        String normalizedTenant = normalizeTenant(tenantId);
-        Set<PolicyCacheKey> keys = tenantCacheIndex.get(normalizedTenant);
-        if (keys == null || keys.isEmpty()) {
-            return Collections.emptySet();
-        }
-        return Collections.unmodifiableSet(new HashSet<>(keys));
+        return policyCacheManager.snapshotTenantCacheKeys(tenantId);
     }
 
     /**
      * Internal method with cache key for cache invalidation
      */
     Uni<Void> invalidateCacheWithKey(PolicyCacheKey cacheKey) {
-        return policyResultCache.invalidate(cacheKey)
-            .invoke(() -> unregisterCacheKey(cacheKey));
+        return policyCacheManager.getPolicyResultCache().invalidate(cacheKey)
+            .invoke(() -> policyCacheManager.removeCacheEntry(cacheKey, cacheKey.getTenantId()));
     }
 
     private Object[] normalizeContext(String tenantId, Object[] context) {
@@ -316,46 +228,6 @@ public class PolicyEvaluationService {
 
     private String normalizeTenant(String tenantId) {
         return tenantId == null || tenantId.isBlank() ? "default" : tenantId.trim();
-    }
-
-    private void trackTenantCacheKey(PolicyCacheKey cacheKey) {
-        String normalizedTenant = cacheKey.getTenantId();
-        tenantCacheIndex
-            .computeIfAbsent(normalizedTenant, key -> ConcurrentHashMap.newKeySet())
-            .add(cacheKey);
-    }
-
-    private void removeTrackedKey(PolicyCacheKey cacheKey) {
-        String normalizedTenant = cacheKey.getTenantId();
-        Set<PolicyCacheKey> keys = tenantCacheIndex.get(normalizedTenant);
-        if (keys != null) {
-            keys.remove(cacheKey);
-            if (keys.isEmpty()) {
-                tenantCacheIndex.remove(normalizedTenant, keys);
-            }
-        }
-    }
-
-    private boolean isCacheHit(PolicyCacheKey cacheKey) {
-        if (caffeineCacheDelegate == null) {
-            return false;
-        }
-        CompletableFuture<PolicyEvaluationResult> cachedFuture = caffeineCacheDelegate.getIfPresent(cacheKey);
-        return cachedFuture != null && !cachedFuture.isCompletedExceptionally();
-    }
-
-    private void registerCacheKey(PolicyCacheKey cacheKey) {
-        trackTenantCacheKey(cacheKey);
-        if (cacheLifecycleTracker != null) {
-            cacheLifecycleTracker.put(cacheKey, Boolean.TRUE);
-        }
-    }
-
-    private void unregisterCacheKey(PolicyCacheKey cacheKey) {
-        if (cacheLifecycleTracker != null) {
-            cacheLifecycleTracker.invalidate(cacheKey);
-        }
-        removeTrackedKey(cacheKey);
     }
 
     private PolicyEvaluationResult adjustFromCacheFlag(PolicyEvaluationResult original, boolean fromCache) {
@@ -430,7 +302,7 @@ public class PolicyEvaluationService {
                 java.util.List<EvaluationAttempt> failures = new java.util.ArrayList<>();
 
                 for (EvaluationAttempt attempt : attemptResults) {
-                    if (attempt.error == null) {
+                    if (attempt.getError() == null) {
                         successes.add(attempt);
                     } else {
                         failures.add(attempt);
@@ -517,36 +389,13 @@ public class PolicyEvaluationService {
     }
 
     /**
-     * 批量请求数据类
-     */
-    public static class BatchRequest {
-        public String tenantId;
-        public String policyModule;
-        public String policyFunction;
-        public Object[] context;
-
-        public BatchRequest() {}
-
-        public BatchRequest(String tenantId, String policyModule, String policyFunction, Object[] context) {
-            this.tenantId = tenantId;
-            this.policyModule = policyModule;
-            this.policyFunction = policyFunction;
-            this.context = context;
-        }
-    }
-
-    /**
      * 清空所有缓存（reactive版本）
      */
     @CacheInvalidateAll(cacheName = "policy-results")
     public Uni<Void> clearAllCache() {
         // 同时清空元数据缓存，允许重新加载策略类
         metadataCache.clear();
-        constructorCache.clear();
-        tenantCacheIndex.clear();
-        if (cacheLifecycleTracker != null) {
-            cacheLifecycleTracker.invalidateAll();
-        }
+        policyCacheManager.clearAllCache();
         // 返回completed Uni，缓存清空由注解处理
         return Uni.createFrom().voidItem();
     }
@@ -568,7 +417,7 @@ public class PolicyEvaluationService {
 
                 // 获取参数信息
                 java.util.List<ParameterInfo> parameters = new java.util.ArrayList<>();
-                for (Parameter param : metadata.parameters) {
+                for (Parameter param : metadata.getParameters()) {
                     parameters.add(new ParameterInfo(
                         param.getName(),
                         param.getType().getSimpleName(),
@@ -577,8 +426,8 @@ public class PolicyEvaluationService {
                 }
 
                 // 获取返回类型
-                String returnType = metadata.method.getReturnType().getSimpleName();
-                String returnTypeFullName = metadata.method.getReturnType().getName();
+                String returnType = metadata.getMethod().getReturnType().getSimpleName();
+                String returnTypeFullName = metadata.getMethod().getReturnType().getName();
 
                 return new PolicyValidationResult(
                     true,
@@ -603,452 +452,4 @@ public class PolicyEvaluationService {
         }).runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
     }
 
-    /**
-     * 准备方法参数
-     */
-    private Object[] prepareArguments(Parameter[] parameters, Object[] context) throws Exception {
-        if (parameters.length == 0) {
-            return new Object[0];
-        }
-
-        Object[] safeContext = context == null ? new Object[0] : context;
-        Object[] args = new Object[parameters.length];
-        for (int i = 0; i < parameters.length; i++) {
-            Class<?> expectedType = parameters[i].getType();
-            Object contextObj = i < safeContext.length ? safeContext[i] : null;
-
-            if (contextObj == null) {
-                args[i] = defaultForMissingParameter(expectedType);
-                continue;
-            }
-
-            if (contextObj instanceof Map<?, ?> rawMap) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> map = (Map<String, Object>) rawMap;
-
-                if (isPrimitiveOrWrapper(expectedType)) {
-                    Object value = map.values().stream().findFirst().orElse(null);
-                    args[i] = convertValue(value, expectedType);
-                } else if (Map.class.isAssignableFrom(expectedType)) {
-                    args[i] = map.isEmpty() ? Collections.emptyMap() : map;
-                } else {
-                    args[i] = constructFromMap(expectedType, map);
-                }
-            } else {
-                args[i] = convertValue(contextObj, expectedType);
-            }
-        }
-        return args;
-    }
-
-    private Object defaultForMissingParameter(Class<?> expectedType) {
-        if (expectedType == String.class) {
-            return "";
-        }
-        if (expectedType.isPrimitive() || isPrimitiveOrWrapper(expectedType)) {
-            return getDefaultValue(expectedType);
-        }
-        if (Map.class.isAssignableFrom(expectedType)) {
-            return Collections.emptyMap();
-        }
-        return null;
-    }
-
-
-    /**
-     * 判断是否为基本类型或其包装类
-     */
-    private boolean isPrimitiveOrWrapper(Class<?> type) {
-        return type.isPrimitive() ||
-               type == Integer.class || type == Long.class ||
-               type == Double.class || type == Float.class ||
-               type == Boolean.class || type == Character.class ||
-               type == Byte.class || type == Short.class ||
-               type == String.class;
-    }
-
-    /**
-     * 从Map构造对象（使用缓存的构造器元数据）
-     */
-    private Object constructFromMap(Class<?> targetClass, Map<String, Object> map) throws Exception {
-        // Get or cache constructor metadata
-        ConstructorMetadata metadata = constructorCache.computeIfAbsent(targetClass, key -> {
-            var constructors = key.getConstructors();
-            if (constructors.length == 0) {
-                throw new IllegalArgumentException(
-                    "No public constructors found for " + key.getName());
-            }
-            var constructor = constructors[0];
-            return new ConstructorMetadata(
-                constructor,
-                constructor.getParameters(),
-                key.getDeclaredFields()
-            );
-        });
-
-        Object[] args = new Object[metadata.parameters.length];
-
-        for (int i = 0; i < metadata.parameters.length && i < metadata.fields.length; i++) {
-            String fieldName = metadata.fields[i].getName();
-            Object value = map.get(fieldName);
-            Class<?> paramType = metadata.parameters[i].getType();
-
-            if (value != null) {
-                args[i] = convertValue(value, paramType);
-            } else {
-                args[i] = getDefaultValue(paramType);
-            }
-        }
-
-        return metadata.constructor.newInstance(args);
-    }
-
-    /**
-     * 类型转换（提取为独立方法以便JIT优化）
-     */
-    private Object convertValue(Object value, Class<?> targetType) {
-        if (value == null) {
-            return getDefaultValue(targetType);
-        }
-
-        // 如果已经是目标类型，直接返回
-        if (targetType.isInstance(value)) {
-            return value;
-        }
-
-        // 数字类型转换
-        if (value instanceof Number) {
-            Number num = (Number) value;
-            if (targetType == int.class || targetType == Integer.class) {
-                return num.intValue();
-            } else if (targetType == long.class || targetType == Long.class) {
-                return num.longValue();
-            } else if (targetType == double.class || targetType == Double.class) {
-                return num.doubleValue();
-            } else if (targetType == float.class || targetType == Float.class) {
-                return num.floatValue();
-            } else if (targetType == short.class || targetType == Short.class) {
-                return num.shortValue();
-            } else if (targetType == byte.class || targetType == Byte.class) {
-                return num.byteValue();
-            }
-        }
-
-        // 布尔类型转换
-        if (targetType == boolean.class || targetType == Boolean.class) {
-            if (value instanceof Boolean) {
-                return value;
-            }
-            return Boolean.parseBoolean(value.toString());
-        }
-
-        // 字符串转换
-        if (targetType == String.class) {
-            return value.toString();
-        }
-
-        // 其他情况直接返回
-        return value;
-    }
-
-    /**
-     * 获取基本类型的默认值
-     */
-    private Object getDefaultValue(Class<?> type) {
-        if (type == int.class || type == Integer.class) return 0;
-        if (type == long.class || type == Long.class) return 0L;
-        if (type == double.class || type == Double.class) return 0.0D;
-        if (type == float.class || type == Float.class) return 0.0F;
-        if (type == short.class || type == Short.class) return (short) 0;
-        if (type == byte.class || type == Byte.class) return (byte) 0;
-        if (type == boolean.class || type == Boolean.class) return false;
-        if (type == char.class || type == Character.class) return '\0';
-        if (type == String.class) return "";
-        return null;
-    }
-
-    /**
-     * Policy evaluation result
-     */
-    public static class PolicyEvaluationResult {
-        private final Object result;
-        private final double executionTimeMs;
-        private final boolean fromCache;
-
-        public PolicyEvaluationResult(Object result, double executionTimeMs, boolean fromCache) {
-            this.result = result;
-            this.executionTimeMs = executionTimeMs;
-            this.fromCache = fromCache;
-        }
-
-        public Object getResult() {
-            return result;
-        }
-
-        public double getExecutionTimeMs() {
-            return executionTimeMs;
-        }
-
-        public boolean isFromCache() {
-            return fromCache;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PolicyEvaluationResult that = (PolicyEvaluationResult) o;
-            return Double.compare(that.executionTimeMs, executionTimeMs) == 0 &&
-                   fromCache == that.fromCache &&
-                   Objects.equals(result, that.result);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(result, executionTimeMs, fromCache);
-        }
-    }
-
-    /**
-     * Policy composition step
-     */
-    public static class CompositionStep {
-        public String policyModule;
-        public String policyFunction;
-        public boolean useResultAsInput;  // 是否使用前一步的结果作为输入
-
-        public CompositionStep() {}
-
-        public CompositionStep(String policyModule, String policyFunction, boolean useResultAsInput) {
-            this.policyModule = policyModule;
-            this.policyFunction = policyFunction;
-            this.useResultAsInput = useResultAsInput;
-        }
-    }
-
-    /**
-     * Policy composition result
-     */
-    public static class PolicyCompositionResult {
-        private java.util.List<StepResult> stepResults;
-        private Object finalResult;
-
-        public PolicyCompositionResult(java.util.List<StepResult> stepResults, Object finalResult) {
-            this.stepResults = stepResults;
-            this.finalResult = finalResult;
-        }
-
-        public java.util.List<StepResult> getStepResults() {
-            return stepResults;
-        }
-
-        public Object getFinalResult() {
-            return finalResult;
-        }
-
-        public void setFinalResult(Object finalResult) {
-            this.finalResult = finalResult;
-        }
-    }
-
-    /**
-     * Step result in policy composition
-     */
-    public static class StepResult {
-        private final String policyModule;
-        private final String policyFunction;
-        private final Object result;
-        private final double executionTimeMs;
-        private final int stepIndex;
-
-        public StepResult(String policyModule, String policyFunction, Object result,
-                         double executionTimeMs, int stepIndex) {
-            this.policyModule = policyModule;
-            this.policyFunction = policyFunction;
-            this.result = result;
-            this.executionTimeMs = executionTimeMs;
-            this.stepIndex = stepIndex;
-        }
-
-        public String getPolicyModule() {
-            return policyModule;
-        }
-
-        public String getPolicyFunction() {
-            return policyFunction;
-        }
-
-        public Object getResult() {
-            return result;
-        }
-
-        public double getExecutionTimeMs() {
-            return executionTimeMs;
-        }
-
-        public int getStepIndex() {
-            return stepIndex;
-        }
-    }
-
-    /**
-     * Policy validation result
-     */
-    public static class PolicyValidationResult {
-        private final boolean valid;
-        private final String message;
-        private final String policyModule;
-        private final String policyFunction;
-        private final java.util.List<ParameterInfo> parameters;
-        private final String returnType;
-        private final String returnTypeFullName;
-
-        public PolicyValidationResult(boolean valid, String message, String policyModule,
-                                     String policyFunction, java.util.List<ParameterInfo> parameters,
-                                     String returnType, String returnTypeFullName) {
-            this.valid = valid;
-            this.message = message;
-            this.policyModule = policyModule;
-            this.policyFunction = policyFunction;
-            this.parameters = parameters;
-            this.returnType = returnType;
-            this.returnTypeFullName = returnTypeFullName;
-        }
-
-        public boolean isValid() {
-            return valid;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public String getPolicyModule() {
-            return policyModule;
-        }
-
-        public String getPolicyFunction() {
-            return policyFunction;
-        }
-
-        public java.util.List<ParameterInfo> getParameters() {
-            return parameters;
-        }
-
-        public String getReturnType() {
-            return returnType;
-        }
-
-        public String getReturnTypeFullName() {
-            return returnTypeFullName;
-        }
-    }
-
-    /**
-     * Parameter information
-     */
-    public static class ParameterInfo {
-        private final String name;
-        private final String type;
-        private final String fullTypeName;
-
-        public ParameterInfo(String name, String type, String fullTypeName) {
-            this.name = name;
-            this.type = type;
-            this.fullTypeName = fullTypeName;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public String getFullTypeName() {
-            return fullTypeName;
-        }
-    }
-
-    /**
-     * Evaluation attempt (can be success or failure)
-     */
-    public static class EvaluationAttempt {
-        private final int index;
-        private final String policyModule;
-        private final String policyFunction;
-        private final PolicyEvaluationResult result;
-        private final String error;
-
-        public EvaluationAttempt(int index, String policyModule, String policyFunction,
-                                PolicyEvaluationResult result, String error) {
-            this.index = index;
-            this.policyModule = policyModule;
-            this.policyFunction = policyFunction;
-            this.result = result;
-            this.error = error;
-        }
-
-        public int getIndex() {
-            return index;
-        }
-
-        public String getPolicyModule() {
-            return policyModule;
-        }
-
-        public String getPolicyFunction() {
-            return policyFunction;
-        }
-
-        public PolicyEvaluationResult getResult() {
-            return result;
-        }
-
-        public String getError() {
-            return error;
-        }
-    }
-
-    /**
-     * Batch evaluation result with successes and failures
-     */
-    public static class BatchEvaluationResult {
-        private final java.util.List<EvaluationAttempt> successes;
-        private final java.util.List<EvaluationAttempt> failures;
-        private final int successCount;
-        private final int failureCount;
-        private final int totalCount;
-
-        public BatchEvaluationResult(java.util.List<EvaluationAttempt> successes,
-                                    java.util.List<EvaluationAttempt> failures,
-                                    int successCount, int failureCount, int totalCount) {
-            this.successes = successes;
-            this.failures = failures;
-            this.successCount = successCount;
-            this.failureCount = failureCount;
-            this.totalCount = totalCount;
-        }
-
-        public java.util.List<EvaluationAttempt> getSuccesses() {
-            return successes;
-        }
-
-        public java.util.List<EvaluationAttempt> getFailures() {
-            return failures;
-        }
-
-        public int getSuccessCount() {
-            return successCount;
-        }
-
-        public int getFailureCount() {
-            return failureCount;
-        }
-
-        public int getTotalCount() {
-            return totalCount;
-        }
-    }
 }
