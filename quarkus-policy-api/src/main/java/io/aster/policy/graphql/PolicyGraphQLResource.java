@@ -770,18 +770,19 @@ public class PolicyGraphQLResource {
     }
 
     @Mutation("createPolicy")
-    @Description("创建策略 / Create policy")
-    public Uni<PolicyTypes.Policy> createPolicy(
-            @NonNull @Description("策略输入 / Policy payload")
-            PolicyTypes.PolicyInput input
-    ) {
-        return Uni.createFrom().item(() -> {
-            PolicyStorageService.PolicyDocument created = policyStorageService.createPolicy(
-                    tenantId(),
-                    convertToPolicyDocument(null, input)
-            );
-            return convertToGraphQLPolicy(created);
-        });
+   @Description("创建策略 / Create policy")
+   public Uni<PolicyTypes.Policy> createPolicy(
+           @NonNull @Description("策略输入 / Policy payload")
+           PolicyTypes.PolicyInput input
+   ) {
+        final String tenant = tenantId();
+        return Uni.createFrom().item(() ->
+            policyStorageService.createPolicy(
+                tenant,
+                convertToPolicyDocument(null, input)
+            )
+        ).call(created -> policyEvaluationService.invalidateCache(tenant, null, null))
+         .onItem().transform(this::convertToGraphQLPolicy);
     }
 
     @Mutation("updatePolicy")
@@ -792,13 +793,17 @@ public class PolicyGraphQLResource {
             @NonNull @Description("策略输入 / Policy payload")
             PolicyTypes.PolicyInput input
     ) {
+        final String tenant = tenantId();
         return Uni.createFrom().item(() ->
             policyStorageService.updatePolicy(
-                    tenantId(),
-                    id,
-                    convertToPolicyDocument(id, input)
-            ).map(this::convertToGraphQLPolicy).orElse(null)
-        );
+                tenant,
+                id,
+                convertToPolicyDocument(id, input)
+            )
+        ).call(optional -> optional.isPresent()
+            ? policyEvaluationService.invalidateCache(tenant, null, null)
+            : Uni.createFrom().voidItem())
+         .onItem().transform(optional -> optional.map(this::convertToGraphQLPolicy).orElse(null));
     }
 
     @Mutation("deletePolicy")
@@ -807,7 +812,11 @@ public class PolicyGraphQLResource {
             @NonNull @Description("策略ID / Policy identifier")
             String id
     ) {
-        return Uni.createFrom().item(() -> policyStorageService.deletePolicy(tenantId(), id));
+        final String tenant = tenantId();
+        return Uni.createFrom().item(() -> policyStorageService.deletePolicy(tenant, id))
+            .call(deleted -> Boolean.TRUE.equals(deleted)
+                ? policyEvaluationService.invalidateCache(tenant, null, null)
+                : Uni.createFrom().voidItem());
     }
 
     private PolicyStorageService.PolicyDocument convertToPolicyDocument(String id, PolicyTypes.PolicyInput input) {

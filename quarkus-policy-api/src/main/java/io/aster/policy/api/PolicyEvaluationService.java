@@ -1,15 +1,18 @@
 package io.aster.policy.api;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
-import io.quarkus.cache.CacheResult;
-import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheInvalidateAll;
+import io.quarkus.cache.CaffeineCache;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.time.Duration;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -21,6 +24,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+
+import org.jboss.logging.Logger;
 
 /**
  * Policy evaluation service with caching support (Reactive)
@@ -36,6 +42,14 @@ public class PolicyEvaluationService {
     @CacheName("policy-results")
     Cache policyResultCache;
 
+    private static final Logger LOG = Logger.getLogger(PolicyEvaluationService.class);
+
+    // 引用底层Caffeine缓存以便识别命中与同步生命周期
+    private CaffeineCache caffeineCacheDelegate;
+
+    // 使用Caffeine监听清理租户索引，确保驱逐和过期场景下同步删除
+    private com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, Boolean> cacheLifecycleTracker;
+
     // Cache for compiled policy metadata (avoids repeated reflection)
     private final ConcurrentHashMap<String, PolicyMetadata> metadataCache = new ConcurrentHashMap<>();
 
@@ -44,6 +58,47 @@ public class PolicyEvaluationService {
 
     // 维护按租户划分的缓存键索引，用于精准失效
     private final ConcurrentHashMap<String, Set<PolicyCacheKey>> tenantCacheIndex = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    void initCacheLifecycleTracking() {
+        Duration expireAfterWrite = null;
+        Long maximumSize = null;
+        Integer initialCapacity = null;
+
+        try {
+            caffeineCacheDelegate = policyResultCache.as(CaffeineCache.class);
+            if (caffeineCacheDelegate instanceof io.quarkus.cache.runtime.caffeine.CaffeineCacheImpl impl) {
+                var info = impl.getCacheInfo();
+                initialCapacity = info.initialCapacity;
+                maximumSize = info.maximumSize;
+                expireAfterWrite = info.expireAfterWrite;
+            }
+        } catch (IllegalStateException ex) {
+            LOG.warn("政策评估缓存未使用Caffeine后端，租户索引将使用默认监听配置", ex);
+            caffeineCacheDelegate = null;
+        }
+
+        Caffeine<Object, Object> builder = Caffeine.newBuilder();
+        if (initialCapacity != null) {
+            builder.initialCapacity(initialCapacity);
+        }
+        if (maximumSize != null) {
+            builder.maximumSize(maximumSize);
+        }
+        if (expireAfterWrite != null) {
+            builder.expireAfterWrite(expireAfterWrite);
+        }
+
+        cacheLifecycleTracker = builder.removalListener((PolicyCacheKey removedKey, Boolean ignored, RemovalCause cause) -> {
+            if (removedKey != null) {
+                // 使用移除监听同步清理租户索引，避免悬挂键值
+                removeTrackedKey(removedKey);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debugf("Caffeine移除缓存键, cause=%s, key=%s", cause, removedKey);
+                }
+            }
+        }).build();
+    }
 
     /**
      * Cached metadata for a policy method
@@ -92,15 +147,25 @@ public class PolicyEvaluationService {
             Object[] context) {
 
         Object[] normalizedContext = normalizeContext(tenantId, context);
-        PolicyCacheKey cacheKey = new PolicyCacheKey(tenantId, policyModule, policyFunction, normalizedContext);
-        trackTenantCacheKey(cacheKey);
-        return evaluatePolicyWithKey(cacheKey);
+        final PolicyCacheKey cacheKey = new PolicyCacheKey(tenantId, policyModule, policyFunction, normalizedContext);
+
+        // 使用底层Caffeine缓存探测命中状态，避免fromCache标记失真
+        final boolean cacheHit = isCacheHit(cacheKey);
+
+        return policyResultCache
+            .getAsync(cacheKey, this::evaluatePolicyWithKey)
+            .invoke(result -> registerCacheKey(cacheKey))
+            .onItem().transform(result -> adjustFromCacheFlag(result, cacheHit))
+            .onFailure().invoke(throwable -> {
+                if (!cacheHit) {
+                    unregisterCacheKey(cacheKey);
+                }
+            });
     }
 
     /**
      * Internal method with cache key for proper caching
      */
-    @CacheResult(cacheName = "policy-results")
     Uni<PolicyEvaluationResult> evaluatePolicyWithKey(PolicyCacheKey cacheKey) {
 
         return Uni.createFrom().item(() -> {
@@ -175,8 +240,7 @@ public class PolicyEvaluationService {
     public Uni<Void> invalidateCache(String tenantId, String policyModule, String policyFunction, Object[] context) {
         Object[] normalizedContext = normalizeContext(tenantId, context);
         PolicyCacheKey cacheKey = new PolicyCacheKey(tenantId, policyModule, policyFunction, normalizedContext);
-        return invalidateCacheWithKey(cacheKey)
-            .invoke(() -> removeTrackedKey(cacheKey));
+        return invalidateCacheWithKey(cacheKey);
     }
 
     /**
@@ -203,7 +267,7 @@ public class PolicyEvaluationService {
 
         java.util.List<Uni<Void>> invalidations = new java.util.ArrayList<>();
         for (PolicyCacheKey key : targets) {
-            invalidations.add(policyResultCache.invalidate(key));
+            invalidations.add(invalidateCacheWithKey(key));
         }
 
         keys.removeAll(targets);
@@ -229,10 +293,9 @@ public class PolicyEvaluationService {
     /**
      * Internal method with cache key for cache invalidation
      */
-    @CacheInvalidate(cacheName = "policy-results")
     Uni<Void> invalidateCacheWithKey(PolicyCacheKey cacheKey) {
-        // 返回completed Uni，缓存失效由注解处理
-        return Uni.createFrom().voidItem();
+        return policyResultCache.invalidate(cacheKey)
+            .invoke(() -> unregisterCacheKey(cacheKey));
     }
 
     private Object[] normalizeContext(String tenantId, Object[] context) {
@@ -271,6 +334,39 @@ public class PolicyEvaluationService {
                 tenantCacheIndex.remove(normalizedTenant, keys);
             }
         }
+    }
+
+    private boolean isCacheHit(PolicyCacheKey cacheKey) {
+        if (caffeineCacheDelegate == null) {
+            return false;
+        }
+        CompletableFuture<PolicyEvaluationResult> cachedFuture = caffeineCacheDelegate.getIfPresent(cacheKey);
+        return cachedFuture != null && !cachedFuture.isCompletedExceptionally();
+    }
+
+    private void registerCacheKey(PolicyCacheKey cacheKey) {
+        trackTenantCacheKey(cacheKey);
+        if (cacheLifecycleTracker != null) {
+            cacheLifecycleTracker.put(cacheKey, Boolean.TRUE);
+        }
+    }
+
+    private void unregisterCacheKey(PolicyCacheKey cacheKey) {
+        if (cacheLifecycleTracker != null) {
+            cacheLifecycleTracker.invalidate(cacheKey);
+        }
+        removeTrackedKey(cacheKey);
+    }
+
+    private PolicyEvaluationResult adjustFromCacheFlag(PolicyEvaluationResult original, boolean fromCache) {
+        if (original == null || original.isFromCache() == fromCache) {
+            return original;
+        }
+        return new PolicyEvaluationResult(
+            original.getResult(),
+            original.getExecutionTimeMs(),
+            fromCache
+        );
     }
 
     /**
@@ -448,6 +544,9 @@ public class PolicyEvaluationService {
         metadataCache.clear();
         constructorCache.clear();
         tenantCacheIndex.clear();
+        if (cacheLifecycleTracker != null) {
+            cacheLifecycleTracker.invalidateAll();
+        }
         // 返回completed Uni，缓存清空由注解处理
         return Uni.createFrom().voidItem();
     }
@@ -508,34 +607,53 @@ public class PolicyEvaluationService {
      * 准备方法参数
      */
     private Object[] prepareArguments(Parameter[] parameters, Object[] context) throws Exception {
-        if (context == null || parameters.length == 0) {
+        if (parameters.length == 0) {
             return new Object[0];
         }
 
+        Object[] safeContext = context == null ? new Object[0] : context;
         Object[] args = new Object[parameters.length];
-        for (int i = 0; i < Math.min(parameters.length, context.length); i++) {
+        for (int i = 0; i < parameters.length; i++) {
             Class<?> expectedType = parameters[i].getType();
-            Object contextObj = context[i];
+            Object contextObj = i < safeContext.length ? safeContext[i] : null;
 
-            if (contextObj instanceof Map) {
+            if (contextObj == null) {
+                args[i] = defaultForMissingParameter(expectedType);
+                continue;
+            }
+
+            if (contextObj instanceof Map<?, ?> rawMap) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> map = (Map<String, Object>) contextObj;
+                Map<String, Object> map = (Map<String, Object>) rawMap;
 
-                // 对于基本类型和包装类型，直接从map中获取值
                 if (isPrimitiveOrWrapper(expectedType)) {
-                    // 假设map只有一个键值对，或者使用约定的键
-                    Object value = map.values().iterator().next();
+                    Object value = map.values().stream().findFirst().orElse(null);
                     args[i] = convertValue(value, expectedType);
+                } else if (Map.class.isAssignableFrom(expectedType)) {
+                    args[i] = map.isEmpty() ? Collections.emptyMap() : map;
                 } else {
                     args[i] = constructFromMap(expectedType, map);
                 }
             } else {
-                // 直接传递的值，可能需要类型转换
                 args[i] = convertValue(contextObj, expectedType);
             }
         }
         return args;
     }
+
+    private Object defaultForMissingParameter(Class<?> expectedType) {
+        if (expectedType == String.class) {
+            return "";
+        }
+        if (expectedType.isPrimitive() || isPrimitiveOrWrapper(expectedType)) {
+            return getDefaultValue(expectedType);
+        }
+        if (Map.class.isAssignableFrom(expectedType)) {
+            return Collections.emptyMap();
+        }
+        return null;
+    }
+
 
     /**
      * 判断是否为基本类型或其包装类
@@ -637,10 +755,15 @@ public class PolicyEvaluationService {
      * 获取基本类型的默认值
      */
     private Object getDefaultValue(Class<?> type) {
-        if (type == int.class) return 0;
-        if (type == long.class) return 0L;
-        if (type == double.class) return 0.0;
-        if (type == boolean.class) return false;
+        if (type == int.class || type == Integer.class) return 0;
+        if (type == long.class || type == Long.class) return 0L;
+        if (type == double.class || type == Double.class) return 0.0D;
+        if (type == float.class || type == Float.class) return 0.0F;
+        if (type == short.class || type == Short.class) return (short) 0;
+        if (type == byte.class || type == Byte.class) return (byte) 0;
+        if (type == boolean.class || type == Boolean.class) return false;
+        if (type == char.class || type == Character.class) return '\0';
+        if (type == String.class) return "";
         return null;
     }
 
