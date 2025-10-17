@@ -3,21 +3,21 @@ This module is aster.finance.enterprise_lending.
 // Complex enterprise lending policy with nested logic and multiple dependencies
 // Depends on: risk assessment, fraud detection, and credit scoring
 
-Define EnterpriseInfo with companyId: Text, companyName: Text, industry: Text, yearsInBusiness: Int, employeeCount: Int, annualRevenue: Int, revenueGrowthRate: Int, profitMargin: Int.
+Define EnterpriseInfo with @NotEmpty companyId: Text, @NotEmpty companyName: Text, @NotEmpty industry: Text, yearsInBusiness: Int, employeeCount: Int, annualRevenue: Int, @Range(min: 0, max: 100) revenueGrowthRate: Int, @Range(min: 0, max: 100) profitMargin: Int.
 
 Define FinancialPosition with totalAssets: Int, currentAssets: Int, totalLiabilities: Int, currentLiabilities: Int, equity: Int, cashFlow: Int, outstandingDebt: Int.
 
-Define BusinessHistory with previousLoans: Int, defaultCount: Int, latePayments: Int, creditUtilization: Int, largestLoanAmount: Int, relationshipYears: Int.
+Define BusinessHistory with previousLoans: Int, defaultCount: Int, latePayments: Int, @Range(min: 0, max: 100) creditUtilization: Int, largestLoanAmount: Int, relationshipYears: Int.
 
-Define LoanApplication with requestedAmount: Int, loanPurpose: Text, termMonths: Int, collateralValue: Int, guarantorCount: Int.
+Define LoanApplication with requestedAmount: Int, @NotEmpty loanPurpose: Text, @Range(min: 0, max: 600) termMonths: Int, collateralValue: Int, guarantorCount: Int.
 
-Define LendingDecision with approved: Bool, approvedAmount: Int, interestRateBps: Int, termMonths: Int, collateralRequired: Int, specialConditions: Text, riskCategory: Text, confidenceScore: Int, reasonCode: Text, detailedAnalysis: Text.
+Define LendingDecision with approved: Bool, approvedAmount: Int, @Range(min: 0, max: 5000) interestRateBps: Int, @Range(min: 0, max: 600) termMonths: Int, collateralRequired: Int, @NotEmpty specialConditions: Text, @NotEmpty riskCategory: Text, confidenceScore: Int, @NotEmpty reasonCode: Text, @NotEmpty detailedAnalysis: Text.
 
-Define LiquidityAnalysis with currentRatio: Int, quickRatio: Int, isHealthy: Bool, recommendation: Text.
+Define LiquidityAnalysis with currentRatio: Int, quickRatio: Int, isHealthy: Bool, @NotEmpty recommendation: Text.
 
-Define LeverageAnalysis with debtToEquity: Int, debtToAssets: Int, riskLevel: Text, maxLoanCapacity: Int.
+Define LeverageAnalysis with debtToEquity: Int, debtToAssets: Int, @NotEmpty riskLevel: Text, maxLoanCapacity: Int.
 
-Define ProfitabilityAnalysis with returnOnAssets: Int, returnOnEquity: Int, profitabilityGrade: Text, repaymentCapacity: Int.
+Define ProfitabilityAnalysis with returnOnAssets: Int, returnOnEquity: Int, @NotEmpty profitabilityGrade: Text, repaymentCapacity: Int.
 
 // =====================================================
 // =====================================================
@@ -106,7 +106,7 @@ To assessProfitability with enterprise: EnterpriseInfo, position: FinancialPosit
   Let minCapacity be /(*(repaymentCapacity, 40), 100).
   Return ProfitabilityAnalysis with returnOnAssets = returnOnAssets, returnOnEquity = returnOnEquity, profitabilityGrade = "POOR", repaymentCapacity = minCapacity.
 
-To calculateIndustryFactor with industry: Text, produce Int:
+To calculateIndustryFactor with @NotEmpty industry: Text, produce Int:
   If =(industry, "Technology"),:
     Return 110.
   If =(industry, "Healthcare"),:

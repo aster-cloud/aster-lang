@@ -1,8 +1,8 @@
 This module is aster.finance.risk.
 
-Define FinancialProfile with totalAssets: Int, totalLiabilities: Int, monthlyIncome: Int, monthlyExpenses: Int, creditScore: Int.
+Define FinancialProfile with totalAssets: Int, totalLiabilities: Int, monthlyIncome: Int, monthlyExpenses: Int, @Range(min: 300, max: 850) creditScore: Int.
 
-Define RiskAssessment with riskLevel: Text, riskScore: Int, recommendation: Text.
+Define RiskAssessment with @NotEmpty riskLevel: Text, @Range(min: 0, max: 100) riskScore: Int, @NotEmpty recommendation: Text.
 
 To assessRisk with profile: FinancialProfile, produce RiskAssessment:
   If <(profile.creditScore, 600),:
@@ -18,4 +18,3 @@ To assessRisk with profile: FinancialProfile, produce RiskAssessment:
   If <(profile.creditScore, 750),:
     Return RiskAssessment with riskLevel = "LOW", riskScore = 30, recommendation = "Standard terms apply".
   Return RiskAssessment with riskLevel = "MINIMAL", riskScore = 10, recommendation = "Excellent profile - offer premium rates".
-

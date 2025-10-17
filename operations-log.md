@@ -1562,3 +1562,19 @@ await runOneTypecheck(
 - 命令：bash -lc "./gradlew :policy-editor:test --tests editor.SyncServiceTest" → 复测通过
 - 命令：bash -lc "tail -n 40 operations-log.md" → 获取既有日志上下文
 - 命令：bash -lc "TZ=\"Pacific/Auckland\" date \"+%Y-%m-%d %H:%M %Z\"" → 记录新西兰时区时间戳
+# 2025-10-17 13:24 NZDT Finance Policy 注解补充
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理 6 个金融策略文件的注解范围与风险
+- 命令：zsh -lc "cat quarkus-policy-api/src/main/resources/policies/finance/loan.aster" → 获取贷款策略现状
+- 工具：apply_patch → 为 LoanApplication/ApplicantProfile/LoanDecision 字段及 determineInterestRateBps 参数添加校验注解
+- 命令：zsh -lc "cat quarkus-policy-api/src/main/resources/policies/finance/creditcard.aster" → 获取信用卡策略现状
+- 工具：apply_patch → 补充信用卡数据结构及相关函数参数的注解范围
+- 命令：zsh -lc "cat quarkus-policy-api/src/main/resources/policies/finance/lending/personal.aster" → 获取个人贷款策略上下文
+- 工具：apply_patch → 更新个人贷款数据结构与 calculatePurposeAdjustment 参数注解
+- 命令：zsh -lc "cat quarkus-policy-api/src/main/resources/policies/finance/lending/enterprise.aster" → 获取企业贷款策略上下文
+- 工具：apply_patch → 更新企业贷款数据结构与 calculateIndustryFactor 参数注解
+- 命令：zsh -lc "cat quarkus-policy-api/src/main/resources/policies/finance/fraud.aster" → 获取欺诈检测策略上下文
+- 工具：apply_patch → 补充欺诈结果及交易字段注解
+- 命令：zsh -lc "cat quarkus-policy-api/src/main/resources/policies/finance/risk.aster" → 获取风险评估策略上下文
+- 工具：apply_patch → 更新风险评估数据结构注解

@@ -1,16 +1,16 @@
 This module is aster.finance.creditcard.
 
-Define ApplicantInfo with applicantId: Text, age: Int, annualIncome: Int, creditScore: Int, existingCreditCards: Int, monthlyRent: Int, employmentStatus: Text, yearsAtCurrentJob: Int.
+Define ApplicantInfo with @NotEmpty applicantId: Text, @Range(min: 18, max: 120) age: Int, annualIncome: Int, @Range(min: 300, max: 850) creditScore: Int, existingCreditCards: Int, monthlyRent: Int, @NotEmpty employmentStatus: Text, @Range(min: 0, max: 50) yearsAtCurrentJob: Int.
 
 Define FinancialHistory with bankruptcyCount: Int, latePayments: Int, utilization: Int, accountAge: Int, hardInquiries: Int.
 
-Define CreditCardOffer with productType: Text, requestedLimit: Int, hasRewards: Bool, annualFee: Int.
+Define CreditCardOffer with @NotEmpty productType: Text, requestedLimit: Int, hasRewards: Bool, annualFee: Int.
 
-Define ApprovalDecision with approved: Bool, reason: Text, approvedLimit: Int, interestRateAPR: Int, monthlyFee: Int, creditLine: Int, requiresDeposit: Bool, depositAmount: Int.
+Define ApprovalDecision with approved: Bool, @NotEmpty reason: Text, approvedLimit: Int, @Range(min: 0, max: 5000) interestRateAPR: Int, monthlyFee: Int, creditLine: Int, requiresDeposit: Bool, depositAmount: Int.
 
-Define RiskScore with score: Int, category: Text, factors: Text.
+Define RiskScore with score: Int, @NotEmpty category: Text, @NotEmpty factors: Text.
 
-Define IncomeValidation with sufficient: Bool, ratio: Int, recommendation: Text.
+Define IncomeValidation with sufficient: Bool, ratio: Int, @NotEmpty recommendation: Text.
 
 To evaluateCreditCardApplication with applicant: ApplicantInfo, history: FinancialHistory, offer: CreditCardOffer, produce ApprovalDecision:
   // 多层嵌套风险评估 - Multi-level nested risk assessment
@@ -58,7 +58,7 @@ To calculateComprehensiveRiskScore with applicant: ApplicantInfo, history: Finan
     Return RiskScore with score = totalScore, category = "Fair", factors = "Some concerns".
   Return RiskScore with score = totalScore, category = "Poor", factors = "High risk".
 
-To calculateCreditScorePoints with creditScore: Int, produce Int:
+To calculateCreditScorePoints with @Range(min: 300, max: 850) creditScore: Int, produce Int:
   If >(creditScore, 780),:
     Return 300.
   If >(creditScore, 720),:
@@ -74,7 +74,7 @@ To calculateHistoryPoints with history: FinancialHistory, produce Int:
   Let latePenalty be *(history.latePayments, 15).
   Return -(ageBonus, latePenalty).
 
-To calculateUtilizationPenalty with utilization: Int, produce Int:
+To calculateUtilizationPenalty with @Range(min: 0, max: 100) utilization: Int, produce Int:
   If >(utilization, 80),:
     Return 100.
   If >(utilization, 50),:
@@ -136,7 +136,7 @@ To determineFinalCreditLimit with requestedLimit: Int, applicant: ApplicantInfo,
     Return 50000.
   Return preliminaryLimit.
 
-To calculateAPR with creditScore: Int, riskScore: Int, history: FinancialHistory, produce Int:
+To calculateAPR with @Range(min: 300, max: 850) creditScore: Int, riskScore: Int, history: FinancialHistory, produce Int:
   Let baseAPR be 2400.
 
   If >(creditScore, 780),:
@@ -176,7 +176,7 @@ To calculateRequiredDeposit with requiresSecured: Bool, creditLimit: Int, produc
     Return 0.
   Return creditLimit.
 
-To determineMonthlyFee with productType: Text, isSecured: Bool, creditScore: Int, produce Int:
+To determineMonthlyFee with @NotEmpty productType: Text, isSecured: Bool, @Range(min: 300, max: 850) creditScore: Int, produce Int:
   If =(isSecured, true),:
     Return 0.
   If =(productType, "Premium"),:

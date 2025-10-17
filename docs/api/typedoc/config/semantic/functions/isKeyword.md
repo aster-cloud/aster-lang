@@ -6,7 +6,7 @@
 
 > **isKeyword**(`word`): `boolean`
 
-Defined in: [config/semantic.ts:262](https://github.com/wontlost-ltd/aster-lang/blob/04ee1d5c525ac87c27117626540a0426a29298e4/src/config/semantic.ts#L262)
+Defined in: [config/semantic.ts:262](https://github.com/wontlost-ltd/aster-lang/blob/40a20d5de10b2ccdcc6d4d9cf102a12c54b7db94/src/config/semantic.ts#L262)
 
 验证字符串是否为关键字。
 
