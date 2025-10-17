@@ -1,0 +1,13 @@
+This module is finance.loan.constraints.
+
+Define LoanApplicationConstrained with applicantId: Text, amount: Int, termMonths: Int, purpose: Text.
+
+To checkLoanEligibilityConstrained with app: LoanApplicationConstrained, produce Bool:
+  If <(app.amount, 1000),:
+    Return false.
+  If >(app.amount, 10000000),:
+    Return false.
+  Return true.
+
+To normalizeLoanAmount with amount: Int, produce Int:
+  Return amount.

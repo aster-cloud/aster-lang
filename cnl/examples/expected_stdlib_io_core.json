@@ -5,13 +5,15 @@
     {
       "kind": "Func",
       "name": "print",
+      "typeParams": [],
       "params": [
         {
           "name": "msg",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {
@@ -55,6 +57,7 @@
     {
       "kind": "Func",
       "name": "readLine",
+      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "TypeName",
@@ -92,13 +95,15 @@
     {
       "kind": "Func",
       "name": "readFile",
+      "typeParams": [],
       "params": [
         {
           "name": "path",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {
@@ -149,20 +154,23 @@
     {
       "kind": "Func",
       "name": "writeFile",
+      "typeParams": [],
       "params": [
         {
           "name": "path",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "contents",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

@@ -1,0 +1,6 @@
+This module is validation.regex.
+
+Define Contact with @Pattern(regexp: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") email: Text, @Pattern(regexp: "^\\+?[1-9]\\d{1,14}$") phone: Text.
+
+To validateEmail with @Pattern(regexp: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") addr: Text, produce Bool:
+  Return true.

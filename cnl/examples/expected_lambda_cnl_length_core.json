@@ -5,13 +5,15 @@
     {
       "kind": "Func",
       "name": "lengthOf",
+      "typeParams": [],
       "params": [
         {
           "name": "s",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

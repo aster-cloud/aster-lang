@@ -11,14 +11,16 @@
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "name",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ]
     },
@@ -33,20 +35,23 @@
     {
       "kind": "Func",
       "name": "login",
+      "typeParams": [],
       "params": [
         {
           "name": "user",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "pass",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

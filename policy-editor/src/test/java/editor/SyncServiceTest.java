@@ -2,6 +2,7 @@ package editor;
 
 import editor.service.PolicyService;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -18,10 +19,11 @@ public class SyncServiceTest {
 
     @Inject PolicyService policyService;
 
+    String policyId = "sync-" + System.currentTimeMillis();
     Path policiesDir = Paths.get("examples/policy-editor/src/main/resources/policies");
-    Path remoteDir = Paths.get("build", "test-remote-" + System.currentTimeMillis());
-    Path remoteFile = remoteDir.resolve("test-sync-file.json");
-    Path localFile = policiesDir.resolve("test-sync-file.json");
+    Path remoteDir = Paths.get("build", "test-remote-" + policyId);
+    Path remoteFile = remoteDir.resolve(policyId + ".json");
+    Path localFile = policiesDir.resolve(policyId + ".json");
 
     @AfterEach
     void cleanup() throws Exception {
@@ -32,9 +34,11 @@ public class SyncServiceTest {
     }
 
     @Test
+    @TestSecurity(user = "sync-tester")
     void syncPullPushWithCounts() throws Exception {
         Files.createDirectories(remoteDir);
-        Files.writeString(remoteFile, "{\"id\":\"p1\",\"name\":\"A\",\"allow\":{},\"deny\":{}}", StandardCharsets.UTF_8);
+        Files.writeString(remoteFile,
+            "{\"id\":\"" + policyId + "\",\"name\":\"A\",\"allow\":{},\"deny\":{}}", StandardCharsets.UTF_8);
 
         var r1 = policyService.syncPullWithResult(remoteDir.toString());
         assertEquals(1, r1.created);
@@ -46,7 +50,8 @@ public class SyncServiceTest {
         assertEquals(0, r2.updated);
         assertEquals(1, r2.skipped);
 
-        Files.writeString(remoteFile, "{\"id\":\"p1\",\"name\":\"B\",\"allow\":{},\"deny\":{}}", StandardCharsets.UTF_8);
+        Files.writeString(remoteFile,
+            "{\"id\":\"" + policyId + "\",\"name\":\"B\",\"allow\":{},\"deny\":{}}", StandardCharsets.UTF_8);
         var r3 = policyService.syncPullWithResult(remoteDir.toString());
         assertEquals(0, r3.created);
         assertEquals(1, r3.updated);
@@ -55,4 +60,3 @@ public class SyncServiceTest {
         assertTrue(r4.created >= 0); // 至少可运行
     }
 }
-

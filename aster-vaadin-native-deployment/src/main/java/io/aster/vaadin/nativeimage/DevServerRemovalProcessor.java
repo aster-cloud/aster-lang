@@ -1,17 +1,22 @@
 package io.aster.vaadin.nativeimage;
 
-import io.quarkus.deployment.annotations.BuildProducer;
-import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.arc.deployment.AnnotationsTransformerBuildItem;
-import io.quarkus.arc.processor.AnnotationsTransformer;
-import io.quarkus.undertow.deployment.UndertowDeploymentInfoCustomizerBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.util.ServiceUtil;
+import io.quarkus.undertow.deployment.IgnoredServletContainerInitializerBuildItem;
+import io.quarkus.undertow.deployment.WebMetadataBuildItem;
+import jakarta.enterprise.inject.Vetoed;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
+import org.jboss.jandex.AnnotationTransformation;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
+import org.jboss.metadata.web.spec.ListenerMetaData;
+import org.jboss.metadata.web.spec.WebMetaData;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.function.Predicate;
 
 /**
@@ -20,61 +25,50 @@ import java.util.function.Predicate;
  */
 public class DevServerRemovalProcessor {
 
-    private static final DotName VETOED = DotName.createSimple("jakarta.enterprise.inject.Vetoed");
-
     private static final Predicate<DotName> IS_VAADIN_DEVSERVER = name -> {
-        String n = name.toString();
-        return n.startsWith("com.vaadin.base.devserver.") || n.equals("com.vaadin.base.devserver")
-                || n.startsWith("com.vaadin.base.devserver.startup.");
+        return isVaadinDevServer(name.toString());
     };
+
+    private static boolean isVaadinDevServer(String name) {
+        if (name == null) {
+            return false;
+        }
+        return name.startsWith("com.vaadin.base.devserver.")
+                || name.equals("com.vaadin.base.devserver")
+                || name.startsWith("com.vaadin.base.devserver.startup.");
+    }
 
     @BuildStep
     void vetoVaadinDevServer(BuildProducer<AnnotationsTransformerBuildItem> producer) {
-        producer.produce(new AnnotationsTransformerBuildItem(new AnnotationsTransformer() {
-            @Override
-            public boolean appliesTo(AnnotationTarget.Kind kind) {
-                return kind == AnnotationTarget.Kind.CLASS;
-            }
-
-            @Override
-            public void transform(TransformationContext context) {
-                ClassInfo clazz = context.getTarget().asClass();
-                DotName name = clazz.name();
-                if (IS_VAADIN_DEVSERVER.test(name)) {
-                    context.transform().add(VETOED).done();
-                }
-            }
-        }));
+        producer.produce(new AnnotationsTransformerBuildItem(
+                AnnotationTransformation.builder()
+                        .whenDeclaration(declaration -> declaration.kind() == AnnotationTarget.Kind.CLASS)
+                        .transform(context -> {
+                            ClassInfo clazz = context.declaration().asClass();
+                            DotName name = clazz.name();
+                            if (IS_VAADIN_DEVSERVER.test(name)) {
+                                context.add(Vetoed.class);
+                            }
+                        })));
     }
 
-    /**
-     * Undertow 层补强：移除 DevServer 相关的 ServletContextListener/SCI，避免容器阶段触发开发时逻辑。
-     */
     @BuildStep
-    UndertowDeploymentInfoCustomizerBuildItem blockDevServerUndertow() {
-        return new UndertowDeploymentInfoCustomizerBuildItem(info -> {
-            try {
-                // 移除 DevServer 相关 Listener
-                info.getListeners().removeIf(listener -> {
-                    try {
-                        String cn = listener.getListenerClass();
-                        return cn != null && cn.startsWith("com.vaadin.base.devserver");
-                    } catch (Throwable t) {
-                        return false;
-                    }
-                });
-
-                // 谨慎处理 SCI：仅移除 devserver 包下的 initializer（不移除 Vaadin 正常的 Flow 初始器）
-                info.getServletContainerInitializers().removeIf(sci -> {
-                    try {
-                        String cn = sci.getValue().getClassName();
-                        return cn != null && cn.startsWith("com.vaadin.base.devserver");
-                    } catch (Throwable t) {
-                        return false;
-                    }
-                });
-            } catch (Throwable ignored) {
+    void ignoreDevServerScis(BuildProducer<IgnoredServletContainerInitializerBuildItem> ignoredScis) throws IOException {
+        for (String initializer : ServiceUtil.classNamesNamedIn(
+                Thread.currentThread().getContextClassLoader(),
+                "META-INF/services/jakarta.servlet.ServletContainerInitializer")) {
+            if (isVaadinDevServer(initializer)) {
+                ignoredScis.produce(new IgnoredServletContainerInitializerBuildItem(initializer));
             }
-        });
+        }
+    }
+
+    @BuildStep
+    void pruneDevServerListeners(WebMetadataBuildItem webMetadataBuildItem) {
+        WebMetaData metaData = webMetadataBuildItem.getWebMetaData();
+        List<ListenerMetaData> listeners = metaData.getListeners();
+        if (listeners != null) {
+            listeners.removeIf(listener -> isVaadinDevServer(listener.getListenerClass()));
+        }
     }
 }

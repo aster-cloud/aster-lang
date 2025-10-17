@@ -132,8 +132,7 @@ public class PersonalLendingConverter implements PolicyGraphQLConverter<Personal
             "carPayment", debt.carPayment,
             "studentLoanPayment", debt.studentLoanPayment,
             "creditCardMinPayment", debt.creditCardMinPayment,
-            "otherDebtPayment", debt.otherDebtPayment,
-            "totalOutstandingDebt", debt.totalOutstandingDebt
+            "otherDebtPayment", debt.otherDebtPayment
         );
     }
 
@@ -147,4 +146,3 @@ public class PersonalLendingConverter implements PolicyGraphQLConverter<Personal
         );
     }
 }
-

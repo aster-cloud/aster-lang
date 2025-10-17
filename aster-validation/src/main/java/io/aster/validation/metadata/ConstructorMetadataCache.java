@@ -1,8 +1,7 @@
-package io.aster.policy.api.metadata;
+package io.aster.validation.metadata;
 
-import io.aster.policy.api.model.ConstructorMetadata;
-import jakarta.enterprise.context.ApplicationScoped;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -17,10 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 构造器元数据缓存，负责缓存领域对象的构造方法信息。
  */
-@ApplicationScoped
 public class ConstructorMetadataCache {
 
-    private static final Logger LOG = Logger.getLogger(ConstructorMetadataCache.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConstructorMetadataCache.class);
 
     private final ConcurrentHashMap<Class<?>, ConstructorMetadata> constructorCache = new ConcurrentHashMap<>();
 
@@ -71,7 +69,7 @@ public class ConstructorMetadataCache {
                 try {
                     return clazz.getDeclaredConstructor(parameterTypes);
                 } catch (NoSuchMethodException ex) {
-                    LOG.warnf("记录类型%s未找到匹配的主构造器，回退至第一个公共构造器。", clazz.getName());
+                    logger.warn("记录类型{}未找到匹配的主构造器，回退至第一个公共构造器。", clazz.getName());
                 }
             }
         }
@@ -111,12 +109,16 @@ public class ConstructorMetadataCache {
         }
 
         if (mapping.isEmpty()) {
-            LOG.warnf("类%s的构造器参数名不可用，字段数量为%d，构造器参数数量为%d，无法建立精确映射，将按索引直接回填。", clazz.getName(), fields == null ? 0 : fields.length, constructor.getParameterCount());
+            logger.warn("类{}的构造器参数名不可用，字段数量为{}，构造器参数数量为{}，无法建立精确映射，将按索引直接回填。",
+                clazz.getName(),
+                fields == null ? 0 : fields.length,
+                constructor.getParameterCount()
+            );
             for (int i = 0; i < parameters.length; i++) {
                 mapping.put(parameters[i].getName() != null ? parameters[i].getName() : "arg" + i, i);
             }
         } else {
-            LOG.warnf("类%s的构造器参数名不可用，已按字段声明顺序建立映射，建议编译时启用-parameters。", clazz.getName());
+            logger.warn("类{}的构造器参数名不可用，已按字段声明顺序建立映射，建议编译时启用-parameters。", clazz.getName());
         }
 
         return mapping;

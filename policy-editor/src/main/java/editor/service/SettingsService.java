@@ -36,7 +36,7 @@ public class SettingsService {
     public synchronized EditorSettings load() {
         if (Files.exists(SETTINGS_PATH)) {
             try {
-                return objectMapper.readValue(SETTINGS_PATH.toFile(), EditorSettings.class);
+                return applyDefaults(objectMapper.readValue(SETTINGS_PATH.toFile(), EditorSettings.class));
             } catch (Exception ignored) {}
         }
         // 默认值：指向本服务 /graphql，超时 5000ms，开启压缩
@@ -48,7 +48,7 @@ public class SettingsService {
         def.setCacheTtlMillis(3000);
         def.setRemoteRepoDir("data/remote-policies");
         def.setUserName("admin");
-        return def;
+        return applyDefaults(def);
     }
 
     public synchronized void save(EditorSettings s) {
@@ -58,5 +58,18 @@ public class SettingsService {
         } catch (IOException e) {
             throw new RuntimeException("保存设置失败: " + SETTINGS_PATH, e);
         }
+    }
+
+    /**
+     * 补全历史配置文件缺失的字段，避免旧版本写出的 JSON 影响当前逻辑。
+     */
+    private EditorSettings applyDefaults(EditorSettings settings) {
+        if (settings.getRemoteRepoDir() == null || settings.getRemoteRepoDir().isBlank()) {
+            settings.setRemoteRepoDir("data/remote-policies");
+        }
+        if (settings.getUserName() == null || settings.getUserName().isBlank()) {
+            settings.setUserName("admin");
+        }
+        return settings;
     }
 }

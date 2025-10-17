@@ -1,7 +1,4 @@
-package io.aster.policy.api.metadata;
-
-import io.aster.policy.api.model.PolicyMetadata;
-import jakarta.enterprise.context.ApplicationScoped;
+package io.aster.validation.metadata;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -11,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 策略元数据加载器，负责动态加载策略类并缓存反射信息。
  */
-@ApplicationScoped
 public class PolicyMetadataLoader {
 
     private final ConcurrentHashMap<String, PolicyMetadata> metadataCache = new ConcurrentHashMap<>();

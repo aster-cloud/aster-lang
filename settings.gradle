@@ -1,6 +1,8 @@
 rootProject.name = 'aster-lang'
 include ':aster-asm-emitter'
 include ':aster-runtime'
+include ':aster-validation'
+project(':aster-validation').projectDir = file('aster-validation')
 include ':examples:hello-native'
 project(':examples:hello-native').projectDir = file('examples/hello-native')
 include ':examples:login-native'

@@ -112,6 +112,18 @@ function withEffectCaps(
   return coreFunc;
 }
 
+function lowerAnnotations(
+  annotations: readonly import('./types.js').Annotation[] | undefined
+): readonly import('./types.js').Core.Annotation[] {
+  if (!annotations || annotations.length === 0) {
+    return [];
+  }
+  return annotations.map(ann => ({
+    name: ann.name,
+    params: Object.fromEntries(ann.params),
+  }));
+}
+
 /**
  * 将 AST Module 降级为 Core IR Module。
  *
@@ -158,7 +170,11 @@ function lowerDecl(d: Declaration): import('./types.js').Core.Declaration {
       return withOrigin(
         Core.Data(
           d.name,
-          d.fields.map(f => ({ name: f.name, type: lowerType(f.type) }))
+          d.fields.map(f => ({
+            name: f.name,
+            type: lowerType(f.type),
+            annotations: lowerAnnotations(f.annotations),
+          }))
         ),
         d
       );
@@ -177,7 +193,11 @@ function lowerDecl(d: Declaration): import('./types.js').Core.Declaration {
 
 function lowerFunc(f: Func): import('./types.js').Core.Func {
   const tvars = new Set<string>(f.typeParams ?? []);
-  const params = f.params.map(p => ({ name: p.name, type: lowerTypeWithVars(p.type, tvars) }));
+  const params = f.params.map(p => ({
+    name: p.name,
+    type: lowerTypeWithVars(p.type, tvars),
+    annotations: lowerAnnotations(p.annotations),
+  }));
   const ret = lowerTypeWithVars(f.retType, tvars);
   // 严格校验效果字符串，拒绝未知值
   const effects = (f.effects || []).map(e => {

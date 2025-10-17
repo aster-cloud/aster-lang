@@ -5,13 +5,15 @@
     {
       "kind": "Func",
       "name": "greet",
+      "typeParams": [],
       "params": [
         {
           "name": "pfx",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

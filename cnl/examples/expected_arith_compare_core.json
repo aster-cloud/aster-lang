@@ -5,20 +5,23 @@
     {
       "kind": "Func",
       "name": "cmp",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
           "type": {
             "kind": "TypeName",
             "name": "Int"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "y",
           "type": {
             "kind": "TypeName",
             "name": "Int"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {
@@ -55,20 +58,23 @@
     {
       "kind": "Func",
       "name": "add",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
           "type": {
             "kind": "TypeName",
             "name": "Int"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "y",
           "type": {
             "kind": "TypeName",
             "name": "Int"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

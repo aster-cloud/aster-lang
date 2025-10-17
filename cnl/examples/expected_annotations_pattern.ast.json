@@ -1,0 +1,144 @@
+{
+  "kind": "Module",
+  "name": "validation.regex",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "Contact",
+      "fields": [
+        {
+          "name": "email",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 22
+            },
+            "end": {
+              "line": 3,
+              "col": 102
+            }
+          }
+        },
+        {
+          "name": "phone",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 105
+            },
+            "end": {
+              "line": 3,
+              "col": 156
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "validateEmail",
+      "params": [
+        {
+          "name": "addr",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 24
+            },
+            "end": {
+              "line": 5,
+              "col": 103
+            }
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool"
+      },
+      "effects": [],
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Bool",
+              "value": true
+            },
+            "span": {
+              "start": {
+                "line": 6,
+                "col": 3
+              },
+              "end": {
+                "line": 6,
+                "col": 15
+              }
+            }
+          }
+        ],
+        "span": {
+          "start": {
+            "line": 6,
+            "col": 3
+          },
+          "end": {
+            "line": 7,
+            "col": 1
+          }
+        }
+      },
+      "span": {
+        "start": {
+          "line": 5,
+          "col": 1
+        },
+        "end": {
+          "line": 7,
+          "col": 1
+        }
+      },
+      "nameSpan": {
+        "start": {
+          "line": 5,
+          "col": 4
+        },
+        "end": {
+          "line": 7,
+          "col": 1
+        }
+      }
+    }
+  ]
+}

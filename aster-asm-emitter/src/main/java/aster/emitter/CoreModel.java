@@ -44,8 +44,22 @@ public final class CoreModel {
     public Origin origin;
   }
 
-  public static final class Field { public String name; public Type type; }
-  public static final class Param { public String name; public Type type; }
+  public static final class Field {
+    public String name;
+    public Type type;
+    public List<Annotation> annotations = Collections.emptyList();
+  }
+
+  public static final class Param {
+    public String name;
+    public Type type;
+    public List<Annotation> annotations = Collections.emptyList();
+  }
+
+  public static final class Annotation {
+    public String name;
+    public Map<String, Object> params = Collections.emptyMap();
+  }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({

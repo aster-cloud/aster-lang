@@ -85,9 +85,10 @@ class PersonalLendingConverterTest {
         assertThat(mapOf(context.get("credit")))
             .containsEntry("creditScore", 785)
             .containsEntry("creditUtilization", 22);
-        assertThat(mapOf(context.get("debt")))
+        Map<String, Object> debtContext = mapOf(context.get("debt"));
+        assertThat(debtContext)
             .containsEntry("totalMonthlyDebt", 1_800)
-            .containsEntry("totalOutstandingDebt", 18_000);
+            .doesNotContainKey("totalOutstandingDebt");
         assertThat(mapOf(context.get("request")))
             .containsEntry("requestedAmount", 45_000)
             .containsEntry("purpose", "HOME_IMPROVEMENT");
@@ -182,4 +183,3 @@ class PersonalLendingConverterTest {
         }
     }
 }
-

@@ -144,18 +144,30 @@ export interface Module extends Base.BaseModule<Span, Declaration> {}
 
 export interface Import extends Base.BaseImport<Span> {}
 
-export interface Data extends Base.BaseData<Span, Type> {}
+export interface Data extends Base.BaseData<Span, Type> {
+  readonly fields: readonly Field[];
+}
 
-export interface Field extends Base.BaseField<Type> {}
+export interface Annotation {
+  readonly name: string;
+  readonly params: ReadonlyMap<string, unknown>;
+}
+
+export interface Field extends Base.BaseField<Type> {
+  readonly annotations?: readonly Annotation[];
+}
 
 export interface Enum extends Base.BaseEnum<Span> {}
 
 export interface Func extends Base.BaseFunc<Span, readonly string[], Type> {
   readonly retType: Type;
   readonly body: Block | null;
+  readonly params: readonly Parameter[];
 }
 
-export interface Parameter extends Base.BaseParameter<Type> {}
+export interface Parameter extends Base.BaseParameter<Type> {
+  readonly annotations?: readonly Annotation[];
+}
 
 export interface Block extends Base.BaseBlock<Span, Statement> {}
 
@@ -300,9 +312,18 @@ export namespace Core {
 
   export interface Import extends Base.BaseImport<Origin> {}
 
-  export interface Data extends Base.BaseData<Origin, Type> {}
+  export interface Data extends Base.BaseData<Origin, Type> {
+    readonly fields: readonly Field[];
+  }
 
-  export interface Field extends Base.BaseField<Type> {}
+  export interface Annotation {
+    readonly name: string;
+    readonly params: Readonly<Record<string, unknown>>;
+  }
+
+  export interface Field extends Base.BaseField<Type> {
+    readonly annotations: readonly Annotation[];
+  }
 
   export interface Enum extends Base.BaseEnum<Origin> {}
 
@@ -310,9 +331,12 @@ export namespace Core {
     readonly ret: Type;
     readonly effects: readonly EffectEnum[];
     readonly body: Block;
+    readonly params: readonly Parameter[];
   }
 
-  export interface Parameter extends Base.BaseParameter<Type> {}
+  export interface Parameter extends Base.BaseParameter<Type> {
+    readonly annotations: readonly Annotation[];
+  }
 
   export interface Block extends Base.BaseBlock<Origin, Statement> {}
 

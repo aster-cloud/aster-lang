@@ -1,0 +1,253 @@
+{
+  "kind": "Module",
+  "name": "validation.numeric",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "Product",
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 21
+            },
+            "end": {
+              "line": 3,
+              "col": 31
+            }
+          }
+        },
+        {
+          "name": "discount",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 34
+            },
+            "end": {
+              "line": 3,
+              "col": 71
+            }
+          }
+        },
+        {
+          "name": "price",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 74
+            },
+            "end": {
+              "line": 3,
+              "col": 112
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "applyDiscount",
+      "params": [
+        {
+          "name": "product",
+          "type": {
+            "kind": "TypeName",
+            "name": "Product"
+          },
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 23
+            },
+            "end": {
+              "line": 5,
+              "col": 39
+            }
+          }
+        },
+        {
+          "name": "percent",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 42
+            },
+            "end": {
+              "line": 5,
+              "col": 78
+            }
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
+      "effects": [],
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "reduction",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "/"
+              },
+              "args": [
+                {
+                  "kind": "Call",
+                  "target": {
+                    "kind": "Name",
+                    "name": "*"
+                  },
+                  "args": [
+                    {
+                      "kind": "Name",
+                      "name": "product.price"
+                    },
+                    {
+                      "kind": "Name",
+                      "name": "percent"
+                    }
+                  ]
+                },
+                {
+                  "kind": "Int",
+                  "value": 100
+                }
+              ]
+            },
+            "span": {
+              "start": {
+                "line": 6,
+                "col": 3
+              },
+              "end": {
+                "line": 6,
+                "col": 50
+              }
+            }
+          },
+          {
+            "kind": "Let",
+            "name": "finalPrice",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "-"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "product.price"
+                },
+                {
+                  "kind": "Name",
+                  "name": "reduction"
+                }
+              ]
+            },
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 3
+              },
+              "end": {
+                "line": 7,
+                "col": 47
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Name",
+              "name": "finalPrice"
+            },
+            "span": {
+              "start": {
+                "line": 8,
+                "col": 3
+              },
+              "end": {
+                "line": 8,
+                "col": 21
+              }
+            }
+          }
+        ],
+        "span": {
+          "start": {
+            "line": 6,
+            "col": 3
+          },
+          "end": {
+            "line": 9,
+            "col": 1
+          }
+        }
+      },
+      "span": {
+        "start": {
+          "line": 5,
+          "col": 1
+        },
+        "end": {
+          "line": 9,
+          "col": 1
+        }
+      },
+      "nameSpan": {
+        "start": {
+          "line": 5,
+          "col": 4
+        },
+        "end": {
+          "line": 9,
+          "col": 1
+        }
+      }
+    }
+  ]
+}

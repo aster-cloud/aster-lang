@@ -5,20 +5,23 @@
     {
       "kind": "Func",
       "name": "isLongerThan",
+      "typeParams": [],
       "params": [
         {
           "name": "s",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "n",
           "type": {
             "kind": "TypeName",
             "name": "Int"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

@@ -155,6 +155,12 @@ Re-exports [Data](../types/interfaces/Data.md)
 
 ***
 
+### Annotation
+
+Re-exports [Annotation](../types/interfaces/Annotation.md)
+
+***
+
 ### Field
 
 Re-exports [Field](../types/interfaces/Field.md)

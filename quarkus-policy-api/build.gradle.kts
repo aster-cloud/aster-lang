@@ -38,6 +38,7 @@ dependencies {
 
     // Aster运行时和编译后的策略
     implementation(project(":aster-runtime"))
+    implementation(project(":aster-validation"))
     implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
 
     // 测试依赖

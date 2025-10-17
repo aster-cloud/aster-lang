@@ -4,6 +4,7 @@ import { kwParts, tokLowerAt } from './context.js';
 import { TokenKind, KW } from '../tokens.js';
 import { Node } from '../ast.js';
 import { parseType, parseEffectList } from './type-parser.js';
+import { parseAnnotations } from './annotation-parser.js';
 
 /**
  * 解析代码块（Block）
@@ -695,7 +696,7 @@ export function parsePattern(
  */
 export function parseParamList(
   ctx: ParserContext,
-  error: (msg: string) => never
+  error: (msg: string, tok?: import('../types.js').Token) => never
 ): Parameter[] {
   const params: Parameter[] = [];
   // 'with' params
@@ -703,14 +704,17 @@ export function parseParamList(
     ctx.nextWord();
     let hasMore = true;
     while (hasMore) {
+      const { annotations, firstToken } = parseAnnotations(ctx, error);
       const nameTok = ctx.peek();
       const name = parseIdent(ctx, error);
-      if (!ctx.at(TokenKind.COLON)) error("Expected ':' after parameter name");
+      if (!ctx.at(TokenKind.COLON)) error("Expected ':' after parameter name", ctx.peek());
       ctx.next();
       const type = parseType(ctx, error);
-      const p: Parameter = { name, type };
+      const p: Parameter =
+        annotations.length > 0 ? { name, type, annotations } : { name, type };
       const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-      (p as any).span = { start: nameTok.start, end: endTok.end };
+      const spanStart = firstToken?.start ?? nameTok.start;
+      (p as any).span = { start: spanStart, end: endTok.end };
       params.push(p);
       if (ctx.at(TokenKind.IDENT) && ((ctx.peek().value as string) || '').toLowerCase() === KW.AND) {
         ctx.nextWord();
@@ -733,14 +737,17 @@ export function parseParamList(
   if (ctx.at(TokenKind.IDENT) && ctx.tokens[ctx.index + 1] && ctx.tokens[ctx.index + 1]!.kind === TokenKind.COLON) {
     let hasMore = true;
     while (hasMore) {
+      const { annotations, firstToken } = parseAnnotations(ctx, error);
       const nameTok = ctx.peek();
       const name = parseIdent(ctx, error);
-      if (!ctx.at(TokenKind.COLON)) error("Expected ':' after parameter name");
+      if (!ctx.at(TokenKind.COLON)) error("Expected ':' after parameter name", ctx.peek());
       ctx.next();
       const type = parseType(ctx, error);
-      const p: Parameter = { name, type };
+      const p: Parameter =
+        annotations.length > 0 ? { name, type, annotations } : { name, type };
       const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-      (p as any).span = { start: nameTok.start, end: endTok.end };
+      const spanStart = firstToken?.start ?? nameTok.start;
+      (p as any).span = { start: spanStart, end: endTok.end };
       params.push(p);
       // Accept 'and' or ',' between parameters
       if (ctx.at(TokenKind.IDENT) && ((ctx.peek().value as string) || '').toLowerCase() === KW.AND) {

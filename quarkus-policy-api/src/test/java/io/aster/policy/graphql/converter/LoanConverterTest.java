@@ -44,8 +44,9 @@ class LoanConverterTest {
         );
 
         assertThat(context).containsOnlyKeys("application", "applicant");
-        assertThat(mapOf(context.get("application")))
-            .containsEntry("loanId", "LN-001")
+        Map<String, Object> applicationContext = mapOf(context.get("application"));
+        assertThat(applicationContext)
+            .doesNotContainKey("loanId")
             .containsEntry("applicantId", "AP-001")
             .containsEntry("amount", 150_000)
             .containsEntry("termMonths", 240)
@@ -123,4 +124,3 @@ class LoanConverterTest {
         }
     }
 }
-

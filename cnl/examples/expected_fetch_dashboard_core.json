@@ -11,14 +11,16 @@
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "name",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ]
     },
@@ -31,14 +33,16 @@
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "timeline",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ]
     },
@@ -53,13 +57,15 @@
     {
       "kind": "Func",
       "name": "fetchDashboard",
+      "typeParams": [],
       "params": [
         {
           "name": "u",
           "type": {
             "kind": "TypeName",
             "name": "User"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

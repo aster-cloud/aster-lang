@@ -9,7 +9,7 @@ function runOneAst(inputPath: string, expectPath: string): void {
     const toks = lex(can);
     const ast = parse(toks);
     const actual = prune(ast);
-    const expected = JSON.parse(fs.readFileSync(expectPath, 'utf8'));
+    const expected = prune(JSON.parse(fs.readFileSync(expectPath, 'utf8')));
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       console.error(`FAIL: AST ${inputPath}`);
       console.error('--- Actual ---');
@@ -36,7 +36,7 @@ async function runOneCore(inputPath: string, expectPath: string): Promise<void> 
     const { lowerModule } = await import('../src/lower_to_core.js');
     const core = lowerModule(ast);
     const actual = prune(core);
-    const expected = JSON.parse(fs.readFileSync(expectPath, 'utf8'));
+    const expected = prune(JSON.parse(fs.readFileSync(expectPath, 'utf8')));
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       console.error(`FAIL: CORE ${inputPath}`);
       console.error('--- Actual ---');

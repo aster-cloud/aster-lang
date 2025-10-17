@@ -8,11 +8,37 @@
       "fields": [
         {
           "name": "id",
-          "type": { "kind": "TypeName", "name": "Text" }
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 18
+            },
+            "end": {
+              "line": 3,
+              "col": 26
+            }
+          }
         },
         {
           "name": "name",
-          "type": { "kind": "TypeName", "name": "Text" }
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 28
+            },
+            "end": {
+              "line": 3,
+              "col": 38
+            }
+          }
         }
       ]
     },
@@ -24,37 +50,113 @@
           "name": "user",
           "type": {
             "kind": "Maybe",
-            "type": { "kind": "TypeName", "name": "User" }
+            "type": {
+              "kind": "TypeName",
+              "name": "User"
+            }
+          },
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 15
+            },
+            "end": {
+              "line": 5,
+              "col": 26
+            }
           }
         }
       ],
-      "retType": { "kind": "TypeName", "name": "Text" },
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Match",
-            "expr": { "kind": "Name", "name": "user" },
+            "expr": {
+              "kind": "Name",
+              "name": "user"
+            },
             "cases": [
               {
                 "kind": "Case",
-                "pattern": { "kind": "PatternNull" },
-                "body": { "kind": "Return", "expr": { "kind": "String", "value": "Hi, guest" } }
+                "pattern": {
+                  "kind": "PatternNull"
+                },
+                "body": {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "Hi, guest"
+                  }
+                }
               },
               {
                 "kind": "Case",
-                "pattern": { "kind": "PatternCtor", "typeName": "User", "names": [
-                  "id",
-                  "name"
-                ] },
-                "body": { "kind": "Return", "expr": { "kind": "String", "value": "Welcome, {name}" } }
+                "pattern": {
+                  "kind": "PatternCtor",
+                  "typeName": "User",
+                  "names": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "body": {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "Welcome, {name}"
+                  }
+                }
               }
-            ]
+            ],
+            "span": {
+              "start": {
+                "line": 6,
+                "col": 3
+              },
+              "end": {
+                "line": 9,
+                "col": 1
+              }
+            }
           }
-        ]
+        ],
+        "span": {
+          "start": {
+            "line": 6,
+            "col": 3
+          },
+          "end": {
+            "line": 9,
+            "col": 1
+          }
+        }
+      },
+      "span": {
+        "start": {
+          "line": 5,
+          "col": 1
+        },
+        "end": {
+          "line": 9,
+          "col": 1
+        }
+      },
+      "nameSpan": {
+        "start": {
+          "line": 5,
+          "col": 4
+        },
+        "end": {
+          "line": 9,
+          "col": 1
+        }
       }
     }
   ]
 }
-

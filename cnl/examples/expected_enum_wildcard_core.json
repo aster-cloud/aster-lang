@@ -13,13 +13,15 @@
     {
       "kind": "Func",
       "name": "show2",
+      "typeParams": [],
       "params": [
         {
           "name": "e",
           "type": {
             "kind": "TypeName",
             "name": "AuthErr"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {
@@ -72,4 +74,3 @@
     }
   ]
 }
-

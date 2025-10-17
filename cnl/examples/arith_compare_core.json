@@ -1,4 +1,112 @@
-{"kind":"Module","name":"app.math","decls":[
-{"kind":"Func","name":"cmp","params":[{"name":"a","type":{"kind":"TypeName","name":"Int"}},{"name":"b","type":{"kind":"TypeName","name":"Int"}}],"ret":{"kind":"TypeName","name":"Bool"},"effects":[],"body":{"kind":"Block","statements":[{"kind":"Return","expr":{"kind":"Call","target":{"kind":"Name","name":"<"},"args":[{"kind":"Name","name":"a"},{"kind":"Name","name":"b"}]}}]}},
-{"kind":"Func","name":"add","params":[{"name":"a","type":{"kind":"TypeName","name":"Int"}},{"name":"b","type":{"kind":"TypeName","name":"Int"}}],"ret":{"kind":"TypeName","name":"Int"},"effects":[],"body":{"kind":"Block","statements":[{"kind":"Return","expr":{"kind":"Call","target":{"kind":"Name","name":"+"},"args":[{"kind":"Name","name":"a"},{"kind":"Name","name":"b"}]}}]}}
-]}
+{
+  "kind": "Module",
+  "name": "app.math",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "cmp",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": []
+        },
+        {
+          "name": "y",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": []
+        }
+      ],
+      "ret": {
+        "kind": "TypeName",
+        "name": "Bool"
+      },
+      "effects": [],
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "<"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "y"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "add",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": []
+        },
+        {
+          "name": "y",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": []
+        }
+      ],
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
+      "effects": [],
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "+"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "y"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

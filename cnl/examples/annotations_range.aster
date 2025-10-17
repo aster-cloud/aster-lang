@@ -1,0 +1,8 @@
+This module is validation.numeric.
+
+Define Product with name: Text, @Range(min: 0, max: 100) discount: Int, @Range(min: 1, max: 1000000) price: Int.
+
+To applyDiscount with product: Product, @Range(min: 0, max: 100) percent: Int, produce Int:
+  Let reduction be /(*(product.price, percent), 100).
+  Let finalPrice be -(product.price, reduction).
+  Return finalPrice.

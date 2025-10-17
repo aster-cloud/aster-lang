@@ -61,3 +61,33 @@
 | 2025-10-14 21:37 | apply_patch | 重写 checkAsyncDiscipline | 统一使用 Span 并补充位置转换辅助函数 |
 | 2025-10-14 21:37 | apply_patch | 重写 collectAsync | 引入 Span 映射与 fallback 处理 |
 | 2025-10-14 21:37 | shell (npm run typecheck) | -- | 最终类型检查通过 |
+| 2025-10-17 01:34 | sequential-thinking | totalThoughts≈7 | 梳理注解实现范围、识别解析与发射风险 |
+| 2025-10-17 01:34 | code-index__set_project_path | path=. | 重建索引，启用 ripgrep |
+| 2025-10-17 01:34 | code-index__find_files | pattern=**/operations-log.md | 确认现有工作流操作日志 |
+| 2025-10-17 01:35 | shell (sed) | src/parser/ast.ts 1-200 | 失败：文件不存在，需确认 AST 定义路径 |
+| 2025-10-17 01:35 | shell (ls) | src | 列出顶层源文件目录 |
+| 2025-10-17 01:35 | shell (sed) | src/ast.ts 1-200 | 审阅节点构造器定义 |
+| 2025-10-17 01:36 | shell (sed) | src/types.ts 1-220 | 检查 AST 类型定义结构 |
+| 2025-10-17 01:36 | shell (sed) | src/parser/field-variant-parser.ts 1-200 | 阅读字段解析逻辑 |
+| 2025-10-17 01:36 | shell (sed) | src/parser/expr-stmt-parser.ts 680-840 | 定位参数解析实现 |
+| 2025-10-17 01:37 | shell (sed) | src/parser/type-parser.ts 150-230 | 参考 @pii 注解解析模式 |
+| 2025-10-17 01:43 | apply_patch | src/types.ts | 引入 Annotation 类型并扩展字段/参数结构 |
+| 2025-10-17 01:43 | apply_patch | src/parser/annotation-parser.ts | 新增注解解析器，包含参数校验 |
+| 2025-10-17 01:44 | apply_patch | src/parser/field-variant-parser.ts | 在字段解析阶段附加注解集合 |
+| 2025-10-17 01:44 | apply_patch | src/parser/expr-stmt-parser.ts | 支持函数参数注解解析与位置信息 |
+| 2025-10-17 01:44 | apply_patch | src/lower_to_core.ts | 传递注解至 Core IR 并序列化参数 |
+| 2025-10-17 01:45 | apply_patch | aster-asm-emitter/CoreModel.java | 扩充 Core 模型字段与参数的注解表示 |
+| 2025-10-17 01:45 | apply_patch | aster-asm-emitter/Main.java | 输出 JVM 字段注解并校验参数类型 |
+| 2025-10-17 01:46 | apply_patch | cnl/examples/loan_with_constraints.aster | 新增约束示例并含参数注解 |
+| 2025-10-17 01:45 | apply_patch | src/types.ts | 重写 Data/Func 类型以暴露注解信息 |
+| 2025-10-17 01:45 | apply_patch | src/parser/annotation-parser.ts | 调整返回值使 optional 字段符合 exactOptionalPropertyTypes |
+| 2025-10-17 01:45 | shell (npm run build) | -- | TypeScript 构建成功并生成 PEG 解析器 |
+| 2025-10-17 01:46 | shell (node dist/scripts/aster.js class) | cnl/examples/loan_with_constraints.aster --out build/jvm-classes | 生成含约束注解的 JVM 类文件 |
+| 2025-10-17 01:46 | shell (javap) | build/jvm-classes/finance/loan/constraints/LoanApplicationConstrained.class | 验证字段注解生成与参数值 |
+| 2025-10-17 01:47 | apply_patch | aster-asm-emitter/Main.java | 为函数参数生成注解并添加参数注解写入逻辑 |
+| 2025-10-17 01:48 | shell (node dist/scripts/aster.js class) | cnl/examples/loan_with_constraints.aster --out build/jvm-classes | 重新生成类以包含参数注解 |
+| 2025-10-17 01:48 | shell (javap) | build/jvm-classes/finance/loan/constraints/normalizeLoanAmount_fn.class | 验证函数参数注解写入 RuntimeVisibleParameterAnnotations |
+| 2025-10-17 01:49 | apply_patch | quarkus-policy-api/src/test/java/io/aster/policy/api/validation/AsterConstraintIntegrationTest.java | 新增集成测试覆盖生成类注解与语义校验 |
+| 2025-10-17 01:49 | shell (./gradlew) | :quarkus-policy-api:compileJava | 同步约束编译成果并生成资源 |
+| 2025-10-17 01:50 | apply_patch | AsterConstraintIntegrationTest.java | 调整参数注解断言避免使用缺失的 AssertJ API |
+| 2025-10-17 01:51 | apply_patch | AsterConstraintIntegrationTest.java | 在 @BeforeAll 中编译示例并加载自定义类加载器 |

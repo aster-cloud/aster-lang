@@ -43,6 +43,10 @@ class HealthcareConverterTest {
         );
 
         assertThat(context).containsOnlyKeys("patient", "service");
+        Map<String, Object> patientContext = mapOf(context.get("patient"));
+        assertThat(patientContext)
+            .containsEntry("patientId", "PAT-1")
+            .doesNotContainKey("accountBalance");
         assertThat(mapOf(context.get("service")))
             .containsEntry("serviceCode", "SRV-100")
             .containsEntry("requiresPreAuth", true);

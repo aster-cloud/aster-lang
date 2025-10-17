@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "compute",
+      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "TypeName",
@@ -88,13 +89,15 @@
     {
       "kind": "Func",
       "name": "invert",
+      "typeParams": [],
       "params": [
         {
           "name": "v",
           "type": {
             "kind": "TypeName",
             "name": "Bool"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

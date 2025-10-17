@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "ping",
+      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "TypeName",

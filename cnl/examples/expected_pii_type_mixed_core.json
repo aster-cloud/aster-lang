@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "get_user_info",
+      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "Result",
@@ -56,6 +57,7 @@
     {
       "kind": "Func",
       "name": "get_optional_phone",
+      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "PiiType",

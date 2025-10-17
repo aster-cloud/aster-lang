@@ -36,3 +36,9 @@
 - 执行者：Codex
 - 指令与结果：
   - `./gradlew :quarkus-policy-api:test` → 失败（缺少 `cnl/stdlib/finance/loan.cnl` 等策略资产，任务 `generateAsterJar` 退出码 1）
+
+## 2025-10-17 quarkus-policy-api 测试回归
+- 日期：2025-10-17 09:32 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:test` → 通过（生成策略类并运行全部测试，无编译错误）

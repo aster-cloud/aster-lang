@@ -11,7 +11,8 @@
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {
@@ -174,14 +175,16 @@
           "type": {
             "kind": "TypeName",
             "name": "Int"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "y",
           "type": {
             "kind": "TypeName",
             "name": "Int"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

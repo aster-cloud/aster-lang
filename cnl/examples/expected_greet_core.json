@@ -11,20 +11,23 @@
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "name",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ]
     },
     {
       "kind": "Func",
       "name": "greet",
+      "typeParams": [],
       "params": [
         {
           "name": "user",
@@ -34,7 +37,8 @@
               "kind": "TypeName",
               "name": "User"
             }
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

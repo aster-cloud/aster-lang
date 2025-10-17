@@ -16,7 +16,8 @@
             },
             "sensitivity": "L2",
             "category": "email"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "name",
@@ -28,13 +29,15 @@
             },
             "sensitivity": "L1",
             "category": "name"
-          }
+          },
+          "annotations": []
         }
       ]
     },
     {
       "kind": "Func",
       "name": "create_user",
+      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "TypeName",

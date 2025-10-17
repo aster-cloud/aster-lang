@@ -97,8 +97,7 @@ public class HealthcareConverter implements PolicyGraphQLConverter<HealthcareCon
             "age", patient.age,
             "insuranceType", patient.insuranceType,
             "hasInsurance", patient.hasInsurance,
-            "chronicConditions", patient.chronicConditions,
-            "accountBalance", patient.accountBalance
+            "chronicConditions", patient.chronicConditions
         );
     }
 
@@ -116,9 +115,7 @@ public class HealthcareConverter implements PolicyGraphQLConverter<HealthcareCon
             "claimId", claim.claimId,
             "amount", claim.amount,
             "serviceDate", claim.serviceDate,
-            "specialtyType", claim.specialtyType,
             "diagnosisCode", claim.diagnosisCode,
-            "hasDocumentation", claim.hasDocumentation,
             "patientId", claim.patientId,
             "providerId", claim.providerId
         );

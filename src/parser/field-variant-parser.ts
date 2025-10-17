@@ -7,6 +7,7 @@ import { KW, TokenKind } from '../tokens.js';
 import type { Field, Span, Token } from '../types.js';
 import type { ParserContext } from './context.js';
 import { parseType } from './type-parser.js';
+import { parseAnnotations } from './annotation-parser.js';
 
 /**
  * 解析字段列表（用于 Data 类型定义）
@@ -24,6 +25,7 @@ export function parseFieldList(
   let hasMore = true;
 
   while (hasMore) {
+    const { annotations, firstToken } = parseAnnotations(ctx, error);
     const nameTok = ctx.peek();
 
     // 解析字段名（必须是普通标识符）
@@ -42,9 +44,11 @@ export function parseFieldList(
     const t = parseType(ctx, error);
 
     // 创建字段对象并附加 span
-    const f: Field = { name, type: t };
+    const f: Field =
+      annotations.length > 0 ? { name, type: t, annotations } : { name, type: t };
     const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-    (f as any).span = { start: nameTok.start, end: endTok.end };
+    const spanStart = annotations.length > 0 && firstToken ? firstToken.start : nameTok.start;
+    (f as any).span = { start: spanStart, end: endTok.end };
     fields.push(f);
 
     // 检查是否还有更多字段

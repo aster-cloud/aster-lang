@@ -1,0 +1,223 @@
+{
+  "kind": "Module",
+  "name": "validation.basic",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "User",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 19
+            },
+            "end": {
+              "line": 3,
+              "col": 36
+            }
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 39
+            },
+            "end": {
+              "line": 3,
+              "col": 58
+            }
+          }
+        },
+        {
+          "name": "email",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 60
+            },
+            "end": {
+              "line": 3,
+              "col": 71
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "createUser",
+      "params": [
+        {
+          "name": "username",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 21
+            },
+            "end": {
+              "line": 5,
+              "col": 44
+            }
+          }
+        },
+        {
+          "name": "displayName",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 47
+            },
+            "end": {
+              "line": 5,
+              "col": 73
+            }
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "User"
+      },
+      "effects": [],
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "uid",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "UUID.randomUUID"
+              },
+              "args": []
+            },
+            "span": {
+              "start": {
+                "line": 6,
+                "col": 3
+              },
+              "end": {
+                "line": 6,
+                "col": 32
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "User"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "uid"
+                },
+                {
+                  "kind": "Name",
+                  "name": "displayName"
+                },
+                {
+                  "kind": "Name",
+                  "name": "username"
+                }
+              ]
+            },
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 3
+              },
+              "end": {
+                "line": 7,
+                "col": 43
+              }
+            }
+          }
+        ],
+        "span": {
+          "start": {
+            "line": 6,
+            "col": 3
+          },
+          "end": {
+            "line": 8,
+            "col": 1
+          }
+        }
+      },
+      "span": {
+        "start": {
+          "line": 5,
+          "col": 1
+        },
+        "end": {
+          "line": 8,
+          "col": 1
+        }
+      },
+      "nameSpan": {
+        "start": {
+          "line": 5,
+          "col": 4
+        },
+        "end": {
+          "line": 8,
+          "col": 1
+        }
+      }
+    }
+  ]
+}

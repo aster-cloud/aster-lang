@@ -11,34 +11,39 @@
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "name",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ]
     },
     {
       "kind": "Func",
       "name": "greetUser",
+      "typeParams": [],
       "params": [
         {
           "name": "u",
           "type": {
             "kind": "TypeName",
             "name": "User"
-          }
+          },
+          "annotations": []
         },
         {
           "name": "pfx",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {
@@ -144,13 +149,15 @@
     {
       "kind": "Func",
       "name": "posOrZero",
+      "typeParams": [],
       "params": [
         {
           "name": "n",
           "type": {
             "kind": "TypeName",
             "name": "Int"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "get_ssn",
+      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "PiiType",

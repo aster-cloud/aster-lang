@@ -1,7 +1,10 @@
 package io.aster.policy.api.convert;
 
-import io.aster.policy.api.metadata.ConstructorMetadataCache;
-import io.aster.policy.api.model.ConstructorMetadata;
+import io.aster.policy.api.validation.QuarkusValidationAdapter;
+import io.aster.validation.metadata.ConstructorMetadata;
+import io.aster.validation.metadata.ConstructorMetadataCache;
+import io.aster.validation.schema.SchemaValidator;
+import io.aster.validation.semantic.SemanticValidator;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -15,8 +18,17 @@ import java.util.Map;
 @ApplicationScoped
 public class PolicyTypeConverter {
 
+    private final ConstructorMetadataCache constructorMetadataCache;
+    private final SchemaValidator schemaValidator;
+    private final SemanticValidator semanticValidator;
+
     @Inject
-    ConstructorMetadataCache constructorMetadataCache;
+    public PolicyTypeConverter(ConstructorMetadataCache constructorMetadataCache,
+                               QuarkusValidationAdapter adapter) {
+        this.constructorMetadataCache = constructorMetadataCache;
+        this.schemaValidator = adapter.getSchemaValidator();
+        this.semanticValidator = adapter.getSemanticValidator();
+    }
 
     public Object[] prepareArguments(Parameter[] parameters, Object[] context) throws Exception {
         if (parameters.length == 0) {
@@ -78,6 +90,9 @@ public class PolicyTypeConverter {
     private Object constructFromMap(Class<?> targetClass, Map<String, Object> map) throws Exception {
         ConstructorMetadata metadata = constructorMetadataCache.getConstructorMetadata(targetClass);
 
+        // 在构造目标对象前先执行 Schema 校验，以确保输入字段与目标类型匹配
+        schemaValidator.validateSchema(targetClass, map);
+
         var parameters = metadata.getParameters();
         Object[] args = new Object[parameters.length];
 
@@ -98,7 +113,10 @@ public class PolicyTypeConverter {
             }
         }
 
-        return metadata.getConstructor().newInstance(args);
+        Object instance = metadata.getConstructor().newInstance(args);
+        // 在返回对象前执行 Layer 2 语义约束验证，确保构造出的对象满足业务规则
+        semanticValidator.validateSemantics(instance);
+        return instance;
     }
 
     private Object convertValue(Object value, Class<?> targetType) {

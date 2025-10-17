@@ -63,8 +63,8 @@ public class LoanConverter implements PolicyGraphQLConverter<LoanConverter.LoanI
     }
 
     private Map<String, Object> convertToAsterLoanApplication(LoanTypes.Application application) {
+        // Aster LoanApplication 仅接受此处四个字段，原始 loanId 在策略执行中不使用
         return Map.of(
-            "loanId", application.loanId,
             "applicantId", application.applicantId,
             "amount", application.amountRequested,
             "termMonths", application.termMonths,

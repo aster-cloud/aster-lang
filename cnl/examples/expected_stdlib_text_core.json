@@ -2,33 +2,111 @@
   "kind": "Module",
   "name": "std.text",
   "decls": [
-    { "kind": "Func", "name": "concat",
+    {
+      "kind": "Func",
+      "name": "concat",
+      "typeParams": [],
       "params": [
-        { "name": "left", "type": { "kind": "TypeName", "name": "Text" } },
-        { "name": "right", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "left",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": []
+        },
+        {
+          "name": "right",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": []
+        }
       ],
-      "ret": { "kind": "TypeName", "name": "Text" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [
-        { "kind": "Return", "expr": { "kind": "Call",
-          "target": { "kind": "Name", "name": "Text.concat" },
-          "args": [ { "kind": "Name", "name": "left" }, { "kind": "Name", "name": "right" } ]
-        } }
-      ] }
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Text.concat"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "left"
+                },
+                {
+                  "kind": "Name",
+                  "name": "right"
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
-    { "kind": "Func", "name": "hasSubstring",
+    {
+      "kind": "Func",
+      "name": "hasSubstring",
+      "typeParams": [],
       "params": [
-        { "name": "haystack", "type": { "kind": "TypeName", "name": "Text" } },
-        { "name": "needle", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "haystack",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": []
+        },
+        {
+          "name": "needle",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": []
+        }
       ],
-      "ret": { "kind": "TypeName", "name": "Bool" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Bool"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [
-        { "kind": "Return", "expr": { "kind": "Call",
-          "target": { "kind": "Name", "name": "Text.contains" },
-          "args": [ { "kind": "Name", "name": "haystack" }, { "kind": "Name", "name": "needle" } ]
-        } }
-      ] }
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Text.contains"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "haystack"
+                },
+                {
+                  "kind": "Name",
+                  "name": "needle"
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   ]
 }

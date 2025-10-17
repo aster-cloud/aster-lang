@@ -2,47 +2,294 @@
   "kind": "Module",
   "name": "std.maybe_result",
   "decls": [
-    { "kind": "Func", "name": "inc",
-      "params": [ { "name": "x", "type": { "kind": "TypeName", "name": "Int" } } ],
-      "ret": { "kind": "TypeName", "name": "Int" },
-      "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Name", "name": "x" } } ] }
-    },
-    { "kind": "Func", "name": "maybeWithDefault",
+    {
+      "kind": "Func",
+      "name": "inc",
+      "typeParams": [],
       "params": [
-        { "name": "x", "type": { "kind": "Maybe", "type": { "kind": "TypeName", "name": "Int" } } },
-        { "name": "d", "type": { "kind": "TypeName", "name": "Int" } }
+        {
+          "name": "x",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": []
+        }
       ],
-      "ret": { "kind": "TypeName", "name": "Int" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [
-        { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Maybe.withDefault" }, "args": [ { "kind": "Name", "name": "x" }, { "kind": "Name", "name": "d" } ] } }
-      ] }
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Name",
+              "name": "x"
+            }
+          }
+        ]
+      }
     },
-    { "kind": "Func", "name": "mapMaybe",
-      "params": [ { "name": "x", "type": { "kind": "Maybe", "type": { "kind": "TypeName", "name": "Int" } } } ],
-      "ret": { "kind": "Maybe", "type": { "kind": "TypeName", "name": "Int" } },
+    {
+      "kind": "Func",
+      "name": "maybeWithDefault",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "Maybe",
+            "type": {
+              "kind": "TypeName",
+              "name": "Int"
+            }
+          },
+          "annotations": []
+        },
+        {
+          "name": "d",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": []
+        }
+      ],
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Maybe.map" }, "args": [ { "kind": "Name", "name": "x" }, { "kind": "Name", "name": "inc" } ] } } ] }
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Maybe.withDefault"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "d"
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
-    { "kind": "Func", "name": "logErr",
-      "params": [ { "name": "e", "type": { "kind": "TypeName", "name": "Text" } } ],
-      "ret": { "kind": "TypeName", "name": "Text" },
+    {
+      "kind": "Func",
+      "name": "mapMaybe",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "Maybe",
+            "type": {
+              "kind": "TypeName",
+              "name": "Int"
+            }
+          },
+          "annotations": []
+        }
+      ],
+      "ret": {
+        "kind": "Maybe",
+        "type": {
+          "kind": "TypeName",
+          "name": "Int"
+        }
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Name", "name": "e" } } ] }
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Maybe.map"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "inc"
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
-    { "kind": "Func", "name": "mapOk",
-      "params": [ { "name": "r", "type": { "kind": "Result", "ok": { "kind": "TypeName", "name": "Int" }, "err": { "kind": "TypeName", "name": "Text" } } } ],
-      "ret": { "kind": "Result", "ok": { "kind": "TypeName", "name": "Int" }, "err": { "kind": "TypeName", "name": "Text" } },
+    {
+      "kind": "Func",
+      "name": "logErr",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "e",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": []
+        }
+      ],
+      "ret": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Result.mapOk" }, "args": [ { "kind": "Name", "name": "r" }, { "kind": "Name", "name": "inc" } ] } } ] }
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Name",
+              "name": "e"
+            }
+          }
+        ]
+      }
     },
-    { "kind": "Func", "name": "tapError",
-      "params": [ { "name": "r", "type": { "kind": "Result", "ok": { "kind": "TypeName", "name": "Int" }, "err": { "kind": "TypeName", "name": "Text" } } } ],
-      "ret": { "kind": "Result", "ok": { "kind": "TypeName", "name": "Int" }, "err": { "kind": "TypeName", "name": "Text" } },
+    {
+      "kind": "Func",
+      "name": "mapOk",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "r",
+          "type": {
+            "kind": "Result",
+            "ok": {
+              "kind": "TypeName",
+              "name": "Int"
+            },
+            "err": {
+              "kind": "TypeName",
+              "name": "Text"
+            }
+          },
+          "annotations": []
+        }
+      ],
+      "ret": {
+        "kind": "Result",
+        "ok": {
+          "kind": "TypeName",
+          "name": "Int"
+        },
+        "err": {
+          "kind": "TypeName",
+          "name": "Text"
+        }
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Result.tapError" }, "args": [ { "kind": "Name", "name": "r" }, { "kind": "Name", "name": "logErr" } ] } } ] }
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Result.mapOk"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "r"
+                },
+                {
+                  "kind": "Name",
+                  "name": "inc"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "tapError",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "r",
+          "type": {
+            "kind": "Result",
+            "ok": {
+              "kind": "TypeName",
+              "name": "Int"
+            },
+            "err": {
+              "kind": "TypeName",
+              "name": "Text"
+            }
+          },
+          "annotations": []
+        }
+      ],
+      "ret": {
+        "kind": "Result",
+        "ok": {
+          "kind": "TypeName",
+          "name": "Int"
+        },
+        "err": {
+          "kind": "TypeName",
+          "name": "Text"
+        }
+      },
+      "effects": [],
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Result.tapError"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "r"
+                },
+                {
+                  "kind": "Name",
+                  "name": "logErr"
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   ]
 }
-

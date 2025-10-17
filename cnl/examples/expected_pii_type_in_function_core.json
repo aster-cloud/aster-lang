@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "process_email",
+      "typeParams": [],
       "params": [
         {
           "name": "email",
@@ -16,7 +17,8 @@
             },
             "sensitivity": "L2",
             "category": "email"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

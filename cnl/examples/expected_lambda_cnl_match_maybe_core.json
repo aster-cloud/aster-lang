@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "fromMaybe",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
@@ -14,14 +15,16 @@
               "kind": "TypeName",
               "name": "Text"
             }
-          }
+          },
+          "annotations": []
         },
         {
           "name": "d",
           "type": {
             "kind": "TypeName",
             "name": "Text"
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {

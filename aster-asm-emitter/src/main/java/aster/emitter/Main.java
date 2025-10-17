@@ -210,7 +210,9 @@ public final class Main {
     cw.visitSource((d.name == null ? "Data" : d.name) + ".java", null);
     // fields
     for (var f : d.fields) {
-      cw.visitField(ACC_PUBLIC | ACC_FINAL, f.name, jDesc(pkg, f.type), null, null).visitEnd();
+      var fv = cw.visitField(ACC_PUBLIC | ACC_FINAL, f.name, jDesc(pkg, f.type), null, null);
+      emitFieldAnnotations(fv, f);
+      fv.visitEnd();
     }
     // ctor
     var mv = cw.visitMethod(ACC_PUBLIC, "<init>", ctorDesc(pkg, d.fields), null, null);
@@ -244,6 +246,72 @@ public final class Main {
     writeClass(ctx, internal, cw.toByteArray());
   }
 
+  private static void emitFieldAnnotations(FieldVisitor fv, CoreModel.Field field) {
+    if (field == null || field.annotations == null || field.annotations.isEmpty()) return;
+    for (var ann : field.annotations) {
+      String descriptor = annotationDescriptor(ann.name);
+      AnnotationVisitor av = fv.visitAnnotation(descriptor, true);
+      if (av == null) continue;
+      writeAnnotationParams(av, ann);
+      av.visitEnd();
+    }
+  }
+
+  private static String annotationDescriptor(String annotationName) {
+    return switch (annotationName) {
+      case "Range" -> "Lio/aster/policy/api/validation/constraints/Range;";
+      case "NotEmpty" -> "Lio/aster/policy/api/validation/constraints/NotEmpty;";
+      case "Pattern" -> "Lio/aster/policy/api/validation/constraints/Pattern;";
+      default -> throw new IllegalArgumentException("Unknown annotation: " + annotationName);
+    };
+  }
+
+  private static void writeAnnotationParams(AnnotationVisitor av, CoreModel.Annotation ann) {
+    if (ann == null || ann.params == null || ann.params.isEmpty()) return;
+    for (var entry : ann.params.entrySet()) {
+      Object value = normalizeAnnotationValue(ann.name, entry.getKey(), entry.getValue());
+      if (value instanceof Number || value instanceof String || value instanceof Boolean) {
+        av.visit(entry.getKey(), value);
+      } else {
+        throw new IllegalArgumentException(
+          "Unsupported annotation param type: " + (value == null ? "null" : value.getClass().getName())
+        );
+      }
+    }
+  }
+
+  private static Object normalizeAnnotationValue(String annotationName, String key, Object value) {
+    if (value == null) {
+      return null;
+    }
+    if ("Range".equals(annotationName)) {
+      if (value instanceof Number number) {
+        return switch (key) {
+          case "min", "max" -> number.longValue();
+          case "minDouble", "maxDouble" -> number.doubleValue();
+          default -> number;
+        };
+      }
+      throw new IllegalArgumentException("Range 注解参数需要数值类型，收到 " + value.getClass().getName());
+    }
+    return value;
+  }
+
+  private static void emitParameterAnnotations(
+    MethodVisitor mv,
+    int index,
+    CoreModel.Param param
+  ) {
+    if (param == null || param.annotations == null || param.annotations.isEmpty()) return;
+    for (var ann : param.annotations) {
+      String descriptor = annotationDescriptor(ann.name);
+      AnnotationVisitor av = mv.visitParameterAnnotation(index, descriptor, true);
+      if (av == null) continue;
+      writeAnnotationParams(av, ann);
+      av.visitEnd();
+    }
+  }
+
   static void emitEnum(Ctx ctx, String pkg, CoreModel.Enum en) throws IOException {
     var cw = new ClassWriter(0);
     var internal = toInternal(pkg, en.name);
@@ -270,8 +338,10 @@ public final class Main {
     paramsDesc.append(")").append(retDesc);
 
     var mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, fn.name, paramsDesc.toString(), null, null);
-    for (var p : fn.params) {
+    for (int idx = 0; idx < fn.params.size(); idx++) {
+      var p = fn.params.get(idx);
       mv.visitParameter(p.name, 0);
+      emitParameterAnnotations(mv, idx, p);
     }
     addOriginAnnotation(mv, fn.origin);
     mv.visitCode();

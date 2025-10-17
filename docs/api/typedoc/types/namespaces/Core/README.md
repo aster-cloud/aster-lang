@@ -9,6 +9,7 @@
 - [Module](interfaces/Module.md)
 - [Import](interfaces/Import.md)
 - [Data](interfaces/Data.md)
+- [Annotation](interfaces/Annotation.md)
 - [Field](interfaces/Field.md)
 - [Enum](interfaces/Enum.md)
 - [Func](interfaces/Func.md)

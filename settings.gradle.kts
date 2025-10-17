@@ -2,6 +2,8 @@ rootProject.name = "aster-lang"
 include(":aster-asm-emitter")
 include(":aster-runtime")
 project(":aster-runtime").projectDir = file("aster-runtime")
+include("aster-validation")
+project(":aster-validation").projectDir = file("aster-validation")
 
 // Native Image 主项目
 include(":aster-lang-native")

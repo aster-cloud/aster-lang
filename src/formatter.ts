@@ -329,8 +329,22 @@ function formatDecl(d: Declaration): string {
   }
 }
 
+function formatAnnotations(annotations?: readonly import('./types.js').Annotation[]): string {
+  if (!annotations || annotations.length === 0) return '';
+  return annotations.map(ann => {
+    if (ann.params.size === 0) return `@${ann.name}`;
+    const params = Array.from(ann.params.entries())
+      .map(([k, v]) => {
+        const val = typeof v === 'string' ? JSON.stringify(v) : String(v);
+        return `${k}: ${val}`;
+      })
+      .join(', ');
+    return `@${ann.name}(${params})`;
+  }).join(' ') + ' ';
+}
+
 function formatData(d: Data): string {
-  const fields = d.fields.map(f => `${f.name}: ${formatType(f.type)}`);
+  const fields = d.fields.map(f => `${formatAnnotations(f.annotations)}${f.name}: ${formatType(f.type)}`);
   const tail = fields.length ? ` with ${joinWithCommas(fields)}` : '';
   return `Define ${d.name}${tail}.`;
 }
@@ -371,7 +385,7 @@ function formatEffects(effs: readonly string[]): string {
 
 function formatParams(ps: readonly Parameter[]): string {
   if (!ps || ps.length === 0) return '';
-  const inner = ps.map(p => `${p.name}: ${formatType(p.type)}`);
+  const inner = ps.map(p => `${formatAnnotations(p.annotations)}${p.name}: ${formatType(p.type)}`);
   return ` with ${joinWithCommas(inner)}`;
 }
 

@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "fromResult",
+      "typeParams": [],
       "params": [
         {
           "name": "r",
@@ -18,7 +19,8 @@
               "kind": "TypeName",
               "name": "Text"
             }
-          }
+          },
+          "annotations": []
         }
       ],
       "ret": {
