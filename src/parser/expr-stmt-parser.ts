@@ -18,30 +18,43 @@ export function parseBlock(
 ): Block {
   const statements: Statement[] = [];
   ctx.consumeNewlines();
-  // Allow either an indented block or a single-line block without INDENT.
-  if (!ctx.at(TokenKind.INDENT)) {
-    // Parse a single statement at current indentation level
+  // Check if we have an INDENT token (new indented block)
+  const hasIndent = ctx.at(TokenKind.INDENT);
+
+  if (hasIndent) {
+    // Standard indented block: consume INDENT and parse until DEDENT
+    ctx.next();
+    while (!ctx.at(TokenKind.DEDENT) && !ctx.at(TokenKind.EOF)) {
+      ctx.consumeNewlines();
+      if (ctx.at(TokenKind.DEDENT) || ctx.at(TokenKind.EOF)) break;
+      statements.push(parseStatement(ctx, error));
+      ctx.consumeNewlines();
+    }
+    if (!ctx.at(TokenKind.DEDENT)) error('Expected dedent');
+    const endTok = ctx.peek();
+    ctx.next();
+    const b = Node.Block(statements);
+    const startSpan = (statements[0] as any)?.span?.start || endTok.start;
+    (b as any).span = { start: startSpan, end: endTok.end };
+    return b;
+  } else {
+    // Already in an indented context (multi-line parameters case):
+    // Parse statements until we hit DEDENT or EOF
     const startTok = ctx.peek();
-    const stmt = parseStatement(ctx, error);
+    while (!ctx.at(TokenKind.DEDENT) && !ctx.at(TokenKind.EOF)) {
+      ctx.consumeNewlines();
+      if (ctx.at(TokenKind.DEDENT) || ctx.at(TokenKind.EOF)) break;
+      statements.push(parseStatement(ctx, error));
+      ctx.consumeNewlines();
+    }
+    if (statements.length === 0) error('Expected at least one statement in function body');
     const endTok = ctx.tokens[ctx.index - 1] || startTok;
-    const b = Node.Block([stmt]);
-    (b as any).span = { start: startTok.start, end: endTok.end };
+    const b = Node.Block(statements);
+    const startSpan = (statements[0] as any)?.span?.start || startTok.start;
+    (b as any).span = { start: startSpan, end: endTok.end };
+    // Don't consume DEDENT here - let the caller handle it
     return b;
   }
-  ctx.next();
-  while (!ctx.at(TokenKind.DEDENT) && !ctx.at(TokenKind.EOF)) {
-    ctx.consumeNewlines();
-    if (ctx.at(TokenKind.DEDENT) || ctx.at(TokenKind.EOF)) break;
-    statements.push(parseStatement(ctx, error));
-    ctx.consumeNewlines();
-  }
-  if (!ctx.at(TokenKind.DEDENT)) error('Expected dedent');
-  const endTok = ctx.peek();
-  ctx.next();
-  const b = Node.Block(statements);
-  const startSpan = (statements[0] as any)?.span?.start || endTok.start;
-  (b as any).span = { start: startSpan, end: endTok.end };
-  return b;
 }
 
 /**
@@ -704,6 +717,10 @@ export function parseParamList(
     ctx.nextWord();
     let hasMore = true;
     while (hasMore) {
+      // 在开始解析参数前，先消费换行和缩进，支持多行格式
+      ctx.consumeNewlines();
+      ctx.consumeIndent();
+
       const { annotations, firstToken } = parseAnnotations(ctx, error);
       const nameTok = ctx.peek();
       const name = parseIdent(ctx, error);
@@ -718,18 +735,26 @@ export function parseParamList(
       params.push(p);
       if (ctx.at(TokenKind.IDENT) && ((ctx.peek().value as string) || '').toLowerCase() === KW.AND) {
         ctx.nextWord();
+        // 'and' 后允许换行和缩进
+        ctx.consumeNewlines();
+        ctx.consumeIndent();
         continue;
       }
       if (ctx.at(TokenKind.COMMA)) {
-        // If a trailing comma appears before 'produce', stop params
-        if (tokLowerAt(ctx, ctx.index + 1) === KW.PRODUCE) {
+        ctx.next();
+        // 逗号后允许换行
+        ctx.consumeNewlines();
+        // 检查当前 token 是否是 'produce'（不需要 INDENT，因为参数行保持同一缩进级别）
+        if (tokLowerAt(ctx, ctx.index) === KW.PRODUCE) {
           hasMore = false;
         } else {
-          ctx.next();
+          // 不是 'produce'，继续解析参数（可能有 INDENT 表示增加了缩进）
+          ctx.consumeIndent();
           continue;
         }
+      } else {
+        hasMore = false;
       }
-      hasMore = false;
     }
     return params;
   }
@@ -737,6 +762,10 @@ export function parseParamList(
   if (ctx.at(TokenKind.IDENT) && ctx.tokens[ctx.index + 1] && ctx.tokens[ctx.index + 1]!.kind === TokenKind.COLON) {
     let hasMore = true;
     while (hasMore) {
+      // 在开始解析参数前，先消费换行和缩进，支持多行格式
+      ctx.consumeNewlines();
+      ctx.consumeIndent();
+
       const { annotations, firstToken } = parseAnnotations(ctx, error);
       const nameTok = ctx.peek();
       const name = parseIdent(ctx, error);
@@ -752,19 +781,27 @@ export function parseParamList(
       // Accept 'and' or ',' between parameters
       if (ctx.at(TokenKind.IDENT) && ((ctx.peek().value as string) || '').toLowerCase() === KW.AND) {
         ctx.nextWord();
+        // 'and' 后允许换行和缩进
+        ctx.consumeNewlines();
+        ctx.consumeIndent();
         continue;
       }
       if (ctx.at(TokenKind.COMMA)) {
-        // If a trailing comma appears before 'produce' or 'with', stop params
-        const after = tokLowerAt(ctx, ctx.index + 1);
+        ctx.next();
+        // 逗号后允许换行
+        ctx.consumeNewlines();
+        // 检查当前 token 是否是 'produce' 或 'with'
+        const after = tokLowerAt(ctx, ctx.index);
         if (after === KW.PRODUCE || after === KW.WITH) {
           hasMore = false;
         } else {
-          ctx.next();
+          // 不是终止关键字，继续解析参数
+          ctx.consumeIndent();
           continue;
         }
+      } else {
+        hasMore = false;
       }
-      hasMore = false;
     }
   }
   return params;

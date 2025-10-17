@@ -196,6 +196,10 @@ export function parseFuncDecl(
         ctx.next();
         expectNewline();
         body = parseBlock(ctx, error);
+        // 如果 parseBlock 没有消费 DEDENT（多行参数情况），这里消费它
+        if (ctx.at(TokenKind.DEDENT)) {
+          ctx.next();
+        }
       } else {
         error("Expected '.' or ':' after effect clause");
       }
@@ -215,6 +219,10 @@ export function parseFuncDecl(
       ctx.next();
       expectNewline();
       body = parseBlock(ctx, error);
+      // 如果 parseBlock 没有消费 DEDENT（多行参数情况），这里消费它
+      if (ctx.at(TokenKind.DEDENT)) {
+        ctx.next();
+      }
     } else {
       error("Expected '.' or ':' after effect clause");
     }
@@ -224,6 +232,10 @@ export function parseFuncDecl(
     ctx.next();
     expectNewline();
     body = parseBlock(ctx, error);
+    // 如果 parseBlock 没有消费 DEDENT（多行参数情况），这里消费它
+    if (ctx.at(TokenKind.DEDENT)) {
+      ctx.next();
+    }
   } else {
     error("Expected '.' or ':' after return type");
   }

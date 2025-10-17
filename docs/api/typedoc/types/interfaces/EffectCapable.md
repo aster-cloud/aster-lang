@@ -4,7 +4,7 @@
 
 # Interface: EffectCapable
 
-Defined in: [types.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40a20d5de10b2ccdcc6d4d9cf102a12c54b7db94/src/types.ts#L43)
+Defined in: [types.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L43)
 
 带有效应能力标注的 AST 节点接口
 
@@ -17,7 +17,7 @@ Defined in: [types.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40a20d
 
 > `optional` **effectCaps**: readonly [`CapabilityKind`](../type-aliases/CapabilityKind.md)[]
 
-Defined in: [types.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/40a20d5de10b2ccdcc6d4d9cf102a12c54b7db94/src/types.ts#L45)
+Defined in: [types.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L45)
 
 效应能力列表（可选，由 parser 附加）
 
@@ -27,6 +27,6 @@ Defined in: [types.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/40a20d
 
 > `optional` **effectCapsExplicit**: `boolean`
 
-Defined in: [types.ts:47](https://github.com/wontlost-ltd/aster-lang/blob/40a20d5de10b2ccdcc6d4d9cf102a12c54b7db94/src/types.ts#L47)
+Defined in: [types.ts:47](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L47)
 
 效应能力是否显式声明（区分隐式推导和显式标注）

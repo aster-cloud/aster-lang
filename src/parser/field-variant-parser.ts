@@ -25,6 +25,10 @@ export function parseFieldList(
   let hasMore = true;
 
   while (hasMore) {
+    // 在开始解析字段前，先消费换行和缩进，支持多行格式
+    ctx.consumeNewlines();
+    ctx.consumeIndent();
+
     const { annotations, firstToken } = parseAnnotations(ctx, error);
     const nameTok = ctx.peek();
 
@@ -54,10 +58,16 @@ export function parseFieldList(
     // 检查是否还有更多字段
     if (ctx.at(TokenKind.COMMA)) {
       ctx.next();
+      // 逗号后允许换行和缩进
+      ctx.consumeNewlines();
+      ctx.consumeIndent();
       continue;
     }
     if (ctx.isKeyword(KW.AND)) {
       ctx.nextWord();
+      // 'and' 后允许换行和缩进
+      ctx.consumeNewlines();
+      ctx.consumeIndent();
       continue;
     }
     hasMore = false;

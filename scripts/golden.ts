@@ -375,6 +375,12 @@ async function main(): Promise<void> {
     'cnl/examples/pii_http_violation.aster',
     'cnl/examples/expected_pii_http_violation.diag.txt'
   );
+  // Annotation support tests (multi-line syntax)
+  runOneAst('cnl/examples/annotations_mixed.aster', 'cnl/examples/expected_annotations_mixed.ast.json');
+  runOneAst('cnl/examples/annotations_multiline.aster', 'cnl/examples/expected_annotations_multiline.ast.json');
+  runOneAst('cnl/examples/annotations_notempty.aster', 'cnl/examples/expected_annotations_notempty.ast.json');
+  runOneAst('cnl/examples/annotations_pattern.aster', 'cnl/examples/expected_annotations_pattern.ast.json');
+  runOneAst('cnl/examples/annotations_range.aster', 'cnl/examples/expected_annotations_range.ast.json');
   await runOneTypecheck(
     'cnl/examples/pii_http_safe.aster',
     'cnl/examples/expected_pii_http_safe.diag.txt'
@@ -490,6 +496,20 @@ async function main(): Promise<void> {
     await runOneTypecheck('cnl/examples/eff_violation_secrets_calls_ai.aster', 'cnl/examples/expected_eff_violation_secrets_calls_ai.diag.txt');
     await runOneTypecheck('cnl/examples/eff_violation_sql_calls_files.aster', 'cnl/examples/expected_eff_violation_sql_calls_files.diag.txt');
     await runOneTypecheck('cnl/examples/eff_violation_transitive.aster', 'cnl/examples/expected_eff_violation_transitive.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_files_only.aster', 'cnl/examples/expected_eff_violation_files_only.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_violation_secrets_calls_http.aster', 'cnl/examples/expected_eff_violation_secrets_calls_http.diag.txt');
+
+    // Effect validation tests (valid capability declarations - should pass typecheck)
+    // Skip eff_valid_all_caps.aster - requires top-level Call support not yet implemented
+    await runOneTypecheck('cnl/examples/eff_valid_cpu_only.aster', 'cnl/examples/expected_eff_valid_cpu_only.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_valid_exact_match.aster', 'cnl/examples/expected_eff_valid_exact_match.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_valid_http_sql.aster', 'cnl/examples/expected_eff_valid_http_sql.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_valid_nested.aster', 'cnl/examples/expected_eff_valid_nested.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_valid_pure_only.aster', 'cnl/examples/expected_eff_valid_pure_only.diag.txt');
+    await runOneTypecheck('cnl/examples/eff_valid_subset_declared.aster', 'cnl/examples/expected_eff_valid_subset_declared.diag.txt');
+
+    // Additional typecheck negative tests
+    await runOneTypecheck('cnl/examples/bad_generic_return_type.aster', 'cnl/examples/expected_bad_generic_return_type.diag.txt');
   } finally {
     // 恢复原始环境变量避免污染后续任务
     if (prevEnforce === undefined) {
