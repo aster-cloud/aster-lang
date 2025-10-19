@@ -34,17 +34,17 @@ COPY cnl ./cnl
 COPY build.gradle.kts settings.gradle.kts gradlew ./
 COPY gradle ./gradle
 COPY aster-runtime ./aster-runtime
-COPY aster-lang-native ./aster-lang-native
+COPY aster-lang-cli ./aster-lang-cli
 
 # 安装 npm 依赖并构建 TypeScript
 RUN npm ci && npm run build
 
 # 构建 Native Image
-RUN ./gradlew :aster-lang-native:nativeCompile --no-daemon
+RUN ./gradlew :aster-lang-cli:nativeCompile --no-daemon
 
 # 验证二进制文件
-RUN ls -lh /build/aster-lang-native/build/native/nativeCompile/ \
-    && /build/aster-lang-native/build/native/nativeCompile/aster --version
+RUN ls -lh /build/aster-lang-cli/build/native/nativeCompile/ \
+    && /build/aster-lang-cli/build/native/nativeCompile/aster --version
 
 # ============================================
 # Stage 2: Runtime Image (Minimal)
@@ -64,7 +64,7 @@ RUN useradd -r -u 1001 -g 0 aster
 
 # 复制 Native Image 二进制文件
 COPY --from=builder --chown=1001:0 \
-    /build/aster-lang-native/build/native/nativeCompile/aster \
+    /build/aster-lang-cli/build/native/nativeCompile/aster \
     /usr/local/bin/aster
 
 # 复制运行时资源（如果需要）

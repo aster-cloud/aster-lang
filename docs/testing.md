@@ -42,3 +42,9 @@
 - 执行者：Codex
 - 指令与结果：
   - `./gradlew :quarkus-policy-api:test` → 通过（生成策略类并运行全部测试，无编译错误）
+
+## 2025-10-19 Native CLI 集成测试
+- 日期：2025-10-19 23:27 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :aster-lang-cli:test` → 首次因模块未在 settings.gradle 中注册而失败，修复配置与样例后重跑通过（生成 JAR、编译 hello.aster、完成 CLI 单元/集成测试）

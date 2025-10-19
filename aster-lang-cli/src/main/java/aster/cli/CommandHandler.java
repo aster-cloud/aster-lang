@@ -1,0 +1,195 @@
+package aster.cli;
+
+import aster.cli.CommandLineParser.CommandLineException;
+import aster.cli.CommandLineParser.ParsedCommand;
+import aster.cli.TypeScriptBridge.BridgeException;
+import aster.cli.TypeScriptBridge.Result;
+import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 集中处理所有 CLI 子命令，统一依赖注入与公共逻辑，避免 Main 承担过多职责。
+ */
+public final class CommandHandler {
+  private static final int EXIT_COMPILER_ERROR = 2;
+  private static final String DEFAULT_COMPILE_OUT = "build/jvm-classes";
+  private static final String DEFAULT_JAR_OUT = "build/aster-out/aster.jar";
+
+  private final TypeScriptBridge bridge;
+  private final PathResolver pathResolver;
+  private final DiagnosticFormatter diagnosticFormatter;
+  private final VersionReader versionReader;
+
+  public CommandHandler(
+      TypeScriptBridge bridge,
+      PathResolver pathResolver,
+      DiagnosticFormatter diagnosticFormatter,
+      VersionReader versionReader) {
+    this.bridge = bridge;
+    this.pathResolver = pathResolver;
+    this.diagnosticFormatter = diagnosticFormatter;
+    this.versionReader = versionReader;
+  }
+
+  /**
+   * 处理 compile 命令，调用 TypeScript 管线完成编译。
+   */
+  public int handleCompile(ParsedCommand parsed) throws CommandLineException, BridgeException {
+    final List<String> args = parsed.arguments();
+    if (args.isEmpty()) {
+      throw new CommandLineException("compile 需要指定源文件");
+    }
+    final Path source = pathResolver.resolveExistingFile(args.getFirst(), "源文件");
+    final Path output =
+        pathResolver.resolvePath(parsed.options().getOrDefault("output", DEFAULT_COMPILE_OUT), "输出目录");
+
+    final List<String> cliArgs = new ArrayList<>();
+    cliArgs.add(source.toString());
+    cliArgs.add("--out");
+    cliArgs.add(output.toString());
+    if (parsed.flag("json")) {
+      cliArgs.add("--json");
+    }
+
+    final Result result = bridge.executeCommand("native:cli:class", cliArgs);
+    return handleSuccessOrDiagnostics(
+        result, "编译完成: %s".formatted(output), "编译失败");
+  }
+
+  /**
+   * 处理 typecheck 命令，支持 --caps 参数注入额外能力。
+   */
+  public int handleTypecheck(ParsedCommand parsed) throws CommandLineException, BridgeException {
+    final List<String> args = parsed.arguments();
+    if (args.isEmpty()) {
+      throw new CommandLineException("typecheck 需要指定源文件");
+    }
+    final Path source = pathResolver.resolveExistingFile(args.getFirst(), "源文件");
+    final Map<String, String> envOverrides = buildCapsEnv(parsed);
+
+    final List<String> cliArgs = new ArrayList<>();
+    cliArgs.add(source.toString());
+    if (parsed.flag("json")) {
+      cliArgs.add("--json");
+    }
+
+    final Result result = bridge.executeCommand("native:cli:typecheck", cliArgs, envOverrides);
+    if (!result.diagnostics().isEmpty() && result.exitCode() == 0) {
+      diagnosticFormatter.reportDiagnostics(result, "类型检查失败");
+      return EXIT_COMPILER_ERROR;
+    }
+    final String successMessage =
+        result.diagnostics().isEmpty() && result.stdout().isBlank()
+            ? "类型检查通过"
+            : result.stdout();
+    return handleSuccessOrDiagnostics(result, successMessage, "类型检查失败");
+  }
+
+  /**
+   * 处理 jar 命令，可选源文件，默认输出到 build/aster-out。
+   */
+  public int handleJar(ParsedCommand parsed) throws CommandLineException, BridgeException {
+    final List<String> args = parsed.arguments();
+    final List<String> cliArgs = new ArrayList<>();
+    if (!args.isEmpty()) {
+      final Path source = pathResolver.resolveExistingFile(args.getFirst(), "源文件");
+      cliArgs.add(source.toString());
+    }
+    final Path output =
+        pathResolver.resolvePath(parsed.options().getOrDefault("output", DEFAULT_JAR_OUT), "输出文件");
+    cliArgs.add("--out");
+    cliArgs.add(output.toString());
+    if (parsed.flag("json")) {
+      cliArgs.add("--json");
+    }
+
+    final Result result = bridge.executeCommand("native:cli:jar", cliArgs);
+    return handleSuccessOrDiagnostics(
+        result, "JAR 打包完成: %s".formatted(output), "JAR 打包失败");
+  }
+
+  /**
+   * 处理 parse/core 之类的透传命令。
+   */
+  public int handlePassThrough(ParsedCommand parsed, String script)
+      throws CommandLineException, BridgeException {
+    final List<String> args = parsed.arguments();
+    if (args.isEmpty()) {
+      throw new CommandLineException("%s 需要提供输入文件".formatted(script));
+    }
+    final Path source = pathResolver.resolveExistingFile(args.getFirst(), "源文件");
+    final List<String> cliArgs = new ArrayList<>();
+    cliArgs.add(source.toString());
+    if (parsed.flag("json")) {
+      cliArgs.add("--json");
+    }
+
+    final Result result = bridge.executeCommand(script, cliArgs);
+    return handleSuccessOrDiagnostics(result, result.stdout(), "子命令执行失败");
+  }
+
+  /**
+   * 输出版本信息，包含当前时间戳。
+   */
+  public void printVersion() {
+    final String version = versionReader.readVersion(bridge.projectRoot()).orElse("未知版本");
+    final ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Pacific/Auckland"));
+    System.out.println("Aster Lang Native CLI v%s".formatted(version));
+    System.out.println("构建时间: %s".formatted(now));
+  }
+
+  /**
+   * 打印 CLI 使用帮助。
+   */
+  public void printUsage() {
+    System.out.println("Aster Lang Native CLI");
+    System.out.println();
+    System.out.println("用法: aster <命令> [选项]");
+    System.out.println();
+    System.out.println("核心命令:");
+    System.out.println("  compile <file> [--output <dir>]    编译 CNL 为 JVM 字节码");
+    System.out.println("  typecheck <file> [--caps <json>]   执行类型检查，可指定能力配置");
+    System.out.println("  jar <file?> [--output <file>]      生成 JAR（未提供文件时复用上次编译结果）");
+    System.out.println("  version                            查看当前版本");
+    System.out.println("  help                               查看帮助");
+    System.out.println();
+    System.out.println("扩展命令:");
+    System.out.println("  parse <file>                       仅解析，输出 AST JSON");
+    System.out.println("  core <file>                        降级到 Core IR 输出 JSON");
+    System.out.println();
+    System.out.println("通用选项:");
+    System.out.println("  --json                             以 JSON 结构输出诊断/结果（若命令支持）");
+  }
+
+  private Map<String, String> buildCapsEnv(ParsedCommand parsed) throws CommandLineException {
+    final String caps = parsed.option("caps");
+    if (caps == null) {
+      return Map.of();
+    }
+    final Path resolved = pathResolver.resolveExistingFile(caps, "capabilities JSON");
+    return Map.of("ASTER_CAPS", resolved.toString());
+  }
+
+  private int handleSuccessOrDiagnostics(Result result, String successMessage, String defaultError) {
+    return switch (result) {
+      case Result(int exitCode, String stdout, String _, _)
+          when exitCode == 0 -> {
+        if (!stdout.isBlank()) {
+          System.out.println(stdout);
+        }
+        if (!successMessage.isBlank()) {
+          System.out.println(successMessage);
+        }
+        yield 0;
+      }
+      default -> {
+        diagnosticFormatter.reportDiagnostics(result, defaultError);
+        yield EXIT_COMPILER_ERROR;
+      }
+    };
+  }
+}

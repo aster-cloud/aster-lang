@@ -62,32 +62,32 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Build Native Image
-        run: ./gradlew :aster-lang-native:nativeCompile --no-daemon --info
+        run: ./gradlew :aster-lang-cli:nativeCompile --no-daemon --info
 
       - name: Check Binary Size
-        run: ./gradlew :aster-lang-native:checkBinarySize --no-daemon
+        run: ./gradlew :aster-lang-cli:checkBinarySize --no-daemon
 
       - name: Benchmark Startup Time
-        run: ./gradlew :aster-lang-native:benchmarkStartupTime --no-daemon
+        run: ./gradlew :aster-lang-cli:benchmarkStartupTime --no-daemon
         continue-on-error: true  # 允许性能测试失败
 
       - name: Test Native Binary
         run: |
-          ./aster-lang-native/build/native/nativeCompile/aster version
-          ./aster-lang-native/build/native/nativeCompile/aster help
+          ./aster-lang-cli/build/native/nativeCompile/aster version
+          ./aster-lang-cli/build/native/nativeCompile/aster help
 
       - name: Upload Native Binary
         uses: actions/upload-artifact@v4
         with:
           name: aster-native-${{ matrix.os }}
-          path: aster-lang-native/build/native/nativeCompile/aster
+          path: aster-lang-cli/build/native/nativeCompile/aster
           retention-days: 30
 
       - name: Create Release Asset (on tag)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
-          files: aster-lang-native/build/native/nativeCompile/aster
+          files: aster-lang-cli/build/native/nativeCompile/aster
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -10,7 +10,7 @@
 
 plugins {
   application
-  id("org.graalvm.buildtools.native") version "0.10.2"
+  id("org.graalvm.buildtools.native") version "0.11.2"
 }
 
 repositories { mavenCentral() }
@@ -27,7 +27,16 @@ dependencies {
   implementation(fileTree("${rootProject.projectDir}/build/aster-out") { include("aster.jar") })
 
   // 如果需要 Truffle 支持，取消注释：
-  // implementation("org.graalvm.truffle:truffle-api:23.1.0")
+  implementation("org.graalvm.truffle:truffle-api:25.0.0")
+
+  testImplementation(platform("org.junit:junit-bom:6.0.0"))
+  testImplementation("org.junit.jupiter:junit-jupiter")
+  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+  // 启用 JUnit 5 平台
+  useJUnitPlatform()
 }
 
 application {
@@ -42,29 +51,29 @@ graalvmNative {
       buildArgs.addAll(listOf(
         // 核心配置
         "--no-fallback",  // 禁用 fallback 到 JVM，确保完全 AOT
-        "--strict-image-heap",  // 严格的堆内存检查
         "-H:+ReportExceptionStackTraces",  // 报告异常堆栈
+
+        // 解锁实验性选项
+        "-H:+UnlockExperimentalVMOptions",
 
         // 初始化配置（reflection-free 设计）
         "--initialize-at-build-time=aster.runtime",
 
         // 优化配置
         "-O3",  // 最高级别优化
-        "--gc=G1",  // 使用 G1 GC（平衡性能和内存）
+        "--gc=serial",  // 使用 Serial GC（跨平台兼容，G1 仅支持 Linux AMD64/AArch64）
         "-march=native",  // 针对当前 CPU 架构优化
 
         // 大小优化
         "-H:+RemoveUnusedSymbols",  // 移除未使用的符号
         "-H:-AddAllCharsets",  // 不包含所有字符集（按需）
-        "-H:+UseCompressedReferences",  // 使用压缩指针
 
         // 启动时间优化
-        "--initialize-at-build-time",  // 尽可能在构建时初始化
-        "-H:+StaticExecutableWithDynamicLibC",  // 静态链接（仅 Linux）
+        "--initialize-at-build-time"  // 尽可能在构建时初始化
 
         // 诊断和调试（生产环境可移除）
-        "-H:+PrintClassInitialization",  // 打印类初始化信息
-        "-H:Log=registerResource:3"  // 资源注册日志
+        // "-H:+PrintClassInitialization",  // 打印类初始化信息
+        // "-H:Log=registerResource:3"  // 资源注册日志
       ))
 
       // 自动检测资源文件

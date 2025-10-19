@@ -6,8 +6,8 @@ include("aster-validation")
 project(":aster-validation").projectDir = file("aster-validation")
 
 // Native Image 主项目
-include(":aster-lang-native")
-project(":aster-lang-native").projectDir = file("aster-lang-native")
+include(":aster-lang-cli")
+project(":aster-lang-cli").projectDir = file("aster-lang-cli")
 
 // Examples: include all JVM/native example projects
 include(":examples:hello-native")

@@ -11,8 +11,8 @@ group = "io.aster"
 version = "0.2.0"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     withSourcesJar()
     withJavadocJar()
 }
@@ -26,7 +26,7 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.24.2")
     testImplementation("org.mockito:mockito-core:5.5.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testRuntimeOnly("ch.qos.logback:logback-classic:1.4.11")
+    testRuntimeOnly("ch.qos.logback:logback-classic:1.5.19")
 }
 
 tasks.test {

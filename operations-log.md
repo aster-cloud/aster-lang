@@ -2035,3 +2035,21 @@ await runOneTypecheck(
 - Phase 8: 统一函数编译入口，移除 Fast-path 判断
 - Phase 9: 删除 Legacy emitExpr/emitApplyBlock 代码
 
+2025-10-19 23:03 NZDT | 工具: sequential-thinking__sequentialthinking | 说明: 接收 Native CLI 调研任务后进行任务理解与风险分析，输出 4 步思考结论。
+2025-10-19 23:04 NZDT | 工具: code-index__set_project_path | 参数: path=. | 结果: 建立索引，发现 1010 个文件。
+2025-10-19 23:04 NZDT | 工具: code-index__find_files | 参数: pattern=**/cli.ts | 结果: 定位 TypeScript CLI `scripts/cli.ts`。
+2025-10-19 23:05 NZDT | 工具: code-index__build_deep_index、code-index__get_file_summary | 目标: 获取 `scripts/cli.ts` 概览，确认依赖 canonicalizer/lexer/parser/diagnostics。
+2025-10-19 23:06 NZDT | 工具: shell(sed) | 命令: `sed -n '1,200p' scripts/aster.ts` 等 | 结果: 提取 CLI 命令 parse/core/jvm/class/jar/truffle 的实现细节。
+2025-10-19 23:07 NZDT | 工具: shell(sed) | 命令: 查看 `src/index.ts`、`aster-lang-cli/src/main/java/aster/cli/Main.java` | 结果: 收集编译管道说明与 Native Stub CLI。
+2025-10-19 23:08 NZDT | 工具: shell(cat/sed) | 目标: 读取 package.json 与 aster-asm-emitter/build.gradle.kts，识别 npm 脚本与 ASM 依赖。
+2025-10-19 23:09 NZDT | 工具: shell(sed) | 文件: test/pipeline.test.ts | 结果: 获取编译管道端到端测试信息。
+2025-10-19 23:12 NZDT | 工具: sequential-thinking__sequentialthinking | 说明: 针对 Native CLI 产品定位与 TS 集成方案执行强制深度思考，梳理调研步骤与风险点。
+2025-10-19 23:13 NZDT | 工具: code-index__build_deep_index | 目标: 为 README 等文档建立深度索引，便于检索 Native CLI 说明。
+2025-10-19 23:14 NZDT | 工具: code-index__search_code_advanced | 参数: pattern=\".*\", file_pattern=\"aster-lang-cli/build.gradle.kts\" | 结果: 提取 Native 构建脚本头部注释与性能验收标准。
+2025-10-19 23:15 NZDT | 工具: shell(cat/sed) | 文件: .claude/context-initial.json、.claude/production-build-pipeline-report.md | 结果: 收集 Native CLI 背景、验收标准与命令清单。
+2025-10-19 23:16 NZDT | 工具: shell(nl/sed/rg) | 目标: 定位 Main.java 中三种 TS 集成方案注释及仓库内进程调用案例，评估可行性。
+2025-10-19 23:17 NZDT | 工具: shell(git log) | 命令: git log --oneline --grep=\"native\" | 结果: 检查仓库历史中关于 native 的提交记录，确认缺少 CLI 定位补充说明。
+
+2025-10-20 00:30 NZST | 工具: sequential-thinking__sequentialthinking | 说明: 接收修复 native-image.properties 乱码任务后进行问题理解与步骤推演。
+2025-10-20 00:30 NZST | 工具: shell(cat) | 文件: aster-lang-cli/src/main/resources/META-INF/native-image/native-image.properties | 结果: 确认文件含中文注释导致编码风险。
+2025-10-20 00:30 NZST | 工具: apply_patch | 文件: aster-lang-cli/src/main/resources/META-INF/native-image/native-image.properties | 结果: 将中文注释替换为 ASCII 描述，避免 properties 文件乱码。

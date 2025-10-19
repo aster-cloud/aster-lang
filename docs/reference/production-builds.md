@@ -59,7 +59,7 @@ npm run docker:compose:up
 
 ### 构建配置
 
-Native Image 配置位于 `aster-lang-native/build.gradle.kts`:
+Native Image 配置位于 `aster-lang-cli/build.gradle.kts`:
 
 ```kotlin
 graalvmNative {
@@ -189,12 +189,12 @@ remote<HttpBuildCache> {
 ```bash
 # 第一次构建
 npm run native:build
-shasum -a 256 aster-lang-native/build/native/nativeCompile/aster > checksum1.txt
+shasum -a 256 aster-lang-cli/build/native/nativeCompile/aster > checksum1.txt
 
 # 清理 + 第二次构建
 ./gradlew clean
 npm run native:build
-shasum -a 256 aster-lang-native/build/native/nativeCompile/aster > checksum2.txt
+shasum -a 256 aster-lang-cli/build/native/nativeCompile/aster > checksum2.txt
 
 # 比较校验和（应该相同）
 diff checksum1.txt checksum2.txt
@@ -265,14 +265,14 @@ GitHub Release 自动创建，附带:
 
 ```bash
 # 1. 构建带 instrumentation 的二进制
-./gradlew :aster-lang-native:nativeCompile \
+./gradlew :aster-lang-cli:nativeCompile \
   -Pgraalvm.native.extra-args=--pgo-instrument
 
 # 2. 运行代表性工作负载，生成 profile
-./aster-lang-native/build/native/nativeCompile/aster compile workload.aster
+./aster-lang-cli/build/native/nativeCompile/aster compile workload.aster
 
 # 3. 使用 profile 重新构建
-./gradlew :aster-lang-native:nativeCompile \
+./gradlew :aster-lang-cli:nativeCompile \
   -Pgraalvm.native.extra-args=--pgo=default.iprof
 ```
 

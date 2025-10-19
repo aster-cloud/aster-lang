@@ -3,6 +3,8 @@ include ':aster-asm-emitter'
 include ':aster-runtime'
 include ':aster-validation'
 project(':aster-validation').projectDir = file('aster-validation')
+include ':aster-lang-cli'
+project(':aster-lang-cli').projectDir = file('aster-lang-cli')
 include ':examples:hello-native'
 project(':examples:hello-native').projectDir = file('examples/hello-native')
 include ':examples:login-native'
