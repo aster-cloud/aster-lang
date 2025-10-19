@@ -159,9 +159,10 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = NoneE.class, name = "None"),
     @JsonSubTypes.Type(value = Construct.class, name = "Construct"),
     @JsonSubTypes.Type(value = Call.class, name = "Call"),
-    @JsonSubTypes.Type(value = Lambda.class, name = "Lambda")
+    @JsonSubTypes.Type(value = Lambda.class, name = "Lambda"),
+    @JsonSubTypes.Type(value = Await.class, name = "Await")
   })
-  public sealed interface Expr permits Name, Bool, IntE, LongE, DoubleE, StringE, NullE, Ok, Err, Some, NoneE, Construct, Call, Lambda {}
+  public sealed interface Expr permits Name, Bool, IntE, LongE, DoubleE, StringE, NullE, Ok, Err, Some, NoneE, Construct, Call, Lambda, Await {}
 
   @JsonTypeName("Name")
   public static final class Name implements Expr { public String name; public Origin origin; }
@@ -192,4 +193,6 @@ public final class CoreModel {
   public static final class Call implements Expr { public Expr target; public List<Expr> args; public Origin origin; }
   @JsonTypeName("Lambda")
   public static final class Lambda implements Expr { public List<Param> params; public Type ret; public Block body; public List<String> captures; public Origin origin; }
+  @JsonTypeName("Await")
+  public static final class Await implements Expr { public Expr expr; public Origin origin; }
 }

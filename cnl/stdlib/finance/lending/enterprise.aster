@@ -46,9 +46,10 @@ To assessLiquidity with position: FinancialPosition, produce LiquidityAnalysis:
 
 To assessLeverage with position: FinancialPosition, produce LeverageAnalysis:
   // Debt-to-Equity Ratio * 100
+  Let debtToEquity be 0.
   If !=(position.equity, 0),:
     Let debtToEquity be /(*(position.totalLiabilities, 100), position.equity).
-  If =(position.equity, 0),:
+  Otherwise,:
     Let debtToEquity be 99999.
 
   // Debt-to-Assets Ratio * 100
@@ -78,9 +79,10 @@ To assessProfitability with enterprise: EnterpriseInfo, position: FinancialPosit
   Let returnOnAssets be /(*(netIncome, 100), position.totalAssets).
 
   // ROE = Net Income / Equity * 100
+  Let returnOnEquity be 0.
   If !=(position.equity, 0),:
     Let returnOnEquity be /(*(netIncome, 100), position.equity).
-  If =(position.equity, 0),:
+  Otherwise,:
     Let returnOnEquity be 0.
 
   Let annualCashFlow be *(position.cashFlow, 12).

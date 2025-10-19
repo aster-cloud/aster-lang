@@ -12,6 +12,7 @@ final class TypeResolver {
   private final Map<String, Character> funcHints;
   private final Map<String, CoreModel.Func> functionSchemas;
   private final Map<String, CoreModel.Data> dataSchema;
+  private final ContextBuilder contextBuilder;
 
   TypeResolver(
       ScopeStack scopeStack,
@@ -19,10 +20,39 @@ final class TypeResolver {
       Map<String, CoreModel.Func> functionSchemas,
       Map<String, CoreModel.Data> dataSchema
   ) {
+    this(scopeStack, funcHints, functionSchemas, dataSchema, null);
+  }
+
+  TypeResolver(
+      ScopeStack scopeStack,
+      Map<String, Character> funcHints,
+      Map<String, CoreModel.Func> functionSchemas,
+      ContextBuilder contextBuilder
+  ) {
+    this(scopeStack, funcHints, functionSchemas, contextBuilder != null ? contextBuilder.dataSchema() : Map.of(), contextBuilder);
+  }
+
+  private TypeResolver(
+      ScopeStack scopeStack,
+      Map<String, Character> funcHints,
+      Map<String, CoreModel.Func> functionSchemas,
+      Map<String, CoreModel.Data> dataSchema,
+      ContextBuilder contextBuilder
+  ) {
     this.scopeStack = Objects.requireNonNull(scopeStack, "scopeStack");
     this.funcHints = Objects.requireNonNull(funcHints, "funcHints");
     this.functionSchemas = (functionSchemas == null) ? Map.of() : functionSchemas;
     this.dataSchema = (dataSchema == null) ? Map.of() : dataSchema;
+    this.contextBuilder = contextBuilder;
+  }
+
+  /**
+   * 获取关联的 ScopeStack 实例。
+   *
+   * @return ScopeStack 实例
+   */
+  ScopeStack getScopeStack() {
+    return scopeStack;
   }
 
   /**
@@ -133,6 +163,7 @@ final class TypeResolver {
     String current = dotName;
     while (current != null && !current.isEmpty()) {
       var data = dataSchema.get(current);
+      if (data == null && contextBuilder != null) data = contextBuilder.lookupData(current);
       if (data != null) return data;
       int idx = current.indexOf('.');
       if (idx < 0) break;
@@ -142,6 +173,7 @@ final class TypeResolver {
     if (lastDot >= 0) {
       String simple = dotName.substring(lastDot + 1);
       var data = dataSchema.get(simple);
+      if (data == null && contextBuilder != null) data = contextBuilder.lookupData(simple);
       if (data != null) return data;
     }
     return null;

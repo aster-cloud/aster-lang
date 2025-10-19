@@ -609,7 +609,7 @@ class TypeResolverTest {
   @Test
   void testTypeResolverAllowsNullSchemas() {
     // functionSchemas和dataSchema可以为null（会被转换为空Map）
-    var resolver = new TypeResolver(scopeStack, Map.of(), null, null);
+    var resolver = new TypeResolver(scopeStack, Map.of(), null, (Map<String, CoreModel.Data>) null);
     assertNotNull(resolver);
 
     var expr = new CoreModel.IntE();

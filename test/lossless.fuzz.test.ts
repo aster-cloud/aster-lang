@@ -76,15 +76,20 @@ function fuzzLosslessIdempotence(): void {
   const sampleCount = Math.min(20, examples.length);
   for (let i = 0; i < sampleCount; i++) {
     const base = examples[i]!;
-    fc.assert(
-      fc.property(fc.integer({ min: 0, max: 1_000_000 }), (seed: number) => {
-        const mutated = injectTrivia(base, seed);
-        const cst = buildCstLossless(mutated);
-        const out = printCNLFromCst(cst);
-        return out === mutated;
-      }),
-      { numRuns: 200 }
-    );
+    try {
+      fc.assert(
+        fc.property(fc.integer({ min: 0, max: 1_000_000 }), (seed: number) => {
+          const mutated = injectTrivia(base, seed);
+          const cst = buildCstLossless(mutated);
+          const out = printCNLFromCst(cst);
+          return out === mutated;
+        }),
+        { numRuns: 200, seed: 42 + i } // Fixed seed for deterministic testing, offset by example index
+      );
+    } catch (e) {
+      console.error(`Failed on example index ${i}`);
+      throw e;
+    }
     cases += 200;
   }
   console.log(`✓ Lossless CST identity under trivia/comments: ${cases} cases`);

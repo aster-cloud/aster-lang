@@ -1,3 +1,87 @@
+# 2025-10-19 01:28 NZDT ExpressionEmitter Name 扩展阶段1执行
+
+- 工具：sequential-thinking__sequentialthinking → 梳理任务目标与风险，明确需迁移 NameEmitter 逻辑
+- 工具：sequential-thinking__sequentialthinking → 细化后续上下文收集步骤
+- 工具：code-index__set_project_path → path='.'，初始化项目索引
+- 工具：code-index__get_file_summary → file='aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java'（失败：提示需构建深度索引）
+- 工具：code-index__build_deep_index → 重建索引（961 个文件）
+- 工具：code-index__get_file_summary → file='aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java'（成功：获取方法列表）
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java" → 阅读现有字面量处理实现
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/NameEmitter.java" → 了解 NameEmitter 基础逻辑
+- 命令：zsh -lc "sed -n '200,400p' aster-asm-emitter/src/main/java/aster/emitter/NameEmitter.java" → 查看 NameEmitter 字段访问与类型转换细节
+- 命令：zsh -lc "sed -n '800,900p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 定位 legacy NameEmitter 调用点
+- 命令：zsh -lc "sed -n '250,360p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 识别 ExpressionEmitter 回退逻辑
+- 工具：code-index__search_code_advanced → pattern='new ExpressionEmitter'，确认实例化位置
+- 工具：code-index__search_code_advanced → pattern='operations-log.md'，统计日志文件分布
+- 命令：zsh -lc "sed -n '1,60p' operations-log.md" → 参考既有日志格式
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取 NZDT 时间戳用于记录
+
+# 2025-10-19 01:34 NZDT ExpressionEmitter Name 扩展代码修改
+
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取当前时间戳
+- 工具：apply_patch → 更新 ExpressionEmitter.java，注入 NameEmitter 并新增 emitName 处理
+- 工具：apply_patch → 更新 Main.java（emitFunc），构造 NameEmitter 并传入 ExpressionEmitter
+- 命令：zsh -lc "sed -n '820,900p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 确认 Name 旧实现上下文
+- 工具：apply_patch → 更新 Main.java（emitExpr），统一通过 ExpressionEmitter 处理 Name
+- 工具：apply_patch → 更新 FunctionEmitter.java，在发射前同步 env 并委托 Name 表达式
+- 工具：code-index__search_code_advanced → pattern='new ExpressionEmitter'，校验剩余构造调用点
+- 命令：zsh -lc "sed -n '1,220p' aster-asm-emitter/src/test/java/aster/emitter/ExpressionEmitterTest.java" → 回顾常量测试结构
+- 工具：apply_patch → 更新 ExpressionEmitterTest.java，注入 ScopeStack/TypeResolver/NameEmitter
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java" → 确认 TypeResolver 构造依赖
+- 命令：zsh -lc "rg \"class Ctx\" -n aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 失败（无匹配），转而搜索 record 定义
+- 命令：zsh -lc "rg \"record Ctx\" -n aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 定位 Ctx 定义
+- 命令：zsh -lc "sed -n '1,120p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查看 Ctx 与上下文构建
+- 命令：zsh -lc "sed -n '900,1150p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 了解 NameEmitter 旧调用及辅助方法
+- 工具：apply_patch → 新增 ExpressionEmitterNameTest.java，覆盖局部变量/参数/内建函数/字段/未知 Name 场景
+
+# 2025-10-19 01:35 NZDT ExpressionEmitter Name 扩展测试
+
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取测试阶段时间戳
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.ExpressionEmitterNameTest\"" → 运行新增单测（通过）
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.GoldenClassTest\"" → 回归 Golden 测试（通过）
+
+# 2025-10-19 01:37 NZDT ExpressionEmitter Name 扩展差异审阅
+
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 标记审阅阶段时间戳
+- 命令：zsh -lc "git status -sb" → 确认工作区改动概况
+- 命令：zsh -lc "git diff -- aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java" → 查看 ExpressionEmitter 详细差异
+- 命令：zsh -lc "git diff -- aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查看 Main emitFunc/emitExpr 差异
+- 命令：zsh -lc "git diff -- aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 查看 FunctionEmitter 调用链调整
+- 命令：zsh -lc "git diff -- aster-asm-emitter/src/test/java/aster/emitter/ExpressionEmitterTest.java" → 检查常量单测适配
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java | sed -n '20,180p'" → 获取 emitName 行号
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java | sed -n '290,340p'" → 标注 emitExpr 新逻辑位置
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/Main.java | sed -n '260,320p'" → 定位 FunctionEmitter 构造路径
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/Main.java | sed -n '820,900p'" → 定位 emitExpr Name 分派行
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/test/java/aster/emitter/ExpressionEmitterNameTest.java | sed -n '1,220p'" → 获取新增单测行号
+- 工具：apply_patch → 新增 .claude/stage1-name-expression-report.md，整理阶段性报告
+
+# 2025-10-19 00:38 NZST Phase 3 文档交付全部完成
+
+- 执行者：Claude Code（主AI规划）+ Codex（文档编写）
+- 任务背景：aster-asm-emitter 重构后文档体系建设（Phase 3.1-3.5）
+- Phase 3.1：架构文档 (architecture.md) - ✅ 完成
+- Phase 3.2：开发者指南 (developer-guide.md) - ✅ 完成
+- Phase 3.3：API 参考 (api-reference.md) - ✅ 完成
+- Phase 3.4：设计决策记录 (4 个 ADR) - ✅ 完成
+- Phase 3.5：流程图 (flowcharts.md) - ✅ 完成
+- 完成报告：.claude/phase3-complete-summary.md
+- 交付物总计：8 份文档，931 行内容，5 张 Mermaid 流程图
+- 验证状态：符合 CLAUDE.md 规范（简体中文、NZST 时间戳、源码引用可追溯）
+- TodoList 已更新：Phase 3.1-3.5 全部标记为 completed
+
+# 2025-10-17 23:37 NZDT FunctionEmitter Batch 1-3 审查启动
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理审查任务范围与初步关注点
+- 工具：sequential-thinking__sequentialthinking → 明确阅读策略与后续操作
+- 工具：code-index__set_project_path → path='.'，确保索引指向当前仓库根目录
+- 工具：code-index__build_deep_index → 重建索引（935 个文件）
+- 工具：code-index__get_file_summary → file='aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java'（失败：需深度索引，已转执行 build_deep_index）
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 阅读 FunctionEmitter 前 200 行
+- 命令：zsh -lc "sed -n '200,400p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 阅读 FunctionEmitter 剩余部分
+- 命令：zsh -lc "sed -n '250,360p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查看 Main.emitFunc 委托及访问修饰符调整
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取新西兰时区时间戳记录
+
 # 2025-10-17 01:08 NZDT Layer 2 语义验证实现启动
 
 - 执行者：Codex
@@ -75,6 +159,13 @@
 - 工具：shell | nl -ba LANGUAGE_REFERENCE.md \| sed -n '1,40p' | 输出：获取语言参考文档前 40 行与确定性设计描述
 - 工具：shell | nl -ba LANGUAGE_REFERENCE.md \| sed -n '140,170p' | 输出：定位 Determinism Contract 行号
 - 工具：shell | nl -ba goal.md \| sed -n '9,40p' | 输出：获取 AI 辅助与核心语义定位段落行号
+
+# 2025-10-17 18:28 NZDT aster-validation 功能确认
+
+- 执行者：Codex
+- 工具：sequential-thinking | totalThoughts=4 | 输出：确认需评估 aster-validation 对幻觉影响的分析步骤
+- 工具：code-index__search_code_advanced | pattern="aster-validation" | context=20 | 输出：检索到模块迁移记录、设置文件及 README
+- 工具：shell | TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z' | 输出：2025-10-17 18:28 NZDT
 
 # 2025-10-16 12:19 NZDT Truffle DSL 基础设施初始化
 
@@ -1578,3 +1669,369 @@ await runOneTypecheck(
 - 工具：apply_patch → 补充欺诈结果及交易字段注解
 - 命令：zsh -lc "cat quarkus-policy-api/src/main/resources/policies/finance/risk.aster" → 获取风险评估策略上下文
 - 工具：apply_patch → 更新风险评估数据结构注解
+# 2025-10-17 20:21 NZDT ContextBuilder 抽离准备
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 分析阶段1.2任务目标、上下文及风险
+- 工具：code-index__set_project_path → path='.'，初始化索引（928 个文件）
+- 工具：code-index__build_deep_index → 构建项目深度索引
+- 工具：code-index__get_file_summary → 概览 Main.java 结构与符号统计
+- 命令：zsh -lc "sed -n '60,220p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查看符号表构建及上下文
+- 命令：zsh -lc "sed -n '1,120p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 确认 Ctx 结构与依赖字段
+- 工具：code-index__search_code_advanced → pattern='enumVarToEnum', file_pattern='aster-asm-emitter/src/main/java/aster/emitter/Main.java'，定位枚举索引使用点
+- 命令：zsh -lc "sed -n '720,780p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 研究 Match 分支中枚举匹配流程
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/CoreModel.java" → 了解 CoreModel.Module 声明结构
+# 2025-10-17 20:29 NZDT ContextBuilder 拆分与测试
+
+- 工具：apply_patch → 新增 ContextBuilder.java，实现模块索引构建与查询
+- 工具：apply_patch → 重构 Main.java Ctx 结构，引入 ContextBuilder 与查找方法
+- 工具：apply_patch → 替换 Main.java 枚举/数据查找逻辑，统一调用 ContextBuilder
+- 工具：apply_patch → 更新 TypeResolver 支持 ContextBuilder 回退查找
+- 工具：apply_patch → 调整 TypeResolverTest null 构造调用避免重载歧义
+- 工具：apply_patch → 新增 ContextBuilderTest 覆盖索引构建与边界场景
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.ContextBuilderTest" → ✅ 新增单测通过
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.GoldenClassTest" → ✅ Golden 测试通过
+# 2025-10-17 20:43 NZDT AsmUtilities 常量工具迁移
+
+- 工具：sequential-thinking__sequentialthinking → 明确阶段2.1任务范围与实现步骤
+- 工具：code-index__set_project_path → path='.'，确认索引根目录
+- 工具：code-index__find_files → pattern='aster-asm-emitter/src/main/java/**/*.java'，列出主模块 Java 文件
+- 工具：code-index__build_deep_index → 构建深度索引，便于读取长文件
+- 工具：code-index__get_file_summary → 获取 Main.java 方法分布与行号
+- 命令：zsh -lc "sed -n '2470,2610p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查看待迁移方法原始实现
+- 命令：zsh -lc "sed -n '2430,2495p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 确认 writeClass/cwFrames 定义
+- 工具：apply_patch → 新增 AsmUtilities.java，封装常量发射、装箱、ClassWriter、写文件逻辑
+- 工具：apply_patch → 调整 Main.emitExpr 字符串常量分支，调用 AsmUtilities.emitConstString
+- 工具：apply_patch → 从 Main.java 移除 writeClass 与常量相关私有方法
+- 命令：zsh -lc "python3 - <<'PY' ... emitConst 替换 ..." → 将 emitConst 与 boxPrimitiveResult 调用指向 AsmUtilities
+- 命令：zsh -lc "python3 - <<'PY' ... writeClass 替换 ..." → 更新写文件调用签名
+- 工具：apply_patch → 新增 AsmUtilitiesTest.java，覆盖 ICONST/BIPUSH/SIPUSH/LDC 及装箱逻辑
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.AsmUtilitiesTest" → ✅ 单测通过
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.GoldenClassTest" → ✅ Golden 回归通过
+# 2025-10-17 20:52 NZST GeneratorAdapter 试点启动
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 分析阶段2.2 引入 GeneratorAdapter 的范围与风险
+- 工具：code-index__set_project_path → path='.'，确认索引根目录
+- 工具：code-index__build_deep_index → 构建深度索引便于检索 emitApplySimpleExpr
+- 工具：code-index__get_file_summary → 快速概览 AsmUtilities.java 结构
+- 命令：zsh -lc "sed -n '1980,2160p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查看待重写算术与比较分支
+- 工具：apply_patch → 向 AsmUtilities 新增 GeneratorAdapter 封装方法
+- 工具：apply_patch → 更新 Main.emitApplySimpleExpr 使用 GeneratorAdapter.math/ifCmp
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.GoldenClassTest" → ✅ Golden 测试通过
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:run --args 'build/trace-out' < cnl/examples/expected_greet_core.json" → 生成 trace 对比样本
+- 命令：zsh -lc \"jshell --class-path 'aster-asm-emitter/build/classes/java/main:aster-runtime/build/classes/java/main:/Users/rpang/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm/9.8/dc19ecb3f7889b7860697215cae99c0f9b6f6b4b/asm-9.8.jar:/Users/rpang/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-commons/9.8/36e4d212970388e5bd2c5180292012502df461bb/asm-commons-9.8.jar:/Users/rpang/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-util/9.8/395f1c1f035258511f27bc9b2583d76e4b143f59/asm-util-9.8.jar' <<'EOF'\n...jshell script...\nEOF\" → 使用 TraceClassVisitor 输出 greet_fn 实际/基线字节码
+- 命令：zsh -lc "diff -u aster-asm-emitter/build/trace-out/greet_fn.actual.trace aster-asm-emitter/build/trace-out/greet_fn.golden.trace" → 字节码文本一致
+# 2025-10-17 20:58 NZST ExpressionEmitter 基础结构启动
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 5 轮思考梳理阶段3.1 任务理解、迁移风险与执行步骤
+- 工具：code-index__set_project_path → path='.'，刷新索引（932 个文件）
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 获取日志时间戳
+- 工具：code-index__search_code_advanced → pattern='IntE i'，file_pattern='aster-asm-emitter/src/main/java/aster/emitter/Main.java'，定位整数常量分支行号
+- 命令：zsh -lc "sed -n '1200,1260p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查阅常量表达式处理逻辑
+- 工具：code-index__build_deep_index → 重新构建索引，便于后续获取 CoreModel 结构
+- 工具：code-index__get_file_summary → file_path='aster-asm-emitter/src/main/java/aster/emitter/CoreModel.java'，获取表达式类型定义概览
+- 命令：zsh -lc "sed -n '150,195p' aster-asm-emitter/src/main/java/aster/emitter/CoreModel.java" → 确认 Bool/Int/String 表达式结构
+- 命令：zsh -lc "ls aster-asm-emitter/src/test/java/aster/emitter" → 快速浏览现有单测文件
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/test/java/aster/emitter/BytecodeComparator.java" → 了解字节码比较工具以设计新单测
+- 命令：zsh -lc "rg \"CoreModel\\.Bool\" -n aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 交叉验证布尔常量分支所在行
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/ContextBuilder.java" → 了解上下文构建器提供的索引能力
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/ScopeStack.java" → 确认作用域栈结构与可访问性
+- 工具：apply_patch → 新增 aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java，实现常量表达式发射基础框架
+- 工具：apply_patch → 更新 Main.emitExpr，引入 ExpressionEmitter 试点并移除本地常量分支
+- 工具：apply_patch → 新增 aster-asm-emitter/src/test/java/aster/emitter/ExpressionEmitterTest.java，覆盖整型/布尔/字符串常量发射
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.ExpressionEmitterTest" | timeout=120s → ✅ 新增单测通过（3 项断言）
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.GoldenClassTest" | timeout=180s → ✅ Golden 回归通过
+- 工具：apply_patch → 新增 .claude/stage3.1-expression-emitter-base-report.md，记录阶段性成果
+
+# 2025-10-17 23:38 NZDT 阶段3.3 Batch 1-3 Codex 审查与修复
+
+- 执行者：Claude Code（主AI）
+- 工具：mcp__codex__codex → 调用 Codex 执行深度审查，使用 sequential-thinking 推理
+- 审查对象：FunctionEmitter.java Batch 1-3 实现（243行）
+- 审查结果：综合评分 48/100，建议"退回"
+- 致命问题1：依赖注入失效 - FunctionEmitter 构造函数接收 ScopeStack/TypeResolver/ExpressionEmitter，但 emitFunction 内部重新创建实例，注入对象未使用
+- 致命问题2：行号起点错误 - lineNo 从 1 开始而非 2，与原实现 Main.java:339 不一致，破坏调试信息一致性
+- 工具：Edit → FunctionEmitter.java:161，修正 AtomicInteger(1) → AtomicInteger(2)，添加注释："行号从 2 开始，与原实现一致（Main.java:339）"
+- 工具：Edit → FunctionEmitter.java:137-159，添加 TODO 注释说明依赖注入架构问题，创建 localTypeResolver 变量明确使用本地实例
+- 工具：Edit → FunctionEmitter.java:170,212-214，将所有 typeResolver 引用改为 localTypeResolver
+- 命令：./gradlew :aster-asm-emitter:compileJava → ✅ 编译通过
+- 命令：./gradlew :aster-asm-emitter:test --tests aster.emitter.GoldenClassTest → ✅ Golden 测试 3/3 通过
+- 状态：行号问题已修复 ✅，依赖注入问题已记录但未彻底解决（需要重构整体架构）⚠️
+- 决策点：继续 Batch 4 或暂停进行架构重构
+
+# 2025-10-18 00:28 NZDT 阶段3.3 依赖注入修复二次审查
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking（7 次）→ 梳理审查任务、按五层法分析风险与修复效果
+- 命令：zsh -lc "ls" → 确认仓库结构
+- 命令：zsh -lc "cat operations-log.md" → 回顾既有操作留痕
+- 工具：code-index__set_project_path → path='.'，确保索引指向仓库根目录
+- 工具：code-index__build_deep_index → 重建索引以获取 TypeResolver/FunctionEmitter 概要
+- 工具：code-index__get_file_summary → file_path='aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java'，确认新增 getScopeStack 方法
+- 工具：code-index__get_file_summary → file_path='aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java'，概览依赖使用
+- 工具：code-index__search_code_advanced → 检索 TypeResolver.getScopeStack 引用情况
+- 命令：zsh -lc "sed -n '1,80p' aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java" → 检查构造与 getter 实现
+- 命令：zsh -lc "sed -n '40,120p' aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java" → 验证 scopeStack 使用路径
+- 命令：zsh -lc "sed -n '1,160p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 评估依赖注入使用情况
+- 命令：zsh -lc "sed -n '120,220p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 检查 Let/If 分支使用 typeResolver 逻辑
+- 命令：zsh -lc "rg \"new TypeResolver\" -n aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 确认无局部实例化
+- 命令：zsh -lc "rg \"new TypeResolver\" -n" → 查找全局 TypeResolver 创建点
+- 命令：zsh -lc "sed -n '300,340p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 验证委托链维持注入流程
+- 命令：zsh -lc "sed -n '360,430p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 对比原始实现的 ScopeStack 生命周期
+- 命令：zsh -lc \"rg \\\"new ScopeStack\\\" -n aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java\" → 确认无新增 ScopeStack
+- 命令：zsh -lc \"rg \\\"TODO\\\" aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java\" → 记录残留 TODO，不影响本次修复
+- 命令：zsh -lc \"TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'\" → 记录 NZDT 时间戳
+- 命令：zsh -lc \"nl -ba aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java | sed -n '40,80p'\" → 获取精确行号用于引用
+- 命令：zsh -lc \"nl -ba aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java | sed -n '120,220p'\" → 获取精确行号用于引用
+- 命令：zsh -lc \"nl -ba aster-asm-emitter/src/main/java/aster/emitter/Main.java | sed -n '300,340p'\" → 获取精确行号用于引用
+- 命令：zsh -lc \"git rev-parse HEAD\" → 记录当前版本号
+- 命令：zsh -lc \"git status -sb\" → 确认工作区状态
+- 命令：zsh -lc \"TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZDT'\" → 二次确认文档时间戳
+- 工具：apply_patch → 新增 .claude/second-review-report.md 二次审查报告
+- 工具：apply_patch → 新增 .claude/adr-dependency-injection-fix.md 架构决策记录
+
+# 2025-10-18 07:37 NZDT Batch2 ExpressionEmitter 集成审查
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking（2 次）→ 明确审查范围与风险点
+- 工具：code-index__set_project_path → path='/Users/rpang/IdeaProjects/aster-lang'，建立索引上下文
+- 工具：code-index__find_files → pattern='**/FunctionEmitter.java'，定位目标文件
+- 工具：code-index__build_deep_index → 重新构建索引以获取符号信息
+- 工具：code-index__get_file_summary → file='aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java'，确认文件结构
+- 命令：zsh -lc "sed -n '600,740p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 查看新增 isLiteral/emitExpr 实现
+- 命令：zsh -lc "python3 - <<'PY'\nwith open('aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java') as f:\n    for i,line in enumerate(f,1):\n        if 630 <= i <= 710:\n            print(f\"{i}:{line.rstrip()}\")\nPY" → 输出 630-659 行号用于引用
+- 命令：zsh -lc "rg -n \"Main\\.emitExpr\" aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 验证调用替换情况
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 检查依赖注入字段
+- 命令：zsh -lc "sed -n '1,220p' aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java" → 核对字面量处理逻辑
+- 命令：zsh -lc "sed -n '100,140p' aster-asm-emitter/src/main/java/aster/emitter/AsmUtilities.java" → 评估 expectedDesc=null 的装箱行为
+- 命令：zsh -lc "rg -n \"static void emitExpr\" aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 对比原实现
+- 命令：zsh -lc "sed -n '932,1040p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 核实旧逻辑与新封装的一致性
+- 命令：zsh -lc "rg -n \"new FunctionEmitter\" -n" → 确认构造参数链
+- 命令：zsh -lc "sed -n '300,340p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 检查依赖注入来源
+- 命令：zsh -lc "cat .claude/templates/review-report-template.md" → 获取审查报告模板
+- 命令：zsh -lc \"TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'\" → 记录时间戳
+# 2025-10-18 09:12 NZDT CallEmitter 实现执行
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理任务理解、风险与执行思路
+- 工具：code-index__set_project_path → path='.'，建立项目索引上下文
+- 工具：code-index__find_files → pattern='operations-log.md'，确认操作日志位置
+- 命令：zsh -lc "cat operations-log.md" → 回顾既有留痕格式
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/Main.java | sed -n '1180,1540p'" → 抽取 Call 处理原逻辑
+- 命令：zsh -lc "sed -n '2300,2440p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查看反射解析与辅助方法实现
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/SignatureResolver.java" → 了解新签名解析器接口
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java" → 对齐回调接口约定
+- 工具：apply_patch → 新增 `aster/emitter/ExprEmitterCallback.java` 回调接口
+- 工具：apply_patch → 新增 `aster/emitter/CallEmitter.java` 并迁移内置函数调用逻辑
+- 工具：apply_patch → 新增 `CallEmitterTest.java` 覆盖六类调用场景
+- 工具：apply_patch → 调整测试与实现（移除多余导入、完善构造参数）
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.CallEmitterTest" → 首次失败（INSN_NONE 未定义），清理无用静态导入后复跑通过
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 记录本次执行时间
+
+# 2025-10-18 09:23 NZDT Batch3 CallEmitter 集成执行
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking（6 次）→ 梳理任务目标、风险与执行顺序
+- 命令：zsh -lc "ls" → 确认仓库根目录内容
+- 命令：zsh -lc "rg --files -g 'Main.java'" → 定位 aster-asm-emitter 主入口
+- 命令：zsh -lc "rg -n \"CoreModel.Call\" aster-asm-emitter/src/main/java/aster/emitter/Main.java"；zsh -lc "sed -n '1160,1550p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查阅旧版 Call 分支实现
+- 命令：zsh -lc "rg -n \"tryResolveReflect\" aster-asm-emitter/src/main/java/aster/emitter/Main.java"；zsh -lc "rg -n \"REFLECT_CACHE\" aster-asm-emitter/src/main/java/aster/emitter/Main.java"；zsh -lc "rg -n \"METHOD_CACHE\" aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 统计待清理辅助成员
+- 命令：zsh -lc "sed -n '60,200p' aster-asm-emitter/src/main/java/aster/emitter/Main.java"；zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/SignatureResolver.java" → 对齐上下文构建与新签名解析器接口
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java"；zsh -lc "rg -n \"typeResolver\" aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java"；zsh -lc "cat aster-asm-emitter/src/main/java/aster/emitter/ExprEmitterCallback.java" → 熟悉委托实现与回调签名
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/Main.java | sed -n '1080,1240p'"；zsh -lc \"sed -n '1174,1190p' aster-asm-emitter/src/main/java/aster/emitter/Main.java | cat -vet\" → 获取精确行号与缩进格式
+- 工具：apply_patch → 在 `Main.emitExpr` 中注入 `CallEmitter.tryEmitCall` 委托调用
+- 命令：zsh -lc "sed -n '1185,1530p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 核对旧版 Call 分支范围
+- 命令：zsh -lc "sed -n '2150,2170p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 检视 `toInternal` 逻辑
+- 命令：zsh -lc "rg -n \"UUID\" aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java"；zsh -lc "rg -n \"randomUUID\" aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java"；zsh -lc "rg -n \"java/util\" aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java" → 确认特例覆盖情况
+- 命令：zsh -lc "sed -n '200,400p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java"；zsh -lc "sed -n '80,140p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java"；zsh -lc "sed -n '40,80p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java" → 深入阅读静态方法与集合互操作分支
+- 命令：zsh -lc "python3 - <<'PY'\nfrom pathlib import Path\npath = Path('aster-asm-emitter/src/main/java/aster/emitter/Main.java')\ntext = path.read_text()\nstart = text.index('    if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name tn) {')\nend = text.index('    // Ok/Err construction')\npath.write_text(text[:start] + text[end:])\nPY" → 删除旧版 Call 处理全部逻辑
+- 工具：apply_patch → 调整 `Main.Ctx` 记录签名，移除 `methodCache` 与 `cachePath`
+- 工具：apply_patch → 删除 Main.main 中方法缓存加载逻辑并更新 `Ctx` 构造参数
+- 工具：apply_patch → 移除包尾写入方法缓存的代码块
+- 命令：zsh -lc "python3 - <<'PY'\nfrom pathlib import Path\npath = Path('aster-asm-emitter/src/main/java/aster/emitter/Main.java')\ntext = path.read_text()\nstart = text.index('  static final java.util.Map<String,String> REFLECT_CACHE')\nend = text.index('  static String javaTypeToDesc(')\npath.write_text(text[:start] + text[end:])\nPY" → 清理 `REFLECT_CACHE`、`METHOD_CACHE` 与 `tryResolveReflect`
+- 命令：zsh -lc "rg -n \"methodCache\" aster-asm-emitter/src/main/java/aster/emitter/Main.java"；zsh -lc "rg -n \"cachePath\" aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 验证已无旧依赖
+- 命令：zsh -lc "sed -n '1180,1240p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 复核 CallEmitter 委托段落
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test" → 首次编译失败（捕获 tryEmitCall 的 IOException 未处理）
+- 工具：apply_patch → 为 CallEmitter 委托增加 try/catch 并抛出 UncheckedIOException
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test" → 再次失败（CallEmitterTest 使用旧版 Ctx 构造参数）
+- 命令：zsh -lc "sed -n '120,200p' aster-asm-emitter/src/test/java/aster/emitter/CallEmitterTest.java" → 定位测试初始化代码
+- 工具：apply_patch → 更新 `CallEmitterTest` 中 `Main.Ctx` 实例化参数列表
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:test" → 成功，89 项测试通过
+- 命令：zsh -lc "npm run test:golden" → 8/8 Golden 测试通过，字节码一致
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 记录当前执行时间
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/Main.java | sed -n '1130,1180p'" → 获取新委托段落行号用于引用
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 更新最终时间戳
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/Main.java | sed -n '1,40p'" → 确认 `Ctx` 记录最新行号
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 补记最新时间
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/test/java/aster/emitter/CallEmitterTest.java | sed -n '130,190p'" → 获取测试构造段落行号
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 最终时间戳
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/Main.java | sed -n '80,150p'" → 校验 main 方法中缓存相关清理后的结构
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 更新时间记录
+# 2025-10-18 23:34 NZST Phase3.2 开发者指南撰写
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理 Phase 3.2 文档需求、潜在风险与执行步骤
+- 命令：zsh -lc "cat .claude/docs/architecture.md" → 复用 Phase 3.1 架构上下文
+- 命令：zsh -lc "cat .claude/context-phase3.1.json" → 检索模块职责与测试策略
+- 命令：zsh -lc "TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'" → 获取 NZST 时间戳
+- 命令：zsh -lc "sed -n '1,80p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java" → 校验命名与注释风格
+- 命令：zsh -lc "sed -n '1,160p' aster-asm-emitter/src/test/java/aster/emitter/StdlibInlinerTest.java" → 提炼 RecordingMethodVisitor 测试模式
+- 工具：apply_patch → 创建 `.claude/docs/developer-guide.md` 并填充 Phase 3.2 文档
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 记录交付时间戳
+
+# 2025-10-19 00:29 NZDT Phase3.5 流程图绘制执行
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 明确流程图任务内容、引用源码范围与潜在风险
+- 命令：zsh -lc "rg --files --glob '*FunctionEmitter.java'" → 定位 FunctionEmitter 源文件路径
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java | sed -n '1,220p'" → 阅读函数发射 Fast-path 及初始化逻辑
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java | sed -n '220,420p'" → 阅读语句分发与 Return 处理路径
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java | sed -n '1,200p'" → 分析表达式字面量分发逻辑
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java | sed -n '1,420p'" → 梳理内建运算符与标准库分支
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java | sed -n '420,840p'" → 阅读 Java 互操作与闭包调用路径
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/MatchEmitter.java | sed -n '1,220p'" → 解析 Match Fast-path 优化入口
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/MatchEmitter.java | sed -n '220,440p'" → 阅读 Int switch 优化实现
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/MatchEmitter.java | sed -n '440,660p'" → 分析顺序匹配及字段绑定流程
+- 命令：zsh -lc "nl -ba aster-asm-emitter/src/main/java/aster/emitter/PatMatchEmitter.java | sed -n '1,220p'" → 复查递归模式匹配辅助实现
+- 命令：zsh -lc "rg --files --glob 'operations-log.md'" → 确认日志文件位置
+- 命令：zsh -lc "cat operations-log.md" → 校验既有记录格式
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取 NZ 时区时间用于文档时间戳
+# 2025-10-19 00:35 NZDT Phase3 总结报告准备
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理 Phase3 完成报告任务范围、统计指标与潜在风险
+- 工具：code-index__set_project_path → path='.'，确保索引指向仓库根目录
+- 工具：code-index__find_files → pattern='operations-log.md'，确认日志文件位置
+- 命令：zsh -lc "cat operations-log.md" → 查阅既有日志格式与记录要求
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取 NZDT 时间戳用于记录
+# 2025-10-19 00:37 NZDT Phase3 总结数据采集
+
+- 执行者：Codex
+- 命令：zsh -lc "wc -l .claude/docs/architecture.md .claude/docs/developer-guide.md .claude/docs/api-reference.md .claude/docs/adr/001-use-asm-instead-of-javac.md .claude/docs/adr/002-separate-type-and-signature-resolvers.md .claude/docs/adr/003-stdlib-inliner-optimization.md .claude/docs/adr/004-dual-track-function-emission.md .claude/docs/flowcharts.md" → 统计 Phase3 文档行数
+- 命令：zsh -lc "for f in .claude/docs/architecture.md .claude/docs/developer-guide.md .claude/docs/api-reference.md .claude/docs/adr/001-use-asm-instead-of-javac.md .claude/docs/adr/002-separate-type-and-signature-resolvers.md .claude/docs/adr/003-stdlib-inliner-optimization.md .claude/docs/adr/004-dual-track-function-emission.md .claude/docs/flowcharts.md; do printf \"%s \" \"$f\"; rg -c '^#' \"$f\"; done" → 统计章节数量
+- 命令：zsh -lc "for f in .claude/docs/architecture.md .claude/docs/developer-guide.md .claude/docs/api-reference.md .claude/docs/adr/001-use-asm-instead-of-javac.md .claude/docs/adr/002-separate-type-and-signature-resolvers.md .claude/docs/adr/003-stdlib-inliner-optimization.md .claude/docs/adr/004-dual-track-function-emission.md .claude/docs/flowcharts.md; do printf \"%s \" \"$f\"; rg -c '^```' \"$f\"; done" → 初步统计代码块数量
+- 命令：zsh -lc "for f in .claude/docs/architecture.md .claude/docs/developer-guide.md .claude/docs/api-reference.md .claude/docs/adr/001-use-asm-instead-of-javac.md .claude/docs/adr/002-separate-type-and-signature-resolvers.md .claude/docs/adr/003-stdlib-inliner-optimization.md .claude/docs/adr/004-dual-track-function-emission.md .claude/docs/flowcharts.md; do count=$(rg -o '^```' \"$f\" | wc -l | tr -d ' '); printf \"%s %s\\n\" \"$f\" \"$count\"; done" → 精确统计代码块数量
+- 命令：zsh -lc "cat .claude/docs/architecture.md" → 阅读 Phase3.1 架构文档内容
+- 命令：zsh -lc "cat .claude/docs/developer-guide.md" → 阅读 Phase3.2 开发者指南
+- 命令：zsh -lc "cat .claude/docs/api-reference.md" → 阅读 Phase3.3 API 参考
+- 命令：zsh -lc "cat .claude/docs/adr/001-use-asm-instead-of-javac.md" → 阅读 ADR-001
+- 命令：zsh -lc "cat .claude/docs/adr/002-separate-type-and-signature-resolvers.md" → 阅读 ADR-002
+- 命令：zsh -lc "cat .claude/docs/adr/003-stdlib-inliner-optimization.md" → 阅读 ADR-003
+- 命令：zsh -lc "cat .claude/docs/adr/004-dual-track-function-emission.md" → 阅读 ADR-004
+- 命令：zsh -lc "cat .claude/docs/flowcharts.md" → 阅读 Phase3.5 流程图文档
+- 命令：zsh -lc "cat .claude/phase3.1-architecture-doc-summary.md" → 参考 Phase3.1 报告结构
+- 命令：zsh -lc "for f in .claude/docs/architecture.md .claude/docs/developer-guide.md .claude/docs/api-reference.md .claude/docs/adr/001-use-asm-instead-of-javac.md .claude/docs/adr/002-separate-type-and-signature-resolvers.md .claude/docs/adr/003-stdlib-inliner-optimization.md .claude/docs/adr/004-dual-track-function-emission.md .claude/docs/flowcharts.md; do count=$(rg -o '```mermaid' \"$f\" | wc -l | tr -d ' '); printf \"%s %s\\n\" \"$f\" \"$count\"; done" → 统计 mermaid 流程图数量（首次引用转义失败，已更正命令格式）
+- 命令：zsh -lc "python3 - <<'PY'\nimport json\nfrom pathlib import Path\nfiles = [\n    Path('.claude/docs/architecture.md'),\n    Path('.claude/docs/developer-guide.md'),\n    Path('.claude/docs/api-reference.md'),\n    Path('.claude/docs/adr/001-use-asm-instead-of-javac.md'),\n    Path('.claude/docs/adr/002-separate-type-and-signature-resolvers.md'),\n    Path('.claude/docs/adr/003-stdlib-inliner-optimization.md'),\n    Path('.claude/docs/adr/004-dual-track-function-emission.md'),\n    Path('.claude/docs/flowcharts.md'),\n]\nresults = []\ntotal_lines = total_headings = total_code_blocks = total_mermaid = 0\nfor f in files:\n    data = f.read_text(encoding='utf-8').splitlines()\n    lines = len(data)\n    headings = sum(1 for line in data if line.startswith('#'))\n    mermaid = 0\n    code_blocks = 0\n    in_block = False\n    for line in data:\n        if line.startswith('```'):\n            if not in_block:\n                code_blocks += 1\n                if line.startswith('```mermaid'):\n                    mermaid += 1\n                in_block = True\n            else:\n                in_block = False\n    results.append({\n        'file': str(f),\n        'lines': lines,\n        'headings': headings,\n        'code_blocks': code_blocks,\n        'mermaid': mermaid,\n    })\n    total_lines += lines\n    total_headings += headings\n    total_code_blocks += code_blocks\n    total_mermaid += mermaid\nsummary = {\n    'totals': {\n        'lines': total_lines,\n        'headings': total_headings,\n        'code_blocks': total_code_blocks,\n        'mermaid': total_mermaid,\n        'files': len(files),\n        'code_blocks_non_mermaid': total_code_blocks - total_mermaid,\n    },\n    'files': results,\n}\nprint(json.dumps(summary, ensure_ascii=False, indent=2))\nPY" → 汇总各文档统计数据
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 更新 NZDT 时间戳
+# 2025-10-19 00:38 NZDT Phase3 完成报告生成
+
+- 执行者：Codex
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'" → 获取 Phase3 完成报告时间戳
+- 工具：apply_patch → 创建 `.claude/phase3-complete-summary.md` 并写入 Phase3 完成报告
+
+# 2025-10-19 01:02 NZDT Stage0.5 Stdlib 集成启动
+
+- 执行者：Codex
+- 工具：sequential-thinking__sequentialthinking → 明确任务目标与风险，确认需接入 StdlibInliner 并记录日志要求
+- 工具：sequential-thinking__sequentialthinking → 梳理依赖链与待查文件，制定阅读顺序
+- 命令：zsh -lc "rg --files -g 'operations-log.md'" → 查找可用 operations-log 位置（找到 8 个候选路径）
+- 命令：zsh -lc "cat operations-log.md" → 查看主日志历史结构与记录格式
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取当前 NZDT 时间戳用于条目标题
+- 工具：apply_patch → 更新 `operations-log.md`，持续记录 Stage0.5 日志
+- 工具：code-index__set_project_path → path='.'，重设索引根路径（已加载 960 个文件）
+- 工具：code-index__build_deep_index → 重建索引（960 个文件）
+- 工具：code-index__get_file_summary → file='aster-asm-emitter/src/main/java/aster/emitter/StdlibInliner.java'（失败：需深度索引）
+- 工具：code-index__get_file_summary → file='aster-asm-emitter/src/main/java/aster/emitter/StdlibInliner.java'（成功：返回摘要但符号截断）
+- 命令：zsh -lc "sed -n '74,200p' aster-asm-emitter/src/main/java/aster/emitter/StdlibInliner.java" → 阅读 tryInline 及规则定义区段
+- 命令：zsh -lc "sed -n '963,974p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 查看 Legacy 路径 StdlibInliner 调用
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java" → 初读 CallEmitter 入口与内建逻辑
+- 命令：zsh -lc "sed -n '200,400p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java" → 阅读用户函数与静态映射路径
+- 命令：zsh -lc "sed -n '400,800p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java" → 查看剩余辅助方法与空值策略
+- 工具：apply_patch → 在 `StdlibInliner` 中增加单例访问器以支持依赖注入
+- 工具：apply_patch → 调整 `StdlibInliner.tryInline` 为单例委托并新增实例方法
+- 工具：apply_patch → 调整 `CallEmitter` 静态导入与集合依赖，为内联回调准备指令常量
+- 工具：apply_patch → 扩展 `CallEmitter` 构造函数注入 `StdlibInliner`
+- 工具：apply_patch → 在 `CallEmitter.tryEmitCall` 前置 Stdlib 内联尝试并新增辅助方法
+- 工具：apply_patch → 更新 `Main.emitExpr` 中 `CallEmitter` 实例化传入 StdlibInliner
+- 工具：apply_patch → 更新 `CallEmitterTest` 构造参数以注入 StdlibInliner
+- 工具：apply_patch → 同步 `Main.java.backup` 中 `CallEmitter` 构造参数
+- 工具：apply_patch → 扩展 `FunctionEmitter` 构造函数持有 StdlibInliner
+- 工具：apply_patch → 更新 `Main.emitFunc` 走 FunctionEmitter 时传递 StdlibInliner
+- 工具：apply_patch → 同步 `Main.java.backup` FunctionEmitter 构造参数
+- 工具：apply_patch → 新增 `CallEmitterStdlibTest` 覆盖 stdlib 内联场景
+- 工具：apply_patch → 修正 `CallEmitterStdlibTest` Stub 回退空环境判定
+- 工具：apply_patch → 移除 `CallEmitterStdlibTest` 未使用断言导入
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.CallEmitterStdlibTest\"" → 通过（编译+单测成功，构建缓存已写入）
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.GoldenClassTest\"" → 失败（GoldenClassTest 5 项断言不匹配）
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.GoldenClassTest.testArithmeticExpr\" -i" → 失败，打印算术场景指令差异
+- 工具：apply_patch → 调整内联尝试位置并跳过算术内建以保持旧有指令序列
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.GoldenClassTest.testArithmeticExpr\"" → 通过，算术场景恢复原有字节码
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.GoldenClassTest\"" → 失败（集合场景仍不匹配）
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.GoldenClassTest.testDataStructure\" -i" → 失败，List.length 出现额外 CHECKCAST/装箱
+- 工具：apply_patch → 增加内联选择策略，避免在期望原生返回时套用 StdlibInliner
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.GoldenClassTest.testDataStructure\""` → 通过，集合场景恢复
+- 命令：zsh -lc "./gradlew-java25 :aster-asm-emitter:test --tests \"aster.emitter.GoldenClassTest\""` → 通过，Golden 套件一致
+- 工具：apply_patch → 编写 `.claude/stage0.5-stdlib-integration-report.md` 阶段报告
+# 2025-10-19 08:13 NZDT Phase4 Construct Expression 审查
+
+- 工具：sequential-thinking__sequentialthinking → 梳理 Phase4 Construct Expression 审查重点与风险
+- 命令：zsh -lc "ls" → 列出仓库根目录，确认日志与目标模块位置
+- 命令：zsh -lc "tail -n 40 operations-log.md" → 查看历史日志末尾格式，准备追加记录
+- 命令：zsh -lc "head -n 5 operations-log.md" → 检查日志标题结构，保持格式一致
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取当前 NZDT 时间戳用于审查记录
+- 命令：zsh -lc "sed -n '70,150p' aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java" → 阅读 emitExpression 分派逻辑到构造调用的上下文
+- 命令：zsh -lc "sed -n '200,320p' aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java" → 检查 emitConstruct 新增逻辑与描述符拼接实现
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/test/java/aster/emitter/ExpressionEmitterConstructTest.java" → 通读构造表达式单元测试前半段用例
+- 命令：zsh -lc "sed -n '200,400p' aster-asm-emitter/src/test/java/aster/emitter/ExpressionEmitterConstructTest.java" → 阅读测试后半段含嵌套构造与夹具
+- 命令：zsh -lc "cat .claude/stage4-construct-expression-report.md" → 查看阶段报告与验收标准
+- 命令：zsh -lc "cat .claude/templates/review-report-template.md" → 获取审查报告模板结构
+- 命令：zsh -lc "cat .claude/CODE_REVIEW_GUIDE.md" → 查阅代码质量核心原则以指导审查
+- 命令：zsh -lc "rg \"new ExpressionEmitter\" -n" → 确认可用构造函数调用点与包名传递方式
+- 命令：zsh -lc "rg \"Construct\" -n aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 检查 FunctionEmitter 是否特殊处理 Construct（未匹配）
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 阅读 FunctionEmitter 入口逻辑
+- 命令：zsh -lc "rg \"expressionEmitter.emitExpression\" -n aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 查找 ExpressionEmitter 调用位置
+- 命令：zsh -lc "sed -n '280,360p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java" → 检查 emitExpr 分支条件
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M:%S %Z'" → 获取报告写入时间戳
+- 工具：apply_patch → 新增 `.claude/review-report-phase4.md` 填写阶段审查报告
+
+# 2025-10-19 21:30 NZDT Phase 7 Some/None 迁移完成
+
+## 任务概述
+- Phase 7.1: 迁移 CoreModel.NoneE 到 ExpressionEmitter（复用 emitNull）
+- Phase 7.2: 迁移 CoreModel.Some 到 ExpressionEmitter（策略1：直接值传递）
+- Phase 7.3: 备选策略2 - 已跳过（策略1 Golden 测试通过）
+- Phase 7.4: 更新 FunctionEmitter.isMigratedExpressionType 包含 Some/NoneE
+- Phase 7.5: 运行 Golden 测试验证字节码一致性（8/8 通过）
+- Phase 7.6: 生成 Phase 7 完成报告
+
+## 关键决策
+1. **策略选择**: 采用策略1（直接值传递），Maybe 类型使用 null/非null 表示，无需 Some 包装类
+2. **理由**: aster-runtime 无 Some 类，Golden 测试验证策略正确
+3. **路由更新**: FunctionEmitter.isMigratedExpressionType 新增 Some/NoneE instanceof 检查
+4. **影响范围**: FunctionEmitter.emitExpr、IfEmitter.emitExpr、ReturnEmitter 适配器
+
+## 测试结果
+- 命令: ./gradlew-java25 :aster-asm-emitter:test --tests "GoldenClassTest"
+- 结果: BUILD SUCCESSFUL in 1s, 8/8 tests passed
+- 字节码: 与 Legacy Main.emitExpr 完全一致
+- 回归: Phase 1-6 所有测试仍通过
+
+## 文件变更
+- ExpressionEmitter.java: 添加 NoneE case (line 85), emitSome 方法 (lines 219-235), Some case (line 90)
+- FunctionEmitter.java: 更新 isMigratedExpressionType (lines 329-330)
+- .claude/phase7-golden-test-result.txt: 测试结果记录
+- .claude/phase7-some-none-migration-report.md: 完整报告
+
+## 已迁移表达式类型（14 种）
+- 字面量: Int, Bool, String, Long, Double, Null, NoneE
+- 复杂表达式: Name, Call, Ok, Err, Some, Construct, Lambda
+
+## 未迁移类型（待 Phase 8-9）
+- 语句级: If, Match, Block, Let
+
+## 下一步
+- Phase 8: 统一函数编译入口，移除 Fast-path 判断
+- Phase 9: 删除 Legacy emitExpr/emitApplyBlock 代码
+

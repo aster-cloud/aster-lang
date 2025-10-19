@@ -4,7 +4,7 @@
 
 # Interface: TypecheckDiagnostic
 
-Defined in: [types.ts:132](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L132)
+Defined in: [types.ts:132](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L132)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:132](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1
 
 > **severity**: `"error"` \| `"warning"` \| `"info"`
 
-Defined in: [types.ts:133](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L133)
+Defined in: [types.ts:133](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L133)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:133](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1
 
 > **message**: `string`
 
-Defined in: [types.ts:134](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L134)
+Defined in: [types.ts:134](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L134)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:134](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1
 
 > `optional` **code**: `string`
 
-Defined in: [types.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L135)
+Defined in: [types.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L135)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1
 
 > `optional` **data**: `unknown`
 
-Defined in: [types.ts:136](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L136)
+Defined in: [types.ts:136](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L136)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:136](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1
 
 > `optional` **location**: [`Origin`](Origin.md)
 
-Defined in: [types.ts:137](https://github.com/wontlost-ltd/aster-lang/blob/e6ea1da7461abaae32be581f99e8f0b907bd3134/src/types.ts#L137)
+Defined in: [types.ts:137](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L137)

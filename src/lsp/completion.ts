@@ -18,6 +18,7 @@ import type {
   Func as AstFunc,
   Declaration as AstDecl,
   Type as AstType,
+  Annotation,
 } from '../types.js';
 
 /**
@@ -48,6 +49,83 @@ export function typeText(t: AstType): string {
     default:
       return 'Unknown';
   }
+}
+
+/**
+ * 格式化单个注解
+ * @param annotation 注解对象
+ * @returns 格式化的注解字符串
+ *
+ * @example
+ * formatAnnotation({ name: 'NotEmpty', params: new Map() })
+ * // => "@NotEmpty"
+ *
+ * formatAnnotation({ name: 'Range', params: new Map([['min', 0], ['max', 100]]) })
+ * // => "@Range(min: 0, max: 100)"
+ *
+ * formatAnnotation({ name: 'Pattern', params: new Map([['regexp', '^[a-z]+$']]) })
+ * // => "@Pattern(regexp: '^[a-z]+$')"
+ */
+export function formatAnnotation(annotation: Annotation): string {
+  if (annotation.params.size === 0) {
+    return `@${annotation.name}`;
+  }
+  const params = Array.from(annotation.params.entries())
+    .map(([k, v]) => {
+      if (typeof v === 'string') {
+        // 使用单引号，转义内部单引号
+        const escaped = String(v).replace(/'/g, "\\'");
+        return `${k}: '${escaped}'`;
+      }
+      return `${k}: ${v}`;
+    })
+    .join(', ');
+  return `@${annotation.name}(${params})`;
+}
+
+/**
+ * 格式化注解数组
+ * @param annotations 注解数组（可选）
+ * @returns 格式化的注解字符串（空格分隔）
+ *
+ * @example
+ * formatAnnotations(undefined)
+ * // => ""
+ *
+ * formatAnnotations([])
+ * // => ""
+ *
+ * formatAnnotations([
+ *   { name: 'NotEmpty', params: new Map() },
+ *   { name: 'Range', params: new Map([['min', 0], ['max', 100]]) }
+ * ])
+ * // => "@NotEmpty @Range(min: 0, max: 100)"
+ */
+export function formatAnnotations(annotations?: readonly Annotation[]): string {
+  if (!annotations || annotations.length === 0) {
+    return '';
+  }
+  return annotations.map(formatAnnotation).join(' ');
+}
+
+/**
+ * 格式化字段详情（包含注解和类型）
+ * @param field 字段对象，包含 type 和可选的 annotations
+ * @returns 格式化的详情字符串
+ *
+ * @example
+ * formatFieldDetail({ type: { kind: 'TypeName', name: 'Text' }, annotations: undefined })
+ * // => "Text"
+ *
+ * formatFieldDetail({
+ *   type: { kind: 'TypeName', name: 'Text' },
+ *   annotations: [{ name: 'NotEmpty', params: new Map() }]
+ * })
+ * // => "@NotEmpty Text"
+ */
+export function formatFieldDetail(field: { type: AstType; annotations?: readonly Annotation[] }): string {
+  const annots = formatAnnotations(field.annotations);
+  return annots ? `${annots} ${typeText(field.type)}` : typeText(field.type);
 }
 
 /**
@@ -87,7 +165,11 @@ function findFuncDeclByName(m: AstModule, name: string): AstFunc | null {
  * @returns LSP 签名信息对象，包含函数签名和参数列表
  */
 function buildSignatureInformation(f: AstFunc): SignatureInformation {
-  const paramLabels = f.params.map(p => `${p.name}: ${typeText(p.type)}`);
+  const paramLabels = f.params.map(p => {
+    const annots = formatAnnotations(p.annotations);
+    const annotPrefix = annots ? `${annots} ` : '';
+    return `${annotPrefix}${p.name}: ${typeText(p.type)}`;
+  });
   const info: SignatureInformation = {
     label: `${f.name}(${paramLabels.join(', ')}) -> ${typeText(f.retType)}`,
     parameters: paramLabels.map(label => ({ label }) as ParameterInformation),
@@ -207,6 +289,17 @@ export function registerCompletionHandlers(
         label: type,
         kind: CompletionItemKind.Class,
         data: type,
+      });
+    });
+
+    // 添加注解名称补全
+    const annotations = ['NotEmpty', 'Range', 'Pattern'];
+    annotations.forEach(annotation => {
+      completions.push({
+        label: annotation,
+        kind: CompletionItemKind.Keyword,
+        data: `annotation:${annotation}`,
+        detail: 'annotation',
       });
     });
 

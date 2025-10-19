@@ -5,7 +5,7 @@
 
 import type { Connection } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { typeText } from '../completion.js';
+import { typeText, formatAnnotations } from '../completion.js';
 import {
   findDottedCallRangeAt,
   describeDottedCallAt,
@@ -94,7 +94,11 @@ export function registerHoverHandler(
           }
           if (nameAt) {
             const param = f.params.find(p => p.name === nameAt);
-            if (param) return { contents: { kind: 'markdown', value: `Parameter ${param.name}: ${typeText(param.type)}` } };
+            if (param) {
+              const annots = formatAnnotations(param.annotations);
+              const annotPrefix = annots ? `${annots} ` : '';
+              return { contents: { kind: 'markdown', value: `Parameter ${annotPrefix}**${param.name}**: ${typeText(param.type)}` } };
+            }
             const localInfo = findLocalLetWithExpr(f.body as AstBlock | null, nameAt);
             if (localInfo) {
               const hint = exprTypeText(localInfo.expr);
@@ -105,7 +109,11 @@ export function registerHoverHandler(
         }
         if (isAstData(decl)) {
           const d = decl;
-          const fields = d.fields.map(f => `${f.name}: ${typeText(f.type)}`).join(', ');
+          const fields = d.fields.map(f => {
+            const annots = formatAnnotations(f.annotations);
+            const annotPrefix = annots ? `${annots} ` : '';
+            return `${annotPrefix}**${f.name}**: ${typeText(f.type)}`;
+          }).join(', ');
           return { contents: { kind: 'markdown', value: `type ${d.name}${fields ? ' — ' + fields : ''}` } };
         }
         if (isAstEnum(decl)) {

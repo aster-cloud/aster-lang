@@ -10,7 +10,7 @@ import type {
 } from 'vscode-languageserver/node.js';
 import { SymbolKind } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { typeText } from '../completion.js';
+import { formatFieldDetail } from '../completion.js';
 import { parse } from '../../parser.js';
 import {
   getSpan,
@@ -152,7 +152,7 @@ export function registerDocumentSymbolHandler(
                 kind: SymbolKind.Field,
                 range: spanOrDoc(fsp, doc),
                 selectionRange: spanOrDoc(fsp, doc),
-                detail: typeText(f.type),
+                detail: formatFieldDetail(f),
               });
             }
             pushChild(moduleParent, ds);
@@ -197,7 +197,7 @@ export function registerDocumentSymbolHandler(
                 kind: SymbolKind.Variable,
                 range: spanOrDoc(psp, doc),
                 selectionRange: spanOrDoc(psp, doc),
-                detail: typeText(p.type),
+                detail: formatFieldDetail(p),
               });
             }
             // locals from body
