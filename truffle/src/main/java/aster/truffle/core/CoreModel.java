@@ -16,7 +16,7 @@ public final class CoreModel {
   public sealed interface Decl permits Import, Func, Enum, Data {}
 
   @JsonTypeName("Import")
-  public static final class Import implements Decl { public String name; public String asName; }
+  public static final class Import implements Decl { public String path; public String alias; }
   @JsonTypeName("Func")
   public static final class Func implements Decl {
     public String name;

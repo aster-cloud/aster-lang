@@ -11,6 +11,8 @@
         "name": "Int"
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -95,6 +97,8 @@
         "name": "Bool"
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [

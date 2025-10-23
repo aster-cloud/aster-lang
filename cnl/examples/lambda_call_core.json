@@ -6,8 +6,13 @@
       "kind": "Func",
       "name": "callId",
       "params": [],
-      "ret": { "kind": "TypeName", "name": "Text" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -16,17 +21,47 @@
             "name": "f",
             "expr": {
               "kind": "Lambda",
-              "params": [ { "name": "x", "type": { "kind": "TypeName", "name": "Text" } } ],
-              "ret": { "kind": "TypeName", "name": "Text" },
-              "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Name", "name": "x" } } ] }
+              "params": [
+                {
+                  "name": "x",
+                  "type": {
+                    "kind": "TypeName",
+                    "name": "Text"
+                  }
+                }
+              ],
+              "ret": {
+                "kind": "TypeName",
+                "name": "Text"
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Name",
+                      "name": "x"
+                    }
+                  }
+                ]
+              }
             }
           },
           {
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "f" },
-              "args": [ { "kind": "String", "value": "hi" } ]
+              "target": {
+                "kind": "Name",
+                "name": "f"
+              },
+              "args": [
+                {
+                  "kind": "String",
+                  "value": "hi"
+                }
+              ]
             }
           }
         ]
@@ -34,4 +69,3 @@
     }
   ]
 }
-

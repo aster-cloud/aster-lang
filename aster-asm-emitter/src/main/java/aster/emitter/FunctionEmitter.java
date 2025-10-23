@@ -1,5 +1,7 @@
 package aster.emitter;
 
+import aster.core.ir.CoreModel;
+
 import org.objectweb.asm.*;
 
 import java.io.IOException;

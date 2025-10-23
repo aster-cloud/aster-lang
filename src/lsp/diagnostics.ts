@@ -1,4 +1,4 @@
-import type { Diagnostic, Connection } from 'vscode-languageserver/node.js';
+import type { Diagnostic, Connection, Range } from 'vscode-languageserver/node.js';
 import {
   DiagnosticSeverity,
   DocumentDiagnosticRequest,
@@ -313,13 +313,29 @@ export async function computeDiagnostics(
 
       // 转换为 LSP Diagnostic 格式
       for (const td of tdiags) {
+        // 优先使用 span，回退到 origin，最后使用文件起点
+        let range: Range;
+        if (td.span) {
+          range = {
+            start: { line: td.span.start.line - 1, character: td.span.start.col - 1 },
+            end: { line: td.span.end.line - 1, character: td.span.end.col - 1 },
+          };
+        } else if (td.origin) {
+          range = {
+            start: { line: td.origin.start.line - 1, character: td.origin.start.col - 1 },
+            end: { line: td.origin.end.line - 1, character: td.origin.end.col - 1 },
+          };
+        } else {
+          range = {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 0 },
+          };
+        }
+
         const d: Diagnostic = {
           severity:
             td.severity === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
-          range: {
-            start: { line: 0, character: 0 },
-            end: { line: 0, character: 0 },
-          },
+          range,
           message: td.message,
           source: 'aster-typecheck',
         };

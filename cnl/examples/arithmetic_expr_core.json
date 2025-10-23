@@ -9,12 +9,20 @@
       "params": [
         {
           "name": "x",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Double"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Double"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -22,17 +30,32 @@
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "+"},
+              "target": {
+                "kind": "Name",
+                "name": "+"
+              },
               "args": [
                 {
                   "kind": "Call",
-                  "target": {"kind": "Name", "name": "*"},
+                  "target": {
+                    "kind": "Name",
+                    "name": "*"
+                  },
                   "args": [
-                    {"kind": "Name", "name": "x"},
-                    {"kind": "Double", "value": 2.5}
+                    {
+                      "kind": "Name",
+                      "name": "x"
+                    },
+                    {
+                      "kind": "Double",
+                      "value": 2.5
+                    }
                   ]
                 },
-                {"kind": "Long", "value": 100}
+                {
+                  "kind": "Long",
+                  "value": "100"
+                }
               ]
             }
           }

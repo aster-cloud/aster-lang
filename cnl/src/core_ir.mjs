@@ -8,7 +8,9 @@ export const Core = {
   Import(name, asName) { return { kind: 'Import', name, asName }; },
   Data(name, fields) { return { kind: 'Data', name, fields }; },
   Enum(name, variants) { return { kind: 'Enum', name, variants }; },
-  Func(name, params, ret, effects, body) { return { kind: 'Func', name, params, ret, effects, body }; },
+  Func(name, params, ret, effects, body, effectCaps = [], effectCapsExplicit = false) {
+    return { kind: 'Func', name, params, ret, effects, effectCaps: [...effectCaps], effectCapsExplicit, body };
+  },
   Block(statements) { return { kind: 'Block', statements }; },
 
   // Statements
@@ -45,4 +47,3 @@ export const Core = {
   PatCtor(typeName, names) { return { kind: 'PatCtor', typeName, names }; },
   PatName(name) { return { kind: 'PatName', name }; },
 };
-

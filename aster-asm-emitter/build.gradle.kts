@@ -13,11 +13,19 @@ java {
 repositories { mavenCentral() }
 
 dependencies {
+  // Core IR 数据模型（共享模块）
+  implementation(project(":aster-core"))
+
+  // ASM 字节码生成
   implementation("org.ow2.asm:asm:9.9")
   implementation("org.ow2.asm:asm-commons:9.9")
   implementation("org.ow2.asm:asm-util:9.9")
   testImplementation("org.ow2.asm:asm-tree:9.9")
+
+  // JSON 解析（读取 Core IR 输入）
   implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+
+  // 运行时库
   implementation(project(":aster-runtime"))
 
   testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")

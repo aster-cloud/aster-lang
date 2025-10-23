@@ -1,5 +1,7 @@
 package aster.emitter;
 
+import aster.core.ir.CoreModel;
+
 import java.io.IOException;
 import java.util.Map;
 import org.objectweb.asm.MethodVisitor;

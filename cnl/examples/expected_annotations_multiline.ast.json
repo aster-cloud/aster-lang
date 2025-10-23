@@ -603,6 +603,8 @@
         "name": "Bool"
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [

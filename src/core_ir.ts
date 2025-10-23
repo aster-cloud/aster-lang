@@ -33,7 +33,9 @@ export const Core = {
     params: readonly CoreTypes.Parameter[],
     ret: CoreTypes.Type,
     effects: readonly Effect[],
-    body: CoreTypes.Block
+    body: CoreTypes.Block,
+    effectCaps: readonly import('./types.js').CapabilityKind[] = [],
+    effectCapsExplicit = false
   ): CoreTypes.Func => ({
     kind: 'Func',
     name,
@@ -41,6 +43,8 @@ export const Core = {
     params,
     ret,
     effects,
+    effectCaps: [...effectCaps],
+    effectCapsExplicit,
     body,
   }),
   Block: (statements: readonly CoreTypes.Statement[]): CoreTypes.Block => ({
@@ -82,7 +86,7 @@ export const Core = {
   Name: (name: string): CoreTypes.Name => ({ kind: 'Name', name }),
   Bool: (value: boolean): CoreTypes.Bool => ({ kind: 'Bool', value }),
   Int: (value: number): CoreTypes.Int => ({ kind: 'Int', value }),
-  Long: (value: number): CoreTypes.Long => ({ kind: 'Long', value }),
+  Long: (value: string): CoreTypes.Long => ({ kind: 'Long', value }),
   Double: (value: number): CoreTypes.Double => ({ kind: 'Double', value }),
   String: (value: string): CoreTypes.String => ({ kind: 'String', value }),
   Null: (): CoreTypes.Null => ({ kind: 'Null' }),

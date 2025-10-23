@@ -13,6 +13,12 @@
       "effects": [
         "io"
       ],
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time"
+      ],
+      "effectCapsExplicit": true,
       "body": {
         "kind": "Block",
         "statements": [
@@ -24,13 +30,7 @@
             }
           }
         ]
-      },
-      "effectCaps": [
-        "Http",
-        "Sql",
-        "Time"
-      ],
-      "effectCapsExplicit": true
+      }
     }
   ]
 }

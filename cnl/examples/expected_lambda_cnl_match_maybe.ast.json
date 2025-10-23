@@ -29,6 +29,8 @@
         "name": "Text"
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [

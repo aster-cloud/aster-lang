@@ -11,6 +11,7 @@ import { kwParts, tokLowerAt } from './context.js';
 import { parseType, parseEffectList, separateEffectsAndCaps } from './type-parser.js';
 import { parseBlock, parseParamList } from './expr-stmt-parser.js';
 import { parseFieldList, parseVariantList } from './field-variant-parser.js';
+import { assignSpan, spanFromSources } from './span-utils.js';
 
 /**
  * 解析数据类型定义
@@ -29,6 +30,7 @@ export function parseDataDecl(
   parseTypeIdent: () => string
 ): Declaration {
   // 期望: Define
+  const defineTok = ctx.peek();
   ctx.nextWord();
 
   // 解析类型名
@@ -45,9 +47,12 @@ export function parseDataDecl(
 
   // 期望句点结束
   expectDot();
+  const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
 
   // 创建 Data 节点并注册类型
   const dataDecl = Node.Data(typeName, fields);
+  const lastFieldSource = fields.length > 0 ? fields[fields.length - 1]! : endTok;
+  assignSpan(dataDecl, spanFromSources(defineTok, lastFieldSource, endTok));
   ctx.declaredTypes.add(typeName);
 
   return dataDecl;
@@ -70,6 +75,7 @@ export function parseEnumDecl(
   parseTypeIdent: () => string
 ): Declaration {
   // 期望: Define
+  const defineTok = ctx.peek();
   ctx.nextWord();
 
   // 解析类型名
@@ -86,10 +92,17 @@ export function parseEnumDecl(
 
   // 期望句点结束
   expectDot();
+  const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
 
   // 创建 Enum 节点并附加变体 spans
   const en = Node.Enum(typeName, variants);
   const spans = (parseVariantList as any)._lastSpans as import('../types.js').Span[] | undefined;
+  if (spans && spans.length > 0) {
+    const lastVariantSpan = spans[spans.length - 1]!;
+    assignSpan(en, spanFromSources(defineTok, { span: lastVariantSpan }, endTok));
+  } else {
+    assignSpan(en, spanFromSources(defineTok, endTok));
+  }
   if (spans && Array.isArray(spans)) {
     (en as any).variantSpans = spans;
   }
@@ -305,15 +318,21 @@ export function parseFuncDecl(
   const { baseEffects, effectCaps, hasExplicitCaps } = separateEffectsAndCaps(effects, error);
 
   // 创建函数节点并附加元数据
-  const fn = Node.Func(name, typeParams, params, retType, baseEffects, body);
-  (fn as any).span = { start: toTok.start, end: endTok.end };
+  const fn = Node.Func(
+    name,
+    typeParams,
+    params,
+    retType,
+    baseEffects,
+    effectCaps,
+    hasExplicitCaps,
+    body
+  );
+  const funcEndSource = body ?? endTok;
+  assignSpan(fn, spanFromSources(toTok, funcEndSource, endTok));
   // 记录函数名 span 用于精确导航/高亮
-  (fn as any).nameSpan = { start: nameTok.start, end: (ctx.tokens[ctx.index - 1] || nameTok).end };
-  // 附加能力元数据（如果存在）
-  if (effectCaps.length > 0) {
-    (fn as any).effectCaps = effectCaps;
-    (fn as any).effectCapsExplicit = hasExplicitCaps;
-  }
+  const nameSpanEndTok = ctx.tokens[ctx.index - 1] || nameTok;
+  (fn as any).nameSpan = spanFromSources(nameTok, nameSpanEndTok);
 
   return fn;
 }

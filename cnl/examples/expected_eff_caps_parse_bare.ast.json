@@ -13,6 +13,15 @@
       "effects": [
         "io"
       ],
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets",
+        "AiModel"
+      ],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -24,16 +33,7 @@
             }
           }
         ]
-      },
-      "effectCaps": [
-        "Http",
-        "Sql",
-        "Time",
-        "Files",
-        "Secrets",
-        "AiModel"
-      ],
-      "effectCapsExplicit": false
+      }
     }
   ]
 }

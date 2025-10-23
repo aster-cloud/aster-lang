@@ -53,8 +53,8 @@ dependencies {
     }
 
     // JSON Processing
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:2.17.2")
+    implementation("tools.jackson.core:jackson-databind:3.0.0")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.20.0")
 
     // GraphQL Client + WebClient（转发 GraphQL 请求）
     implementation("io.quarkus:quarkus-smallrye-graphql-client")

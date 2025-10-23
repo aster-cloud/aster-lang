@@ -6,11 +6,28 @@
       "kind": "Func",
       "name": "concat",
       "params": [
-        { "name": "left", "type": { "kind": "TypeName", "name": "Text" } },
-        { "name": "right", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "left",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        },
+        {
+          "name": "right",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
       ],
-      "retType": { "kind": "TypeName", "name": "Text" },
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -18,10 +35,19 @@
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Text.concat" },
+              "target": {
+                "kind": "Name",
+                "name": "Text.concat"
+              },
               "args": [
-                { "kind": "Name", "name": "left" },
-                { "kind": "Name", "name": "right" }
+                {
+                  "kind": "Name",
+                  "name": "left"
+                },
+                {
+                  "kind": "Name",
+                  "name": "right"
+                }
               ]
             }
           }
@@ -32,11 +58,28 @@
       "kind": "Func",
       "name": "hasSubstring",
       "params": [
-        { "name": "haystack", "type": { "kind": "TypeName", "name": "Text" } },
-        { "name": "needle", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "haystack",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        },
+        {
+          "name": "needle",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
       ],
-      "retType": { "kind": "TypeName", "name": "Bool" },
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -44,10 +87,19 @@
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Text.contains" },
+              "target": {
+                "kind": "Name",
+                "name": "Text.contains"
+              },
               "args": [
-                { "kind": "Name", "name": "haystack" },
-                { "kind": "Name", "name": "needle" }
+                {
+                  "kind": "Name",
+                  "name": "haystack"
+                },
+                {
+                  "kind": "Name",
+                  "name": "needle"
+                }
               ]
             }
           }

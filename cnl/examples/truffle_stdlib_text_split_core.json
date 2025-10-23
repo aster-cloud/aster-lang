@@ -6,8 +6,13 @@
       "kind": "Func",
       "name": "run",
       "params": [],
-      "ret": { "kind": "TypeName", "name": "Int" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -16,10 +21,19 @@
             "name": "parts",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Text.split" },
+              "target": {
+                "kind": "Name",
+                "name": "Text.split"
+              },
               "args": [
-                { "kind": "String", "value": "a,b,c" },
-                { "kind": "String", "value": "," }
+                {
+                  "kind": "String",
+                  "value": "a,b,c"
+                },
+                {
+                  "kind": "String",
+                  "value": ","
+                }
               ]
             }
           },
@@ -27,9 +41,15 @@
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.length" },
+              "target": {
+                "kind": "Name",
+                "name": "List.length"
+              },
               "args": [
-                { "kind": "Name", "name": "parts" }
+                {
+                  "kind": "Name",
+                  "name": "parts"
+                }
               ]
             }
           }

@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/9d401c3f80bd10cde66ddfef400020ddf8f12a80/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -84,7 +84,7 @@ readonly `string`[]
 
 ### Func()
 
-> **Func**: (`name`, `typeParams`, `params`, `ret`, `effects`, `body`) => [`Func`](../../types/namespaces/Core/interfaces/Func.md)
+> **Func**: (`name`, `typeParams`, `params`, `ret`, `effects`, `body`, `effectCaps`, `effectCapsExplicit`) => [`Func`](../../types/namespaces/Core/interfaces/Func.md)
 
 #### Parameters
 
@@ -111,6 +111,14 @@ readonly [`Effect`](../../config/semantic/enumerations/Effect.md)[]
 ##### body
 
 [`Block`](../../types/namespaces/Core/interfaces/Block.md)
+
+##### effectCaps
+
+readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)[] = `[]`
+
+##### effectCapsExplicit
+
+`boolean` = `false`
 
 #### Returns
 
@@ -334,7 +342,7 @@ readonly `string`[]
 
 ##### value
 
-`number`
+`string`
 
 #### Returns
 

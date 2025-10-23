@@ -6,8 +6,22 @@
       "kind": "Data",
       "name": "Point",
       "fields": [
-        {"name": "x", "type": {"kind": "TypeName", "name": "Int"}, "annotations": []},
-        {"name": "y", "type": {"kind": "TypeName", "name": "Int"}, "annotations": []}
+        {
+          "name": "x",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": []
+        },
+        {
+          "name": "y",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": []
+        }
       ]
     },
     {
@@ -15,32 +29,59 @@
       "name": "sumCoords",
       "typeParams": [],
       "params": [
-        {"name": "p", "type": {"kind": "TypeName", "name": "Point"}, "annotations": []}
+        {
+          "name": "p",
+          "type": {
+            "kind": "TypeName",
+            "name": "Point"
+          },
+          "annotations": []
+        }
       ],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Match",
-            "expr": {"kind": "Name", "name": "p"},
+            "expr": {
+              "kind": "Name",
+              "name": "p"
+            },
             "cases": [
               {
                 "kind": "Case",
                 "pattern": {
                   "kind": "PatCtor",
                   "typeName": "Point",
-                  "names": ["x", "y"]
+                  "names": [
+                    "x",
+                    "y"
+                  ]
                 },
                 "body": {
                   "kind": "Return",
                   "expr": {
                     "kind": "Call",
-                    "target": {"kind": "Name", "name": "+"},
+                    "target": {
+                      "kind": "Name",
+                      "name": "+"
+                    },
                     "args": [
-                      {"kind": "Name", "name": "x"},
-                      {"kind": "Name", "name": "y"}
+                      {
+                        "kind": "Name",
+                        "name": "x"
+                      },
+                      {
+                        "kind": "Name",
+                        "name": "y"
+                      }
                     ]
                   }
                 }

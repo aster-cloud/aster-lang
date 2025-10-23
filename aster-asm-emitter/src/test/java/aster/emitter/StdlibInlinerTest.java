@@ -1,5 +1,7 @@
 package aster.emitter;
 
+import aster.core.ir.CoreModel;
+
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;

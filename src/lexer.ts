@@ -376,7 +376,8 @@ export function lex(input: string): Token[] {
       // Look for long suffix 'L' or 'l'
       if (peek().toLowerCase() === 'l') {
         next();
-        const val = parseInt(num, 10);
+        // 使用 BigInt 避免精度损失，然后转换为 string
+        const val = BigInt(num).toString();
         push(TokenKind.LONG, val, start);
         continue;
       }

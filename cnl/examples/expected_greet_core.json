@@ -27,7 +27,6 @@
     {
       "kind": "Func",
       "name": "greet",
-      "typeParams": [],
       "params": [
         {
           "name": "user",
@@ -46,6 +45,8 @@
         "name": "Text"
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [

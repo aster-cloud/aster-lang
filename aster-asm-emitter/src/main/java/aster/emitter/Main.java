@@ -1,5 +1,7 @@
 package aster.emitter;
 
+import aster.core.ir.CoreModel;
+
 import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
 import org.objectweb.asm.*;

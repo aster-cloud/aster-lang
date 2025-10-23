@@ -32,7 +32,7 @@ export class ConfigService {
   private static instance: ConfigService | null = null;
 
   /** 是否强制执行效果能力检查（默认 true，设置 ASTER_CAP_EFFECTS_ENFORCE=0 可禁用） */
-  effectsEnforce: boolean;
+  readonly effectsEnforce: boolean;
 
   /** 效果配置文件路径（默认 .aster/effects.json） */
   readonly effectConfigPath: string;

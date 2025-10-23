@@ -354,8 +354,11 @@ function nameHasCapability(name: string, effect: ParsedEffect, ctx: AnalysisCont
     const fn = ctx.functions.get(name);
     if (fn) {
       if (effect.kind === 'io' && fn.effects.some(e => e === Effect.IO)) {
-        const meta = fn as unknown as { effectCaps?: readonly import('../config/semantic.js').CapabilityKind[]; effectCapsExplicit?: boolean };
-        const caps = (meta.effectCapsExplicit ? meta.effectCaps ?? [] : []).map(
+        const meta = fn as unknown as {
+          effectCaps: readonly import('../config/semantic.js').CapabilityKind[];
+          effectCapsExplicit: boolean;
+        };
+        const caps = (meta.effectCapsExplicit ? meta.effectCaps : []).map(
           cap => cap.toLowerCase()
         );
         if (!effect.capability) {

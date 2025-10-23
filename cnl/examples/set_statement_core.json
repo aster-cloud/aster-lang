@@ -9,35 +9,58 @@
       "params": [
         {
           "name": "initial",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Let",
             "name": "x",
-            "expr": {"kind": "Name", "name": "initial"}
+            "expr": {
+              "kind": "Name",
+              "name": "initial"
+            }
           },
           {
             "kind": "Set",
             "name": "x",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "+"},
+              "target": {
+                "kind": "Name",
+                "name": "+"
+              },
               "args": [
-                {"kind": "Name", "name": "x"},
-                {"kind": "Int", "value": 10}
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Int",
+                  "value": 10
+                }
               ]
             }
           },
           {
             "kind": "Return",
-            "expr": {"kind": "Name", "name": "x"}
+            "expr": {
+              "kind": "Name",
+              "name": "x"
+            }
           }
         ]
       }
@@ -49,32 +72,54 @@
       "params": [
         {
           "name": "condition",
-          "type": {"kind": "TypeName", "name": "Bool"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Bool"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Bool"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Bool"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Let",
             "name": "flag",
-            "expr": {"kind": "Name", "name": "condition"}
+            "expr": {
+              "kind": "Name",
+              "name": "condition"
+            }
           },
           {
             "kind": "Set",
             "name": "flag",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "not"},
-              "args": [{"kind": "Name", "name": "flag"}]
+              "target": {
+                "kind": "Name",
+                "name": "not"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "flag"
+                }
+              ]
             }
           },
           {
             "kind": "Return",
-            "expr": {"kind": "Name", "name": "flag"}
+            "expr": {
+              "kind": "Name",
+              "name": "flag"
+            }
           }
         ]
       }
@@ -86,28 +131,45 @@
       "params": [
         {
           "name": "text",
-          "type": {"kind": "TypeName", "name": "Text"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Text"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Let",
             "name": "message",
-            "expr": {"kind": "Name", "name": "text"}
+            "expr": {
+              "kind": "Name",
+              "name": "text"
+            }
           },
           {
             "kind": "Set",
             "name": "message",
-            "expr": {"kind": "String", "value": "updated"}
+            "expr": {
+              "kind": "String",
+              "value": "updated"
+            }
           },
           {
             "kind": "Return",
-            "expr": {"kind": "Name", "name": "message"}
+            "expr": {
+              "kind": "Name",
+              "name": "message"
+            }
           }
         ]
       }
@@ -119,29 +181,49 @@
       "params": [
         {
           "name": "start",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Let",
             "name": "counter",
-            "expr": {"kind": "Name", "name": "start"}
+            "expr": {
+              "kind": "Name",
+              "name": "start"
+            }
           },
           {
             "kind": "Set",
             "name": "counter",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "+"},
+              "target": {
+                "kind": "Name",
+                "name": "+"
+              },
               "args": [
-                {"kind": "Name", "name": "counter"},
-                {"kind": "Int", "value": 1}
+                {
+                  "kind": "Name",
+                  "name": "counter"
+                },
+                {
+                  "kind": "Int",
+                  "value": 1
+                }
               ]
             }
           },
@@ -150,10 +232,19 @@
             "name": "counter",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "*"},
+              "target": {
+                "kind": "Name",
+                "name": "*"
+              },
               "args": [
-                {"kind": "Name", "name": "counter"},
-                {"kind": "Int", "value": 2}
+                {
+                  "kind": "Name",
+                  "name": "counter"
+                },
+                {
+                  "kind": "Int",
+                  "value": 2
+                }
               ]
             }
           },
@@ -162,16 +253,28 @@
             "name": "counter",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "-"},
+              "target": {
+                "kind": "Name",
+                "name": "-"
+              },
               "args": [
-                {"kind": "Name", "name": "counter"},
-                {"kind": "Int", "value": 3}
+                {
+                  "kind": "Name",
+                  "name": "counter"
+                },
+                {
+                  "kind": "Int",
+                  "value": 3
+                }
               ]
             }
           },
           {
             "kind": "Return",
-            "expr": {"kind": "Name", "name": "counter"}
+            "expr": {
+              "kind": "Name",
+              "name": "counter"
+            }
           }
         ]
       }
@@ -183,39 +286,65 @@
       "params": [
         {
           "name": "a",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         },
         {
           "name": "b",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Let",
             "name": "x",
-            "expr": {"kind": "Name", "name": "a"}
+            "expr": {
+              "kind": "Name",
+              "name": "a"
+            }
           },
           {
             "kind": "Let",
             "name": "y",
-            "expr": {"kind": "Name", "name": "b"}
+            "expr": {
+              "kind": "Name",
+              "name": "b"
+            }
           },
           {
             "kind": "Set",
             "name": "x",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "+"},
+              "target": {
+                "kind": "Name",
+                "name": "+"
+              },
               "args": [
-                {"kind": "Name", "name": "x"},
-                {"kind": "Name", "name": "y"}
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "y"
+                }
               ]
             }
           },
@@ -224,10 +353,19 @@
             "name": "y",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "*"},
+              "target": {
+                "kind": "Name",
+                "name": "*"
+              },
               "args": [
-                {"kind": "Name", "name": "x"},
-                {"kind": "Int", "value": 2}
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Int",
+                  "value": 2
+                }
               ]
             }
           },
@@ -235,10 +373,19 @@
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": {"kind": "Name", "name": "+"},
+              "target": {
+                "kind": "Name",
+                "name": "+"
+              },
               "args": [
-                {"kind": "Name", "name": "x"},
-                {"kind": "Name", "name": "y"}
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "y"
+                }
               ]
             }
           }

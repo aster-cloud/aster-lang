@@ -1,4 +1,4 @@
 This module is app.
 
-To helloMessage produce Text:
+To helloMessage, produce Text:
   Return "Hello, world!".

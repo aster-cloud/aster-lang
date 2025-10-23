@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/ast.ts#L4)
+Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/9d401c3f80bd10cde66ddfef400020ddf8f12a80/src/ast.ts#L11)
 
 ## Type Declaration
 
@@ -84,7 +84,7 @@ readonly `string`[]
 
 ### Func()
 
-> **Func**: (`name`, `typeParams`, `params`, `retType`, `effects`, `body`) => [`Func`](../../types/interfaces/Func.md)
+> **Func**: (`name`, `typeParams`, `params`, `retType`, `effects`, `effectCaps`, `effectCapsExplicit`, `body`) => [`Func`](../../types/interfaces/Func.md)
 
 #### Parameters
 
@@ -107,6 +107,14 @@ readonly [`Parameter`](../../types/interfaces/Parameter.md)[]
 ##### effects
 
 readonly `string`[]
+
+##### effectCaps
+
+readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)[]
+
+##### effectCapsExplicit
+
+`boolean`
 
 ##### body
 
@@ -328,7 +336,7 @@ readonly `string`[]
 
 ##### value
 
-`number`
+`string`
 
 #### Returns
 

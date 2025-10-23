@@ -89,26 +89,12 @@ function withEffectCaps(
   coreFunc: import('./types.js').Core.Func,
   astFunc: Func
 ): import('./types.js').Core.Func {
-  // 从 AST Func 中提取能力元数据
-  interface WithCaps {
-    effectCaps?: readonly import('./config/semantic.js').CapabilityKind[];
-    effectCapsExplicit?: boolean;
-  }
-  const f = astFunc as unknown as WithCaps;
-
-  if (f.effectCaps && f.effectCaps.length > 0) {
-    type MutableFunc = {
-      -readonly [K in keyof import('./types.js').Core.Func]: (import('./types.js').Core.Func)[K]
-    } & {
-      effectCapsExplicit?: boolean;
-    };
-    const mutableFunc = coreFunc as unknown as MutableFunc;
-    mutableFunc.effectCaps = [...f.effectCaps];
-    if (f.effectCapsExplicit !== undefined) {
-      mutableFunc.effectCapsExplicit = f.effectCapsExplicit;
-    }
-  }
-
+  type MutableFunc = {
+    -readonly [K in keyof import('./types.js').Core.Func]: (import('./types.js').Core.Func)[K]
+  };
+  const mutableFunc = coreFunc as unknown as MutableFunc;
+  mutableFunc.effectCaps = [...astFunc.effectCaps];
+  mutableFunc.effectCapsExplicit = astFunc.effectCapsExplicit;
   return coreFunc;
 }
 
@@ -253,6 +239,13 @@ function lowerStmt(s: Statement): import('./types.js').Core.Statement {
       return withOrigin(Core.Wait(s.names), s);
     case 'Block':
       return withOrigin(Core.Scope((s as Block).statements.map(lowerStmt)), s);
+    case 'Call':
+      // Expression statement: Call used for side effects
+      // Lower to: Let _ be <call>
+      return withOrigin(
+        Core.Let('_', Core.Call(lowerExpr((s as any).target), (s as any).args.map(lowerExpr))),
+        s
+      );
     default: {
       // Parser now prohibits bare expressions, so this should never be reached
       const { span } = extractMetadata(s);

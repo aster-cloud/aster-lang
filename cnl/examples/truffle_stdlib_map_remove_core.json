@@ -6,8 +6,13 @@
       "kind": "Func",
       "name": "run",
       "params": [],
-      "ret": { "kind": "TypeName", "name": "Int" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -16,7 +21,10 @@
             "name": "map",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.empty" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.empty"
+              },
               "args": []
             }
           },
@@ -25,11 +33,23 @@
             "name": "map",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.put" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.put"
+              },
               "args": [
-                { "kind": "Name", "name": "map" },
-                { "kind": "String", "value": "key1" },
-                { "kind": "Int", "value": 10 }
+                {
+                  "kind": "Name",
+                  "name": "map"
+                },
+                {
+                  "kind": "String",
+                  "value": "key1"
+                },
+                {
+                  "kind": "Int",
+                  "value": 10
+                }
               ]
             }
           },
@@ -38,11 +58,23 @@
             "name": "map",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.put" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.put"
+              },
               "args": [
-                { "kind": "Name", "name": "map" },
-                { "kind": "String", "value": "key2" },
-                { "kind": "Int", "value": 20 }
+                {
+                  "kind": "Name",
+                  "name": "map"
+                },
+                {
+                  "kind": "String",
+                  "value": "key2"
+                },
+                {
+                  "kind": "Int",
+                  "value": 20
+                }
               ]
             }
           },
@@ -51,10 +83,19 @@
             "name": "map",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.remove" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.remove"
+              },
               "args": [
-                { "kind": "Name", "name": "map" },
-                { "kind": "String", "value": "key1" }
+                {
+                  "kind": "Name",
+                  "name": "map"
+                },
+                {
+                  "kind": "String",
+                  "value": "key1"
+                }
               ]
             }
           },
@@ -62,8 +103,16 @@
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.size" },
-              "args": [{ "kind": "Name", "name": "map" }]
+              "target": {
+                "kind": "Name",
+                "name": "Map.size"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "map"
+                }
+              ]
             }
           }
         ]

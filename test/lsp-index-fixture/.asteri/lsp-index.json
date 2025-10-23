@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2025-10-19T07:59:04.233Z",
+  "generatedAt": "2025-10-23T01:15:45.252Z",
   "root": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture",
   "files": [
     {
@@ -9,7 +9,17 @@
       "decls": [
         {
           "name": "Item",
-          "kind": "Data"
+          "kind": "Data",
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 1
+            },
+            "end": {
+              "line": 3,
+              "col": 26
+            }
+          }
         },
         {
           "name": "idOf",
@@ -43,7 +53,17 @@
       "decls": [
         {
           "name": "User",
-          "kind": "Data"
+          "kind": "Data",
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 1
+            },
+            "end": {
+              "line": 3,
+              "col": 39
+            }
+          }
         },
         {
           "name": "greet",

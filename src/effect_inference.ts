@@ -3,6 +3,7 @@ import { Effect } from './types.js';
 import { getIOPrefixes, getCPUPrefixes } from './config/effect_config.js';
 import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
 import { resolveAlias } from './typecheck.js';
+import { ErrorCode } from './error_codes.js';
 
 // 从配置获取效果推断前缀（模块级，避免重复调用）
 const IO_PREFIXES = getIOPrefixes();
@@ -344,10 +345,11 @@ function buildDiagnostics(
       const diag: TypecheckDiagnostic = {
         severity: 'error',
         message: `函数 '${name}' 缺少 @io 效果声明，推断要求 IO。`,
-        code: 'EFF_INFER_MISSING_IO',
+        code: ErrorCode.EFF_INFER_MISSING_IO,
+        help: '根据推断结果为函数添加 @io 效果。',
+        ...(func.span ? { span: func.span } : {}),
         data: { func: name, effect: 'io' },
       };
-      if (func.origin) diag.location = func.origin;
       diagnostics.push(diag);
     }
 
@@ -355,10 +357,11 @@ function buildDiagnostics(
       const diag: TypecheckDiagnostic = {
         severity: 'error',
         message: `函数 '${name}' 缺少 @cpu 效果声明，推断要求 CPU（或 @io）。`,
-        code: 'EFF_INFER_MISSING_CPU',
+        code: ErrorCode.EFF_INFER_MISSING_CPU,
+        help: '根据推断结果补齐 @cpu 或 @io 效果。',
+        ...(func.span ? { span: func.span } : {}),
         data: { func: name, effect: 'cpu' },
       };
-      if (func.origin) diag.location = func.origin;
       diagnostics.push(diag);
     }
 
@@ -369,10 +372,11 @@ function buildDiagnostics(
       const diag: TypecheckDiagnostic = {
         severity: 'warning',
         message: `函数 '${name}' 声明了 @io，但推断未发现 IO 副作用。`,
-        code: 'EFF_INFER_REDUNDANT_IO',
+        code: ErrorCode.EFF_INFER_REDUNDANT_IO,
+        help: '确认是否需要保留 @io 声明。',
+        ...(func.span ? { span: func.span } : {}),
         data: { func: name, effect: 'io' },
       };
-      if (func.origin) diag.location = func.origin;
       diagnostics.push(diag);
     }
 
@@ -381,19 +385,21 @@ function buildDiagnostics(
         const diag: TypecheckDiagnostic = {
           severity: 'warning',
           message: `函数 '${name}' 声明了 @cpu，但推断未发现 CPU 副作用。`,
-          code: 'EFF_INFER_REDUNDANT_CPU',
+          code: ErrorCode.EFF_INFER_REDUNDANT_CPU,
+          help: '若无 CPU 副作用，可删除 @cpu 声明。',
+          ...(func.span ? { span: func.span } : {}),
           data: { func: name, effect: 'cpu' },
         };
-        if (func.origin) diag.location = func.origin;
         diagnostics.push(diag);
       } else if (!requiredHasCPU && requiredHasIO) {
         const diag: TypecheckDiagnostic = {
           severity: 'warning',
           message: `函数 '${name}' 同时声明 @cpu 和 @io；由于需要 @io，@cpu 可移除。`,
-          code: 'EFF_INFER_REDUNDANT_CPU_WITH_IO',
+          code: ErrorCode.EFF_INFER_REDUNDANT_CPU_WITH_IO,
+          help: '保留 @io 即可满足需求，移除多余的 @cpu。',
+          ...(func.span ? { span: func.span } : {}),
           data: { func: name, effect: 'cpu' },
         };
-        if (func.origin) diag.location = func.origin;
         diagnostics.push(diag);
       }
     }

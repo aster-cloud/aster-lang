@@ -8,6 +8,7 @@ import type { Field, Span, Token } from '../types.js';
 import type { ParserContext } from './context.js';
 import { parseType } from './type-parser.js';
 import { parseAnnotations } from './annotation-parser.js';
+import { spanFromSources } from './span-utils.js';
 
 /**
  * 解析字段列表（用于 Data 类型定义）
@@ -42,18 +43,20 @@ export function parseFieldList(
     if (!ctx.at(TokenKind.COLON)) {
       error("Expected ':' after field name");
     }
+    const colonTok = ctx.peek();
     ctx.next();
 
     // 解析字段类型
     const t = parseType(ctx, error);
 
     // 创建字段对象并附加 span
-    const f: Field =
-      annotations.length > 0 ? { name, type: t, annotations } : { name, type: t };
-    const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-    const spanStart = annotations.length > 0 && firstToken ? firstToken.start : nameTok.start;
-    (f as any).span = { start: spanStart, end: endTok.end };
-    fields.push(f);
+    const spanAnchor = annotations.length > 0 && firstToken ? firstToken : nameTok;
+    const fieldSpan = spanFromSources(spanAnchor, colonTok, t);
+    const field: Field =
+      annotations.length > 0
+        ? { name, type: t, annotations, span: fieldSpan }
+        : { name, type: t, span: fieldSpan };
+    fields.push(field);
 
     // 检查是否还有更多字段
     if (ctx.at(TokenKind.COMMA)) {

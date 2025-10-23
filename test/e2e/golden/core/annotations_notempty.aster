@@ -1,0 +1,7 @@
+This module is validation.basic.
+
+Define User with @NotEmpty id: Text, @NotEmpty name: Text, email: Text.
+
+To createUser with @NotEmpty username: Text, @NotEmpty displayName: Text, produce User:
+  Let uid be UUID.randomUUID().
+  Return User(uid, displayName, username).

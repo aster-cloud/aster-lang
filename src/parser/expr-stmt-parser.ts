@@ -1,10 +1,43 @@
-import type { Block, Case, Expression, Parameter, Pattern, Statement, Type } from '../types.js';
+import type {
+  Block,
+  Case,
+  ConstructField,
+  Expression,
+  Parameter,
+  Pattern,
+  Span,
+  Statement,
+  Token,
+  Type,
+} from '../types.js';
 import type { ParserContext } from './context.js';
 import { kwParts, tokLowerAt } from './context.js';
 import { TokenKind, KW } from '../tokens.js';
 import { Node } from '../ast.js';
 import { parseType, parseEffectList } from './type-parser.js';
 import { parseAnnotations } from './annotation-parser.js';
+import {
+  assignSpan,
+  cloneSpan,
+  lastConsumedToken,
+  spanFromSources,
+  spanFromTokens,
+} from './span-utils.js';
+
+function spanFromToken(token: Token): Span {
+  return spanFromTokens(token, token);
+}
+
+function assignTokenSpan<T extends { span: Span }>(node: T, token: Token): T {
+  return assignSpan(node, spanFromToken(token));
+}
+
+function assignSpanFromSources<T extends { span: Span }>(
+  node: T,
+  ...sources: Array<Token | { span: Span }>
+): T {
+  return assignSpan(node, spanFromSources(...sources));
+}
 
 /**
  * 解析代码块（Block）
@@ -34,8 +67,13 @@ export function parseBlock(
     const endTok = ctx.peek();
     ctx.next();
     const b = Node.Block(statements);
-    const startSpan = (statements[0] as any)?.span?.start || endTok.start;
-    (b as any).span = { start: startSpan, end: endTok.end };
+    if (statements.length > 0) {
+      const firstStmt = statements[0]!;
+      const lastStmt = statements[statements.length - 1]!;
+      assignSpan(b, spanFromSources(firstStmt, lastStmt));
+    } else {
+      assignSpan(b, spanFromSources(endTok));
+    }
     return b;
   } else {
     // Already in an indented context (multi-line parameters case):
@@ -50,8 +88,13 @@ export function parseBlock(
     if (statements.length === 0) error('Expected at least one statement in function body');
     const endTok = ctx.tokens[ctx.index - 1] || startTok;
     const b = Node.Block(statements);
-    const startSpan = (statements[0] as any)?.span?.start || startTok.start;
-    (b as any).span = { start: startSpan, end: endTok.end };
+    if (statements.length > 0) {
+      const firstStmt = statements[0]!;
+      const lastStmt = statements[statements.length - 1]!;
+      assignSpan(b, spanFromSources(firstStmt, lastStmt));
+    } else {
+      assignSpan(b, spanFromSources(startTok, endTok));
+    }
     // Don't consume DEDENT here - let the caller handle it
     return b;
   }
@@ -106,7 +149,7 @@ export function parseStatement(
     // Special-case lambda block form to avoid trailing '.'
     if ((ctx.isKeyword('a') && tokLowerAt(ctx, ctx.index + 1) === 'function') || ctx.isKeyword('function')) {
       if (ctx.isKeyword('a')) ctx.nextWord(); // optional 'a'
-      ctx.nextWord(); // 'function'
+      const functionTok = ctx.nextWord(); // 'function'
       const params = parseParamList(ctx, error);
       expectCommaOr(ctx);
       expectKeyword(ctx, error, KW.PRODUCE, "Expected 'produce' and return type");
@@ -115,16 +158,18 @@ export function parseStatement(
       ctx.next();
       expectNewline(ctx, error);
       const body = parseBlock(ctx, error);
-      const nd = Node.Let(name, Node.Lambda(params, retType, body));
-      const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-      (nd as any).span = { start: letTok.start, end: endTok.end };
+      const lambda = Node.Lambda(params, retType, body);
+      const lambdaEnd = lastConsumedToken(ctx);
+      assignSpan(lambda, spanFromTokens(functionTok, lambdaEnd));
+      const nd = Node.Let(name, lambda);
+      assignSpan(nd, spanFromTokens(letTok, lambdaEnd));
       return nd;
     }
     const expr = parseExpr(ctx, error);
     expectPeriodEnd(ctx, error);
     const nd = Node.Let(name, expr);
-    const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-    (nd as any).span = { start: letTok.start, end: endTok.end };
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(nd, spanFromTokens(letTok, endTok));
     return nd;
   }
   if (ctx.isKeyword(KW.SET)) {
@@ -135,8 +180,8 @@ export function parseStatement(
     const expr = parseExpr(ctx, error);
     expectPeriodEnd(ctx, error);
     const nd = Node.Set(name, expr);
-    const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-    (nd as any).span = { start: setTok.start, end: endTok.end };
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(nd, spanFromTokens(setTok, endTok));
     return nd;
   }
   if (ctx.isKeyword(KW.RETURN)) {
@@ -156,16 +201,19 @@ export function parseStatement(
       }
     }
     const nd = Node.Return(expr);
-    const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-    (nd as any).span = { start: retTok.start, end: endTok.end };
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(nd, spanFromTokens(retTok, endTok));
     return nd;
   }
   if (ctx.isKeyword(KW.AWAIT)) {
-    ctx.nextWord();
+    const awaitTok = ctx.nextWord();
     if (!ctx.at(TokenKind.LPAREN)) error("Expected '(' after await");
     const args = parseArgList(ctx, error);
     if (args.length !== 1) error('await(expr) takes exactly one argument');
-    const aw = Node.Call(Node.Name('await'), args);
+    const target = assignTokenSpan(Node.Name('await'), awaitTok);
+    const callSpanEnd = lastConsumedToken(ctx);
+    const aw = Node.Call(target, args);
+    assignSpan(aw, spanFromTokens(awaitTok, callSpanEnd));
     expectPeriodEnd(ctx, error);
     return aw as unknown as Statement;
   }
@@ -173,12 +221,20 @@ export function parseStatement(
     const ifTok = ctx.peek();
     ctx.nextWord();
     let negate = false;
+    let notTok: Token | null = null;
     if (ctx.isKeyword(KW.NOT)) {
-      ctx.nextWord();
+      notTok = ctx.nextWord();
       negate = true;
     }
     const cond = parseExpr(ctx, error);
-    const condExpr = negate ? Node.Call(Node.Name('not'), [cond]) : cond;
+    const condExpr = negate
+      ? (((): Expression => {
+          const notName = assignTokenSpan(Node.Name('not'), notTok!);
+          const call = Node.Call(notName, [cond]);
+          assignSpan(call, spanFromSources(notTok!, cond));
+          return call;
+        })())
+      : cond;
     if (!ctx.at(TokenKind.COMMA)) error("Expected ',' after condition");
     ctx.next();
     if (!ctx.at(TokenKind.COLON)) error("Expected ':' after ',' in If");
@@ -196,8 +252,8 @@ export function parseStatement(
       elseBlock = parseBlock(ctx, error);
     }
     const nd = Node.If(condExpr, thenBlock, elseBlock);
-    const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-    (nd as any).span = { start: ifTok.start, end: endTok.end };
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(nd, spanFromTokens(ifTok, endTok));
     return nd;
   }
   if (ctx.isKeyword(KW.MATCH)) {
@@ -209,8 +265,8 @@ export function parseStatement(
     expectNewline(ctx, error);
     const cases = parseCases(ctx, error);
     const nd = Node.Match(expr, cases);
-    const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-    (nd as any).span = { start: mTok.start, end: endTok.end };
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(nd, spanFromTokens(mTok, endTok));
     return nd;
   }
   // Plain bare expression as statement (allow method calls, constructions) ending with '.'
@@ -242,16 +298,21 @@ export function parseStatement(
     return parseBlock(ctx, error); // Lowering later
   }
   if (ctx.isKeyword(KW.START)) {
-    ctx.nextWord();
+    const startTok = ctx.nextWord();
     const name = parseIdent(ctx, error);
     expectKeyword(ctx, error, KW.AS, "Expected 'as' after name");
     expectKeyword(ctx, error, KW.ASYNC, "Expected 'async'");
     const expr = parseExpr(ctx, error);
     expectPeriodEnd(ctx, error);
-    return Node.Start(name, expr) as Statement;
+    const nd = Node.Start(name, expr);
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(nd, spanFromTokens(startTok, endTok));
+    return nd as Statement;
   }
   if (ctx.isKeywordSeq(KW.WAIT_FOR)) {
-    ctx.nextWords(kwParts(KW.WAIT_FOR));
+    const waitTokens = kwParts(KW.WAIT_FOR);
+    const waitStart = ctx.peek();
+    ctx.nextWords(waitTokens);
     const names: string[] = [];
     names.push(parseIdent(ctx, error));
     while (ctx.isKeyword(KW.AND) || ctx.at(TokenKind.COMMA)) {
@@ -264,7 +325,10 @@ export function parseStatement(
       }
     }
     expectPeriodEnd(ctx, error);
-    return Node.Wait(names) as Statement;
+    const nd = Node.Wait(names);
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(nd, spanFromTokens(waitStart, endTok));
+    return nd as Statement;
   }
 
   error('Unknown statement');
@@ -285,12 +349,15 @@ function parseCases(
   ctx.next();
   while (!ctx.at(TokenKind.DEDENT)) {
     if (!ctx.isKeyword(KW.WHEN)) error("Expected 'When'");
-    ctx.nextWord();
+    const whenTok = ctx.nextWord();
     const pat = parsePattern(ctx, error);
     if (!ctx.at(TokenKind.COMMA)) error("Expected ',' after pattern");
     ctx.next();
     const body = parseCaseBody(ctx, error);
-    cases.push(Node.Case(pat, body));
+    const caseNode = Node.Case(pat, body);
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(caseNode, spanFromTokens(whenTok, endTok));
+    cases.push(caseNode);
     while (ctx.at(TokenKind.NEWLINE)) ctx.next();
   }
   ctx.next();
@@ -308,10 +375,13 @@ function parseCaseBody(
   error: (msg: string) => never
 ): Block | import('../types.js').Return {
   if (ctx.isKeyword(KW.RETURN)) {
-    ctx.nextWord();
+    const retTok = ctx.nextWord();
     const e = parseExpr(ctx, error);
     expectPeriodEnd(ctx, error);
-    return Node.Return(e);
+    const nd = Node.Return(e);
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(nd, spanFromTokens(retTok, endTok));
+    return nd;
   }
   return parseBlock(ctx, error);
 }
@@ -330,12 +400,16 @@ export function parseExpr(
   if (ctx.at(TokenKind.LT) || ctx.at(TokenKind.PLUS) || ctx.at(TokenKind.MINUS) || ctx.at(TokenKind.STAR) || ctx.at(TokenKind.SLASH) || ctx.at(TokenKind.GT) || ctx.at(TokenKind.GTE) || ctx.at(TokenKind.LTE) || ctx.at(TokenKind.NEQ) || ctx.at(TokenKind.EQUALS)) {
     const symTok = ctx.next();
     const sym = symTok.kind === TokenKind.LT ? '<' : symTok.kind === TokenKind.GT ? '>' : symTok.kind === TokenKind.GTE ? '>=' : symTok.kind === TokenKind.LTE ? '<=' : symTok.kind === TokenKind.NEQ ? '!=' : symTok.kind === TokenKind.EQUALS ? '=' : symTok.kind === TokenKind.PLUS ? '+' : symTok.kind === TokenKind.MINUS ? '-' : symTok.kind === TokenKind.STAR ? '*' : '/';
+    const target = assignTokenSpan(Node.Name(sym), symTok);
     if (ctx.at(TokenKind.LPAREN)) {
-      const target = Node.Name(sym);
       const args = parseArgList(ctx, error);
-      return Node.Call(target, args);
+      if (args.length !== 2) error('前缀操作符调用需要 2 个参数');
+      const call = Node.Call(target, args);
+      const endTok = lastConsumedToken(ctx);
+      assignSpan(call, spanFromTokens(symTok, endTok));
+      return call;
     }
-    return Node.Name(sym);
+    return target;
   }
   return parseComparison(ctx, error);
 }
@@ -355,37 +429,61 @@ function parseComparison(
   let more = true;
   while (more) {
     if (ctx.at(TokenKind.LT)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parseAddition(ctx, error);
-      left = Node.Call(Node.Name('<'), [left, right]);
+      const target = assignTokenSpan(Node.Name('<'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.at(TokenKind.GT)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parseAddition(ctx, error);
-      left = Node.Call(Node.Name('>'), [left, right]);
+      const target = assignTokenSpan(Node.Name('>'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.at(TokenKind.LTE)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parseAddition(ctx, error);
-      left = Node.Call(Node.Name('<='), [left, right]);
+      const target = assignTokenSpan(Node.Name('<='), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.at(TokenKind.GTE)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parseAddition(ctx, error);
-      left = Node.Call(Node.Name('>='), [left, right]);
+      const target = assignTokenSpan(Node.Name('>='), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.at(TokenKind.NEQ)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parseAddition(ctx, error);
-      left = Node.Call(Node.Name('!='), [left, right]);
+      const target = assignTokenSpan(Node.Name('!='), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.isKeyword(KW.LESS_THAN)) {
-      ctx.nextWord();
+      const opTok = ctx.nextWord();
       const right = parseAddition(ctx, error);
-      left = Node.Call(Node.Name('<'), [left, right]);
+      const target = assignTokenSpan(Node.Name('<'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.isKeyword(KW.GREATER_THAN)) {
-      ctx.nextWord();
+      const opTok = ctx.nextWord();
       const right = parseAddition(ctx, error);
-      left = Node.Call(Node.Name('>'), [left, right]);
+      const target = assignTokenSpan(Node.Name('>'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.isKeyword(KW.EQUALS_TO)) {
-      ctx.nextWord();
+      const opTok = ctx.nextWord();
       const right = parseAddition(ctx, error);
-      left = Node.Call(Node.Name('=='), [left, right]);
+      const target = assignTokenSpan(Node.Name('=='), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else {
       more = false;
     }
@@ -408,21 +506,33 @@ function parseAddition(
   let more = true;
   while (more) {
     if (ctx.at(TokenKind.PLUS)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parseMultiplication(ctx, error);
-      left = Node.Call(Node.Name('+'), [left, right]);
+      const target = assignTokenSpan(Node.Name('+'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.at(TokenKind.MINUS)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parseMultiplication(ctx, error);
-      left = Node.Call(Node.Name('-'), [left, right]);
+      const target = assignTokenSpan(Node.Name('-'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.isKeyword(KW.PLUS)) {
-      ctx.nextWord();
+      const opTok = ctx.nextWord();
       const right = parseMultiplication(ctx, error);
-      left = Node.Call(Node.Name('+'), [left, right]);
+      const target = assignTokenSpan(Node.Name('+'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.isKeyword(KW.MINUS)) {
-      ctx.nextWord();
+      const opTok = ctx.nextWord();
       const right = parseMultiplication(ctx, error);
-      left = Node.Call(Node.Name('-'), [left, right]);
+      const target = assignTokenSpan(Node.Name('-'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else {
       more = false;
     }
@@ -445,13 +555,19 @@ function parseMultiplication(
   let more = true;
   while (more) {
     if (ctx.at(TokenKind.STAR)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parsePrimary(ctx, error);
-      left = Node.Call(Node.Name('*'), [left, right]);
+      const target = assignTokenSpan(Node.Name('*'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else if (ctx.at(TokenKind.SLASH)) {
-      ctx.next();
+      const opTok = ctx.next();
       const right = parsePrimary(ctx, error);
-      left = Node.Call(Node.Name('/'), [left, right]);
+      const target = assignTokenSpan(Node.Name('/'), opTok);
+      const call = Node.Call(target, [left, right]);
+      assignSpan(call, spanFromSources(left, opTok, right));
+      left = call;
     } else {
       more = false;
     }
@@ -472,8 +588,8 @@ function parsePrimary(
   // Minimal: construction, literals, names, Ok/Err/Some/None, call with dotted names and parens args
   // Lambda (block form): 'a function' (or 'function') ... 'produce' Type ':' \n Block
   if ((ctx.isKeyword('a') && tokLowerAt(ctx, ctx.index + 1) === 'function') || ctx.isKeyword('function')) {
-    if (ctx.isKeyword('a')) ctx.nextWord(); // optional 'a'
-    ctx.nextWord(); // 'function'
+    const optionalATok = ctx.isKeyword('a') ? ctx.nextWord() : null; // optional 'a'
+    const functionTok = ctx.nextWord(); // 'function'
     const params = parseParamList(ctx, error);
     expectCommaOr(ctx);
     expectKeyword(ctx, error, KW.PRODUCE, "Expected 'produce' and return type");
@@ -482,13 +598,18 @@ function parsePrimary(
     ctx.next();
     expectNewline(ctx, error);
     const body = parseBlock(ctx, error);
-    return Node.Lambda(params, retType, body);
+    const lambda = Node.Lambda(params, retType, body);
+    const lambdaEnd = lastConsumedToken(ctx);
+    const lambdaStart = optionalATok ?? functionTok;
+    assignSpan(lambda, spanFromTokens(lambdaStart, lambdaEnd));
+    return lambda;
   }
   // Lambda (short form): (x: Text, y: Int) => expr
   if (ctx.at(TokenKind.LPAREN)) {
     const save = ctx.index;
+    const lparenTok = ctx.peek();
     try {
-      ctx.next();
+      ctx.next(); // consume '('
       const params: Parameter[] = [];
       let first = true;
       while (!ctx.at(TokenKind.RPAREN)) {
@@ -499,83 +620,151 @@ function parsePrimary(
             throw new Error('comma');
           }
         }
+        const nameTok = ctx.peek();
         const pname = parseIdent(ctx, error);
         if (!ctx.at(TokenKind.COLON)) throw new Error('colon');
-        ctx.next();
+        const colonTok = ctx.next();
         const ptype = parseType(ctx, error);
-        params.push({ name: pname, type: ptype });
+        const param: Parameter = {
+          name: pname,
+          type: ptype,
+          span: spanFromSources(nameTok, colonTok, ptype),
+        };
+        params.push(param);
         first = false;
       }
+      const rparenTok = ctx.peek();
       ctx.next(); // consume ')'
       if (!(ctx.at(TokenKind.EQUALS) && ctx.tokens[ctx.index + 1] && ctx.tokens[ctx.index + 1]!.kind === TokenKind.GT)) {
         throw new Error('arrow');
       }
-      ctx.next(); // '='
-      ctx.next(); // '>'
+      const eqTok = ctx.next(); // '='
+      const gtTok = ctx.next(); // '>'
       // Expression body; infer return type when possible
       const bodyExpr = parseExpr(ctx, error);
-      const body = Node.Block([Node.Return(bodyExpr)]);
+      const returnNode = Node.Return(bodyExpr);
+      assignSpanFromSources(returnNode, bodyExpr);
+      const body = Node.Block([returnNode]);
+      assignSpanFromSources(body, bodyExpr);
       const retType = inferLambdaReturnType(bodyExpr);
-      return Node.Lambda(params, retType, body);
+      const lambda = Node.Lambda(params, retType, body);
+      assignSpan(lambda, spanFromSources(lparenTok, rparenTok, eqTok, gtTok, body));
+      return lambda;
     } catch {
       // rewind and treat as parenthesized expression
       ctx.index = save;
     }
   }
   if (ctx.isKeywordSeq(KW.OK_OF)) {
-    ctx.nextWords(kwParts(KW.OK_OF));
-    return Node.Ok(parseExpr(ctx, error));
+    const tokens = kwParts(KW.OK_OF).map(() => ctx.nextWord());
+    const expr = parseExpr(ctx, error);
+    const node = Node.Ok(expr);
+    assignSpanFromSources(node, tokens[0]!, expr);
+    return node;
   }
   if (ctx.isKeywordSeq(KW.ERR_OF)) {
-    ctx.nextWords(kwParts(KW.ERR_OF));
-    return Node.Err(parseExpr(ctx, error));
+    const tokens = kwParts(KW.ERR_OF).map(() => ctx.nextWord());
+    const expr = parseExpr(ctx, error);
+    const node = Node.Err(expr);
+    assignSpanFromSources(node, tokens[0]!, expr);
+    return node;
   }
   if (ctx.isKeywordSeq(KW.SOME_OF)) {
-    ctx.nextWords(kwParts(KW.SOME_OF));
-    return Node.Some(parseExpr(ctx, error));
+    const tokens = kwParts(KW.SOME_OF).map(() => ctx.nextWord());
+    const expr = parseExpr(ctx, error);
+    const node = Node.Some(expr);
+    assignSpanFromSources(node, tokens[0]!, expr);
+    return node;
   }
   if (ctx.isKeyword(KW.NONE)) {
-    ctx.nextWord();
-    return Node.None();
+    const tok = ctx.nextWord();
+    const node = Node.None();
+    assignSpan(node, spanFromToken(tok));
+    return node;
   }
-  if (ctx.at(TokenKind.STRING)) return Node.String(ctx.next().value as string);
-  if (ctx.at(TokenKind.BOOL)) return Node.Bool(ctx.next().value as boolean);
-  if (ctx.at(TokenKind.NULL)) return Node.Null();
-  if (ctx.at(TokenKind.INT)) return Node.Int(ctx.next().value as number);
-  if (ctx.at(TokenKind.LONG)) return Node.Long(ctx.next().value as number);
-  if (ctx.at(TokenKind.FLOAT)) return Node.Double(ctx.next().value as number);
+  if (ctx.at(TokenKind.STRING)) {
+    const tok = ctx.next();
+    const node = Node.String(tok.value as string);
+    assignSpan(node, spanFromToken(tok));
+    return node;
+  }
+  if (ctx.at(TokenKind.BOOL)) {
+    const tok = ctx.next();
+    const node = Node.Bool(tok.value as boolean);
+    assignSpan(node, spanFromToken(tok));
+    return node;
+  }
+  if (ctx.isKeyword(KW.NULL)) {
+    const tok = ctx.nextWord();
+    const node = Node.Null();
+    assignSpan(node, spanFromToken(tok));
+    return node;
+  }
+  if (ctx.at(TokenKind.NULL)) {
+    const tok = ctx.next();
+    const node = Node.Null();
+    assignSpan(node, spanFromToken(tok));
+    return node;
+  }
+  if (ctx.at(TokenKind.INT)) {
+    const tok = ctx.next();
+    const node = Node.Int(tok.value as number);
+    assignSpan(node, spanFromToken(tok));
+    return node;
+  }
+  if (ctx.at(TokenKind.LONG)) {
+    const tok = ctx.next();
+    const node = Node.Long(tok.value as string);
+    assignSpan(node, spanFromToken(tok));
+    return node;
+  }
+  if (ctx.at(TokenKind.FLOAT)) {
+    const tok = ctx.next();
+    const node = Node.Double(tok.value as number);
+    assignSpan(node, spanFromToken(tok));
+    return node;
+  }
   if (ctx.isKeyword(KW.AWAIT)) {
-    ctx.nextWord();
+    const awaitTok = ctx.nextWord();
     const args = parseArgList(ctx, error);
     if (args.length !== 1) error('await(expr) takes exactly one argument');
-    return Node.Call(Node.Name('await'), args);
+    const target = assignTokenSpan(Node.Name('await'), awaitTok);
+    const call = Node.Call(target, args);
+    const endTok = lastConsumedToken(ctx);
+    assignSpan(call, spanFromSources(awaitTok, endTok));
+    return call;
   }
 
   // Parenthesized expressions
   if (ctx.at(TokenKind.LPAREN)) {
-    ctx.next();
+    const lparenTok = ctx.next();
     const expr = parseExpr(ctx, error);
     if (!ctx.at(TokenKind.RPAREN)) error("Expected ')' after expression");
-    ctx.next();
+    const rparenTok = ctx.next();
+    assignSpanFromSources(expr, lparenTok, rparenTok, expr);
     return expr;
   }
 
   // Construction: Type with a = expr and b = expr
   if (ctx.at(TokenKind.TYPE_IDENT)) {
-    const typeName = ctx.next().value as string;
+    const typeTok = ctx.next();
+    const typeName = typeTok.value as string;
     if (ctx.isKeyword(KW.WITH)) {
-      ctx.nextWord();
-      const fields: import('../types.js').ConstructField[] = [];
+      const withTok = ctx.nextWord();
+      const fields: ConstructField[] = [];
       let hasMore = true;
       while (hasMore) {
         const nameTok = ctx.peek();
         const name = parseIdent(ctx, error);
         if (!ctx.at(TokenKind.EQUALS)) error("Expected '=' in construction");
+        const equalsTok = ctx.peek();
         ctx.next();
         const e = parseExpr(ctx, error);
-        const fld: import('../types.js').ConstructField = { name, expr: e };
-        const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-        (fld as any).span = { start: nameTok.start, end: endTok.end };
+        const fld: ConstructField = {
+          name,
+          expr: e,
+          span: spanFromSources(nameTok, equalsTok, e),
+        };
         fields.push(fld);
         if (ctx.isKeyword(KW.AND)) {
           ctx.nextWord();
@@ -587,46 +776,77 @@ function parsePrimary(
         }
         hasMore = false;
       }
-      return Node.Construct(typeName, fields);
+      const constructNode = Node.Construct(typeName, fields);
+      const endTok = lastConsumedToken(ctx);
+      assignSpan(constructNode, spanFromSources(typeTok, withTok, endTok));
+      return constructNode;
     }
     // Dotted chain after TypeIdent (e.g., AuthRepo.verify)
     let full = typeName;
+    const consumedTokens: Token[] = [typeTok];
     while (
       ctx.at(TokenKind.DOT) &&
       ctx.tokens[ctx.index + 1] &&
       (ctx.tokens[ctx.index + 1]!.kind === TokenKind.IDENT || ctx.tokens[ctx.index + 1]!.kind === TokenKind.TYPE_IDENT)
     ) {
-      ctx.next();
-      full += '.' + parseIdent(ctx, error);
-    }
-    if (ctx.at(TokenKind.LPAREN)) {
-      const target = Node.Name(full);
-      const args = parseArgList(ctx, error);
-      return Node.Call(target, args);
-    }
-    return Node.Name(full);
-  }
-
-  if (ctx.at(TokenKind.IDENT)) {
-    const name = parseIdent(ctx, error);
-    // dotted chain
-    let full = name;
-    while (
-      ctx.at(TokenKind.DOT) &&
-      ctx.tokens[ctx.index + 1] &&
-      (ctx.tokens[ctx.index + 1]!.kind === TokenKind.IDENT || ctx.tokens[ctx.index + 1]!.kind === TokenKind.TYPE_IDENT)
-    ) {
-      ctx.next();
+      const dotTok = ctx.next();
+      consumedTokens.push(dotTok);
       if (ctx.at(TokenKind.IDENT)) {
-        full += '.' + parseIdent(ctx, error);
+        const partTok = ctx.peek();
+        const part = parseIdent(ctx, error);
+        consumedTokens.push(partTok);
+        full += '.' + part;
       } else if (ctx.at(TokenKind.TYPE_IDENT)) {
-        full += '.' + ctx.next().value;
+        const partTok = ctx.next();
+        consumedTokens.push(partTok);
+        full += '.' + (partTok.value as string);
+      } else {
+        error('Expected identifier after dot');
       }
     }
     const target = Node.Name(full);
+    assignSpan(target, spanFromSources(...consumedTokens));
     if (ctx.at(TokenKind.LPAREN)) {
       const args = parseArgList(ctx, error);
-      return Node.Call(target, args);
+      const call = Node.Call(target, args);
+      const endTok = lastConsumedToken(ctx);
+      assignSpan(call, spanFromSources(target, endTok));
+      return call;
+    }
+    return target;
+  }
+
+  if (ctx.at(TokenKind.IDENT)) {
+    const nameTok = ctx.peek();
+    const name = parseIdent(ctx, error);
+    // dotted chain
+    let full = name;
+    const consumedTokens: Token[] = [nameTok];
+    while (
+      ctx.at(TokenKind.DOT) &&
+      ctx.tokens[ctx.index + 1] &&
+      (ctx.tokens[ctx.index + 1]!.kind === TokenKind.IDENT || ctx.tokens[ctx.index + 1]!.kind === TokenKind.TYPE_IDENT)
+    ) {
+      const dotTok = ctx.next();
+      consumedTokens.push(dotTok);
+      if (ctx.at(TokenKind.IDENT)) {
+        const partTok = ctx.peek();
+        full += '.' + parseIdent(ctx, error);
+        consumedTokens.push(partTok);
+      } else if (ctx.at(TokenKind.TYPE_IDENT)) {
+        const partTok = ctx.next();
+        full += '.' + (partTok.value as string);
+        consumedTokens.push(partTok);
+      }
+    }
+    const target = Node.Name(full);
+    assignSpan(target, spanFromSources(...consumedTokens));
+    if (ctx.at(TokenKind.LPAREN)) {
+      const args = parseArgList(ctx, error);
+      const call = Node.Call(target, args);
+      const endTok = lastConsumedToken(ctx);
+      assignSpan(call, spanFromSources(target, endTok));
+      return call;
     }
     return target;
   }
@@ -670,35 +890,49 @@ export function parsePattern(
   error: (msg: string) => never
 ): Pattern {
   if (ctx.isKeyword(KW.NULL) || ctx.at(TokenKind.NULL)) {
-    if (ctx.at(TokenKind.NULL)) ctx.next();
-    else ctx.nextWord();
-    return Node.PatternNull();
+    const tok = ctx.at(TokenKind.NULL) ? ctx.next() : ctx.nextWord();
+    const node = Node.PatternNull();
+    assignSpan(node, spanFromToken(tok));
+    return node;
   }
   if (ctx.at(TokenKind.INT)) {
-    const v = ctx.next().value as number;
-    return Node.PatternInt(v);
+    const tok = ctx.next();
+    const node = Node.PatternInt(tok.value as number);
+    assignSpan(node, spanFromToken(tok));
+    return node;
   }
   if (ctx.at(TokenKind.TYPE_IDENT)) {
-    const typeName = ctx.next().value as string;
+    const typeTok = ctx.next();
+    const typeName = typeTok.value as string;
     if (ctx.at(TokenKind.LPAREN)) {
-      ctx.next();
+      const lparenTok = ctx.next();
       const names: string[] = [];
+      const nameTokens: Token[] = [];
       while (!ctx.at(TokenKind.RPAREN)) {
+        const nameTok = ctx.peek();
         names.push(parseIdent(ctx, error));
+        nameTokens.push(nameTok);
         if (ctx.at(TokenKind.COMMA)) {
           ctx.next();
           continue;
         } else break;
       }
       if (!ctx.at(TokenKind.RPAREN)) error("Expected ')' in pattern");
-      ctx.next();
-      return Node.PatternCtor(typeName, names);
+      const rparenTok = ctx.next();
+      const node = Node.PatternCtor(typeName, names);
+      assignSpan(node, spanFromSources(typeTok, lparenTok, rparenTok, ...nameTokens));
+      return node;
     }
     // No LPAREN: treat bare TypeIdent as a variant name pattern (enum member)
-    return Node.PatternName(typeName);
+    const node = Node.PatternName(typeName);
+    assignSpan(node, spanFromToken(typeTok));
+    return node;
   }
+  const nameTok = ctx.peek();
   const name = parseIdent(ctx, error);
-  return Node.PatternName(name);
+  const node = Node.PatternName(name);
+  assignSpan(node, spanFromToken(nameTok));
+  return node;
 }
 
 /**
@@ -725,14 +959,15 @@ export function parseParamList(
       const nameTok = ctx.peek();
       const name = parseIdent(ctx, error);
       if (!ctx.at(TokenKind.COLON)) error("Expected ':' after parameter name", ctx.peek());
-      ctx.next();
+      const colonTok = ctx.next();
       const type = parseType(ctx, error);
-      const p: Parameter =
-        annotations.length > 0 ? { name, type, annotations } : { name, type };
-      const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-      const spanStart = firstToken?.start ?? nameTok.start;
-      (p as any).span = { start: spanStart, end: endTok.end };
-      params.push(p);
+      const spanAnchor = firstToken ?? nameTok;
+      const paramSpan = spanFromSources(spanAnchor, colonTok, type);
+      const param: Parameter =
+        annotations.length > 0
+          ? { name, type, annotations, span: paramSpan }
+          : { name, type, span: paramSpan };
+      params.push(param);
       if (ctx.at(TokenKind.IDENT) && ((ctx.peek().value as string) || '').toLowerCase() === KW.AND) {
         ctx.nextWord();
         // 'and' 后允许换行和缩进
@@ -770,14 +1005,15 @@ export function parseParamList(
       const nameTok = ctx.peek();
       const name = parseIdent(ctx, error);
       if (!ctx.at(TokenKind.COLON)) error("Expected ':' after parameter name", ctx.peek());
-      ctx.next();
+      const colonTok = ctx.next();
       const type = parseType(ctx, error);
-      const p: Parameter =
-        annotations.length > 0 ? { name, type, annotations } : { name, type };
-      const endTok = ctx.tokens[ctx.index - 1] || ctx.peek();
-      const spanStart = firstToken?.start ?? nameTok.start;
-      (p as any).span = { start: spanStart, end: endTok.end };
-      params.push(p);
+      const spanAnchor = firstToken ?? nameTok;
+      const paramSpan = spanFromSources(spanAnchor, colonTok, type);
+      const param: Parameter =
+        annotations.length > 0
+          ? { name, type, annotations, span: paramSpan }
+          : { name, type, span: paramSpan };
+      params.push(param);
       // Accept 'and' or ',' between parameters
       if (ctx.at(TokenKind.IDENT) && ((ctx.peek().value as string) || '').toLowerCase() === KW.AND) {
         ctx.nextWord();
@@ -813,26 +1049,31 @@ export function parseParamList(
  * @returns Type
  */
 export function inferLambdaReturnType(e: Expression): Type {
+  const attachSpan = <T extends Type>(node: T): T => {
+    assignSpan(node, cloneSpan(e.span));
+    return node;
+  };
   switch (e.kind) {
     case 'String':
-      return Node.TypeName('Text');
+      return attachSpan(Node.TypeName('Text'));
     case 'Int':
-      return Node.TypeName('Int');
+      return attachSpan(Node.TypeName('Int'));
     case 'Bool':
-      return Node.TypeName('Bool');
+      return attachSpan(Node.TypeName('Bool'));
     case 'Call': {
       if (e.target.kind === 'Name') {
         const n = e.target.name;
-        if (n === 'Text.concat') return Node.TypeName('Text');
-        if (n === 'Text.length') return Node.TypeName('Int');
-        if (n === '+') return Node.TypeName('Int');
-        if (n === 'not') return Node.TypeName('Bool');
-        if (n === '<' || n === '>' || n === '<=' || n === '>=' || n === '==' || n === '!=') return Node.TypeName('Bool');
+        if (n === 'Text.concat') return attachSpan(Node.TypeName('Text'));
+        if (n === 'Text.length') return attachSpan(Node.TypeName('Int'));
+        if (n === '+') return attachSpan(Node.TypeName('Int'));
+        if (n === 'not') return attachSpan(Node.TypeName('Bool'));
+        if (n === '<' || n === '>' || n === '<=' || n === '>=' || n === '==' || n === '!=')
+          return attachSpan(Node.TypeName('Bool'));
       }
-      return Node.TypeName('Unknown');
+      return attachSpan(Node.TypeName('Unknown'));
     }
     default:
-      return Node.TypeName('Unknown');
+      return attachSpan(Node.TypeName('Unknown'));
   }
 }
 

@@ -101,6 +101,16 @@ const DEFAULT_CONFIG: EffectInferenceConfig = {
 let cachedConfig: EffectInferenceConfig | null = null;
 
 /**
+ * 重置配置缓存（仅用于测试）。
+ *
+ * **警告**：此方法仅应在测试环境中使用，生产代码不应调用。
+ * 重置后，下次调用 loadEffectConfig() 会重新读取配置文件。
+ */
+export function resetConfigForTesting(): void {
+  cachedConfig = null;
+}
+
+/**
  * 加载效果推断配置。
  *
  * 配置来源优先级：

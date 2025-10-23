@@ -1,4 +1,4 @@
-import type { Type } from '../types.js';
+import type { PiiDataCategory, PiiSensitivityLevel, Token, Type } from '../types.js';
 import type { ParserContext } from './context.js';
 import { kwParts } from './context.js';
 import { TokenKind, KW } from '../tokens.js';
@@ -6,6 +6,7 @@ import { Node } from '../ast.js';
 import { Diagnostics } from '../diagnostics.js';
 import { isCapabilityKind, parseLegacyCapability } from '../capabilities.js';
 import type { CapabilityKind } from '../config/semantic.js';
+import { assignSpan, spanFromSources, spanFromTokens } from './span-utils.js';
 
 /**
  * 解析效果列表（io, cpu, 能力等）
@@ -160,150 +161,118 @@ export function separateEffectsAndCaps(
  * @param error 错误报告函数
  * @returns 类型节点
  */
-export function parseType(
+type PiiAnnotation = {
+  readonly startToken: Token;
+  readonly level: PiiSensitivityLevel;
+  readonly category: PiiDataCategory;
+};
+
+function consumeKeywordSequence(ctx: ParserContext, words: string | string[]): Token[] {
+  const parts = Array.isArray(words) ? words : kwParts(words);
+  return parts.map(() => ctx.nextWord());
+}
+
+function parseTypePrimary(
   ctx: ParserContext,
   error: (msg: string) => never
 ): Type {
-  // Check for @pii annotation: @pii(level, category) Type
-  let piiAnnotation: { level: string; category: string } | null = null;
-  if (ctx.at(TokenKind.AT)) {
-    ctx.next(); // consume '@'
-    if (!ctx.isKeyword('pii')) {
-      error("Expected 'pii' after '@'");
-    }
-    ctx.nextWord(); // consume 'pii'
-    if (!ctx.at(TokenKind.LPAREN)) {
-      error("Expected '(' after '@pii'");
-    }
-    ctx.next(); // consume '('
-
-    // Parse level (L1, L2, L3, etc.)
-    if (!ctx.at(TokenKind.TYPE_IDENT) && !ctx.at(TokenKind.IDENT)) {
-      error("Expected PII level (e.g., L1, L2, L3)");
-    }
-    const level = ctx.next().value as string;
-
-    if (!ctx.at(TokenKind.COMMA)) {
-      error("Expected ',' after PII level");
-    }
-    ctx.next(); // consume ','
-
-    // Parse category (email, phone, ssn, name, etc.)
-    if (!ctx.at(TokenKind.IDENT)) {
-      error("Expected PII category (e.g., email, phone, ssn)");
-    }
-    const category = ctx.next().value as string;
-
-    if (!ctx.at(TokenKind.RPAREN)) {
-      error("Expected ')' after PII category");
-    }
-    ctx.next(); // consume ')'
-
-    piiAnnotation = { level, category };
-  }
-
-  const applyAnnotations = (t: Type): Type => {
-    let result = t;
-
-    // First apply nullable wrapper if present
-    if (ctx.at(TokenKind.QUESTION)) {
-      ctx.next();
-      result = Node.Maybe(result);
-    }
-
-    // Then wrap in TypePii if annotation present
-    // This ensures @pii(L3, phone) Text? becomes TypePii(Maybe(Text), L3, phone)
-    if (piiAnnotation) {
-      result = Node.TypePii(result, piiAnnotation.level as any, piiAnnotation.category as any);
-    }
-
-    return result;
-  };
-
-  // maybe T | Option of T | Result of T or E | list of T | map Text to Int | Text/Int/Float/Bool | TypeIdent
   if (ctx.isKeyword(KW.MAYBE)) {
-    ctx.nextWord();
-    return applyAnnotations(Node.Maybe(parseType(ctx, error)));
+    const maybeTok = ctx.nextWord();
+    const inner = parseType(ctx, error);
+    const node = Node.Maybe(inner);
+    assignSpan(node, spanFromSources(maybeTok, inner));
+    return node;
   }
+
   if (ctx.isKeywordSeq(KW.OPTION_OF)) {
-    ctx.nextWords(kwParts(KW.OPTION_OF));
-    return applyAnnotations(Node.Option(parseType(ctx, error)));
+    const optionToks = consumeKeywordSequence(ctx, KW.OPTION_OF);
+    const inner = parseType(ctx, error);
+    const node = Node.Option(inner);
+    assignSpan(node, spanFromSources(optionToks[0]!, inner));
+    return node;
   }
+
   if (ctx.isKeywordSeq(KW.RESULT_OF)) {
-    ctx.nextWords(kwParts(KW.RESULT_OF));
+    const resultToks = consumeKeywordSequence(ctx, KW.RESULT_OF);
     const ok = parseType(ctx, error);
-    // Accept 'or' or 'and' between ok and err
-    if (ctx.isKeyword(KW.OR) || ctx.isKeyword(KW.AND)) ctx.nextWord();
-    else Diagnostics.expectedKeyword('or/and', ctx.peek().start).withMessage("Expected 'or'/'and' in Result of").throw();
+    if (!(ctx.isKeyword(KW.OR) || ctx.isKeyword(KW.AND))) {
+      Diagnostics.expectedKeyword('or/and', ctx.peek().start)
+        .withMessage("Expected 'or'/'and' in Result of")
+        .throw();
+    }
+    const connectorTok = ctx.nextWord();
     const err = parseType(ctx, error);
-    return applyAnnotations(Node.Result(ok, err));
-  }
-  if (ctx.isKeywordSeq(KW.FOR_EACH)) {
-    /* not a type; handled elsewhere */
-  }
-  if (ctx.isKeywordSeq(KW.WITHIN)) {
-    /* not a type */
+    const node = Node.Result(ok, err);
+    assignSpan(node, spanFromSources(resultToks[0]!, ok, connectorTok, err));
+    return node;
   }
 
   if (ctx.isKeywordSeq(['list', 'of'])) {
-    ctx.nextWord();
-    ctx.nextWord();
-    return applyAnnotations(Node.List(parseType(ctx, error)));
+    const listTok = ctx.nextWord();
+    const ofTok = ctx.nextWord();
+    const inner = parseType(ctx, error);
+    const node = Node.List(inner);
+    assignSpan(node, spanFromSources(listTok, ofTok, inner));
+    return node;
   }
+
   if (ctx.isKeyword('map')) {
-    ctx.nextWord();
-    const k = parseType(ctx, error);
+    const mapTok = ctx.nextWord();
+    const keyType = parseType(ctx, error);
     if (!ctx.isKeyword(KW.TO_WORD)) {
-      Diagnostics.expectedKeyword(KW.TO_WORD, ctx.peek().start).withMessage("Expected 'to' in map type").throw();
+      Diagnostics.expectedKeyword(KW.TO_WORD, ctx.peek().start)
+        .withMessage("Expected 'to' in map type")
+        .throw();
     }
-    ctx.nextWord();
-    const v = parseType(ctx, error);
-    return applyAnnotations(Node.Map(k, v));
+    const toTok = ctx.nextWord();
+    const valueType = parseType(ctx, error);
+    const node = Node.Map(keyType, valueType);
+    assignSpan(node, spanFromSources(mapTok, keyType, toTok, valueType));
+    return node;
   }
 
   if (ctx.isKeyword(KW.TEXT)) {
-    ctx.nextWord();
-    return applyAnnotations(Node.TypeName('Text'));
+    const tok = ctx.nextWord();
+    const node = Node.TypeName('Text');
+    assignSpan(node, spanFromTokens(tok, tok));
+    return node;
   }
   if (ctx.isKeyword(KW.INT)) {
-    ctx.nextWord();
-    return applyAnnotations(Node.TypeName('Int'));
+    const tok = ctx.nextWord();
+    const node = Node.TypeName('Int');
+    assignSpan(node, spanFromTokens(tok, tok));
+    return node;
   }
   if (ctx.isKeyword(KW.FLOAT)) {
-    ctx.nextWord();
-    return applyAnnotations(Node.TypeName('Double'));
+    const tok = ctx.nextWord();
+    const node = Node.TypeName('Double');
+    assignSpan(node, spanFromTokens(tok, tok));
+    return node;
   }
   if (ctx.isKeyword(KW.BOOL_TYPE)) {
-    ctx.nextWord();
-    return applyAnnotations(Node.TypeName('Bool'));
+    const tok = ctx.nextWord();
+    const node = Node.TypeName('Bool');
+    assignSpan(node, spanFromTokens(tok, tok));
+    return node;
   }
 
-  // Handle capitalized type keywords (Int, Bool, etc.) that are tokenized as IDENT
   if (ctx.at(TokenKind.IDENT)) {
-    const value = ctx.peek().value as string;
-    if (value === 'Int') {
+    const tok = ctx.peek();
+    const value = tok.value as string;
+    if (value === 'Int' || value === 'Bool' || value === 'Text' || value === 'Float') {
       ctx.nextWord();
-      return applyAnnotations(Node.TypeName('Int'));
-    }
-    if (value === 'Bool') {
-      ctx.nextWord();
-      return applyAnnotations(Node.TypeName('Bool'));
-    }
-    if (value === 'Text') {
-      ctx.nextWord();
-      return applyAnnotations(Node.TypeName('Text'));
-    }
-    if (value === 'Float') {
-      ctx.nextWord();
-      return applyAnnotations(Node.TypeName('Float'));
+      const mapped = value === 'Float' ? 'Float' : value;
+      const node = Node.TypeName(mapped);
+      assignSpan(node, spanFromTokens(tok, tok));
+      return node;
     }
   }
 
   if (ctx.at(TokenKind.TYPE_IDENT)) {
-    const name = ctx.next().value as string;
-    // Generic application: TypeName of T [and U]*
+    const typeTok = ctx.next();
+    const name = typeTok.value as string;
     if (ctx.isKeyword('of')) {
-      ctx.nextWord();
+      const ofTok = ctx.nextWord();
       const args: Type[] = [];
       let more = true;
       while (more) {
@@ -318,14 +287,81 @@ export function parseType(
         }
         more = false;
       }
-      return applyAnnotations(Node.TypeApp(name, args));
+      const node = Node.TypeApp(name, args);
+      assignSpan(node, spanFromSources(typeTok, ofTok, ...args));
+      return node;
     }
-    // Recognize type variables in current function scope
     if (ctx.currentTypeVars.has(name)) {
-      return applyAnnotations(Node.TypeVar(name));
+      const node = Node.TypeVar(name);
+      assignSpan(node, spanFromTokens(typeTok, typeTok));
+      return node;
     }
-    return applyAnnotations(Node.TypeName(name));
+    const node = Node.TypeName(name);
+    assignSpan(node, spanFromTokens(typeTok, typeTok));
+    return node;
   }
 
   error('Expected type');
+}
+
+export function parseType(
+  ctx: ParserContext,
+  error: (msg: string) => never
+): Type {
+  let annotation: PiiAnnotation | null = null;
+  if (ctx.at(TokenKind.AT)) {
+    const atTok = ctx.next();
+    if (!ctx.isKeyword('pii')) {
+      error("Expected 'pii' after '@'");
+    }
+    ctx.nextWord(); // consume 'pii'
+    if (!ctx.at(TokenKind.LPAREN)) {
+      error("Expected '(' after '@pii'");
+    }
+    ctx.next(); // consume '('
+
+    if (!ctx.at(TokenKind.TYPE_IDENT) && !ctx.at(TokenKind.IDENT)) {
+      error("Expected PII level (e.g., L1, L2, L3)");
+    }
+    const levelTok = ctx.next();
+    if (!ctx.at(TokenKind.COMMA)) {
+      error("Expected ',' after PII level");
+    }
+    ctx.next(); // consume ','
+    if (!ctx.at(TokenKind.IDENT)) {
+      error("Expected PII category (e.g., email, phone, ssn)");
+    }
+    const categoryTok = ctx.next();
+    if (!ctx.at(TokenKind.RPAREN)) {
+      error("Expected ')' after PII category");
+    }
+    ctx.next(); // consume ')'
+
+    annotation = {
+      startToken: atTok,
+      level: levelTok.value as PiiSensitivityLevel,
+      category: categoryTok.value as PiiDataCategory,
+    };
+  }
+
+  let node = parseTypePrimary(ctx, error);
+
+  while (ctx.at(TokenKind.QUESTION)) {
+    const questionTok = ctx.next();
+    const maybeNode = Node.Maybe(node);
+    assignSpan(maybeNode, spanFromSources(node, questionTok));
+    node = maybeNode;
+  }
+
+  if (annotation) {
+    const annotated = Node.TypePii(
+      node,
+      annotation.level,
+      annotation.category
+    );
+    assignSpan(annotated, spanFromSources(annotation.startToken, node));
+    node = annotated;
+  }
+
+  return node;
 }

@@ -9,15 +9,23 @@
       "params": [
         {
           "name": "value",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         }
       ],
       "ret": {
         "kind": "Maybe",
-        "type": {"kind": "TypeName", "name": "Int"}
+        "type": {
+          "kind": "TypeName",
+          "name": "Int"
+        }
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -25,7 +33,10 @@
             "kind": "Return",
             "expr": {
               "kind": "Some",
-              "expr": {"kind": "Name", "name": "value"}
+              "expr": {
+                "kind": "Name",
+                "name": "value"
+              }
             }
           }
         ]
@@ -38,15 +49,23 @@
       "params": [
         {
           "name": "text",
-          "type": {"kind": "TypeName", "name": "String"},
+          "type": {
+            "kind": "TypeName",
+            "name": "String"
+          },
           "annotations": []
         }
       ],
       "ret": {
         "kind": "Maybe",
-        "type": {"kind": "TypeName", "name": "String"}
+        "type": {
+          "kind": "TypeName",
+          "name": "String"
+        }
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -54,7 +73,10 @@
             "kind": "Return",
             "expr": {
               "kind": "Some",
-              "expr": {"kind": "Name", "name": "text"}
+              "expr": {
+                "kind": "Name",
+                "name": "text"
+              }
             }
           }
         ]
@@ -69,24 +91,38 @@
           "name": "maybeInt",
           "type": {
             "kind": "Maybe",
-            "type": {"kind": "TypeName", "name": "Int"}
+            "type": {
+              "kind": "TypeName",
+              "name": "Int"
+            }
           },
           "annotations": []
         },
         {
           "name": "defaultValue",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Match",
-            "scrutinee": {"kind": "Name", "name": "maybeInt"},
+            "scrutinee": {
+              "kind": "Name",
+              "name": "maybeInt"
+            },
             "cases": [
               {
                 "kind": "Case",
@@ -94,27 +130,43 @@
                   "kind": "PatCtor",
                   "typeName": "Some",
                   "names": [],
-                  "args": [{"kind": "PatName", "name": "x"}]
+                  "args": [
+                    {
+                      "kind": "PatName",
+                      "name": "x"
+                    }
+                  ]
                 },
                 "body": {
                   "kind": "Block",
                   "statements": [
                     {
                       "kind": "Return",
-                      "expr": {"kind": "Name", "name": "x"}
+                      "expr": {
+                        "kind": "Name",
+                        "name": "x"
+                      }
                     }
                   ]
                 }
               },
               {
                 "kind": "Case",
-                "pattern": {"kind": "PatCtor", "typeName": "None", "names": [], "args": []},
+                "pattern": {
+                  "kind": "PatCtor",
+                  "typeName": "None",
+                  "names": [],
+                  "args": []
+                },
                 "body": {
                   "kind": "Block",
                   "statements": [
                     {
                       "kind": "Return",
-                      "expr": {"kind": "Name", "name": "defaultValue"}
+                      "expr": {
+                        "kind": "Name",
+                        "name": "defaultValue"
+                      }
                     }
                   ]
                 }
@@ -131,9 +183,14 @@
       "params": [],
       "ret": {
         "kind": "Maybe",
-        "type": {"kind": "TypeName", "name": "Int"}
+        "type": {
+          "kind": "TypeName",
+          "name": "Int"
+        }
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -141,7 +198,10 @@
             "kind": "Return",
             "expr": {
               "kind": "Some",
-              "expr": {"kind": "Int", "value": 42}
+              "expr": {
+                "kind": "Int",
+                "value": 42
+              }
             }
           }
         ]

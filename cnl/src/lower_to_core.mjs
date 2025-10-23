@@ -20,7 +20,9 @@ function lowerFunc(f) {
   const ret = lowerType(f.retType);
   const effects = (f.effects || []).map(e => e === 'io' ? Effect.IO : Effect.CPU);
   const body = f.body ? lowerBlock(f.body) : Core.Block([]);
-  return Core.Func(f.name, params, ret, effects, body);
+  const effectCaps = Array.isArray(f.effectCaps) ? [...f.effectCaps] : [];
+  const effectCapsExplicit = Boolean(f.effectCapsExplicit);
+  return Core.Func(f.name, params, ret, effects, body, effectCaps, effectCapsExplicit);
 }
 
 function lowerBlock(b) {
@@ -84,4 +86,3 @@ function lowerType(t) {
     default: throw new Error(`Unknown type kind: ${t.kind}`);
   }
 }
-

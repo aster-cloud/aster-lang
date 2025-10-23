@@ -2,24 +2,126 @@
   "kind": "Module",
   "name": "demo.map",
   "decls": [
-    { "kind": "Func", "name": "val",
+    {
+      "kind": "Func",
+      "name": "val",
       "params": [
-        { "name": "m", "type": { "kind": "Map", "key": { "kind": "TypeName", "name": "Text" }, "val": { "kind": "TypeName", "name": "Text" } } },
-        { "name": "k", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "m",
+          "type": {
+            "kind": "Map",
+            "key": {
+              "kind": "TypeName",
+              "name": "Text"
+            },
+            "val": {
+              "kind": "TypeName",
+              "name": "Text"
+            }
+          }
+        },
+        {
+          "name": "k",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
       ],
-      "retType": { "kind": "Maybe", "type": { "kind": "TypeName", "name": "Text" } },
+      "retType": {
+        "kind": "Maybe",
+        "type": {
+          "kind": "TypeName",
+          "name": "Text"
+        }
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Map.get" }, "args": [ { "kind": "Name", "name": "m" }, { "kind": "Name", "name": "k" } ] } } ] }
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Map.get"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "m"
+                },
+                {
+                  "kind": "Name",
+                  "name": "k"
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
-    { "kind": "Func", "name": "valStrict",
+    {
+      "kind": "Func",
+      "name": "valStrict",
       "params": [
-        { "name": "m", "type": { "kind": "Map", "key": { "kind": "TypeName", "name": "Text" }, "val": { "kind": "TypeName", "name": "Text" } } },
-        { "name": "k", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "m",
+          "type": {
+            "kind": "Map",
+            "key": {
+              "kind": "TypeName",
+              "name": "Text"
+            },
+            "val": {
+              "kind": "TypeName",
+              "name": "Text"
+            }
+          }
+        },
+        {
+          "name": "k",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
       ],
-      "retType": { "kind": "TypeName", "name": "Text" },
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Map.get" }, "args": [ { "kind": "Name", "name": "m" }, { "kind": "Name", "name": "k" } ] } } ] }
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Map.get"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "m"
+                },
+                {
+                  "kind": "Name",
+                  "name": "k"
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   ]
 }
-

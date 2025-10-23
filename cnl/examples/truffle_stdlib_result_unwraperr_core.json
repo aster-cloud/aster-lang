@@ -6,8 +6,13 @@
       "kind": "Func",
       "name": "run",
       "params": [],
-      "ret": { "kind": "TypeName", "name": "Int" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -16,7 +21,10 @@
             "name": "errMap",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.empty" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.empty"
+              },
               "args": []
             }
           },
@@ -25,11 +33,23 @@
             "name": "errMap",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.put" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.put"
+              },
               "args": [
-                { "kind": "Name", "name": "errMap" },
-                { "kind": "String", "value": "_type" },
-                { "kind": "String", "value": "Err" }
+                {
+                  "kind": "Name",
+                  "name": "errMap"
+                },
+                {
+                  "kind": "String",
+                  "value": "_type"
+                },
+                {
+                  "kind": "String",
+                  "value": "Err"
+                }
               ]
             }
           },
@@ -38,11 +58,23 @@
             "name": "errMap",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.put" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.put"
+              },
               "args": [
-                { "kind": "Name", "name": "errMap" },
-                { "kind": "String", "value": "value" },
-                { "kind": "Int", "value": 99 }
+                {
+                  "kind": "Name",
+                  "name": "errMap"
+                },
+                {
+                  "kind": "String",
+                  "value": "value"
+                },
+                {
+                  "kind": "Int",
+                  "value": 99
+                }
               ]
             }
           },
@@ -50,8 +82,16 @@
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Result.unwrapErr" },
-              "args": [{ "kind": "Name", "name": "errMap" }]
+              "target": {
+                "kind": "Name",
+                "name": "Result.unwrapErr"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "errMap"
+                }
+              ]
             }
           }
         ]

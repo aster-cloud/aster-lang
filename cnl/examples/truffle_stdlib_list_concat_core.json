@@ -6,8 +6,13 @@
       "kind": "Func",
       "name": "run",
       "params": [],
-      "ret": { "kind": "TypeName", "name": "Int" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -16,7 +21,10 @@
             "name": "list1",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.empty" },
+              "target": {
+                "kind": "Name",
+                "name": "List.empty"
+              },
               "args": []
             }
           },
@@ -25,8 +33,20 @@
             "name": "list1",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.append" },
-              "args": [{ "kind": "Name", "name": "list1" }, { "kind": "Int", "value": 1 }]
+              "target": {
+                "kind": "Name",
+                "name": "List.append"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "list1"
+                },
+                {
+                  "kind": "Int",
+                  "value": 1
+                }
+              ]
             }
           },
           {
@@ -34,8 +54,20 @@
             "name": "list1",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.append" },
-              "args": [{ "kind": "Name", "name": "list1" }, { "kind": "Int", "value": 2 }]
+              "target": {
+                "kind": "Name",
+                "name": "List.append"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "list1"
+                },
+                {
+                  "kind": "Int",
+                  "value": 2
+                }
+              ]
             }
           },
           {
@@ -43,7 +75,10 @@
             "name": "list2",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.empty" },
+              "target": {
+                "kind": "Name",
+                "name": "List.empty"
+              },
               "args": []
             }
           },
@@ -52,8 +87,20 @@
             "name": "list2",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.append" },
-              "args": [{ "kind": "Name", "name": "list2" }, { "kind": "Int", "value": 3 }]
+              "target": {
+                "kind": "Name",
+                "name": "List.append"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "list2"
+                },
+                {
+                  "kind": "Int",
+                  "value": 3
+                }
+              ]
             }
           },
           {
@@ -61,8 +108,20 @@
             "name": "list2",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.append" },
-              "args": [{ "kind": "Name", "name": "list2" }, { "kind": "Int", "value": 4 }]
+              "target": {
+                "kind": "Name",
+                "name": "List.append"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "list2"
+                },
+                {
+                  "kind": "Int",
+                  "value": 4
+                }
+              ]
             }
           },
           {
@@ -70,10 +129,19 @@
             "name": "result",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.concat" },
+              "target": {
+                "kind": "Name",
+                "name": "List.concat"
+              },
               "args": [
-                { "kind": "Name", "name": "list1" },
-                { "kind": "Name", "name": "list2" }
+                {
+                  "kind": "Name",
+                  "name": "list1"
+                },
+                {
+                  "kind": "Name",
+                  "name": "list2"
+                }
               ]
             }
           },
@@ -81,8 +149,16 @@
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.length" },
-              "args": [{ "kind": "Name", "name": "result" }]
+              "target": {
+                "kind": "Name",
+                "name": "List.length"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "result"
+                }
+              ]
             }
           }
         ]

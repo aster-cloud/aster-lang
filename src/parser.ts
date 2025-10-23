@@ -14,6 +14,13 @@ import { kwParts, tokLowerAt } from './parser/context.js';
 import { parseModuleHeader, parseImport } from './parser/import-parser.js';
 import { parseFuncDecl } from './parser/decl-parser.js';
 import { parseFieldList, parseVariantList } from './parser/field-variant-parser.js';
+import {
+  assignSpan,
+  firstSignificantToken,
+  lastConsumedToken,
+  lastSignificantTokenInStream,
+  spanFromTokens,
+} from './parser/span-utils.js';
 
 const parserLogger = createLogger('parser');
 
@@ -23,6 +30,7 @@ const parserLogger = createLogger('parser');
  * @returns 模块 AST
  */
 export function parse(tokens: readonly Token[]): Module {
+  const moduleStart = firstSignificantToken(tokens);
   // 创建解析器上下文
   const ctx: ParserContext = {
     tokens,
@@ -217,31 +225,41 @@ export function parse(tokens: readonly Token[]): Module {
     }
     // 解析导入: use foo.bar. 或 use foo.bar as Baz.
     else if (ctx.isKeyword(KW.USE)) {
+      const startTok = ctx.peek();
       const { name, asName } = parseImport(ctx, error, expectDot, parseIdent);
-      decls.push(Node.Import(name, asName));
+      const endTok = lastConsumedToken(ctx);
+      const importNode = Node.Import(name, asName);
+      assignSpan(importNode, spanFromTokens(startTok, endTok));
+      decls.push(importNode);
     }
     // 解析类型定义: Define ...
     else if (ctx.isKeyword(KW.DEFINE)) {
-      // 消费 'Define' 关键字
-      ctx.nextWord();
+      // 记录起始 token 并消费 'Define' 关键字
+      const defineTok = ctx.nextWord();
       // 解析类型名
       const typeName = parseTypeIdent();
 
       // 判断是 Data 还是 Enum
       if (ctx.isKeywordSeq(KW.WITH)) {
+        const startTok = defineTok;
         // Data: Define User with ...
         ctx.nextWord();
         const fields = parseFieldList(ctx, error);
         expectDot();
         const dataDecl = Node.Data(typeName, fields);
+        const endTok = lastConsumedToken(ctx);
+        assignSpan(dataDecl, spanFromTokens(startTok, endTok));
         ctx.declaredTypes.add(typeName);
         decls.push(dataDecl);
       } else if (ctx.isKeywordSeq(KW.ONE_OF)) {
+        const startTok = defineTok;
         // Enum: Define Status as one of ...
         ctx.nextWords(kwParts(KW.ONE_OF));
         const variants = parseVariantList(ctx, error);
         expectDot();
         const en = Node.Enum(typeName, variants);
+        const endTok = lastConsumedToken(ctx);
+        assignSpan(en, spanFromTokens(startTok, endTok));
         const spans = (parseVariantList as any)._lastSpans as import('./types.js').Span[] | undefined;
         if (spans && Array.isArray(spans)) {
           (en as any).variantSpans = spans;
@@ -268,5 +286,8 @@ export function parse(tokens: readonly Token[]): Module {
     ctx.consumeNewlines();
   }
 
-  return Node.Module(ctx.moduleName, decls);
+  const moduleNode = Node.Module(ctx.moduleName, decls);
+  const moduleEnd = lastSignificantTokenInStream(tokens);
+  assignSpan(moduleNode, spanFromTokens(moduleStart, moduleEnd));
+  return moduleNode;
 }

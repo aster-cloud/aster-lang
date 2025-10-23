@@ -5,19 +5,66 @@
     {
       "kind": "Func",
       "name": "classify",
-      "params": [ { "name": "v", "type": { "kind": "Maybe", "type": { "kind": "TypeName", "name": "Text" } } } ],
-      "retType": { "kind": "TypeName", "name": "Text" },
+      "params": [
+        {
+          "name": "v",
+          "type": {
+            "kind": "Maybe",
+            "type": {
+              "kind": "TypeName",
+              "name": "Text"
+            }
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
-          { "kind": "Match", "expr": { "kind": "Name", "name": "v" }, "cases": [
-            { "kind": "Case", "pattern": { "kind": "PatternNull" }, "body": { "kind": "Return", "expr": { "kind": "String", "value": "none" } } },
-            { "kind": "Case", "pattern": { "kind": "PatternName", "name": "value" }, "body": { "kind": "Return", "expr": { "kind": "String", "value": "some" } } }
-          ] }
+          {
+            "kind": "Match",
+            "expr": {
+              "kind": "Name",
+              "name": "v"
+            },
+            "cases": [
+              {
+                "kind": "Case",
+                "pattern": {
+                  "kind": "PatternNull"
+                },
+                "body": {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "none"
+                  }
+                }
+              },
+              {
+                "kind": "Case",
+                "pattern": {
+                  "kind": "PatternName",
+                  "name": "value"
+                },
+                "body": {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "some"
+                  }
+                }
+              }
+            ]
+          }
         ]
       }
     }
   ]
 }
-

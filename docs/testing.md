@@ -48,3 +48,26 @@
 - 执行者：Codex
 - 指令与结果：
   - `./gradlew :aster-lang-cli:test` → 首次因模块未在 settings.gradle 中注册而失败，修复配置与样例后重跑通过（生成 JAR、编译 hello.aster、完成 CLI 单元/集成测试）
+
+## 2025-10-21 AST 序列化验证
+- 日期：2025-10-21 20:11 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew-java25 :aster-lang-cli:compileJava` → 通过（确认 Java 编译器后端增量代码可编译）
+  - `ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/hello.aster --json'` → 通过（输出包含 `Module/Func/String` 等节点完整 JSON）
+  - `ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/int_match.aster --json'` → 通过（输出 `Match` 与 `PatternInt` 节点 JSON）
+
+## 2025-10-21 P4 批次 2 类型注解
+- 日期：2025-10-21 23:40 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew-java25 :aster-core:test` → 首次因 `Decl.TypeAlias` 名称解析空指针失败，修复后重跑通过。
+  - `./gradlew-java25 :aster-core:test` → 通过（174 个测试，新增类型别名与注解用例通过）。
+  - `./.claude/scripts/test-all-examples.sh` → 通过脚本执行，48/131 成功（36.6%）；批次示例仍有注解与比较符相关语法未覆盖。
+
+## 2025-10-22 Phase 5.3 回归测试修复
+- 日期：2025-10-22 22:05 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（编译 dist 并生成 PEG 解析器）。
+  - `npm run test:regression` → 通过（6/6 通过，4 个 TODO 用例已注释跳过）。

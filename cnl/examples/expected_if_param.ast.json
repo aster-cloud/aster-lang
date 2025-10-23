@@ -5,22 +5,54 @@
     {
       "kind": "Func",
       "name": "choose",
-      "params": [ { "name": "flag", "type": { "kind": "TypeName", "name": "Text" } } ],
-      "retType": { "kind": "TypeName", "name": "Text" },
+      "params": [
+        {
+          "name": "flag",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "If",
-            "cond": { "kind": "Name", "name": "flag" },
+            "cond": {
+              "kind": "Name",
+              "name": "flag"
+            },
             "thenBlock": {
               "kind": "Block",
-              "statements": [ { "kind": "Return", "expr": { "kind": "String", "value": "Y" } } ]
+              "statements": [
+                {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "Y"
+                  }
+                }
+              ]
             },
             "elseBlock": {
               "kind": "Block",
-              "statements": [ { "kind": "Return", "expr": { "kind": "String", "value": "N" } } ]
+              "statements": [
+                {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "N"
+                  }
+                }
+              ]
             }
           }
         ]
@@ -28,4 +60,3 @@
     }
   ]
 }
-

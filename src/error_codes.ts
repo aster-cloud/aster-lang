@@ -1,0 +1,428 @@
+// 本文件由 scripts/generate_error_codes.ts 自动生成，请勿手动修改。
+// 源数据: shared/error_codes.json
+
+
+export type ErrorCategory = 'type' | 'scope' | 'effect' | 'capability' | 'pii' | 'async';
+export type ErrorSeverity = 'error' | 'warning' | 'info';
+
+export const enum ErrorCode {
+  TYPE_MISMATCH = "E001",
+  TYPE_MISMATCH_ASSIGN = "E002",
+  RETURN_TYPE_MISMATCH = "E003",
+  TYPE_VAR_UNDECLARED = "E004",
+  TYPE_PARAM_UNUSED = "E005",
+  TYPEVAR_LIKE_UNDECLARED = "E006",
+  TYPEVAR_INCONSISTENT = "E007",
+  IF_BRANCH_MISMATCH = "E008",
+  MATCH_BRANCH_MISMATCH = "E009",
+  INTEGER_PATTERN_TYPE = "E010",
+  UNKNOWN_FIELD = "E011",
+  FIELD_TYPE_MISMATCH = "E012",
+  MISSING_REQUIRED_FIELD = "E013",
+  NOT_CALL_ARITY = "E014",
+  AWAIT_TYPE = "E015",
+  DUPLICATE_ENUM_CASE = "E016",
+  NON_EXHAUSTIVE_MAYBE = "E017",
+  NON_EXHAUSTIVE_ENUM = "E018",
+  AMBIGUOUS_INTEROP_NUMERIC = "E019",
+  LIST_ELEMENT_TYPE_MISMATCH = "E020",
+  OPTIONAL_EXPECTED = "E021",
+  DUPLICATE_IMPORT_ALIAS = "E100",
+  UNDEFINED_VARIABLE = "E101",
+  EFF_MISSING_IO = "E200",
+  EFF_MISSING_CPU = "E201",
+  EFF_SUPERFLUOUS_IO_CPU_ONLY = "E202",
+  EFF_SUPERFLUOUS_IO = "E203",
+  EFF_SUPERFLUOUS_CPU = "E204",
+  EFF_INFER_MISSING_IO = "E205",
+  EFF_INFER_MISSING_CPU = "E206",
+  EFF_INFER_REDUNDANT_IO = "E207",
+  EFF_INFER_REDUNDANT_CPU = "E208",
+  EFF_INFER_REDUNDANT_CPU_WITH_IO = "E209",
+  CAPABILITY_NOT_ALLOWED = "E300",
+  EFF_CAP_MISSING = "E301",
+  EFF_CAP_SUPERFLUOUS = "E302",
+  PII_HTTP_UNENCRYPTED = "E400",
+  PII_ANNOTATION_MISSING = "E401",
+  PII_SENSITIVITY_MISMATCH = "E402",
+  ASYNC_START_NOT_WAITED = "E500",
+  ASYNC_WAIT_NOT_STARTED = "E501",
+  ASYNC_DUPLICATE_START = "E502",
+  ASYNC_DUPLICATE_WAIT = "E503",
+}
+
+export interface ErrorMetadata {
+  readonly code: ErrorCode;
+  readonly category: ErrorCategory;
+  readonly severity: ErrorSeverity;
+  readonly message: string;
+  readonly help: string;
+}
+
+export const ERROR_MESSAGES: Record<ErrorCode, string> = {
+  [ErrorCode.TYPE_MISMATCH]: "Type mismatch: expected {expected}, got {actual}",
+  [ErrorCode.TYPE_MISMATCH_ASSIGN]: "Type mismatch assigning to '{name}': {expected} vs {actual}",
+  [ErrorCode.RETURN_TYPE_MISMATCH]: "Return type mismatch: expected {expected}, got {actual}",
+  [ErrorCode.TYPE_VAR_UNDECLARED]: "Type variable '{name}' is used in '{func}' but not declared in its type parameters.",
+  [ErrorCode.TYPE_PARAM_UNUSED]: "Type parameter '{name}' on '{func}' is declared but not used.",
+  [ErrorCode.TYPEVAR_LIKE_UNDECLARED]: "Type variable-like '{name}' is used in '{func}' but not declared; declare it with 'of {name}'.",
+  [ErrorCode.TYPEVAR_INCONSISTENT]: "Type variable '{name}' inferred inconsistently: {previous} vs {actual}",
+  [ErrorCode.IF_BRANCH_MISMATCH]: "If分支返回类型不一致: then分支 {thenType} vs else分支 {elseType}",
+  [ErrorCode.MATCH_BRANCH_MISMATCH]: "Match case return types differ: {expected} vs {actual}",
+  [ErrorCode.INTEGER_PATTERN_TYPE]: "Integer pattern used on non-Int scrutinee ({scrutineeType})",
+  [ErrorCode.UNKNOWN_FIELD]: "Unknown field '{field}' for {type}",
+  [ErrorCode.FIELD_TYPE_MISMATCH]: "Field '{field}' expects {expected}, got {actual}",
+  [ErrorCode.MISSING_REQUIRED_FIELD]: "构造 {type} 缺少必需字段 '{field}'",
+  [ErrorCode.NOT_CALL_ARITY]: "not(...) expects 1 argument",
+  [ErrorCode.AWAIT_TYPE]: "await expects Maybe<T> or Result<T,E>, got {type}",
+  [ErrorCode.DUPLICATE_ENUM_CASE]: "Duplicate enum case '{case}' in match on {type}.",
+  [ErrorCode.NON_EXHAUSTIVE_MAYBE]: "Non-exhaustive match on Maybe type; missing {missing} case.",
+  [ErrorCode.NON_EXHAUSTIVE_ENUM]: "Non-exhaustive match on {type}; missing: {missing}",
+  [ErrorCode.AMBIGUOUS_INTEROP_NUMERIC]: "Ambiguous interop call '{target}': mixing numeric kinds (Int={hasInt}, Long={hasLong}, Double={hasDouble}). Overload resolution may widen/box implicitly.",
+  [ErrorCode.LIST_ELEMENT_TYPE_MISMATCH]: "List literal element type mismatch: expected {expected}, got {actual}",
+  [ErrorCode.OPTIONAL_EXPECTED]: "Optional value required here: expected Maybe or Option, but got {actual}",
+  [ErrorCode.DUPLICATE_IMPORT_ALIAS]: "Duplicate import alias '{alias}'.",
+  [ErrorCode.UNDEFINED_VARIABLE]: "Undefined variable: {name}",
+  [ErrorCode.EFF_MISSING_IO]: "Function '{func}' may perform I/O but is missing @io effect.",
+  [ErrorCode.EFF_MISSING_CPU]: "Function '{func}' may perform CPU-bound work but is missing @cpu (or @io) effect.",
+  [ErrorCode.EFF_SUPERFLUOUS_IO_CPU_ONLY]: "Function '{func}' declares @io but only CPU-like work found; @io subsumes @cpu and may be unnecessary.",
+  [ErrorCode.EFF_SUPERFLUOUS_IO]: "Function '{func}' declares @io but no obvious I/O found.",
+  [ErrorCode.EFF_SUPERFLUOUS_CPU]: "Function '{func}' declares @cpu but no obvious CPU-bound work found.",
+  [ErrorCode.EFF_INFER_MISSING_IO]: "函数 '{func}' 缺少 @io 效果声明，推断要求 IO。",
+  [ErrorCode.EFF_INFER_MISSING_CPU]: "函数 '{func}' 缺少 @cpu 效果声明，推断要求 CPU（或 @io）。",
+  [ErrorCode.EFF_INFER_REDUNDANT_IO]: "函数 '{func}' 声明了 @io，但推断未发现 IO 副作用。",
+  [ErrorCode.EFF_INFER_REDUNDANT_CPU]: "函数 '{func}' 声明了 @cpu，但推断未发现 CPU 副作用。",
+  [ErrorCode.EFF_INFER_REDUNDANT_CPU_WITH_IO]: "函数 '{func}' 同时声明 @cpu 和 @io；由于需要 @io，@cpu 可移除。",
+  [ErrorCode.CAPABILITY_NOT_ALLOWED]: "Function '{func}' requires {cap} capability but manifest for module '{module}' denies it.",
+  [ErrorCode.EFF_CAP_MISSING]: "Function '{func}' uses {cap} capability but header declares [{declared}].",
+  [ErrorCode.EFF_CAP_SUPERFLUOUS]: "Function '{func}' declares {cap} capability but it is not used.",
+  [ErrorCode.PII_HTTP_UNENCRYPTED]: "PII data transmitted over HTTP without encryption",
+  [ErrorCode.PII_ANNOTATION_MISSING]: "PII annotation missing for value flowing into '{sink}'",
+  [ErrorCode.PII_SENSITIVITY_MISMATCH]: "PII sensitivity mismatch: required {required}, got {actual}",
+  [ErrorCode.ASYNC_START_NOT_WAITED]: "Started async task '{task}' not waited",
+  [ErrorCode.ASYNC_WAIT_NOT_STARTED]: "Waiting for async task '{task}' that was never started",
+  [ErrorCode.ASYNC_DUPLICATE_START]: "Async task '{task}' started multiple times ({count} occurrences)",
+  [ErrorCode.ASYNC_DUPLICATE_WAIT]: "Async task '{task}' waited multiple times ({count} occurrences)",
+};
+
+export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
+  [ErrorCode.TYPE_MISMATCH]: {
+    code: ErrorCode.TYPE_MISMATCH,
+    category: 'type',
+    severity: 'error',
+    message: "Type mismatch: expected {expected}, got {actual}",
+    help: "检查类型标注与表达式的推断结果是否一致。",
+  },
+  [ErrorCode.TYPE_MISMATCH_ASSIGN]: {
+    code: ErrorCode.TYPE_MISMATCH_ASSIGN,
+    category: 'type',
+    severity: 'error',
+    message: "Type mismatch assigning to '{name}': {expected} vs {actual}",
+    help: "确认变量先前绑定的类型与当前赋值结果一致。",
+  },
+  [ErrorCode.RETURN_TYPE_MISMATCH]: {
+    code: ErrorCode.RETURN_TYPE_MISMATCH,
+    category: 'type',
+    severity: 'error',
+    message: "Return type mismatch: expected {expected}, got {actual}",
+    help: "检查函数返回语句与声明的返回类型是否一致。",
+  },
+  [ErrorCode.TYPE_VAR_UNDECLARED]: {
+    code: ErrorCode.TYPE_VAR_UNDECLARED,
+    category: 'type',
+    severity: 'error',
+    message: "Type variable '{name}' is used in '{func}' but not declared in its type parameters.",
+    help: "在函数签名的 of 子句中显式声明使用到的类型变量。",
+  },
+  [ErrorCode.TYPE_PARAM_UNUSED]: {
+    code: ErrorCode.TYPE_PARAM_UNUSED,
+    category: 'type',
+    severity: 'warning',
+    message: "Type parameter '{name}' on '{func}' is declared but not used.",
+    help: "移除未使用的类型参数，避免造成误导。",
+  },
+  [ErrorCode.TYPEVAR_LIKE_UNDECLARED]: {
+    code: ErrorCode.TYPEVAR_LIKE_UNDECLARED,
+    category: 'type',
+    severity: 'error',
+    message: "Type variable-like '{name}' is used in '{func}' but not declared; declare it with 'of {name}'.",
+    help: "对于看起来像类型变量的名称，务必在 of 子句中声明。",
+  },
+  [ErrorCode.TYPEVAR_INCONSISTENT]: {
+    code: ErrorCode.TYPEVAR_INCONSISTENT,
+    category: 'type',
+    severity: 'error',
+    message: "Type variable '{name}' inferred inconsistently: {previous} vs {actual}",
+    help: "确认类型推断的多个使用点产出相同的具体类型。",
+  },
+  [ErrorCode.IF_BRANCH_MISMATCH]: {
+    code: ErrorCode.IF_BRANCH_MISMATCH,
+    category: 'type',
+    severity: 'error',
+    message: "If分支返回类型不一致: then分支 {thenType} vs else分支 {elseType}",
+    help: "确保 if 两个分支返回类型保持一致。",
+  },
+  [ErrorCode.MATCH_BRANCH_MISMATCH]: {
+    code: ErrorCode.MATCH_BRANCH_MISMATCH,
+    category: 'type',
+    severity: 'error',
+    message: "Match case return types differ: {expected} vs {actual}",
+    help: "检查 match 每个分支的返回类型是否统一。",
+  },
+  [ErrorCode.INTEGER_PATTERN_TYPE]: {
+    code: ErrorCode.INTEGER_PATTERN_TYPE,
+    category: 'type',
+    severity: 'error',
+    message: "Integer pattern used on non-Int scrutinee ({scrutineeType})",
+    help: "仅在 Int 类型的匹配表达式中使用整数模式。",
+  },
+  [ErrorCode.UNKNOWN_FIELD]: {
+    code: ErrorCode.UNKNOWN_FIELD,
+    category: 'type',
+    severity: 'error',
+    message: "Unknown field '{field}' for {type}",
+    help: "检查构造体或数据类型的字段名称是否正确。",
+  },
+  [ErrorCode.FIELD_TYPE_MISMATCH]: {
+    code: ErrorCode.FIELD_TYPE_MISMATCH,
+    category: 'type',
+    severity: 'error',
+    message: "Field '{field}' expects {expected}, got {actual}",
+    help: "校验字段初始化表达式的类型是否匹配声明。",
+  },
+  [ErrorCode.MISSING_REQUIRED_FIELD]: {
+    code: ErrorCode.MISSING_REQUIRED_FIELD,
+    category: 'type',
+    severity: 'error',
+    message: "构造 {type} 缺少必需字段 '{field}'",
+    help: "为数据构造提供声明中的所有必需字段。",
+  },
+  [ErrorCode.NOT_CALL_ARITY]: {
+    code: ErrorCode.NOT_CALL_ARITY,
+    category: 'type',
+    severity: 'error',
+    message: "not(...) expects 1 argument",
+    help: "调整 not 调用的参数数量为 1。",
+  },
+  [ErrorCode.AWAIT_TYPE]: {
+    code: ErrorCode.AWAIT_TYPE,
+    category: 'type',
+    severity: 'warning',
+    message: "await expects Maybe<T> or Result<T,E>, got {type}",
+    help: "仅对 Maybe 或 Result 类型调用 await。",
+  },
+  [ErrorCode.DUPLICATE_ENUM_CASE]: {
+    code: ErrorCode.DUPLICATE_ENUM_CASE,
+    category: 'type',
+    severity: 'warning',
+    message: "Duplicate enum case '{case}' in match on {type}.",
+    help: "移除重复的枚举分支，保持匹配语句简洁。",
+  },
+  [ErrorCode.NON_EXHAUSTIVE_MAYBE]: {
+    code: ErrorCode.NON_EXHAUSTIVE_MAYBE,
+    category: 'type',
+    severity: 'warning',
+    message: "Non-exhaustive match on Maybe type; missing {missing} case.",
+    help: "为 Maybe 匹配补齐 null 与非 null 分支。",
+  },
+  [ErrorCode.NON_EXHAUSTIVE_ENUM]: {
+    code: ErrorCode.NON_EXHAUSTIVE_ENUM,
+    category: 'type',
+    severity: 'warning',
+    message: "Non-exhaustive match on {type}; missing: {missing}",
+    help: "补充所有未覆盖的枚举分支，或添加通配符。",
+  },
+  [ErrorCode.AMBIGUOUS_INTEROP_NUMERIC]: {
+    code: ErrorCode.AMBIGUOUS_INTEROP_NUMERIC,
+    category: 'type',
+    severity: 'warning',
+    message: "Ambiguous interop call '{target}': mixing numeric kinds (Int={hasInt}, Long={hasLong}, Double={hasDouble}). Overload resolution may widen/box implicitly.",
+    help: "统一互操作调用的参数数值类型，避免隐式装箱与拓宽。",
+  },
+  [ErrorCode.LIST_ELEMENT_TYPE_MISMATCH]: {
+    code: ErrorCode.LIST_ELEMENT_TYPE_MISMATCH,
+    category: 'type',
+    severity: 'error',
+    message: "List literal element type mismatch: expected {expected}, got {actual}",
+    help: "确保列表字面量中的所有元素类型一致。",
+  },
+  [ErrorCode.OPTIONAL_EXPECTED]: {
+    code: ErrorCode.OPTIONAL_EXPECTED,
+    category: 'type',
+    severity: 'error',
+    message: "Optional value required here: expected Maybe or Option, but got {actual}",
+    help: "传入 Maybe/Option 类型或显式包装值。",
+  },
+  [ErrorCode.DUPLICATE_IMPORT_ALIAS]: {
+    code: ErrorCode.DUPLICATE_IMPORT_ALIAS,
+    category: 'scope',
+    severity: 'warning',
+    message: "Duplicate import alias '{alias}'.",
+    help: "为不同的导入使用唯一别名，避免覆盖。",
+  },
+  [ErrorCode.UNDEFINED_VARIABLE]: {
+    code: ErrorCode.UNDEFINED_VARIABLE,
+    category: 'scope',
+    severity: 'error',
+    message: "Undefined variable: {name}",
+    help: "在使用变量前先声明并初始化。",
+  },
+  [ErrorCode.EFF_MISSING_IO]: {
+    code: ErrorCode.EFF_MISSING_IO,
+    category: 'effect',
+    severity: 'error',
+    message: "Function '{func}' may perform I/O but is missing @io effect.",
+    help: "为具有 IO 行为的函数声明 @io 效果。",
+  },
+  [ErrorCode.EFF_MISSING_CPU]: {
+    code: ErrorCode.EFF_MISSING_CPU,
+    category: 'effect',
+    severity: 'error',
+    message: "Function '{func}' may perform CPU-bound work but is missing @cpu (or @io) effect.",
+    help: "为 CPU 密集型函数声明 @cpu 或 @io 效果。",
+  },
+  [ErrorCode.EFF_SUPERFLUOUS_IO_CPU_ONLY]: {
+    code: ErrorCode.EFF_SUPERFLUOUS_IO_CPU_ONLY,
+    category: 'effect',
+    severity: 'info',
+    message: "Function '{func}' declares @io but only CPU-like work found; @io subsumes @cpu and may be unnecessary.",
+    help: "若函数仅执行 CPU 工作，可移除多余的 @io 声明。",
+  },
+  [ErrorCode.EFF_SUPERFLUOUS_IO]: {
+    code: ErrorCode.EFF_SUPERFLUOUS_IO,
+    category: 'effect',
+    severity: 'warning',
+    message: "Function '{func}' declares @io but no obvious I/O found.",
+    help: "确认是否需要 @io；若无 IO 行为可移除。",
+  },
+  [ErrorCode.EFF_SUPERFLUOUS_CPU]: {
+    code: ErrorCode.EFF_SUPERFLUOUS_CPU,
+    category: 'effect',
+    severity: 'warning',
+    message: "Function '{func}' declares @cpu but no obvious CPU-bound work found.",
+    help: "移除多余的 @cpu 声明或增加相应的 CPU 工作。",
+  },
+  [ErrorCode.EFF_INFER_MISSING_IO]: {
+    code: ErrorCode.EFF_INFER_MISSING_IO,
+    category: 'effect',
+    severity: 'error',
+    message: "函数 '{func}' 缺少 @io 效果声明，推断要求 IO。",
+    help: "根据推断结果为函数添加 @io 效果。",
+  },
+  [ErrorCode.EFF_INFER_MISSING_CPU]: {
+    code: ErrorCode.EFF_INFER_MISSING_CPU,
+    category: 'effect',
+    severity: 'error',
+    message: "函数 '{func}' 缺少 @cpu 效果声明，推断要求 CPU（或 @io）。",
+    help: "根据推断结果补齐 @cpu 或 @io 效果。",
+  },
+  [ErrorCode.EFF_INFER_REDUNDANT_IO]: {
+    code: ErrorCode.EFF_INFER_REDUNDANT_IO,
+    category: 'effect',
+    severity: 'warning',
+    message: "函数 '{func}' 声明了 @io，但推断未发现 IO 副作用。",
+    help: "确认是否需要保留 @io 声明。",
+  },
+  [ErrorCode.EFF_INFER_REDUNDANT_CPU]: {
+    code: ErrorCode.EFF_INFER_REDUNDANT_CPU,
+    category: 'effect',
+    severity: 'warning',
+    message: "函数 '{func}' 声明了 @cpu，但推断未发现 CPU 副作用。",
+    help: "若无 CPU 副作用，可删除 @cpu 声明。",
+  },
+  [ErrorCode.EFF_INFER_REDUNDANT_CPU_WITH_IO]: {
+    code: ErrorCode.EFF_INFER_REDUNDANT_CPU_WITH_IO,
+    category: 'effect',
+    severity: 'warning',
+    message: "函数 '{func}' 同时声明 @cpu 和 @io；由于需要 @io，@cpu 可移除。",
+    help: "保留 @io 即可满足需求，移除多余的 @cpu。",
+  },
+  [ErrorCode.CAPABILITY_NOT_ALLOWED]: {
+    code: ErrorCode.CAPABILITY_NOT_ALLOWED,
+    category: 'capability',
+    severity: 'error',
+    message: "Function '{func}' requires {cap} capability but manifest for module '{module}' denies it.",
+    help: "更新能力清单或修改函数实现以符合限制。",
+  },
+  [ErrorCode.EFF_CAP_MISSING]: {
+    code: ErrorCode.EFF_CAP_MISSING,
+    category: 'capability',
+    severity: 'error',
+    message: "Function '{func}' uses {cap} capability but header declares [{declared}].",
+    help: "在函数头部声明实际使用到的能力。",
+  },
+  [ErrorCode.EFF_CAP_SUPERFLUOUS]: {
+    code: ErrorCode.EFF_CAP_SUPERFLUOUS,
+    category: 'capability',
+    severity: 'info',
+    message: "Function '{func}' declares {cap} capability but it is not used.",
+    help: "移除未使用的能力声明以保持清晰。",
+  },
+  [ErrorCode.PII_HTTP_UNENCRYPTED]: {
+    code: ErrorCode.PII_HTTP_UNENCRYPTED,
+    category: 'pii',
+    severity: 'error',
+    message: "PII data transmitted over HTTP without encryption",
+    help: "使用加密通道（HTTPS）或脱敏处理后再传输 PII 数据。",
+  },
+  [ErrorCode.PII_ANNOTATION_MISSING]: {
+    code: ErrorCode.PII_ANNOTATION_MISSING,
+    category: 'pii',
+    severity: 'error',
+    message: "PII annotation missing for value flowing into '{sink}'",
+    help: "为敏感数据添加 @pii 标注以便跟踪。",
+  },
+  [ErrorCode.PII_SENSITIVITY_MISMATCH]: {
+    code: ErrorCode.PII_SENSITIVITY_MISMATCH,
+    category: 'pii',
+    severity: 'warning',
+    message: "PII sensitivity mismatch: required {required}, got {actual}",
+    help: "调整数据的敏感级别或更新流程要求。",
+  },
+  [ErrorCode.ASYNC_START_NOT_WAITED]: {
+    code: ErrorCode.ASYNC_START_NOT_WAITED,
+    category: 'async',
+    severity: 'error',
+    message: "Started async task '{task}' not waited",
+    help: "对启动的异步任务调用 wait，确保执行完毕。",
+  },
+  [ErrorCode.ASYNC_WAIT_NOT_STARTED]: {
+    code: ErrorCode.ASYNC_WAIT_NOT_STARTED,
+    category: 'async',
+    severity: 'error',
+    message: "Waiting for async task '{task}' that was never started",
+    help: "确认 wait 的任务名称在 Start 中正确出现。",
+  },
+  [ErrorCode.ASYNC_DUPLICATE_START]: {
+    code: ErrorCode.ASYNC_DUPLICATE_START,
+    category: 'async',
+    severity: 'error',
+    message: "Async task '{task}' started multiple times ({count} occurrences)",
+    help: "避免重复启动同名任务，可复用已有任务或改用新名称。",
+  },
+  [ErrorCode.ASYNC_DUPLICATE_WAIT]: {
+    code: ErrorCode.ASYNC_DUPLICATE_WAIT,
+    category: 'async',
+    severity: 'warning',
+    message: "Async task '{task}' waited multiple times ({count} occurrences)",
+    help: "确保每个任务仅等待一次，或使用单独的同步机制。",
+  },
+};
+
+/**
+ * 使用命名参数填充错误消息模板。
+ */
+export function formatErrorMessage(code: ErrorCode, params: Record<string, string | number>): string {
+  const template = ERROR_MESSAGES[code] ?? "";
+  return template.replace(/\{(\w+)\}/g, (_, key) => {
+    const value = params[key];
+    return value === undefined ? `{${key}}` : String(value);
+  });
+}
+
+/**
+ * 获取详细元数据，包含分类与帮助信息。
+ */
+export function getErrorMetadata(code: ErrorCode): ErrorMetadata {
+  return ERROR_METADATA[code];
+}

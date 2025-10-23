@@ -21,6 +21,11 @@ import { KW } from './tokens.js';
 // Remove common articles only when followed by whitespace to avoid
 // creating leading comment markers or altering tokens adjacent to punctuation.
 const ARTICLE_RE = /\b(a|an|the)\b(?=\s)/gi;
+const LINE_COMMENT_RE = /^\s*(?:\/\/|#)/;
+const SPACE_RUN_RE = /[ \t]+/g;
+const PUNCT_NORMAL_RE = /\s+([.,:])/g;
+const PUNCT_FINAL_RE = /\s+([.,:!;?])/g;
+const TRAILING_SPACE_RE = /\s+$/g;
 
 // 判断指定位置的引号是否被转义
 function isEscaped(str: string, index: number): boolean {
@@ -86,10 +91,10 @@ export function canonicalize(input: string): string {
   // measures indentation consistently.
   s = s.replace(/\t/g, '  ');
 
-  // Drop line comments (// and #) entirely; formatter/LSP preserve docs separately
+  // Drop line comments (// and #) while 保留换行占位，formatter/LSP 另行处理注释内容
   s = s
     .split('\n')
-    .filter(line => !/^\s*\/\//.test(line) && !/^\s*#/.test(line))
+    .map(line => (LINE_COMMENT_RE.test(line) ? '' : line))
     .join('\n');
 
   // Normalize smart quotes to straight quotes
@@ -112,13 +117,7 @@ export function canonicalize(input: string): string {
   // Fold multiple spaces (but not newlines); keep indentation (2-space rule) for leading spaces only
   s = s
     .split('\n')
-    .map(line => {
-      const m = line.match(/^(\s*)(.*)$/);
-      if (!m) return line;
-      const indent = m[1] ?? '';
-      const rest = (m[2] ?? '').replace(/[ \t]+/g, ' ').replace(/\s+([.,:])/g, '$1');
-      return indent + rest;
-    })
+    .map(line => normalizeLine(line, PUNCT_NORMAL_RE, false))
     .join('\n');
 
   // Keep original casing to preserve TypeIdents. We only normalize multi-word keywords by hinting
@@ -130,15 +129,33 @@ export function canonicalize(input: string): string {
   }
 
   // Remove articles in allowed contexts (lightweight; parser will enforce correctness)
-  const segments: Array<{ text: string; inString: boolean }> = [];
+  marked = segmentString(marked)
+    .map(segment => (segment.inString ? segment.text : segment.text.replace(ARTICLE_RE, '')))
+    .join('');
+  // Do not collapse newlines globally.
+  marked = marked.replace(/^\s+$/gm, '');
+
+  // Final whitespace normalization to ensure idempotency after article/macro passes
+  marked = marked
+    .split('\n')
+    .map(line => normalizeLine(line, PUNCT_FINAL_RE, true))
+    .join('\n');
+
+  return marked;
+}
+
+type Segment = { text: string; inString: boolean };
+
+function segmentString(text: string): Segment[] {
+  const segments: Segment[] = [];
   let inString = false;
   let current = '';
 
-  for (let i = 0; i < marked.length; i++) {
-    const ch = marked[i];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     current += ch;
 
-    if (ch === '"' && !isEscaped(marked, i)) {
+    if (ch === '"' && !isEscaped(text, i)) {
       if (inString) {
         segments.push({ text: current, inString: true });
         current = '';
@@ -158,26 +175,49 @@ export function canonicalize(input: string): string {
     segments.push({ text: current, inString });
   }
 
-  marked = segments
-    .map(segment => (segment.inString ? segment.text : segment.text.replace(ARTICLE_RE, '')))
-    .join('');
-  // Do not collapse newlines globally.
-  marked = marked.replace(/^\s+$/gm, '');
+  return segments;
+}
 
-  // Final whitespace normalization to ensure idempotency after article/macro passes
-  marked = marked
-    .split('\n')
-    .map(line => {
-      const m = line.match(/^(\s*)(.*)$/);
-      if (!m) return line;
-      const indent = m[1] ?? '';
-      const rest = (m[2] ?? '')
-        .replace(/[ \t]+/g, ' ')
-        .replace(/\s+([.,:!;?])/g, '$1')
-        .replace(/\s+$/g, '');
-      return indent + rest;
+function normalizeLine(line: string, punctuationPattern: RegExp, trimTrailing: boolean): string {
+  if (line === '') {
+    return line;
+  }
+
+  const match = line.match(/^(\s*)(.*)$/);
+  if (!match) {
+    return line;
+  }
+
+  const indent = match[1] ?? '';
+  const rest = match[2] ?? '';
+  if (rest === '') {
+    return indent;
+  }
+
+  const normalizedRest = normalizeRest(rest, punctuationPattern, trimTrailing);
+  return indent + normalizedRest;
+}
+
+function normalizeRest(rest: string, punctuationPattern: RegExp, trimTrailing: boolean): string {
+  const segments = segmentString(rest);
+  if (segments.length === 0) {
+    return rest;
+  }
+
+  return segments
+    .map((segment, index) => {
+      if (segment.inString) {
+        return segment.text;
+      }
+
+      let normalized = segment.text.replace(SPACE_RUN_RE, ' ');
+      normalized = normalized.replace(punctuationPattern, '$1');
+
+      if (trimTrailing && index === segments.length - 1) {
+        normalized = normalized.replace(TRAILING_SPACE_RE, '');
+      }
+
+      return normalized;
     })
-    .join('\n');
-
-  return marked;
+    .join('');
 }

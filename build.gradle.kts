@@ -3,6 +3,22 @@
 // 应用确定性构建配置
 apply(from = "gradle/reproducible-builds.gradle.kts")
 
+// 全局测试依赖配置（供所有子模块使用）
+subprojects {
+    repositories {
+        mavenCentral()
+    }
+
+    plugins.withType<JavaPlugin> {
+        dependencies {
+            // jqwik 属性测试库（类似 TypeScript fast-check）
+            "testImplementation"("net.jqwik:jqwik:1.8.2")
+            // JSON 对比库（用于黄金测试）
+            "testImplementation"("org.skyscreamer:jsonassert:1.5.1")
+        }
+    }
+}
+
 val generateAsterJarRoot by tasks.registering(Exec::class) {
   workingDir = projectDir
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))

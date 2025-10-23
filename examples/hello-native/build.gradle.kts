@@ -24,6 +24,9 @@ application {
 }
 
 graalvmNative {
+  metadataRepository {
+    enabled.set(false) // Gradle 9 + build tools 0.11.1 兼容性问题，禁用元数据服务
+  }
   binaries {
     named("main") {
       imageName.set("hello-aster")

@@ -4,7 +4,7 @@
 
 # Interface: Token
 
-Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L64)
+Defined in: [types.ts:58](https://github.com/wontlost-ltd/aster-lang/blob/9d401c3f80bd10cde66ddfef400020ddf8f12a80/src/types.ts#L58)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/273a93
 
 > `readonly` **kind**: [`TokenKind`](../enumerations/TokenKind.md)
 
-Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L65)
+Defined in: [types.ts:59](https://github.com/wontlost-ltd/aster-lang/blob/9d401c3f80bd10cde66ddfef400020ddf8f12a80/src/types.ts#L59)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:65](https://github.com/wontlost-ltd/aster-lang/blob/273a93
 
 > `readonly` **value**: `null` \| `string` \| `number` \| `boolean` \| [`CommentValue`](CommentValue.md)
 
-Defined in: [types.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L66)
+Defined in: [types.ts:60](https://github.com/wontlost-ltd/aster-lang/blob/9d401c3f80bd10cde66ddfef400020ddf8f12a80/src/types.ts#L60)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:66](https://github.com/wontlost-ltd/aster-lang/blob/273a93
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L67)
+Defined in: [types.ts:61](https://github.com/wontlost-ltd/aster-lang/blob/9d401c3f80bd10cde66ddfef400020ddf8f12a80/src/types.ts#L61)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:67](https://github.com/wontlost-ltd/aster-lang/blob/273a93
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:68](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L68)
+Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/9d401c3f80bd10cde66ddfef400020ddf8f12a80/src/types.ts#L62)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [types.ts:68](https://github.com/wontlost-ltd/aster-lang/blob/273a93
 
 > `readonly` `optional` **channel**: `"trivia"`
 
-Defined in: [types.ts:69](https://github.com/wontlost-ltd/aster-lang/blob/273a9355e5cfd44b5d3dd2c5d7f7bedf91cad0e5/src/types.ts#L69)
+Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/9d401c3f80bd10cde66ddfef400020ddf8f12a80/src/types.ts#L63)

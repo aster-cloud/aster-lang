@@ -6,8 +6,13 @@
       "kind": "Func",
       "name": "run",
       "params": [],
-      "ret": { "kind": "TypeName", "name": "Int" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -16,7 +21,10 @@
             "name": "map",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.empty" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.empty"
+              },
               "args": []
             }
           },
@@ -25,11 +33,23 @@
             "name": "map",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.put" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.put"
+              },
               "args": [
-                { "kind": "Name", "name": "map" },
-                { "kind": "String", "value": "a" },
-                { "kind": "Int", "value": 1 }
+                {
+                  "kind": "Name",
+                  "name": "map"
+                },
+                {
+                  "kind": "String",
+                  "value": "a"
+                },
+                {
+                  "kind": "Int",
+                  "value": 1
+                }
               ]
             }
           },
@@ -38,11 +58,23 @@
             "name": "map",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.put" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.put"
+              },
               "args": [
-                { "kind": "Name", "name": "map" },
-                { "kind": "String", "value": "b" },
-                { "kind": "Int", "value": 2 }
+                {
+                  "kind": "Name",
+                  "name": "map"
+                },
+                {
+                  "kind": "String",
+                  "value": "b"
+                },
+                {
+                  "kind": "Int",
+                  "value": 2
+                }
               ]
             }
           },
@@ -51,11 +83,23 @@
             "name": "map",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.put" },
+              "target": {
+                "kind": "Name",
+                "name": "Map.put"
+              },
               "args": [
-                { "kind": "Name", "name": "map" },
-                { "kind": "String", "value": "c" },
-                { "kind": "Int", "value": 3 }
+                {
+                  "kind": "Name",
+                  "name": "map"
+                },
+                {
+                  "kind": "String",
+                  "value": "c"
+                },
+                {
+                  "kind": "Int",
+                  "value": 3
+                }
               ]
             }
           },
@@ -64,16 +108,32 @@
             "name": "keys",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "Map.keys" },
-              "args": [{ "kind": "Name", "name": "map" }]
+              "target": {
+                "kind": "Name",
+                "name": "Map.keys"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "map"
+                }
+              ]
             }
           },
           {
             "kind": "Return",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.length" },
-              "args": [{ "kind": "Name", "name": "keys" }]
+              "target": {
+                "kind": "Name",
+                "name": "List.length"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "keys"
+                }
+              ]
             }
           }
         ]

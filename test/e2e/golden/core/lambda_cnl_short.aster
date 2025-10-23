@@ -1,0 +1,6 @@
+This module is demo.lambdashort.
+
+To greet with pfx: Text, produce Text:
+  Let f be function with x: Text, produce Text:
+    Return Text.concat(pfx, x).
+  Return f("short").

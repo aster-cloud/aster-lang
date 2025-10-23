@@ -27,10 +27,12 @@ import type { Effect, CapabilityKind } from '../config/semantic.js';
  *
  * @typeParam S - Span 类型（AST: Span, Core: Origin）
  */
+type HasFileProp<T> = 'file' extends keyof T ? true : false;
+
 export interface BaseNode<S = Span | Origin> {
   readonly kind: string;
-  readonly span?: S extends Origin ? never : Span;
-  readonly origin?: S extends Span ? never : Origin;
+  readonly span?: HasFileProp<S> extends true ? never : Span;
+  readonly origin?: HasFileProp<S> extends true ? Origin : never;
   readonly file?: string | null;
 }
 
@@ -96,9 +98,9 @@ export interface BaseFunc<S = Span | Origin, E = string[] | readonly Effect[], T
   readonly name: string;
   readonly typeParams: readonly string[];
   readonly params: readonly BaseParameter<T>[];
-  readonly effects?: E;
-  readonly effectCaps?: readonly CapabilityKind[];
-  readonly effectCapsExplicit?: boolean;
+  readonly effects: E;
+  readonly effectCaps: readonly CapabilityKind[];
+  readonly effectCapsExplicit: boolean;
 }
 
 /**
@@ -267,10 +269,13 @@ export interface BaseInt<S = Span | Origin> extends BaseNode<S> {
 
 /**
  * Long 字面量基础接口。
+ *
+ * **注意**: value 使用 string 类型存储以避免 JavaScript number 的精度损失。
+ * Long 字面量可能超过 Number.MAX_SAFE_INTEGER (2^53-1)，例如 Long.MAX_VALUE (2^63-1)。
  */
 export interface BaseLong<S = Span | Origin> extends BaseNode<S> {
   readonly kind: 'Long';
-  readonly value: number;
+  readonly value: string;
 }
 
 /**

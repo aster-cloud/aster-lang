@@ -11,10 +11,14 @@ import { CapabilityKind, inferCapabilityFromName } from './config/semantic.js';
 import { inferEffects } from './effect_inference.js';
 import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
 import { DefaultTypeVisitor } from './ast_visitor.js';
-// import { DiagnosticBuilder, DiagnosticCode, DiagnosticSeverity } from './diagnostics.js';
 import { getIOPrefixes, getCPUPrefixes } from './config/effect_config.js';
 import { ENFORCE_CAPABILITIES } from './config/runtime.js';
 import { createLogger, logPerformance } from './utils/logger.js';
+import { SymbolTable } from './typecheck/symbol_table.js';
+import type { SymbolKind } from './typecheck/symbol_table.js';
+import { DiagnosticBuilder } from './typecheck/diagnostics.js';
+import { TypeSystem } from './typecheck/type_system.js';
+import { ErrorCode } from './error_codes.js';
 
 // 从配置获取效果推断前缀（模块级，避免重复调用）
 const IO_PREFIXES = getIOPrefixes();
@@ -36,123 +40,28 @@ export function resolveAlias(name: string, imports: Map<string, string>): string
   return resolved ? `${resolved}.${rest.join('.')}` : name;
 }
 
-// Internal representation for types during checking
-type UnknownT = { kind: 'Unknown' };
-type T = Core.Type | UnknownT;
-
-function isUnknown(x: T): x is UnknownT {
-  return (x as { kind: string }).kind === 'Unknown';
-}
-
-function tUnknown(): T {
-  return { kind: 'Unknown' };
-}
-
-const UNKNOWN_TYPENAME: Core.TypeName = { kind: 'TypeName', name: 'Unknown' };
 const typecheckLogger = createLogger('typecheck');
+const UNKNOWN_TYPE: Core.Type = TypeSystem.unknown();
 
-function tEquals(a: T, b: T): boolean {
-  if (isUnknown(a) || isUnknown(b)) return true;
-  const aa = a as Core.Type;
-  const bb = b as Core.Type;
-  if (aa.kind === 'TypeVar' && bb.kind === 'TypeVar') {
-    return aa.name === bb.name;
-  }
-  if (aa.kind === 'TypeVar' || bb.kind === 'TypeVar') return false;
-  if (aa.kind !== bb.kind) return false;
-  switch (aa.kind) {
-    case 'TypeName': {
-      const an = aa.name;
-      const bn = (bb as Core.TypeName).name;
-      if (an === 'Unknown' || bn === 'Unknown') return true;
-      return an === bn;
-    }
-    case 'TypeApp': {
-      const aApp = aa as Core.TypeApp;
-      const bApp = bb as Core.TypeApp;
-      if (aApp.base !== bApp.base) return false;
-      if (aApp.args.length !== bApp.args.length) return false;
-      for (let i = 0; i < aApp.args.length; i++)
-        if (!tEquals(aApp.args[i] as T, bApp.args[i] as T)) return false;
-      return true;
-    }
-    case 'Maybe':
-      return tEquals((aa as Core.Maybe).type as T, (bb as Core.Maybe).type as T);
-    case 'Option':
-      return tEquals((aa as Core.Option).type as T, (bb as Core.Option).type as T);
-    case 'Result': {
-      const aRes = aa as Core.Result;
-      const bRes = bb as Core.Result;
-      return tEquals(aRes.ok as T, bRes.ok as T) && tEquals(aRes.err as T, bRes.err as T);
-    }
-    case 'List':
-      return tEquals((aa as Core.List).type as T, (bb as Core.List).type as T);
-    case 'Map': {
-      const aMap = aa as Core.Map;
-      const bMap = bb as Core.Map;
-      return tEquals(aMap.key as T, bMap.key as T) && tEquals(aMap.val as T, bMap.val as T);
-    }
-    case 'FuncType': {
-      const aFunc = aa as unknown as Core.FuncType;
-      const bFunc = bb as unknown as Core.FuncType;
-      if (aFunc.params.length !== bFunc.params.length) return false;
-      for (let i = 0; i < aFunc.params.length; i++)
-        if (!tEquals(aFunc.params[i] as T, bFunc.params[i] as T)) return false;
-      return tEquals(aFunc.ret as T, bFunc.ret as T);
-    }
-    case 'PiiType': {
-      const aPii = aa as Core.PiiType;
-      const bPii = bb as Core.PiiType;
-      return aPii.sensitivity === bPii.sensitivity &&
-             aPii.category === bPii.category &&
-             tEquals(aPii.baseType as T, bPii.baseType as T);
-    }
-    default: {
-      // 穷尽检查：TypeScript 确保所有类型都已处理
-      // 如果到达这里，说明类型定义与实现不一致
-      const unknownType = aa as Core.Type;
-      // const _exhaustiveCheck: never = unknownType as never;
-      typecheckLogger.warn('tEquals: 未处理的类型 kind', { value: unknownType });
-      return false;
-    }
-  }
+function isUnknown(type: Core.Type | undefined | null): boolean {
+  if (!type) return true;
+  return TypeSystem.equals(type, UNKNOWN_TYPE);
 }
 
-function tToString(t: T): string {
-  if (isUnknown(t)) return 'Unknown';
-  switch (t.kind) {
-    case 'TypeName':
-      return t.name;
-    case 'TypeVar':
-      return t.name;
-    case 'TypeApp':
-      return `${t.base}<${t.args.map(tt => tToString(tt as T)).join(', ')}>`;
-    case 'Maybe':
-      return `${tToString(t.type as T)}?`;
-    case 'Option':
-      return `Option<${tToString(t.type as T)}>`;
-    case 'Result':
-      return `Result<${tToString(t.ok as T)}, ${tToString(t.err as T)}>`;
-    case 'List':
-      return `List<${tToString(t.type as T)}>`;
-    case 'Map':
-      return `Map<${tToString(t.key as T)}, ${tToString(t.val as T)}>`;
-    case 'FuncType': {
-      const ft = t as unknown as Core.FuncType;
-      const ps = ft.params.map(tt => tToString(tt as T)).join(', ');
-      return `(${ps}) -> ${tToString(ft.ret as T)}`;
-    }
-    case 'PiiType': {
-      const pt = t as Core.PiiType;
-      return `@pii(${pt.sensitivity}, ${pt.category}) ${tToString(pt.baseType as T)}`;
-    }
-    default:
-      return 'Unknown';
-  }
+function unknownType(): Core.Type {
+  return UNKNOWN_TYPE;
 }
 
-interface Env {
-  vars: Map<string, T>;
+function normalizeType(type: Core.Type | undefined | null): Core.Type {
+  return type ?? UNKNOWN_TYPE;
+}
+
+function formatType(type: Core.Type | undefined | null): string {
+  return TypeSystem.format(normalizeType(type));
+}
+
+function typesEqual(a: Core.Type | undefined | null, b: Core.Type | undefined | null, strict = false): boolean {
+  return TypeSystem.equals(normalizeType(a), normalizeType(b), strict);
 }
 
 interface ModuleContext {
@@ -166,16 +75,13 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
   const startTime = performance.now();
   typecheckLogger.info('开始类型检查模块', { moduleName });
   try {
-    const diags: TypecheckDiagnostic[] = [];
+    const diagnostics = new DiagnosticBuilder();
     const ctx: ModuleContext = { datas: new Map(), enums: new Map(), imports: new Map() };
     for (const d of m.decls) {
       if (d.kind === 'Import') {
         const alias = d.asName ?? d.name;
         if (ctx.imports.has(alias)) {
-          diags.push({
-            severity: 'warning',
-            message: `Duplicate import alias '${alias}'.`,
-          });
+          diagnostics.warning(ErrorCode.DUPLICATE_IMPORT_ALIAS, d.span, { alias });
         } else {
           ctx.imports.set(alias, d.name);
         }
@@ -187,13 +93,13 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
     }
     for (const d of m.decls) {
       if (d.kind === 'Func') {
-        diags.push(...typecheckFunc(ctx, d));
+        typecheckFunc(ctx, d, diagnostics);
       }
     }
     const effectDiags = inferEffects(m, ctx.imports);
-    diags.push(...effectDiags);
+    const result = [...diagnostics.getDiagnostics(), ...effectDiags];
     const duration = performance.now() - startTime;
-    const baseMeta = { moduleName, errorCount: diags.length };
+    const baseMeta = { moduleName, errorCount: result.length };
     logPerformance({
       component: 'typecheck',
       operation: '模块类型检查',
@@ -204,7 +110,7 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
       ...baseMeta,
       duration_ms: duration,
     });
-    return diags;
+    return result;
   } catch (error) {
     typecheckLogger.error('类型检查失败', error as Error, { moduleName });
     throw error;
@@ -216,9 +122,11 @@ export function typecheckModuleWithCapabilities(
   manifest: CapabilityManifest | null
 ): TypecheckDiagnostic[] {
   const normalizedManifest = manifest ? normalizeManifest(manifest) : null;
-  const diags = typecheckModule(m);
+  const baseDiagnostics = typecheckModule(m);
+  if (!normalizedManifest) return baseDiagnostics;
+
+  const builder = new DiagnosticBuilder();
   const capCtx: CapabilityContext = { moduleName: m.name ?? '' };
-  if (!normalizedManifest) return diags;
 
   for (const d of m.decls) {
     if (d.kind !== 'Func') continue;
@@ -233,8 +141,8 @@ export function typecheckModuleWithCapabilities(
       }
     }
 
-    const meta = d as unknown as { effectCaps?: readonly CapabilityKind[]; effectCapsExplicit?: boolean };
-    if (meta.effectCapsExplicit && Array.isArray(meta.effectCaps)) {
+    const meta = d as unknown as { effectCaps: readonly CapabilityKind[]; effectCapsExplicit: boolean };
+    if (meta.effectCapsExplicit) {
       for (const cap of meta.effectCaps) declaredCaps.add(cap);
     }
 
@@ -243,54 +151,83 @@ export function typecheckModuleWithCapabilities(
 
     for (const cap of declaredCaps) {
       if (!isAllowed(cap, d.name, capCtx, normalizedManifest)) {
-        diags.push({
-          severity: 'error',
-          message: `Function '${d.name}' requires ${cap} capability but manifest for module '${m.name ?? ''}' denies it.`,
-          code: 'CAPABILITY_NOT_ALLOWED',
-          data: { func: d.name, module: m.name, cap },
+        builder.error(ErrorCode.CAPABILITY_NOT_ALLOWED, d.span, {
+          func: d.name,
+          module: m.name ?? '',
+          cap,
         });
       }
     }
   }
-  return diags;
+  return [...baseDiagnostics, ...builder.getDiagnostics()];
 }
 
-function typecheckFunc(ctx: ModuleContext, f: Core.Func): TypecheckDiagnostic[] {
-  // enum member → enum type lookup for expression typing
-  const enumMemberOf = new Map<string, string>();
-  for (const en of ctx.enums.values()) for (const v of en.variants) enumMemberOf.set(v, en.name);
+function typecheckFunc(ctx: ModuleContext, f: Core.Func, diagnostics: DiagnosticBuilder): void {
+  const symbols = new SymbolTable();
+  symbols.enterScope('function');
+  const functionContext: TypecheckWalkerContext = { module: ctx, symbols, diagnostics };
 
-  const diags: TypecheckDiagnostic[] = [];
-  const env: Env = { vars: new Map() };
-  for (const p of f.params) env.vars.set(p.name, p.type as T);
-  const retT = f.ret as T;
-  const bodyRet = typecheckBlock(ctx, env, f.body, diags);
-  if (!tEquals(bodyRet, retT)) {
-    diags.push({
-      severity: 'error',
-      message: `Return type mismatch: expected ${tToString(retT)}, got ${tToString(bodyRet)}`,
+  for (const param of f.params) {
+    const paramType = normalizeType(param.type as Core.Type);
+    defineSymbol(functionContext, param.name, paramType, 'param');
+  }
+
+  const declaredReturn = normalizeType(f.ret as Core.Type);
+  const bodyReturn = f.body ? typecheckBlock(ctx, symbols, f.body, diagnostics) : unknownType();
+
+  if (!typesEqual(bodyReturn, declaredReturn)) {
+    diagnostics.error(ErrorCode.RETURN_TYPE_MISMATCH, f.body?.span ?? f.ret?.span ?? f.span, {
+      expected: formatType(declaredReturn),
+      actual: formatType(bodyReturn),
     });
   }
 
   // Effect enforcement (minimal lattice: ∅ ⊑ CPU ⊑ IO[*])
-  checkEffects(ctx, f, diags);
+  checkEffects(ctx, f, diagnostics);
 
   // Async discipline: every started task should be waited somewhere in the body
-  checkAsyncDiscipline(f, diags);
+  checkAsyncDiscipline(f, diagnostics);
 
   // Capability-parameterized IO enforcement (feature-gated)
-  checkCapabilities(f, diags);
+  checkCapabilities(f, diagnostics);
+
   // Generics: infer type variables from return position (preview)
   const typeParams = (f as unknown as { typeParams?: readonly string[] }).typeParams ?? [];
   if (typeParams.length > 0) {
-    const subst = new Map<string, Core.Type>();
-    unifyTypes(f.ret as T, bodyRet, subst, diags);
+    const bindings = new Map<string, Core.Type>();
+    unifyTypeParameters(declaredReturn, bodyReturn, bindings, diagnostics, f.ret?.span ?? f.span);
   }
 
   // Generic type parameters: undefined usage (error) and unused (warn)
-  checkGenericTypeParameters(ctx, f, diags);
+  checkGenericTypeParameters(ctx, f, diagnostics);
 
-  return diags;
+  symbols.exitScope();
+}
+
+function unifyTypeParameters(
+  expected: Core.Type,
+  actual: Core.Type,
+  bindings: Map<string, Core.Type>,
+  diagnostics: DiagnosticBuilder,
+  span: Span | undefined
+): void {
+  const inferred = new Map<string, Core.Type>();
+  if (!TypeSystem.unify(expected, actual, inferred)) return;
+
+  for (const [name, type] of inferred) {
+    const previous = bindings.get(name);
+    if (previous) {
+      if (!typesEqual(previous, type, true)) {
+        diagnostics.error(ErrorCode.TYPEVAR_INCONSISTENT, span, {
+          name,
+          previous: formatType(previous),
+          actual: formatType(type),
+        });
+      }
+    } else {
+      bindings.set(name, type);
+    }
+  }
 }
 
 /**
@@ -329,7 +266,7 @@ class UnknownTypeFinder extends DefaultTypeVisitor<{ unknowns: Set<string>; ctx:
 function checkGenericTypeParameters(
   ctx: ModuleContext,
   f: Core.Func,
-  diags: TypecheckDiagnostic[]
+  diagnostics: DiagnosticBuilder
 ): void {
   const typeParams = (f as unknown as { typeParams?: readonly string[] }).typeParams ?? [];
 
@@ -343,9 +280,9 @@ function checkGenericTypeParameters(
   // 检查未声明的类型变量使用
   for (const u of used) {
     if (!declared.has(u)) {
-      diags.push({
-        severity: 'error',
-        message: `Type variable '${u}' is used in '${f.name}' but not declared in its type parameters.`,
+      diagnostics.error(ErrorCode.TYPE_VAR_UNDECLARED, f.span, {
+        name: u,
+        func: f.name,
       });
     }
   }
@@ -353,9 +290,9 @@ function checkGenericTypeParameters(
   // 检查未使用的类型参数
   for (const tv of declared) {
     if (!used.has(tv)) {
-      diags.push({
-        severity: 'warning',
-        message: `Type parameter '${tv}' on '${f.name}' is declared but not used.`,
+      diagnostics.warning(ErrorCode.TYPE_PARAM_UNUSED, f.span, {
+        name: tv,
+        func: f.name,
       });
     }
   }
@@ -368,10 +305,10 @@ function checkGenericTypeParameters(
 
   // 报告未声明的疑似类型变量
   for (const nm of unknowns) {
-    if (!declared.has(nm)) {
-      diags.push({
-        severity: 'error',
-        message: `Type variable-like '${nm}' is used in '${f.name}' but not declared; declare it with 'of ${nm}'.`,
+   if (!declared.has(nm)) {
+      diagnostics.error(ErrorCode.TYPEVAR_LIKE_UNDECLARED, f.span, {
+        name: nm,
+        func: f.name,
       });
     }
   }
@@ -388,7 +325,7 @@ function checkGenericTypeParameters(
  */
 function checkAsyncDiscipline(
   f: Core.Func,
-  diags: TypecheckDiagnostic[]
+  diagnostics: DiagnosticBuilder
 ): void {
   const asyncInfo = collectAsync(f.body);
   const isPlaceholderSpan = (span: Span): boolean =>
@@ -398,25 +335,13 @@ function checkAsyncDiscipline(
     span.end.col === 0;
   const pickSpan = (spans: Span[] | undefined): Span | undefined =>
     spans?.find(s => !isPlaceholderSpan(s));
-  const spanToOrigin = (span: Span): Origin => ({ start: span.start, end: span.end });
-
   // 1. 检查 Start 未 Wait
   const notWaited = [...asyncInfo.starts.keys()].filter(n => !asyncInfo.waits.has(n));
   for (const name of notWaited) {
     const spans = asyncInfo.starts.get(name);
     const firstSpan = pickSpan(spans);
 
-    const diag: TypecheckDiagnostic = {
-      severity: 'error',
-      message: `Started async task '${name}' not waited`,
-      code: 'ASYNC_START_NOT_WAITED',
-    };
-
-    if (firstSpan) {
-      diag.location = spanToOrigin(firstSpan);
-    }
-
-    diags.push(diag);
+    diagnostics.error(ErrorCode.ASYNC_START_NOT_WAITED, firstSpan, { task: name });
   }
 
   // 2. 检查 Wait 引用不存在的 Start
@@ -425,17 +350,7 @@ function checkAsyncDiscipline(
     const spans = asyncInfo.waits.get(name);
     const firstSpan = pickSpan(spans);
 
-    const diag: TypecheckDiagnostic = {
-      severity: 'error',
-      message: `Waiting for async task '${name}' that was never started`,
-      code: 'ASYNC_WAIT_NOT_STARTED',
-    };
-
-    if (firstSpan) {
-      diag.location = spanToOrigin(firstSpan);
-    }
-
-    diags.push(diag);
+    diagnostics.error(ErrorCode.ASYNC_WAIT_NOT_STARTED, firstSpan, { task: name });
   }
 
   // 3. 检查重复 Start
@@ -443,17 +358,11 @@ function checkAsyncDiscipline(
     if (spans.length > 1) {
       for (let i = 1; i < spans.length; i++) {
         const span = spans[i]!;
-        const diag: TypecheckDiagnostic = {
-          severity: 'error',
-          message: `Async task '${name}' started multiple times (${spans.length} occurrences)`,
-          code: 'ASYNC_DUPLICATE_START',
-        };
-
-        if (!isPlaceholderSpan(span)) {
-          diag.location = spanToOrigin(span);
-        }
-
-        diags.push(diag);
+        const targetSpan = isPlaceholderSpan(span) ? undefined : span;
+        diagnostics.error(ErrorCode.ASYNC_DUPLICATE_START, targetSpan, {
+          task: name,
+          count: spans.length,
+        });
       }
     }
   }
@@ -463,17 +372,11 @@ function checkAsyncDiscipline(
     if (spans.length > 1) {
       for (let i = 1; i < spans.length; i++) {
         const span = spans[i]!;
-        const diag: TypecheckDiagnostic = {
-          severity: 'warning',
-          message: `Async task '${name}' waited multiple times (${spans.length} occurrences)`,
-          code: 'ASYNC_DUPLICATE_WAIT',
-        };
-
-        if (!isPlaceholderSpan(span)) {
-          diag.location = spanToOrigin(span);
-        }
-
-        diags.push(diag);
+        const targetSpan = isPlaceholderSpan(span) ? undefined : span;
+        diagnostics.warning(ErrorCode.ASYNC_DUPLICATE_WAIT, targetSpan, {
+          task: name,
+          count: spans.length,
+        });
       }
     }
   }
@@ -485,37 +388,31 @@ function checkAsyncDiscipline(
  */
 function checkCapabilities(
   f: Core.Func,
-  diags: TypecheckDiagnostic[]
+  diagnostics: DiagnosticBuilder
 ): void {
   if (!ENFORCE_CAPABILITIES) return;
 
-  const meta = f as unknown as { effectCaps?: readonly CapabilityKind[]; effectCapsExplicit?: boolean };
-  const declaredCaps = meta.effectCapsExplicit ? meta.effectCaps : undefined;
-  if (!declaredCaps || declaredCaps.length === 0) return;
+  const meta = f as unknown as { effectCaps: readonly CapabilityKind[]; effectCapsExplicit: boolean };
+  if (!meta.effectCapsExplicit || meta.effectCaps.length === 0) return;
 
-  const declared = new Set<CapabilityKind>(declaredCaps);
+  const declared = new Set<CapabilityKind>(meta.effectCaps);
   const used = collectCapabilities(f.body);
 
   for (const [cap, callSites] of used) {
-    if (!declared.has(cap)) {
+   if (!declared.has(cap)) {
       const declaredList = [...declared].join(', ');
-      diags.push({
-        severity: 'error',
-        message: `Function '${f.name}' uses ${cap} capability but header declares [${declaredList}].`,
-        code: 'EFF_CAP_MISSING',
-        data: { func: f.name, cap, calls: callSites },
+      diagnostics.error(ErrorCode.EFF_CAP_MISSING, f.span, {
+        func: f.name,
+        cap,
+        declared: declaredList,
+        calls: callSites,
       });
     }
   }
 
   for (const cap of declared) {
     if (!used.has(cap)) {
-      diags.push({
-        severity: 'info',
-        message: `Function '${f.name}' declares ${cap} capability but it is not used.`,
-        code: 'EFF_CAP_SUPERFLUOUS',
-        data: { func: f.name, cap },
-      });
+      diagnostics.info(ErrorCode.EFF_CAP_SUPERFLUOUS, f.span, { func: f.name, cap });
     }
   }
 }
@@ -527,7 +424,7 @@ function checkCapabilities(
 function checkEffects(
   ctx: ModuleContext,
   f: Core.Func,
-  diags: TypecheckDiagnostic[]
+  diagnostics: DiagnosticBuilder
 ): void {
   const effs = collectEffects(ctx, f.body);
   const hasIO = f.effects.some(e => String(e).toLowerCase() === 'io');
@@ -535,52 +432,23 @@ function checkEffects(
 
   // Missing IO is an error when IO-like calls are detected
   if (effs.has('io') && !hasIO)
-    diags.push({
-      severity: 'error',
-      message: `Function '${f.name}' may perform I/O but is missing @io effect.`,
-      code: 'EFF_MISSING_IO',
-      data: { func: f.name },
-    });
+    diagnostics.error(ErrorCode.EFF_MISSING_IO, f.span, { func: f.name });
 
   // Under lattice, IO subsumes CPU: if CPU work is detected, it is satisfied by either @cpu or @io
   if (effs.has('cpu') && !(hasCPU || hasIO))
-    diags.push({
-      severity: 'error',
-      message: `Function '${f.name}' may perform CPU-bound work but is missing @cpu (or @io) effect.`,
-      code: 'EFF_MISSING_CPU',
-      data: { func: f.name },
-    });
+    diagnostics.error(ErrorCode.EFF_MISSING_CPU, f.span, { func: f.name });
 
   // Superfluous annotations:
   // - If @io is declared but only CPU-like work is found, emit an info (IO subsumes CPU; not harmful).
   if (!effs.has('io') && hasIO && effs.has('cpu'))
-    diags.push({
-      severity: 'info',
-      message: `Function '${f.name}' declares @io but only CPU-like work found; @io subsumes @cpu and may be unnecessary.`,
-      code: 'EFF_SUPERFLUOUS_IO_CPU_ONLY',
-      data: { func: f.name },
-    });
+    diagnostics.info(ErrorCode.EFF_SUPERFLUOUS_IO_CPU_ONLY, f.span, { func: f.name });
 
   // - If @io is declared but no obvious IO/CPU is found, keep a low-severity warning.
   if (!effs.has('io') && hasIO && !effs.has('cpu'))
-    diags.push({
-      severity: 'warning',
-      message: `Function '${f.name}' declares @io but no obvious I/O found.`,
-      code: 'EFF_SUPERFLUOUS_IO',
-      data: { func: f.name },
-    });
+    diagnostics.warning(ErrorCode.EFF_SUPERFLUOUS_IO, f.span, { func: f.name });
 
   if (!effs.has('cpu') && hasCPU)
-    diags.push({
-      severity: 'warning',
-      message: `Function '${f.name}' declares @cpu but no obvious CPU-bound work found.`,
-      code: 'EFF_SUPERFLUOUS_CPU',
-      data: { func: f.name },
-    });
-}
-
-function warn(diags: TypecheckDiagnostic[], message: string): void {
-  diags.push({ severity: 'warning', message });
+    diagnostics.warning(ErrorCode.EFF_SUPERFLUOUS_CPU, f.span, { func: f.name });
 }
 
 function collectEffects(ctx: ModuleContext, b: Core.Block): Set<'io' | 'cpu'> {
@@ -624,107 +492,183 @@ function collectCapabilities(b: Core.Block): Map<CapabilityKind, string[]> {
   return caps;
 }
 
-class TypecheckVisitor extends DefaultCoreVisitor<{ ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }> {
-  public result: T = tUnknown();
+interface TypecheckWalkerContext {
+  module: ModuleContext;
+  symbols: SymbolTable;
+  diagnostics: DiagnosticBuilder;
+}
 
-  override visitBlock(b: Core.Block, c: { ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }): void {
-    let last: T = tUnknown();
-    for (const s of b.statements) {
-      this.visitStatement(s, c);
+function defineSymbol(
+  context: TypecheckWalkerContext,
+  name: string,
+  type: Core.Type,
+  kind: SymbolKind,
+  span?: Span
+): void {
+  const existing = context.symbols.lookupInCurrentScope(name);
+  if (existing) {
+    existing.type = type;
+    if (!existing.span && span) existing.span = span;
+    return;
+  }
+  const options: { span?: Span; mutable?: boolean } = {};
+  if (span) options.span = span;
+  options.mutable = kind !== 'param';
+  context.symbols.define(name, type, kind, options);
+}
+
+function assignSymbol(context: TypecheckWalkerContext, name: string, type: Core.Type, span?: Span): void {
+  const symbol = context.symbols.lookup(name);
+  if (!symbol) {
+    context.diagnostics.undefinedVariable(name, span);
+    return;
+  }
+  if (!typesEqual(symbol.type, type) && !TypeSystem.isSubtype(type, symbol.type)) {
+    context.diagnostics.error(ErrorCode.TYPE_MISMATCH_ASSIGN, span, {
+      name,
+      expected: formatType(symbol.type),
+      actual: formatType(type),
+    });
+  }
+  symbol.type = type;
+}
+
+class TypecheckVisitor extends DefaultCoreVisitor<TypecheckWalkerContext> {
+  public result: Core.Type = unknownType();
+
+  override visitBlock(block: Core.Block, context: TypecheckWalkerContext): void {
+    let last: Core.Type = unknownType();
+    for (const stmt of block.statements) {
+      this.visitStatement(stmt, context);
       last = this.result;
     }
     this.result = last;
   }
 
-  override visitStatement(s: Core.Statement, c: { ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }): void {
-    const { ctx, env, diags } = c;
-    switch (s.kind) {
+  override visitStatement(statement: Core.Statement, context: TypecheckWalkerContext): void {
+    const { module, symbols, diagnostics } = context;
+    switch (statement.kind) {
       case 'Let': {
-        const t = typeOfExpr(ctx, env, s.expr, diags);
-        env.vars.set(s.name, t);
-        this.result = t;
+        const valueType = typeOfExpr(module, symbols, statement.expr, diagnostics);
+        defineSymbol(context, statement.name, valueType, 'var', statement.span);
+        this.result = valueType;
         return;
       }
       case 'Set': {
-        const t = typeOfExpr(ctx, env, s.expr, diags);
-        const prev = env.vars.get(s.name) || tUnknown();
-        if (!tEquals(prev, t)) {
-          diags.push({ severity: 'error', message: `Type mismatch assigning to '${s.name}': ${tToString(prev)} vs ${tToString(t)}` });
-        }
-        env.vars.set(s.name, t);
-        this.result = t;
+        const valueType = typeOfExpr(module, symbols, statement.expr, diagnostics);
+        assignSymbol(context, statement.name, valueType, statement.span);
+        this.result = valueType;
         return;
       }
       case 'Return': {
-        this.result = typeOfExpr(ctx, env, s.expr, diags);
+        this.result = typeOfExpr(module, symbols, statement.expr, diagnostics);
         return;
       }
       case 'If': {
-        void typeOfExpr(ctx, env, s.cond, diags);
-        const tThen = typecheckBlock(ctx, cloneEnv(env), s.thenBlock, diags);
-        const tElse = s.elseBlock ? typecheckBlock(ctx, cloneEnv(env), s.elseBlock, diags) : tUnknown();
-        if (isUnknown(tThen)) this.result = tElse;
-        else if (isUnknown(tElse)) this.result = tThen;
-        else {
-          if (!tEquals(tThen, tElse)) diags.push({ severity: 'error', message: `If分支返回类型不一致: then分支 ${tToString(tThen)} vs else分支 ${tToString(tElse)}` });
-          this.result = tThen;
+        void typeOfExpr(module, symbols, statement.cond, diagnostics);
+        const thenType = typecheckBlock(module, symbols, statement.thenBlock, diagnostics);
+        const elseType = statement.elseBlock
+          ? typecheckBlock(module, symbols, statement.elseBlock, diagnostics)
+          : unknownType();
+        if (isUnknown(thenType)) {
+          this.result = elseType;
+        } else if (isUnknown(elseType)) {
+          this.result = thenType;
+        } else {
+          if (!typesEqual(thenType, elseType)) {
+            diagnostics.error(ErrorCode.IF_BRANCH_MISMATCH, statement.span, {
+              thenType: formatType(thenType),
+              elseType: formatType(elseType),
+            });
+          }
+          this.result = thenType;
         }
         return;
       }
       case 'Match': {
-        const et = typeOfExpr(ctx, env, s.expr, diags);
-        let out: T | null = null;
+        const scrutineeType = typeOfExpr(module, symbols, statement.expr, diagnostics);
+        let aggregated: Core.Type | null = null;
         let hasNullCase = false;
         let hasNonNullCase = false;
-        const enumDecl = !isUnknown(et) && et.kind === 'TypeName' ? ctx.enums.get(et.name) : undefined;
+        const enumDecl =
+          !isUnknown(scrutineeType) && scrutineeType.kind === 'TypeName'
+            ? module.enums.get(scrutineeType.name)
+            : undefined;
         const seenEnum = new Set<string>();
         let hasWildcard = false;
-        for (const cse of s.cases) {
-          const t = typecheckCase(ctx, env, cse, et, diags);
-          if (!out) out = t; else if (!tEquals(out, t)) diags.push({ severity: 'error', message: `Match case return types differ: ${tToString(out)} vs ${tToString(t)}` });
-          if (cse.pattern.kind === 'PatNull') hasNullCase = true; else hasNonNullCase = true;
+        for (const caseClause of statement.cases) {
+          const caseType = typecheckCase(module, symbols, caseClause, scrutineeType, diagnostics);
+          if (!aggregated) {
+            aggregated = caseType;
+          } else if (!typesEqual(aggregated, caseType)) {
+            diagnostics.error(ErrorCode.MATCH_BRANCH_MISMATCH, caseClause.body.span ?? statement.span, {
+              expected: formatType(aggregated),
+              actual: formatType(caseType),
+            });
+          }
+          if (caseClause.pattern.kind === 'PatNull') hasNullCase = true;
+          else hasNonNullCase = true;
           if (enumDecl) {
-            if (cse.pattern.kind === 'PatName') {
-              if (enumDecl.variants.includes(cse.pattern.name)) {
-                if (seenEnum.has(cse.pattern.name)) warn(c.diags, `Duplicate enum case '${cse.pattern.name}' in match on ${enumDecl.name}.`);
-                seenEnum.add(cse.pattern.name);
+            if (caseClause.pattern.kind === 'PatName') {
+              if (enumDecl.variants.includes(caseClause.pattern.name)) {
+                if (seenEnum.has(caseClause.pattern.name)) {
+                  diagnostics.warning(
+                    ErrorCode.DUPLICATE_ENUM_CASE,
+                    caseClause.pattern.span ?? statement.span,
+                    { case: caseClause.pattern.name, type: enumDecl.name }
+                  );
+                }
+                seenEnum.add(caseClause.pattern.name);
               } else {
                 hasWildcard = true;
               }
-            } else if (cse.pattern.kind === 'PatCtor') {
-              if (enumDecl.variants.includes(cse.pattern.typeName)) {
-                if (seenEnum.has(cse.pattern.typeName)) warn(c.diags, `Duplicate enum case '${cse.pattern.typeName}' in match on ${enumDecl.name}.`);
-                seenEnum.add(cse.pattern.typeName);
+            } else if (caseClause.pattern.kind === 'PatCtor') {
+              if (enumDecl.variants.includes(caseClause.pattern.typeName)) {
+                if (seenEnum.has(caseClause.pattern.typeName)) {
+                  diagnostics.warning(
+                    ErrorCode.DUPLICATE_ENUM_CASE,
+                    caseClause.pattern.span ?? statement.span,
+                    { case: caseClause.pattern.typeName, type: enumDecl.name }
+                  );
+                }
+                seenEnum.add(caseClause.pattern.typeName);
               }
+            } else {
+              hasWildcard = true;
             }
           }
         }
-        if (!isUnknown(et) && et.kind === 'Maybe') {
+        if (!isUnknown(scrutineeType) && scrutineeType.kind === 'Maybe') {
           if (!(hasNullCase && hasNonNullCase)) {
             const missing = hasNullCase ? 'non-null value' : hasNonNullCase ? 'null' : 'null and non-null';
-            warn(diags, `Non-exhaustive match on Maybe type; missing ${missing} case.`);
+            diagnostics.warning(ErrorCode.NON_EXHAUSTIVE_MAYBE, statement.span, {
+              missing,
+            });
           }
-        } else if (enumDecl) {
-          if (!hasWildcard) {
-            const missing = enumDecl.variants.filter(v => !seenEnum.has(v));
-            if (missing.length > 0) warn(diags, `Non-exhaustive match on ${enumDecl.name}; missing: ${missing.join(', ')}`);
+        } else if (enumDecl && !hasWildcard) {
+          const missing = enumDecl.variants.filter(v => !seenEnum.has(v));
+          if (missing.length > 0) {
+            diagnostics.warning(ErrorCode.NON_EXHAUSTIVE_ENUM, statement.span, {
+              type: enumDecl.name,
+              missing: missing.join(', '),
+            });
           }
         }
-        this.result = out ?? tUnknown();
+        this.result = aggregated ?? unknownType();
         return;
       }
       case 'Scope': {
-        const nested: Core.Block = { kind: 'Block', statements: s.statements };
-        this.result = typecheckBlock(ctx, env, nested, diags);
+        const nested: Core.Block = { kind: 'Block', statements: statement.statements, span: statement.span } as Core.Block;
+        this.result = typecheckBlock(module, symbols, nested, diagnostics);
         return;
       }
       case 'Start': {
-        void typeOfExpr(ctx, env, s.expr, diags);
-        this.result = tUnknown();
+        void typeOfExpr(module, symbols, statement.expr, diagnostics);
+        this.result = unknownType();
         return;
       }
       case 'Wait': {
-        this.result = tUnknown();
+        this.result = unknownType();
         return;
       }
     }
@@ -733,308 +677,357 @@ class TypecheckVisitor extends DefaultCoreVisitor<{ ctx: ModuleContext; env: Env
 
 function typecheckBlock(
   ctx: ModuleContext,
-  env: Env,
-  b: Core.Block,
-  diags: TypecheckDiagnostic[]
-): T {
-  const v = new TypecheckVisitor();
-  v.visitBlock(b, { ctx, env, diags });
-  return v.result;
+  symbols: SymbolTable,
+  block: Core.Block,
+  diagnostics: DiagnosticBuilder
+): Core.Type {
+  symbols.enterScope('block');
+  try {
+    const visitor = new TypecheckVisitor();
+    visitor.visitBlock(block, { module: ctx, symbols, diagnostics });
+    return visitor.result;
+  } finally {
+    symbols.exitScope();
+  }
 }
 
 function typecheckCase(
   ctx: ModuleContext,
-  env: Env,
-  c: Core.Case,
-  et: T,
-  diags: TypecheckDiagnostic[]
-): T {
-  const env2 = cloneEnv(env);
-  // Bind pattern
-  if (c.pattern.kind === 'PatNull') {
-    // ok for Maybe T
-  } else if (c.pattern.kind === 'PatCtor') {
-    bindPatternTypes(ctx, env2, c.pattern, et, diags);
-  } else if (c.pattern.kind === 'PatName') {
-    env2.vars.set(c.pattern.name, et);
-  } else if (c.pattern.kind === 'PatInt') {
-    // Scrutinee should be Int; we don't bind names for literal patterns
-    const isInt = !isUnknown(et) && et.kind === 'TypeName' && (et as Core.TypeName).name === 'Int';
-    if (!isInt) {
-      diags.push({ severity: 'error', message: `Integer pattern used on non-Int scrutinee (${tToString(et)})` });
+  symbols: SymbolTable,
+  caseClause: Core.Case,
+  scrutineeType: Core.Type,
+  diagnostics: DiagnosticBuilder
+): Core.Type {
+  symbols.enterScope('block');
+  try {
+    bindPattern(ctx, symbols, caseClause.pattern, scrutineeType, diagnostics);
+    if (caseClause.body.kind === 'Return') {
+      return typeOfExpr(ctx, symbols, caseClause.body.expr, diagnostics);
     }
+    return typecheckBlock(ctx, symbols, caseClause.body, diagnostics);
+  } finally {
+    symbols.exitScope();
   }
-  // Body
-  if (c.body.kind === 'Return') return typeOfExpr(ctx, env2, c.body.expr, diags);
-  return typecheckBlock(ctx, env2, c.body, diags);
 }
 
-function bindPatternTypes(
+function bindPattern(
   ctx: ModuleContext,
-  env: Env,
-  p: Core.PatCtor,
-  et: T,
-  diags: TypecheckDiagnostic[]
+  symbols: SymbolTable,
+  pattern: Core.Pattern,
+  scrutineeType: Core.Type,
+  diagnostics: DiagnosticBuilder
 ): void {
-  // Special-case Result Ok/Err destructuring
-  if (p.typeName === 'Ok' && !isUnknown(et) && et.kind === 'Result') {
-    const inner = (et as unknown as Core.Result).ok as T;
-    const ctor = p as Core.PatCtor & { args?: readonly Core.Pattern[] };
-    const child = ctor.args && ctor.args.length > 0
-      ? (ctor.args[0] as Core.Pattern)
-      : p.names && p.names[0]
-        ? ({ kind: 'PatName', name: p.names[0] } as Core.PatName)
-        : null;
-    if (child) bindPatternNode(ctx, env, child, inner, diags);
+  if (pattern.kind === 'PatName') {
+    defineSymbol({ module: ctx, symbols, diagnostics }, pattern.name, scrutineeType, 'var', pattern.span);
     return;
   }
-  if (p.typeName === 'Err' && !isUnknown(et) && et.kind === 'Result') {
-    const inner = (et as unknown as Core.Result).err as T;
-    const ctor = p as Core.PatCtor & { args?: readonly Core.Pattern[] };
+  if (pattern.kind === 'PatNull') return;
+  if (pattern.kind === 'PatInt') {
+    const isInt =
+      !isUnknown(scrutineeType) &&
+      scrutineeType.kind === 'TypeName' &&
+      scrutineeType.name === 'Int';
+    if (!isInt) {
+      diagnostics.error(ErrorCode.INTEGER_PATTERN_TYPE, pattern.span, {
+        scrutineeType: formatType(scrutineeType),
+      });
+    }
+    return;
+  }
+  if (pattern.kind !== 'PatCtor') return;
+  bindPatternCtor(ctx, symbols, pattern, scrutineeType, diagnostics);
+}
+
+function bindPatternCtor(
+  ctx: ModuleContext,
+  symbols: SymbolTable,
+  pattern: Core.PatCtor,
+  scrutineeType: Core.Type,
+  diagnostics: DiagnosticBuilder
+): void {
+  // Special-case Result Ok/Err destructuring
+  if (pattern.typeName === 'Ok' && !isUnknown(scrutineeType) && scrutineeType.kind === 'Result') {
+    const inner = (scrutineeType as Core.Result).ok as Core.Type;
+    const ctor = pattern as Core.PatCtor & { args?: readonly Core.Pattern[] };
     const child = ctor.args && ctor.args.length > 0
       ? (ctor.args[0] as Core.Pattern)
-      : p.names && p.names[0]
-        ? ({ kind: 'PatName', name: p.names[0] } as Core.PatName)
+      : pattern.names && pattern.names[0]
+        ? ({ kind: 'PatName', name: pattern.names[0] } as Core.PatName)
         : null;
-    if (child) bindPatternNode(ctx, env, child, inner, diags);
+    if (child) bindPattern(ctx, symbols, child, inner, diagnostics);
+    return;
+  }
+  if (pattern.typeName === 'Err' && !isUnknown(scrutineeType) && scrutineeType.kind === 'Result') {
+    const inner = (scrutineeType as Core.Result).err as Core.Type;
+    const ctor = pattern as Core.PatCtor & { args?: readonly Core.Pattern[] };
+    const child = ctor.args && ctor.args.length > 0
+      ? (ctor.args[0] as Core.Pattern)
+      : pattern.names && pattern.names[0]
+        ? ({ kind: 'PatName', name: pattern.names[0] } as Core.PatName)
+        : null;
+    if (child) bindPattern(ctx, symbols, child, inner, diagnostics);
     return;
   }
   // Data constructor by schema
-  const d = ctx.datas.get(p.typeName);
+  const d = ctx.datas.get(pattern.typeName);
   if (!d) {
     // unknown ctor; bind any names as Unknown and recurse into args with Unknown
-    if (p.names) for (const n of p.names) env.vars.set(n, tUnknown());
-    const ctor = p as Core.PatCtor & { args?: readonly Core.Pattern[] };
-    if (ctor.args)
-      for (const a of ctor.args as readonly Core.Pattern[])
-        bindPatternNode(ctx, env, a, tUnknown(), diags);
+    if (pattern.names) {
+      for (const name of pattern.names) {
+        defineSymbol({ module: ctx, symbols, diagnostics }, name, unknownType(), 'var', pattern.span);
+      }
+    }
+    const ctor = pattern as Core.PatCtor & { args?: readonly Core.Pattern[] };
+    if (ctor.args) {
+      for (const arg of ctor.args as readonly Core.Pattern[]) {
+        bindPattern(ctx, symbols, arg, unknownType(), diagnostics);
+      }
+    }
     return;
   }
   const ar = d.fields.length;
-  const ctor2 = p as Core.PatCtor & { args?: readonly Core.Pattern[] };
+  const ctor2 = pattern as Core.PatCtor & { args?: readonly Core.Pattern[] };
   const args: readonly Core.Pattern[] = ctor2.args ? (ctor2.args as readonly Core.Pattern[]) : [];
   for (let i = 0; i < ar; i++) {
-    const ft = d.fields[i]!.type as T;
+    const ft = d.fields[i]!.type as Core.Type;
     const child =
       i < args.length
         ? args[i]!
-        : p.names && i < p.names.length
-          ? ({ kind: 'PatName', name: p.names[i]! } as Core.PatName)
+        : pattern.names && i < pattern.names.length
+          ? ({ kind: 'PatName', name: pattern.names[i]! } as Core.PatName)
           : null;
     if (!child) continue;
-    bindPatternNode(ctx, env, child, ft, diags);
+    bindPattern(ctx, symbols, child, ft, diagnostics);
   }
 }
 
-function bindPatternNode(
-  ctx: ModuleContext,
-  env: Env,
-  pat: Core.Pattern,
-  et: T,
-  diags: TypecheckDiagnostic[]
-): void {
-  if (pat.kind === 'PatName') {
-    env.vars.set(pat.name, et);
-    return;
-  }
-  if (pat.kind === 'PatNull') return;
-  if (pat.kind === 'PatCtor') bindPatternTypes(ctx, env, pat, et, diags);
-}
-
-// 访问器优先的表达式类型推断（第一阶段：Name/常量/Construct/Ok/Err/Some/None）
-class TypeOfExprVisitor extends DefaultCoreVisitor<{ ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }> {
+class TypeOfExprVisitor extends DefaultCoreVisitor<TypecheckWalkerContext> {
   public handled = false;
-  public result: T = tUnknown();
-  override visitExpression(e: Core.Expression, c: { ctx: ModuleContext; env: Env; diags: TypecheckDiagnostic[] }): void {
-    const { ctx, env, diags } = c;
-    switch (e.kind) {
+  public result: Core.Type = unknownType();
+
+  override visitExpression(expression: Core.Expression, context: TypecheckWalkerContext): void {
+    const { module, symbols, diagnostics } = context;
+    switch (expression.kind) {
       case 'Name': {
-        const t = env.vars.get(e.name);
-        if (t) { this.result = t; this.handled = true; return; }
-        for (const en of ctx.enums.values()) {
-          if (en.variants.includes(e.name)) { this.result = { kind: 'TypeName', name: en.name } as Core.TypeName; this.handled = true; return; }
+        const symbol = symbols.lookup(expression.name);
+        if (symbol) {
+          this.result = symbol.type;
+        } else {
+          let matched: Core.Enum | undefined;
+          for (const en of module.enums.values()) {
+            if (en.variants.includes(expression.name)) {
+              matched = en;
+              break;
+            }
+          }
+          if (matched) {
+            this.result = { kind: 'TypeName', name: matched.name } as Core.TypeName;
+          } else {
+            diagnostics.undefinedVariable(expression.name, expression.span);
+            this.result = unknownType();
+          }
         }
-        this.result = tUnknown(); this.handled = true; return;
+        this.handled = true;
+        return;
       }
-      case 'Bool': this.result = { kind: 'TypeName', name: 'Bool' } as Core.TypeName; this.handled = true; return;
-      case 'Int': this.result = { kind: 'TypeName', name: 'Int' } as Core.TypeName; this.handled = true; return;
-      case 'Long': this.result = { kind: 'TypeName', name: 'Long' } as Core.TypeName; this.handled = true; return;
-      case 'Double': this.result = { kind: 'TypeName', name: 'Double' } as Core.TypeName; this.handled = true; return;
-      case 'String': this.result = { kind: 'TypeName', name: 'Text' } as Core.TypeName; this.handled = true; return;
-      case 'Null': this.result = { kind: 'Maybe', type: UNKNOWN_TYPENAME } as T; this.handled = true; return;
+      case 'Bool':
+        this.result = { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
+        this.handled = true;
+        return;
+      case 'Int':
+        this.result = { kind: 'TypeName', name: 'Int' } as Core.TypeName;
+        this.handled = true;
+        return;
+      case 'Long':
+        this.result = { kind: 'TypeName', name: 'Long' } as Core.TypeName;
+        this.handled = true;
+        return;
+      case 'Double':
+        this.result = { kind: 'TypeName', name: 'Double' } as Core.TypeName;
+        this.handled = true;
+        return;
+      case 'String':
+        this.result = { kind: 'TypeName', name: 'Text' } as Core.TypeName;
+        this.handled = true;
+        return;
+      case 'Null':
+        this.result = { kind: 'Maybe', type: unknownType() } as Core.Maybe;
+        this.handled = true;
+        return;
       case 'Ok': {
-        const inner = typeOfExpr(ctx, env, e.expr, diags);
-        this.result = { kind: 'Result', ok: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type), err: UNKNOWN_TYPENAME } as T;
-        this.handled = true; return;
+        const inner = typeOfExpr(module, symbols, expression.expr, diagnostics);
+        this.result = {
+          kind: 'Result',
+          ok: isUnknown(inner) ? unknownType() : inner,
+          err: unknownType(),
+        } as Core.Result;
+        this.handled = true;
+        return;
       }
       case 'Err': {
-        const inner = typeOfExpr(ctx, env, e.expr, diags);
-        this.result = { kind: 'Result', ok: UNKNOWN_TYPENAME, err: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
-        this.handled = true; return;
+        const inner = typeOfExpr(module, symbols, expression.expr, diagnostics);
+        this.result = {
+          kind: 'Result',
+          ok: unknownType(),
+          err: isUnknown(inner) ? unknownType() : inner,
+        } as Core.Result;
+        this.handled = true;
+        return;
       }
       case 'Some': {
-        const inner = typeOfExpr(ctx, env, e.expr, diags);
-        this.result = { kind: 'Option', type: isUnknown(inner) ? UNKNOWN_TYPENAME : (inner as Core.Type) } as T;
-        this.handled = true; return;
+        const inner = typeOfExpr(module, symbols, expression.expr, diagnostics);
+        this.result = {
+          kind: 'Option',
+          type: isUnknown(inner) ? unknownType() : inner,
+        } as Core.Option;
+        this.handled = true;
+        return;
       }
-      case 'None': this.result = { kind: 'Option', type: UNKNOWN_TYPENAME } as T; this.handled = true; return;
+      case 'None':
+        this.result = { kind: 'Option', type: unknownType() } as Core.Option;
+        this.handled = true;
+        return;
       case 'Construct': {
-        const d = ctx.datas.get(e.typeName);
-        if (!d) { this.result = tUnknown(); this.handled = true; return; }
-        const providedFields = new Set<string>();
-        for (const f of e.fields) {
-          providedFields.add(f.name);
-          const field = d.fields.find(ff => ff.name === f.name);
-          if (!field) { diags.push({ severity: 'error', message: `Unknown field '${f.name}' for ${d.name}` }); continue; }
-          const ft = typeOfExpr(ctx, env, f.expr, diags);
-          if (!tEquals(field.type as T, ft)) diags.push({ severity: 'error', message: `Field '${f.name}' expects ${tToString(field.type as T)}, got ${tToString(ft)}` });
+        const dataDecl = module.datas.get(expression.typeName);
+        if (!dataDecl) {
+          this.result = unknownType();
+          this.handled = true;
+          return;
         }
-        for (const field of d.fields) if (!providedFields.has(field.name)) diags.push({ severity: 'error', message: `构造 ${d.name} 缺少必需字段 '${field.name}'` });
-        this.result = { kind: 'TypeName', name: e.typeName } as Core.TypeName; this.handled = true; return;
+        const provided = new Set<string>();
+        for (const field of expression.fields) {
+          provided.add(field.name);
+          const schemaField = dataDecl.fields.find(item => item.name === field.name);
+          if (!schemaField) {
+            diagnostics.error(ErrorCode.UNKNOWN_FIELD, expression.span, {
+              field: field.name,
+              type: dataDecl.name,
+            });
+            continue;
+          }
+          const valueType = typeOfExpr(module, symbols, field.expr, diagnostics);
+          if (!typesEqual(schemaField.type as Core.Type, valueType)) {
+            diagnostics.error(ErrorCode.FIELD_TYPE_MISMATCH, (field.expr as { span?: Span }).span ?? expression.span, {
+              field: field.name,
+              expected: formatType(schemaField.type as Core.Type),
+              actual: formatType(valueType),
+            });
+          }
+        }
+        for (const field of dataDecl.fields) {
+          if (!provided.has(field.name)) {
+            diagnostics.error(ErrorCode.MISSING_REQUIRED_FIELD, expression.span, {
+              type: dataDecl.name,
+              field: field.name,
+            });
+          }
+        }
+        this.result = { kind: 'TypeName', name: expression.typeName } as Core.TypeName;
+        this.handled = true;
+        return;
       }
       case 'Await': {
-        // Await<T> 返回 T，即解包 Future/Promise 类型
-        // 当前简化实现：直接返回内部表达式的类型
-        const t = typeOfExpr(ctx, env, e.expr, diags);
-        this.result = t;
-        this.handled = true; return;
+        const awaited = typeOfExpr(module, symbols, expression.expr, diagnostics);
+        if (!isUnknown(awaited) && awaited.kind === 'Maybe') {
+          this.result = awaited.type as Core.Type;
+        } else if (!isUnknown(awaited) && awaited.kind === 'Result') {
+          this.result = awaited.ok as Core.Type;
+        } else {
+          diagnostics.warning(ErrorCode.AWAIT_TYPE, expression.span, { type: formatType(awaited) });
+          this.result = unknownType();
+        }
+        this.handled = true;
+        return;
       }
       case 'Lambda': {
-        const pt = e.params.map(p => p.type) as readonly Core.Type[];
-        const ft: Core.FuncType = { kind: 'FuncType', params: pt, ret: e.ret };
-        this.result = ft as unknown as T;
-        this.handled = true; return;
+        const params = expression.params.map(param => normalizeType(param.type as Core.Type)) as readonly Core.Type[];
+        const funcType: Core.FuncType = {
+          kind: 'FuncType',
+          params,
+          ret: normalizeType(expression.ret as Core.Type),
+        };
+        this.result = funcType;
+        this.handled = true;
+        return;
       }
       case 'Call': {
         // not(x): 简化布尔运算
-        if (e.target.kind === 'Name' && e.target.name === 'not') {
-          if (e.args.length !== 1) diags.push({ severity: 'error', message: `not(...) expects 1 argument` });
-          else void typeOfExpr(ctx, env, e.args[0]!, diags);
+        if (expression.target.kind === 'Name' && expression.target.name === 'not') {
+          if (expression.args.length !== 1) {
+            diagnostics.error(ErrorCode.NOT_CALL_ARITY, expression.span ?? expression.target.span, {});
+          } else {
+            void typeOfExpr(module, symbols, expression.args[0]!, diagnostics);
+          }
           this.result = { kind: 'TypeName', name: 'Bool' } as Core.TypeName;
-          this.handled = true; return;
+          this.handled = true;
+          return;
         }
-        // 处理参数类型（副作用：产生必要诊断）
-        for (const a of e.args) void typeOfExpr(ctx, env, a, diags);
-        // 互操作静态调用的数字混用告警
-        if (e.target.kind === 'Name' && e.target.name.includes('.')) {
-          let hasInt = false, hasLong = false, hasDouble = false;
-          for (const a of e.args) {
-            switch (a.kind) {
-              case 'Int': hasInt = true; break;
-              case 'Long': hasLong = true; break;
-              case 'Double': hasDouble = true; break;
+
+        for (const arg of expression.args) {
+          void typeOfExpr(module, symbols, arg, diagnostics);
+        }
+
+        if (expression.target.kind === 'Name' && expression.target.name.includes('.')) {
+          let hasInt = false;
+          let hasLong = false;
+          let hasDouble = false;
+          for (const arg of expression.args) {
+            switch (arg.kind) {
+              case 'Int':
+                hasInt = true;
+                break;
+              case 'Long':
+                hasLong = true;
+                break;
+              case 'Double':
+                hasDouble = true;
+                break;
             }
           }
-          const kinds = (hasInt ? 1 : 0) + (hasLong ? 1 : 0) + (hasDouble ? 1 : 0);
-          if (kinds > 1) diags.push({ severity: 'warning', message: `Ambiguous interop call '${e.target.name}': mixing numeric kinds (Int=${hasInt}, Long=${hasLong}, Double=${hasDouble}). Overload resolution may widen/box implicitly.` });
+          const kindCount = (hasInt ? 1 : 0) + (hasLong ? 1 : 0) + (hasDouble ? 1 : 0);
+          if (kindCount > 1) {
+            diagnostics.warning(ErrorCode.AMBIGUOUS_INTEROP_NUMERIC, expression.span ?? expression.target.span, {
+              target: expression.target.name,
+              hasInt,
+              hasLong,
+              hasDouble,
+            });
+          }
         }
-        // await(expr): 类型规则
-        if (e.target.kind === 'Name' && e.target.name === 'await' && e.args.length === 1) {
-          const at = typeOfExpr(ctx, env, e.args[0]!, diags);
-          if (!isUnknown(at) && at.kind === 'Maybe') { this.result = (at.type as T); this.handled = true; return; }
-          if (!isUnknown(at) && at.kind === 'Result') { this.result = (at.ok as T); this.handled = true; return; }
-          diags.push({ severity: 'warning', message: `await expects Maybe<T> or Result<T,E>, got ${tToString(at)}` });
-          this.result = tUnknown(); this.handled = true; return;
+
+        if (expression.target.kind === 'Name' && expression.target.name === 'await' && expression.args.length === 1) {
+          const awaitedType = typeOfExpr(module, symbols, expression.args[0]!, diagnostics);
+          if (!isUnknown(awaitedType) && awaitedType.kind === 'Maybe') {
+            this.result = awaitedType.type as Core.Type;
+          } else if (!isUnknown(awaitedType) && awaitedType.kind === 'Result') {
+            this.result = awaitedType.ok as Core.Type;
+          } else {
+            diagnostics.warning(ErrorCode.AWAIT_TYPE, expression.span, { type: formatType(awaitedType) });
+            this.result = unknownType();
+          }
+          this.handled = true;
+          return;
         }
-        this.result = tUnknown(); this.handled = true; return;
+
+        this.result = unknownType();
+        this.handled = true;
+        return;
       }
+      default:
+        break;
     }
-    // 未处理的表达式保持 handled=false，用旧实现兜底
   }
 }
 
 function typeOfExpr(
   ctx: ModuleContext,
-  env: Env,
-  e: Core.Expression,
-  diags: TypecheckDiagnostic[]
-): T {
-  const v = new TypeOfExprVisitor();
-  v.visitExpression(e, { ctx, env, diags });
-  return v.result;
-}
-
-function cloneEnv(env: Env): Env {
-  return { vars: new Map(env.vars) };
-}
-
-// Unify expected vs actual types, binding TypeVar names in 'subst'.
-function unifyTypes(
-  expected: T,
-  actual: T,
-  subst: Map<string, Core.Type>,
-  diags: TypecheckDiagnostic[]
-): void {
-  if (isUnknown(expected) || isUnknown(actual)) return;
-  // If expected is a type variable, bind it
-  if (expected.kind === 'TypeVar') {
-    const tv = (expected as Core.TypeVar).name;
-    const bound = subst.get(tv);
-    if (!bound) {
-      subst.set(tv, actual as Core.Type);
-    } else if (!tEquals(bound as T, actual)) {
-      diags.push({
-        severity: 'error',
-        message: `Type variable '${tv}' inferred inconsistently: ${tToString(bound as T)} vs ${tToString(actual)}`,
-      });
-    }
-    return;
-  }
-  // Recurse structurally when kinds match
-  if (expected.kind !== actual.kind) return;
-  switch (expected.kind) {
-    case 'Maybe':
-      unifyTypes(
-        (expected as Core.Maybe).type as T,
-        (actual as Core.Maybe).type as T,
-        subst,
-        diags
-      );
-      break;
-    case 'Option':
-      unifyTypes(
-        (expected as Core.Option).type as T,
-        (actual as Core.Option).type as T,
-        subst,
-        diags
-      );
-      break;
-    case 'Result': {
-      const ee = expected as Core.Result,
-        aa = actual as Core.Result;
-      unifyTypes(ee.ok as T, aa.ok as T, subst, diags);
-      unifyTypes(ee.err as T, aa.err as T, subst, diags);
-      break;
-    }
-    case 'List':
-      unifyTypes((expected as Core.List).type as T, (actual as Core.List).type as T, subst, diags);
-      break;
-    case 'Map': {
-      const ee = expected as Core.Map,
-        aa = actual as Core.Map;
-      unifyTypes(ee.key as T, aa.key as T, subst, diags);
-      unifyTypes(ee.val as T, aa.val as T, subst, diags);
-      break;
-    }
-    case 'TypeApp': {
-      const ee = expected as Core.TypeApp,
-        aa = actual as Core.TypeApp;
-      const n = Math.min(ee.args.length, aa.args.length);
-      for (let i = 0; i < n; i++) unifyTypes(ee.args[i] as T, aa.args[i] as T, subst, diags);
-      break;
-    }
-    case 'FuncType': {
-      const ee = expected as unknown as Core.FuncType,
-        aa = actual as unknown as Core.FuncType;
-      const n = Math.min(ee.params.length, aa.params.length);
-      for (let i = 0; i < n; i++) unifyTypes(ee.params[i] as T, aa.params[i] as T, subst, diags);
-      unifyTypes(ee.ret as T, aa.ret as T, subst, diags);
-      break;
-    }
-    default:
-      // Ground kinds: TypeName, etc. — nothing further
-      break;
-  }
+  symbols: SymbolTable,
+  expr: Core.Expression,
+  diagnostics: DiagnosticBuilder
+): Core.Type {
+  const visitor = new TypeOfExprVisitor();
+  visitor.visitExpression(expr, { module: ctx, symbols, diagnostics });
+  return visitor.result;
 }
 
 /**

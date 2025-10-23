@@ -6,56 +6,246 @@
       "kind": "Func",
       "name": "join",
       "params": [
-        { "name": "left", "type": { "kind": "TypeName", "name": "Text" } },
-        { "name": "right", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "left",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        },
+        {
+          "name": "right",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
       ],
-      "retType": { "kind": "TypeName", "name": "Text" },
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
-          { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Text.concat" }, "args": [ { "kind": "Name", "name": "left" }, { "kind": "Name", "name": "right" } ] } }
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Text.concat"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "left"
+                },
+                {
+                  "kind": "Name",
+                  "name": "right"
+                }
+              ]
+            }
+          }
         ]
       }
     },
     {
       "kind": "Func",
       "name": "shout",
-      "params": [ { "name": "s", "type": { "kind": "TypeName", "name": "Text" } } ],
-      "retType": { "kind": "TypeName", "name": "Text" },
+      "params": [
+        {
+          "name": "s",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Text.toUpper" }, "args": [ { "kind": "Name", "name": "s" } ] } } ] }
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Text.toUpper"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "s"
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
     {
       "kind": "Func",
       "name": "hasPrefix",
       "params": [
-        { "name": "s", "type": { "kind": "TypeName", "name": "Text" } },
-        { "name": "p", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "s",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        },
+        {
+          "name": "p",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
       ],
-      "retType": { "kind": "TypeName", "name": "Bool" },
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Text.startsWith" }, "args": [ { "kind": "Name", "name": "s" }, { "kind": "Name", "name": "p" } ] } } ] }
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Text.startsWith"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "s"
+                },
+                {
+                  "kind": "Name",
+                  "name": "p"
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
     {
       "kind": "Func",
       "name": "find",
       "params": [
-        { "name": "s", "type": { "kind": "TypeName", "name": "Text" } },
-        { "name": "n", "type": { "kind": "TypeName", "name": "Text" } }
+        {
+          "name": "s",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        },
+        {
+          "name": "n",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
       ],
-      "retType": { "kind": "TypeName", "name": "Int" },
+      "retType": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Text.indexOf" }, "args": [ { "kind": "Name", "name": "s" }, { "kind": "Name", "name": "n" } ] } } ] }
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Text.indexOf"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "s"
+                },
+                {
+                  "kind": "Name",
+                  "name": "n"
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
     {
       "kind": "Func",
       "name": "words",
-      "params": [ { "name": "s", "type": { "kind": "TypeName", "name": "Text" } } ],
-      "retType": { "kind": "List", "type": { "kind": "TypeName", "name": "Text" } },
+      "params": [
+        {
+          "name": "s",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        }
+      ],
+      "retType": {
+        "kind": "List",
+        "type": {
+          "kind": "TypeName",
+          "name": "Text"
+        }
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "Text.split" }, "args": [ { "kind": "Name", "name": "s" }, { "kind": "String", "value": " " } ] } } ] }
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Text.split"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "s"
+                },
+                {
+                  "kind": "String",
+                  "value": " "
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   ]
 }
-

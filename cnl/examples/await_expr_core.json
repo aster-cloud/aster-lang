@@ -7,8 +7,13 @@
       "name": "awaitValue",
       "typeParams": [],
       "params": [],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -16,7 +21,10 @@
             "kind": "Return",
             "expr": {
               "kind": "Await",
-              "expr": {"kind": "Int", "value": 42}
+              "expr": {
+                "kind": "Int",
+                "value": 42
+              }
             }
           }
         ]
@@ -29,12 +37,20 @@
       "params": [
         {
           "name": "x",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -44,10 +60,19 @@
               "kind": "Await",
               "expr": {
                 "kind": "Call",
-                "target": {"kind": "Name", "name": "+"},
+                "target": {
+                  "kind": "Name",
+                  "name": "+"
+                },
                 "args": [
-                  {"kind": "Name", "name": "x"},
-                  {"kind": "Int", "value": 10}
+                  {
+                    "kind": "Name",
+                    "name": "x"
+                  },
+                  {
+                    "kind": "Int",
+                    "value": 10
+                  }
                 ]
               }
             }
@@ -60,8 +85,13 @@
       "name": "awaitResult",
       "typeParams": [],
       "params": [],
-      "ret": {"kind": "TypeName", "name": "Text"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Text"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -71,7 +101,10 @@
               "kind": "Await",
               "expr": {
                 "kind": "Ok",
-                "expr": {"kind": "String", "value": "success"}
+                "expr": {
+                  "kind": "String",
+                  "value": "success"
+                }
               }
             }
           }
@@ -85,12 +118,20 @@
       "params": [
         {
           "name": "val",
-          "type": {"kind": "TypeName", "name": "Int"},
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -99,7 +140,10 @@
             "name": "x",
             "expr": {
               "kind": "Await",
-              "expr": {"kind": "Name", "name": "val"}
+              "expr": {
+                "kind": "Name",
+                "name": "val"
+              }
             }
           },
           {
@@ -108,10 +152,19 @@
               "kind": "Await",
               "expr": {
                 "kind": "Call",
-                "target": {"kind": "Name", "name": "*"},
+                "target": {
+                  "kind": "Name",
+                  "name": "*"
+                },
                 "args": [
-                  {"kind": "Name", "name": "x"},
-                  {"kind": "Int", "value": 2}
+                  {
+                    "kind": "Name",
+                    "name": "x"
+                  },
+                  {
+                    "kind": "Int",
+                    "value": 2
+                  }
                 ]
               }
             }

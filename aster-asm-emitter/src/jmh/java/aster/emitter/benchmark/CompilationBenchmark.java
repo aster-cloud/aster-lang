@@ -1,6 +1,6 @@
 package aster.emitter.benchmark;
 
-import aster.emitter.CoreModel;
+import aster.core.ir.CoreModel;
 import aster.emitter.Main;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openjdk.jmh.annotations.*;

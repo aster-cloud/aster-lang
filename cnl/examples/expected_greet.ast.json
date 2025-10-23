@@ -10,7 +10,17 @@
           "name": "id",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 22
+              },
+              "end": {
+                "line": 3,
+                "col": 26
+              }
+            }
           },
           "span": {
             "start": {
@@ -27,7 +37,17 @@
           "name": "name",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 34
+              },
+              "end": {
+                "line": 3,
+                "col": 38
+              }
+            }
           },
           "span": {
             "start": {
@@ -40,7 +60,17 @@
             }
           }
         }
-      ]
+      ],
+      "span": {
+        "start": {
+          "line": 3,
+          "col": 1
+        },
+        "end": {
+          "line": 3,
+          "col": 39
+        }
+      }
     },
     {
       "kind": "Func",
@@ -52,7 +82,27 @@
             "kind": "Maybe",
             "type": {
               "kind": "TypeName",
-              "name": "User"
+              "name": "User",
+              "span": {
+                "start": {
+                  "line": 5,
+                  "col": 21
+                },
+                "end": {
+                  "line": 5,
+                  "col": 25
+                }
+              }
+            },
+            "span": {
+              "start": {
+                "line": 5,
+                "col": 21
+              },
+              "end": {
+                "line": 5,
+                "col": 26
+              }
             }
           },
           "span": {
@@ -69,9 +119,21 @@
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "span": {
+          "start": {
+            "line": 5,
+            "col": 36
+          },
+          "end": {
+            "line": 5,
+            "col": 40
+          }
+        }
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -79,19 +141,69 @@
             "kind": "Match",
             "expr": {
               "kind": "Name",
-              "name": "user"
+              "name": "user",
+              "span": {
+                "start": {
+                  "line": 6,
+                  "col": 9
+                },
+                "end": {
+                  "line": 6,
+                  "col": 13
+                }
+              }
             },
             "cases": [
               {
                 "kind": "Case",
                 "pattern": {
-                  "kind": "PatternNull"
+                  "kind": "PatternNull",
+                  "span": {
+                    "start": {
+                      "line": 7,
+                      "col": 10
+                    },
+                    "end": {
+                      "line": 7,
+                      "col": 14
+                    }
+                  }
                 },
                 "body": {
                   "kind": "Return",
                   "expr": {
                     "kind": "String",
-                    "value": "Hi, guest"
+                    "value": "Hi, guest",
+                    "span": {
+                      "start": {
+                        "line": 7,
+                        "col": 23
+                      },
+                      "end": {
+                        "line": 7,
+                        "col": 34
+                      }
+                    }
+                  },
+                  "span": {
+                    "start": {
+                      "line": 7,
+                      "col": 16
+                    },
+                    "end": {
+                      "line": 7,
+                      "col": 35
+                    }
+                  }
+                },
+                "span": {
+                  "start": {
+                    "line": 7,
+                    "col": 5
+                  },
+                  "end": {
+                    "line": 7,
+                    "col": 35
                   }
                 }
               },
@@ -103,13 +215,53 @@
                   "names": [
                     "id",
                     "name"
-                  ]
+                  ],
+                  "span": {
+                    "start": {
+                      "line": 8,
+                      "col": 10
+                    },
+                    "end": {
+                      "line": 8,
+                      "col": 24
+                    }
+                  }
                 },
                 "body": {
                   "kind": "Return",
                   "expr": {
                     "kind": "String",
-                    "value": "Welcome, {name}"
+                    "value": "Welcome, {name}",
+                    "span": {
+                      "start": {
+                        "line": 8,
+                        "col": 33
+                      },
+                      "end": {
+                        "line": 8,
+                        "col": 50
+                      }
+                    }
+                  },
+                  "span": {
+                    "start": {
+                      "line": 8,
+                      "col": 26
+                    },
+                    "end": {
+                      "line": 8,
+                      "col": 51
+                    }
+                  }
+                },
+                "span": {
+                  "start": {
+                    "line": 8,
+                    "col": 5
+                  },
+                  "end": {
+                    "line": 8,
+                    "col": 51
                   }
                 }
               }
@@ -158,5 +310,15 @@
         }
       }
     }
-  ]
+  ],
+  "span": {
+    "start": {
+      "line": 1,
+      "col": 1
+    },
+    "end": {
+      "line": 9,
+      "col": 1
+    }
+  }
 }

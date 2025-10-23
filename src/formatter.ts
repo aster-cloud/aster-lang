@@ -17,7 +17,6 @@ import type {
   ConstructField,
 } from './types.js';
 import { DefaultAstVisitor } from './ast_visitor.js';
-import type { CapabilityKind } from './config/semantic.js';
 
 export function formatCNL(
   text: string,
@@ -370,12 +369,12 @@ function formatFunc(f: Func): string {
 }
 
 function formatEffectCaps(f: Func): string {
-  const caps = (f as any).effectCaps as readonly CapabilityKind[] | undefined;
-  const isExplicit = Boolean((f as any).effectCapsExplicit);
-  if (!caps || caps.length === 0) return '';
+  const caps = f.effectCaps;
+  const isExplicit = f.effectCapsExplicit;
+  if (caps.length === 0) return '';
   if (!isExplicit) return '';
   if (!f.effects || f.effects.length === 0) return '';
-  return ` [${(caps as readonly string[]).join(', ')}]`;
+  return ` [${caps.join(', ')}]`;
 }
 
 function formatEffects(effs: readonly string[]): string {

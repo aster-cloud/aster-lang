@@ -6,8 +6,13 @@
       "kind": "Func",
       "name": "run",
       "params": [],
-      "ret": { "kind": "TypeName", "name": "Int" },
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -16,7 +21,10 @@
             "name": "list",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.empty" },
+              "target": {
+                "kind": "Name",
+                "name": "List.empty"
+              },
               "args": []
             }
           },
@@ -25,8 +33,20 @@
             "name": "list",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.append" },
-              "args": [{ "kind": "Name", "name": "list" }, { "kind": "Int", "value": 1 }]
+              "target": {
+                "kind": "Name",
+                "name": "List.append"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "list"
+                },
+                {
+                  "kind": "Int",
+                  "value": 1
+                }
+              ]
             }
           },
           {
@@ -34,8 +54,20 @@
             "name": "list",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.append" },
-              "args": [{ "kind": "Name", "name": "list" }, { "kind": "Int", "value": 2 }]
+              "target": {
+                "kind": "Name",
+                "name": "List.append"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "list"
+                },
+                {
+                  "kind": "Int",
+                  "value": 2
+                }
+              ]
             }
           },
           {
@@ -43,8 +75,20 @@
             "name": "list",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.append" },
-              "args": [{ "kind": "Name", "name": "list" }, { "kind": "Int", "value": 3 }]
+              "target": {
+                "kind": "Name",
+                "name": "List.append"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "list"
+                },
+                {
+                  "kind": "Int",
+                  "value": 3
+                }
+              ]
             }
           },
           {
@@ -52,26 +96,50 @@
             "name": "result",
             "expr": {
               "kind": "Call",
-              "target": { "kind": "Name", "name": "List.contains" },
+              "target": {
+                "kind": "Name",
+                "name": "List.contains"
+              },
               "args": [
-                { "kind": "Name", "name": "list" },
-                { "kind": "Int", "value": 2 }
+                {
+                  "kind": "Name",
+                  "name": "list"
+                },
+                {
+                  "kind": "Int",
+                  "value": 2
+                }
               ]
             }
           },
           {
             "kind": "If",
-            "cond": { "kind": "Name", "name": "result" },
+            "cond": {
+              "kind": "Name",
+              "name": "result"
+            },
             "thenBlock": {
               "kind": "Block",
               "statements": [
-                { "kind": "Return", "expr": { "kind": "Int", "value": 1 } }
+                {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Int",
+                    "value": 1
+                  }
+                }
               ]
             },
             "elseBlock": {
               "kind": "Block",
               "statements": [
-                { "kind": "Return", "expr": { "kind": "Int", "value": 0 } }
+                {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Int",
+                    "value": 0
+                  }
+                }
               ]
             }
           }

@@ -4,6 +4,9 @@ import aster.cli.CommandLineParser.CommandLineException;
 import aster.cli.CommandLineParser.ParsedCommand;
 import aster.cli.TypeScriptBridge.BridgeException;
 import aster.cli.TypeScriptBridge.Result;
+import aster.cli.compiler.CompilerBackend;
+import aster.cli.compiler.JavaCompilerBackend;
+import aster.cli.compiler.TypeScriptCompilerBackend;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -13,6 +16,13 @@ import java.util.Map;
 
 /**
  * 集中处理所有 CLI 子命令，统一依赖注入与公共逻辑，避免 Main 承担过多职责。
+ * <p>
+ * <b>编译器后端选择</b>：
+ * <ul>
+ *   <li>默认使用 TypeScript 编译器（当前成熟实现）</li>
+ *   <li>设置 ASTER_COMPILER=java 使用 Java 编译器（渐进式迁移中）</li>
+ *   <li>设置 ASTER_COMPILER=typescript 显式指定 TypeScript 编译器</li>
+ * </ul>
  */
 public final class CommandHandler {
   private static final int EXIT_COMPILER_ERROR = 2;
@@ -20,6 +30,7 @@ public final class CommandHandler {
   private static final String DEFAULT_JAR_OUT = "build/aster-out/aster.jar";
 
   private final TypeScriptBridge bridge;
+  private final CompilerBackend backend;
   private final PathResolver pathResolver;
   private final DiagnosticFormatter diagnosticFormatter;
   private final VersionReader versionReader;
@@ -29,14 +40,42 @@ public final class CommandHandler {
       PathResolver pathResolver,
       DiagnosticFormatter diagnosticFormatter,
       VersionReader versionReader) {
+    this(bridge, pathResolver, diagnosticFormatter, versionReader, selectBackend(bridge));
+  }
+
+  /**
+   * 构造函数（支持注入自定义编译器后端，便于测试）
+   */
+  public CommandHandler(
+      TypeScriptBridge bridge,
+      PathResolver pathResolver,
+      DiagnosticFormatter diagnosticFormatter,
+      VersionReader versionReader,
+      CompilerBackend backend) {
     this.bridge = bridge;
     this.pathResolver = pathResolver;
     this.diagnosticFormatter = diagnosticFormatter;
     this.versionReader = versionReader;
+    this.backend = backend;
+
+    // 输出编译器选择信息（调试模式）
+    if ("true".equals(System.getenv("ASTER_DEBUG"))) {
+      System.err.println("[DEBUG] 使用编译器后端: " + backend.getType());
+    }
   }
 
   /**
-   * 处理 compile 命令，调用 TypeScript 管线完成编译。
+   * 根据环境变量选择编译器后端
+   */
+  private static CompilerBackend selectBackend(TypeScriptBridge bridge) {
+    final String compilerType = System.getenv("ASTER_COMPILER");
+    return "java".equals(compilerType)
+        ? new JavaCompilerBackend()
+        : new TypeScriptCompilerBackend(bridge);
+  }
+
+  /**
+   * 处理 compile 命令，通过编译器后端完成编译。
    */
   public int handleCompile(ParsedCommand parsed) throws CommandLineException, BridgeException {
     final List<String> args = parsed.arguments();
@@ -55,7 +94,7 @@ public final class CommandHandler {
       cliArgs.add("--json");
     }
 
-    final Result result = bridge.executeCommand("native:cli:class", cliArgs);
+    final Result result = backend.execute("native:cli:class", cliArgs);
     return handleSuccessOrDiagnostics(
         result, "编译完成: %s".formatted(output), "编译失败");
   }
@@ -77,7 +116,7 @@ public final class CommandHandler {
       cliArgs.add("--json");
     }
 
-    final Result result = bridge.executeCommand("native:cli:typecheck", cliArgs, envOverrides);
+    final Result result = backend.execute("native:cli:typecheck", cliArgs, envOverrides);
     if (!result.diagnostics().isEmpty() && result.exitCode() == 0) {
       diagnosticFormatter.reportDiagnostics(result, "类型检查失败");
       return EXIT_COMPILER_ERROR;
@@ -107,7 +146,7 @@ public final class CommandHandler {
       cliArgs.add("--json");
     }
 
-    final Result result = bridge.executeCommand("native:cli:jar", cliArgs);
+    final Result result = backend.execute("native:cli:jar", cliArgs);
     return handleSuccessOrDiagnostics(
         result, "JAR 打包完成: %s".formatted(output), "JAR 打包失败");
   }
@@ -128,7 +167,7 @@ public final class CommandHandler {
       cliArgs.add("--json");
     }
 
-    final Result result = bridge.executeCommand(script, cliArgs);
+    final Result result = backend.execute(script, cliArgs);
     return handleSuccessOrDiagnostics(result, result.stdout(), "子命令执行失败");
   }
 
@@ -163,6 +202,11 @@ public final class CommandHandler {
     System.out.println();
     System.out.println("通用选项:");
     System.out.println("  --json                             以 JSON 结构输出诊断/结果（若命令支持）");
+    System.out.println();
+    System.out.println("环境变量:");
+    System.out.println("  ASTER_COMPILER=typescript          使用 TypeScript 编译器（默认）");
+    System.out.println("  ASTER_COMPILER=java                使用 Java 编译器（渐进式迁移中）");
+    System.out.println("  ASTER_DEBUG=true                   输出编译器后端选择信息");
   }
 
   private Map<String, String> buildCapsEnv(ParsedCommand parsed) throws CommandLineException {

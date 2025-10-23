@@ -6,14 +6,43 @@
       "kind": "Func",
       "name": "length",
       "params": [
-        { "name": "xs", "type": { "kind": "List", "type": { "kind": "TypeName", "name": "Int" } } }
+        {
+          "name": "xs",
+          "type": {
+            "kind": "List",
+            "type": {
+              "kind": "TypeName",
+              "name": "Int"
+            }
+          }
+        }
       ],
-      "retType": { "kind": "TypeName", "name": "Int" },
+      "retType": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
-          { "kind": "Return", "expr": { "kind": "Call", "target": { "kind": "Name", "name": "List.length" }, "args": [ { "kind": "Name", "name": "xs" } ] } }
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "List.length"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "xs"
+                }
+              ]
+            }
+          }
         ]
       }
     },
@@ -21,35 +50,119 @@
       "kind": "Func",
       "name": "head",
       "params": [
-        { "name": "xs", "type": { "kind": "List", "type": { "kind": "TypeName", "name": "Int" } } }
+        {
+          "name": "xs",
+          "type": {
+            "kind": "List",
+            "type": {
+              "kind": "TypeName",
+              "name": "Int"
+            }
+          }
+        }
       ],
-      "retType": { "kind": "Maybe", "type": { "kind": "TypeName", "name": "Int" } },
+      "retType": {
+        "kind": "Maybe",
+        "type": {
+          "kind": "TypeName",
+          "name": "Int"
+        }
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "None" } } ] }
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "None"
+            }
+          }
+        ]
+      }
     },
     {
       "kind": "Func",
       "name": "id",
-      "params": [ { "name": "x", "type": { "kind": "TypeName", "name": "Int" } } ],
-      "retType": { "kind": "TypeName", "name": "Int" },
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
-      "body": { "kind": "Block", "statements": [ { "kind": "Return", "expr": { "kind": "Name", "name": "x" } } ] }
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Name",
+              "name": "x"
+            }
+          }
+        ]
+      }
     },
     {
       "kind": "Func",
       "name": "mapId",
       "params": [
-        { "name": "xs", "type": { "kind": "List", "type": { "kind": "TypeName", "name": "Int" } } }
+        {
+          "name": "xs",
+          "type": {
+            "kind": "List",
+            "type": {
+              "kind": "TypeName",
+              "name": "Int"
+            }
+          }
+        }
       ],
-      "retType": { "kind": "List", "type": { "kind": "TypeName", "name": "Int" } },
+      "retType": {
+        "kind": "List",
+        "type": {
+          "kind": "TypeName",
+          "name": "Int"
+        }
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
-          { "kind": "Return", "expr": { "kind": "Call",
-            "target": { "kind": "Name", "name": "List.map" },
-            "args": [ { "kind": "Name", "name": "xs" }, { "kind": "Name", "name": "id" } ]
-          } }
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "List.map"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "xs"
+                },
+                {
+                  "kind": "Name",
+                  "name": "id"
+                }
+              ]
+            }
+          }
         ]
       }
     }

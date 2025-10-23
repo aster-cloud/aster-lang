@@ -9,15 +9,22 @@
       "params": [],
       "ret": {
         "kind": "Maybe",
-        "type": {"kind": "TypeName", "name": "String"}
+        "type": {
+          "kind": "TypeName",
+          "name": "String"
+        }
       },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Return",
-            "expr": {"kind": "None"}
+            "expr": {
+              "kind": "None"
+            }
           }
         ]
       }
@@ -31,29 +38,48 @@
           "name": "value",
           "type": {
             "kind": "Maybe",
-            "type": {"kind": "TypeName", "name": "Int"}
+            "type": {
+              "kind": "TypeName",
+              "name": "Int"
+            }
           },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Bool"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Bool"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Match",
-            "scrutinee": {"kind": "Name", "name": "value"},
+            "scrutinee": {
+              "kind": "Name",
+              "name": "value"
+            },
             "cases": [
               {
                 "kind": "Case",
-                "pattern": {"kind": "PatCtor", "typeName": "None", "names": [], "args": []},
+                "pattern": {
+                  "kind": "PatCtor",
+                  "typeName": "None",
+                  "names": [],
+                  "args": []
+                },
                 "body": {
                   "kind": "Block",
                   "statements": [
                     {
                       "kind": "Return",
-                      "expr": {"kind": "Bool", "value": true}
+                      "expr": {
+                        "kind": "Bool",
+                        "value": true
+                      }
                     }
                   ]
                 }
@@ -64,14 +90,22 @@
                   "kind": "PatCtor",
                   "typeName": "Some",
                   "names": [],
-                  "args": [{"kind": "PatName", "name": "x"}]
+                  "args": [
+                    {
+                      "kind": "PatName",
+                      "name": "x"
+                    }
+                  ]
                 },
                 "body": {
                   "kind": "Block",
                   "statements": [
                     {
                       "kind": "Return",
-                      "expr": {"kind": "Bool", "value": false}
+                      "expr": {
+                        "kind": "Bool",
+                        "value": false
+                      }
                     }
                   ]
                 }
@@ -90,29 +124,45 @@
           "name": "text",
           "type": {
             "kind": "Maybe",
-            "type": {"kind": "TypeName", "name": "String"}
+            "type": {
+              "kind": "TypeName",
+              "name": "String"
+            }
           },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "String"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "String"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Match",
-            "scrutinee": {"kind": "Name", "name": "text"},
+            "scrutinee": {
+              "kind": "Name",
+              "name": "text"
+            },
             "cases": [
               {
                 "kind": "Case",
-                "pattern": {"kind": "PatNull"},
+                "pattern": {
+                  "kind": "PatNull"
+                },
                 "body": {
                   "kind": "Block",
                   "statements": [
                     {
                       "kind": "Return",
-                      "expr": {"kind": "String", "value": "null"}
+                      "expr": {
+                        "kind": "String",
+                        "value": "null"
+                      }
                     }
                   ]
                 }
@@ -123,14 +173,22 @@
                   "kind": "PatCtor",
                   "typeName": "Some",
                   "names": [],
-                  "args": [{"kind": "PatName", "name": "val"}]
+                  "args": [
+                    {
+                      "kind": "PatName",
+                      "name": "val"
+                    }
+                  ]
                 },
                 "body": {
                   "kind": "Block",
                   "statements": [
                     {
                       "kind": "Return",
-                      "expr": {"kind": "Name", "name": "val"}
+                      "expr": {
+                        "kind": "Name",
+                        "name": "val"
+                      }
                     }
                   ]
                 }

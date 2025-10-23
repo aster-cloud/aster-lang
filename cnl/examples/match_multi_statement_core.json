@@ -11,19 +11,30 @@
           "name": "opt",
           "type": {
             "kind": "Maybe",
-            "type": {"kind": "TypeName", "name": "Int"}
+            "type": {
+              "kind": "TypeName",
+              "name": "Int"
+            }
           },
           "annotations": []
         }
       ],
-      "ret": {"kind": "TypeName", "name": "Int"},
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
       "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
           {
             "kind": "Match",
-            "expr": {"kind": "Name", "name": "opt"},
+            "expr": {
+              "kind": "Name",
+              "name": "opt"
+            },
             "cases": [
               {
                 "kind": "Case",
@@ -32,7 +43,10 @@
                   "typeName": "Some",
                   "names": [],
                   "args": [
-                    {"kind": "PatName", "name": "value"}
+                    {
+                      "kind": "PatName",
+                      "name": "value"
+                    }
                   ]
                 },
                 "body": {
@@ -43,10 +57,19 @@
                       "name": "doubled",
                       "expr": {
                         "kind": "Call",
-                        "target": {"kind": "Name", "name": "*"},
+                        "target": {
+                          "kind": "Name",
+                          "name": "*"
+                        },
                         "args": [
-                          {"kind": "Name", "name": "value"},
-                          {"kind": "Int", "value": 2}
+                          {
+                            "kind": "Name",
+                            "name": "value"
+                          },
+                          {
+                            "kind": "Int",
+                            "value": 2
+                          }
                         ]
                       }
                     },
@@ -55,16 +78,28 @@
                       "name": "doubled",
                       "expr": {
                         "kind": "Call",
-                        "target": {"kind": "Name", "name": "+"},
+                        "target": {
+                          "kind": "Name",
+                          "name": "+"
+                        },
                         "args": [
-                          {"kind": "Name", "name": "doubled"},
-                          {"kind": "Int", "value": 1}
+                          {
+                            "kind": "Name",
+                            "name": "doubled"
+                          },
+                          {
+                            "kind": "Int",
+                            "value": 1
+                          }
                         ]
                       }
                     },
                     {
                       "kind": "Return",
-                      "expr": {"kind": "Name", "name": "doubled"}
+                      "expr": {
+                        "kind": "Name",
+                        "name": "doubled"
+                      }
                     }
                   ]
                 }
@@ -82,7 +117,10 @@
                   "statements": [
                     {
                       "kind": "Return",
-                      "expr": {"kind": "Int", "value": 0}
+                      "expr": {
+                        "kind": "Int",
+                        "value": 0
+                      }
                     }
                   ]
                 }

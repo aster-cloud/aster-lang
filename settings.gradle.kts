@@ -1,5 +1,7 @@
 rootProject.name = "aster-lang"
 include(":aster-asm-emitter")
+include("aster-core")
+project(":aster-core").projectDir = file("aster-core")
 include(":aster-runtime")
 project(":aster-runtime").projectDir = file("aster-runtime")
 include("aster-validation")

@@ -1,0 +1,18 @@
+This module is test.annotations.multiline.
+
+Define UserProfile with @NotEmpty userId: Text, @Range(min: 18, max: 120) age: Int, @NotEmpty email: Text, accountBalance: Int.
+
+Define Transaction with @NotEmpty transactionId: Text, amount: Int, @Range(min: 0, max: 100) feePercentage: Int, timestamp: Long.
+
+Define LoanApplication with @NotEmpty @Pattern(regexp: "^APP-[0-9]+$") applicationId: Text, @Range(min: 1000, max: 10000000) requestedAmount: Int, @Range(min: 6, max: 360) termMonths: Int.
+
+Define Product with @NotEmpty productId: Text, @Range(min: 0, max: 1000000) price: Int, @NotEmpty category: Text.
+
+Define Address with @NotEmpty street: Text, @NotEmpty city: Text, @Pattern(regexp: "^[0-9]{5}$") zipCode: Text.
+
+Define CompleteProfile with @NotEmpty firstName: Text, @NotEmpty lastName: Text, @Range(min: 18, max: 120) age: Int, @Pattern(regexp: "^[a-z]+$") username: Text, @Range(min: 0, max: 850) creditScore: Int, @NotEmpty country: Text, active: Bool.
+
+To validateAge with @Range(min: 0, max: 150) age: Int, produce Bool:
+  Return >=(age, 18).
+
+Define FinancialRecord with @NotEmpty recordId: Text, @Range(min: 0, max: 100) taxRate: Int, totalIncome: Int, totalExpenses: Int.

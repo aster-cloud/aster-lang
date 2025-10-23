@@ -13,6 +13,10 @@
       "effects": [
         "io"
       ],
+      "effectCaps": [
+        "Http"
+      ],
+      "effectCapsExplicit": true,
       "body": {
         "kind": "Block",
         "statements": [
@@ -24,11 +28,7 @@
             }
           }
         ]
-      },
-      "effectCaps": [
-        "Http"
-      ],
-      "effectCapsExplicit": true
+      }
     }
   ]
 }

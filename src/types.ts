@@ -1,6 +1,7 @@
 // Core type definitions for Aster CNL
 
 import { Effect as EffectEnum } from './config/semantic.js';
+import type { ErrorCode } from './error_codes.js';
 import type * as Base from './types/base.js';
 
 export interface Position {
@@ -41,10 +42,10 @@ export interface AstMetadata {
  * 支持细粒度的效应跟踪和验证。
  */
 export interface EffectCapable {
-  /** 效应能力列表（可选，由 parser 附加） */
-  effectCaps?: readonly CapabilityKind[];
+  /** 效应能力列表（无副作用时为空列表） */
+  effectCaps: readonly CapabilityKind[];
   /** 效应能力是否显式声明（区分隐式推导和显式标注） */
-  effectCapsExplicit?: boolean;
+  effectCapsExplicit: boolean;
 }
 
 /**
@@ -52,14 +53,7 @@ export interface EffectCapable {
  *
  * 定义系统支持的所有效应能力类型。
  */
-export type CapabilityKind =
-  | 'files'      // 文件系统访问
-  | 'network'    // 网络访问
-  | 'secrets'    // 敏感数据访问
-  | 'crypto'     // 加密操作
-  | 'random'     // 随机数生成
-  | 'time'       // 时间获取
-  | 'env';       // 环境变量访问
+export type CapabilityKind = import('./config/semantic.js').CapabilityKind;
 
 export interface Token {
   readonly kind: TokenKind;
@@ -131,21 +125,28 @@ export { Effect } from './config/semantic.js';
 
 export interface TypecheckDiagnostic {
   severity: 'error' | 'warning' | 'info';
+  code: ErrorCode;
   message: string;
-  code?: string;
+  span?: Span;
+  origin?: Origin;
+  help?: string;
   data?: unknown;
-  location?: Origin;
 }
 
 // CNL AST types
 export type AstNode = Base.BaseNode<Span>;
 
-export interface Module extends Base.BaseModule<Span, Declaration> {}
+export interface Module extends Base.BaseModule<Span, Declaration> {
+  span: Span;
+}
 
-export interface Import extends Base.BaseImport<Span> {}
+export interface Import extends Base.BaseImport<Span> {
+  span: Span;
+}
 
 export interface Data extends Base.BaseData<Span, Type> {
   readonly fields: readonly Field[];
+  span: Span;
 }
 
 export interface Annotation {
@@ -155,51 +156,82 @@ export interface Annotation {
 
 export interface Field extends Base.BaseField<Type> {
   readonly annotations?: readonly Annotation[];
+  span: Span;
 }
 
-export interface Enum extends Base.BaseEnum<Span> {}
+export interface Enum extends Base.BaseEnum<Span> {
+  span: Span;
+}
 
 export interface Func extends Base.BaseFunc<Span, readonly string[], Type> {
   readonly retType: Type;
   readonly body: Block | null;
   readonly params: readonly Parameter[];
+  span: Span;
 }
 
 export interface Parameter extends Base.BaseParameter<Type> {
   readonly annotations?: readonly Annotation[];
+  span: Span;
 }
 
-export interface Block extends Base.BaseBlock<Span, Statement> {}
+export interface Block extends Base.BaseBlock<Span, Statement> {
+  span: Span;
+}
 
 export type Declaration = Import | Data | Enum | Func;
 
 export type Statement = Let | Set | Return | If | Match | Start | Wait | Expression | Block;
 
-export interface Let extends Base.BaseLet<Span, Expression> {}
+export interface Let extends Base.BaseLet<Span, Expression> {
+  span: Span;
+}
 
-export interface Set extends Base.BaseSet<Span, Expression> {}
+export interface Set extends Base.BaseSet<Span, Expression> {
+  span: Span;
+}
 
-export interface Return extends Base.BaseReturn<Span, Expression> {}
+export interface Return extends Base.BaseReturn<Span, Expression> {
+  span: Span;
+}
 
-export interface If extends Base.BaseIf<Span, Expression, Block> {}
+export interface If extends Base.BaseIf<Span, Expression, Block> {
+  span: Span;
+}
 
-export interface Match extends Base.BaseMatch<Span, Expression, Case> {}
+export interface Match extends Base.BaseMatch<Span, Expression, Case> {
+  span: Span;
+}
 
-export interface Case extends Base.BaseCase<Span, Pattern, Return | Block> {}
+export interface Case extends Base.BaseCase<Span, Pattern, Return | Block> {
+  span: Span;
+}
 
-export interface Start extends Base.BaseStart<Span, Expression> {}
+export interface Start extends Base.BaseStart<Span, Expression> {
+  span: Span;
+}
 
-export interface Wait extends Base.BaseWait<Span> {}
+export interface Wait extends Base.BaseWait<Span> {
+  span: Span;
+}
 
 export type Pattern = PatternNull | PatternCtor | PatternName | PatternInt;
 
-export interface PatternNull extends Base.BasePatternNull<Span> {}
+export interface PatternNull extends Base.BasePatternNull<Span> {
+  span: Span;
+}
 
-export interface PatternCtor extends Base.BasePatternCtor<Span, Pattern> {}
+export interface PatternCtor extends Base.BasePatternCtor<Span, Pattern> {
+  span: Span;
+}
 
-export interface PatternName extends Base.BasePatternName<Span> {}
+export interface PatternName extends Base.BasePatternName<Span> {
+  span: Span;
+}
 
-export interface PatternInt extends Base.BasePatternInt<Span> {}
+export interface PatternInt extends Base.BasePatternInt<Span> {
+  span: Span;
+}
 
 export type Expression =
   | Name
@@ -218,39 +250,70 @@ export type Expression =
   | Lambda
   | Await;
 
-export interface Await extends Base.BaseAwait<Span, Expression> {}
+export interface Await extends Base.BaseAwait<Span, Expression> {
+  span: Span;
+}
 
-export interface Name extends Base.BaseName<Span> {}
+export interface Name extends Base.BaseName<Span> {
+  span: Span;
+}
 
-export interface Bool extends Base.BaseBool<Span> {}
+export interface Bool extends Base.BaseBool<Span> {
+  span: Span;
+}
 
-export interface Int extends Base.BaseInt<Span> {}
+export interface Int extends Base.BaseInt<Span> {
+  span: Span;
+}
 
-export interface Long extends Base.BaseLong<Span> {}
+export interface Long extends Base.BaseLong<Span> {
+  span: Span;
+}
 
-export interface Double extends Base.BaseDouble<Span> {}
+export interface Double extends Base.BaseDouble<Span> {
+  span: Span;
+}
 
-export interface String extends Base.BaseString<Span> {}
+export interface String extends Base.BaseString<Span> {
+  span: Span;
+}
 
-export interface Null extends Base.BaseNull<Span> {}
+export interface Null extends Base.BaseNull<Span> {
+  span: Span;
+}
 
-export interface Call extends Base.BaseCall<Span, Expression> {}
+export interface Call extends Base.BaseCall<Span, Expression> {
+  span: Span;
+}
 
 export interface Lambda extends Base.BaseLambda<Span, Type, Block> {
   readonly retType: Type;
+  span: Span;
 }
 
-export interface Construct extends Base.BaseConstruct<Span, ConstructField> {}
+export interface Construct extends Base.BaseConstruct<Span, ConstructField> {
+  span: Span;
+}
 
-export interface ConstructField extends Base.BaseConstructField<Expression> {}
+export interface ConstructField extends Base.BaseConstructField<Expression> {
+  span: Span;
+}
 
-export interface Ok extends Base.BaseOk<Span, Expression> {}
+export interface Ok extends Base.BaseOk<Span, Expression> {
+  span: Span;
+}
 
-export interface Err extends Base.BaseErr<Span, Expression> {}
+export interface Err extends Base.BaseErr<Span, Expression> {
+  span: Span;
+}
 
-export interface Some extends Base.BaseSome<Span, Expression> {}
+export interface Some extends Base.BaseSome<Span, Expression> {
+  span: Span;
+}
 
-export interface None extends Base.BaseNone<Span> {}
+export interface None extends Base.BaseNone<Span> {
+  span: Span;
+}
 
 export type Type = TypeName | Maybe | Option | Result | List | Map | TypeApp | TypeVar | FuncType | TypePii;
 
@@ -284,25 +347,44 @@ export interface TypePii extends AstNode {
   readonly baseType: Type;
   readonly sensitivity: PiiSensitivityLevel;
   readonly category: PiiDataCategory;
+  span: Span;
 }
 
-export interface TypeName extends Base.BaseTypeName<Span> {}
+export interface TypeName extends Base.BaseTypeName<Span> {
+  span: Span;
+}
 
-export interface TypeVar extends Base.BaseTypeVar<Span> {}
+export interface TypeVar extends Base.BaseTypeVar<Span> {
+  span: Span;
+}
 
-export interface TypeApp extends Base.BaseTypeApp<Span, Type> {}
+export interface TypeApp extends Base.BaseTypeApp<Span, Type> {
+  span: Span;
+}
 
-export interface Maybe extends Base.BaseMaybe<Span, Type> {}
+export interface Maybe extends Base.BaseMaybe<Span, Type> {
+  span: Span;
+}
 
-export interface Option extends Base.BaseOption<Span, Type> {}
+export interface Option extends Base.BaseOption<Span, Type> {
+  span: Span;
+}
 
-export interface Result extends Base.BaseResult<Span, Type> {}
+export interface Result extends Base.BaseResult<Span, Type> {
+  span: Span;
+}
 
-export interface List extends Base.BaseList<Span, Type> {}
+export interface List extends Base.BaseList<Span, Type> {
+  span: Span;
+}
 
-export interface Map extends Base.BaseMap<Span, Type> {}
+export interface Map extends Base.BaseMap<Span, Type> {
+  span: Span;
+}
 
-export interface FuncType extends Base.BaseFuncType<Span, Type> {}
+export interface FuncType extends Base.BaseFuncType<Span, Type> {
+  span: Span;
+}
 
 // Core IR types (distinct from CNL AST)
 export namespace Core {

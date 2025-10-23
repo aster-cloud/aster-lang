@@ -10,7 +10,17 @@
           "name": "id",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 22
+              },
+              "end": {
+                "line": 3,
+                "col": 26
+              }
+            }
           },
           "span": {
             "start": {
@@ -27,7 +37,17 @@
           "name": "name",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 34
+              },
+              "end": {
+                "line": 3,
+                "col": 38
+              }
+            }
           },
           "span": {
             "start": {
@@ -40,7 +60,17 @@
             }
           }
         }
-      ]
+      ],
+      "span": {
+        "start": {
+          "line": 3,
+          "col": 1
+        },
+        "end": {
+          "line": 3,
+          "col": 39
+        }
+      }
     },
     {
       "kind": "Enum",
@@ -49,6 +79,16 @@
         "InvalidCreds",
         "Locked"
       ],
+      "span": {
+        "start": {
+          "line": 5,
+          "col": 1
+        },
+        "end": {
+          "line": 5,
+          "col": 47
+        }
+      },
       "variantSpans": [
         {
           "start": {
@@ -80,7 +120,17 @@
           "name": "user",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 21
+              },
+              "end": {
+                "line": 7,
+                "col": 25
+              }
+            }
           },
           "span": {
             "start": {
@@ -97,7 +147,17 @@
           "name": "pass",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 33
+              },
+              "end": {
+                "line": 7,
+                "col": 37
+              }
+            }
           },
           "span": {
             "start": {
@@ -115,16 +175,55 @@
         "kind": "Result",
         "ok": {
           "kind": "TypeName",
-          "name": "User"
+          "name": "User",
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 57
+            },
+            "end": {
+              "line": 7,
+              "col": 61
+            }
+          }
         },
         "err": {
           "kind": "TypeName",
-          "name": "AuthErr"
+          "name": "AuthErr",
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 66
+            },
+            "end": {
+              "line": 7,
+              "col": 73
+            }
+          }
+        },
+        "span": {
+          "start": {
+            "line": 7,
+            "col": 47
+          },
+          "end": {
+            "line": 7,
+            "col": 73
+          }
         }
       },
       "effects": [
         "io"
       ],
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets",
+        "AiModel"
+      ],
+      "effectCapsExplicit": false,
       "body": {
         "kind": "Block",
         "statements": [
@@ -135,18 +234,58 @@
               "kind": "Call",
               "target": {
                 "kind": "Name",
-                "name": "AuthRepo.verify"
+                "name": "AuthRepo.verify",
+                "span": {
+                  "start": {
+                    "line": 8,
+                    "col": 13
+                  },
+                  "end": {
+                    "line": 8,
+                    "col": 28
+                  }
+                }
               },
               "args": [
                 {
                   "kind": "Name",
-                  "name": "user"
+                  "name": "user",
+                  "span": {
+                    "start": {
+                      "line": 8,
+                      "col": 29
+                    },
+                    "end": {
+                      "line": 8,
+                      "col": 33
+                    }
+                  }
                 },
                 {
                   "kind": "Name",
-                  "name": "pass"
+                  "name": "pass",
+                  "span": {
+                    "start": {
+                      "line": 8,
+                      "col": 35
+                    },
+                    "end": {
+                      "line": 8,
+                      "col": 39
+                    }
+                  }
                 }
-              ]
+              ],
+              "span": {
+                "start": {
+                  "line": 8,
+                  "col": 13
+                },
+                "end": {
+                  "line": 8,
+                  "col": 40
+                }
+              }
             },
             "span": {
               "start": {
@@ -165,14 +304,44 @@
               "kind": "Call",
               "target": {
                 "kind": "Name",
-                "name": "not"
+                "name": "not",
+                "span": {
+                  "start": {
+                    "line": 9,
+                    "col": 6
+                  },
+                  "end": {
+                    "line": 9,
+                    "col": 9
+                  }
+                }
               },
               "args": [
                 {
                   "kind": "Name",
-                  "name": "ok"
+                  "name": "ok",
+                  "span": {
+                    "start": {
+                      "line": 9,
+                      "col": 10
+                    },
+                    "end": {
+                      "line": 9,
+                      "col": 13
+                    }
+                  }
                 }
-              ]
+              ],
+              "span": {
+                "start": {
+                  "line": 9,
+                  "col": 6
+                },
+                "end": {
+                  "line": 9,
+                  "col": 13
+                }
+              }
             },
             "thenBlock": {
               "kind": "Block",
@@ -183,7 +352,27 @@
                     "kind": "Err",
                     "expr": {
                       "kind": "Name",
-                      "name": "InvalidCreds"
+                      "name": "InvalidCreds",
+                      "span": {
+                        "start": {
+                          "line": 10,
+                          "col": 19
+                        },
+                        "end": {
+                          "line": 10,
+                          "col": 31
+                        }
+                      }
+                    },
+                    "span": {
+                      "start": {
+                        "line": 10,
+                        "col": 12
+                      },
+                      "end": {
+                        "line": 10,
+                        "col": 31
+                      }
                     }
                   },
                   "span": {
@@ -204,8 +393,8 @@
                   "col": 5
                 },
                 "end": {
-                  "line": 11,
-                  "col": 1
+                  "line": 10,
+                  "col": 32
                 }
               }
             },
@@ -235,9 +424,29 @@
                       "kind": "Call",
                       "target": {
                         "kind": "Name",
-                        "name": "UUID.randomUUID"
+                        "name": "UUID.randomUUID",
+                        "span": {
+                          "start": {
+                            "line": 11,
+                            "col": 31
+                          },
+                          "end": {
+                            "line": 11,
+                            "col": 46
+                          }
+                        }
                       },
-                      "args": []
+                      "args": [],
+                      "span": {
+                        "start": {
+                          "line": 11,
+                          "col": 31
+                        },
+                        "end": {
+                          "line": 11,
+                          "col": 48
+                        }
+                      }
                     },
                     "span": {
                       "start": {
@@ -254,7 +463,17 @@
                     "name": "name",
                     "expr": {
                       "kind": "Name",
-                      "name": "user"
+                      "name": "user",
+                      "span": {
+                        "start": {
+                          "line": 11,
+                          "col": 57
+                        },
+                        "end": {
+                          "line": 11,
+                          "col": 61
+                        }
+                      }
                     },
                     "span": {
                       "start": {
@@ -267,7 +486,27 @@
                       }
                     }
                   }
-                ]
+                ],
+                "span": {
+                  "start": {
+                    "line": 11,
+                    "col": 16
+                  },
+                  "end": {
+                    "line": 11,
+                    "col": 61
+                  }
+                }
+              },
+              "span": {
+                "start": {
+                  "line": 11,
+                  "col": 10
+                },
+                "end": {
+                  "line": 11,
+                  "col": 61
+                }
               }
             },
             "span": {
@@ -288,8 +527,8 @@
             "col": 3
           },
           "end": {
-            "line": 12,
-            "col": 1
+            "line": 11,
+            "col": 62
           }
         }
       },
@@ -312,16 +551,17 @@
           "line": 12,
           "col": 1
         }
-      },
-      "effectCaps": [
-        "Http",
-        "Sql",
-        "Time",
-        "Files",
-        "Secrets",
-        "AiModel"
-      ],
-      "effectCapsExplicit": false
+      }
     }
-  ]
+  ],
+  "span": {
+    "start": {
+      "line": 1,
+      "col": 1
+    },
+    "end": {
+      "line": 12,
+      "col": 1
+    }
+  }
 }
