@@ -52,7 +52,7 @@
 2025-10-17 19:51:47 NZDT | code-index__set_project_path | 设定索引根目录 | 输出：/Users/rpang/IdeaProjects/aster-lang
 2025-10-17 19:51:48 NZDT | code-index__find_files | 查找 Main.java | 输出：aster-asm-emitter/src/main/java/aster/emitter/Main.java
 2025-10-17 19:51:49 NZDT | code-index__find_files | 搜索 *.aster 文件 | 输出：未发现匹配文件
-2025-10-17 19:51:50 NZDT | code-index__find_files | 搜索 *.json 输入样例 | 输出：列出 cnl/examples/*_core.json 等 100+ 个路径
+2025-10-17 19:51:50 NZDT | code-index__find_files | 搜索 *.json 输入样例 | 输出：列出 test/cnl/examples/*_core.json 等 100+ 个路径
 2025-10-17 19:51:52 NZDT | shell sed | 查看 build.gradle.kts 依赖 | 输出：确认缺少 asm-tree 依赖
 2025-10-17 19:51:55 NZDT | apply_patch | 更新 build.gradle.kts | 输出：新增 testImplementation asm-tree 依赖
 2025-10-17 19:52:10 NZDT | apply_patch | 新增 BytecodeComparator.java | 输出：实现结构化字节码比较逻辑
@@ -166,14 +166,14 @@
 2025-10-19 00:49:49 NZST | shell sed -n '1040,1160p' aster-asm-emitter/src/main/java/aster/emitter/Main.java | 阅读 emitApplyStmt/CaseBody 段 | 输出：确认 Return/Let/If/Match 语义
 2025-10-19 00:49:50 NZST | shell sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java | 阅读新 ExpressionEmitter | 输出：仅支持字面量并装箱
 2025-10-19 00:49:51 NZST | shell sed -n '1,240p' aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java | 阅读新 CallEmitter | 输出：涵盖算术、Text/List/Map 内联与回退
-2025-10-19 00:49:52 NZST | shell jq '.modules[].funcs[]?' cnl/examples/expected_greet_core.json | 尝试遍历模块函数（失败） | 输出：Cannot iterate over null
-2025-10-19 00:49:53 NZST | shell head -n 40 cnl/examples/expected_greet_core.json | 查看 greet 场景 JSON 头部 | 输出：确认函数定义结构
-2025-10-19 00:49:54 NZST | shell jq '.decls[] | select(.kind==\"Func\") | {name:.name,body:.body}' cnl/examples/expected_greet_core.json | 提取 greet 函数体 | 输出：Match+Return 结构
+2025-10-19 00:49:52 NZST | shell jq '.modules[].funcs[]?' test/cnl/examples/expected_greet_core.json | 尝试遍历模块函数（失败） | 输出：Cannot iterate over null
+2025-10-19 00:49:53 NZST | shell head -n 40 test/cnl/examples/expected_greet_core.json | 查看 greet 场景 JSON 头部 | 输出：确认函数定义结构
+2025-10-19 00:49:54 NZST | shell jq '.decls[] | select(.kind==\"Func\") | {name:.name,body:.body}' test/cnl/examples/expected_greet_core.json | 提取 greet 函数体 | 输出：Match+Return 结构
 2025-10-19 00:49:55 NZST | shell python - <<'PY' [...] | 运行 python（失败） | 输出：python: command not found
 2025-10-19 00:49:56 NZST | shell python3 - <<'PY' [...] | 扫描所有 *_core.json 函数分类 | 输出：列出每个函数是否委托 FunctionEmitter
 2025-10-19 00:49:57 NZST | shell python3 - <<'PY' [...] | 提取 Golden 场景委托情况 | 输出：8 个测试均走 FunctionEmitter
 2025-10-19 00:49:58 NZST | shell python3 - <<'PY' [...] | 枚举 Legacy 路径函数 | 输出：仅 fetchDashboard 走 Legacy
-2025-10-19 00:49:59 NZST | shell jq '.decls[] | select(.kind==\"Func\")' cnl/examples/expected_fetch_dashboard_core.json | 查看 fetchDashboard 定义 | 输出：包含 Start/Wait/Return
+2025-10-19 00:49:59 NZST | shell jq '.decls[] | select(.kind==\"Func\")' test/cnl/examples/expected_fetch_dashboard_core.json | 查看 fetchDashboard 定义 | 输出：包含 Start/Wait/Return
 2025-10-19 00:50:00 NZST | shell rg -n 'Start' aster-asm-emitter/src/main/java/aster/emitter/Main.java | 搜索 Start 处理 | 输出：未找到匹配
 2025-10-19 00:50:01 NZST | shell rg -n 'Wait' aster-asm-emitter/src/main/java/aster/emitter/Main.java | 搜索 Wait 处理 | 输出：未找到匹配
 2025-10-19 00:50:02 NZST | shell sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java | 阅读 FunctionEmitter 开头 | 输出：确认依赖注入与 fast-path
@@ -237,9 +237,9 @@
 2025-10-19 09:11:58 NZST | shell rg -n "class Ok" | 搜索 Ok 类定义 | 输出：runtime 与 truffle 定义
 2025-10-19 09:11:58 NZST | shell sed -n '1,160p' aster-runtime/src/main/java/aster/runtime/Ok.java | 阅读 Ok 类 | 输出：确认字段与构造函数
 2025-10-19 09:11:58 NZST | shell sed -n '1,160p' aster-runtime/src/main/java/aster/runtime/Err.java | 阅读 Err 类 | 输出：确认字段与构造函数
-2025-10-19 09:11:58 NZST | shell rg -n "Result" cnl/examples | 搜索示例中 Result 场景 | 输出：列出 result_trycatch 等案例
-2025-10-19 09:11:58 NZST | shell sed -n '1,120p' cnl/examples/result_trycatch.aster | 阅读 Result try-catch 示例 | 输出：函数 risky 返回 Repo.op()
-2025-10-19 09:11:58 NZST | shell sed -n '1,200p' cnl/examples/result_trycatch_core.json | 阅读核心 AST | 输出：记录 Ok/Err 分支
+2025-10-19 09:11:58 NZST | shell rg -n "Result" test/cnl/examples | 搜索示例中 Result 场景 | 输出：列出 result_trycatch 等案例
+2025-10-19 09:11:58 NZST | shell sed -n '1,120p' test/cnl/examples/result_trycatch.aster | 阅读 Result try-catch 示例 | 输出：函数 risky 返回 Repo.op()
+2025-10-19 09:11:58 NZST | shell sed -n '1,200p' test/cnl/examples/result_trycatch_core.json | 阅读核心 AST | 输出：记录 Ok/Err 分支
 2025-10-19 09:11:58 NZST | shell rg -n "ReturnEmitterTest" | 搜索 ReturnEmitter 测试 | 输出：未找到匹配
 2025-10-19 09:11:58 NZST | shell rg -n "Result" aster-asm-emitter/src/test/java | 搜索测试中 Result 相关用例 | 输出：GoldenClassTest 含 testResultTryCatch
 2025-10-19 09:11:58 NZST | shell sed -n '40,120p' aster-asm-emitter/src/test/java/aster/emitter/GoldenClassTest.java | 阅读 Result try-catch 测试 | 输出：runGoldenTest("result_trycatch", ...)

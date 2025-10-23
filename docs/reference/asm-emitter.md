@@ -25,7 +25,7 @@ Run class emission on representative programs and disassemble with `javap`:
 npm run verify:asm
 ```
 
-This compiles `cnl/examples/login.aster` and `cnl/examples/greet.aster` to
+This compiles `test/cnl/examples/login.aster` and `test/cnl/examples/greet.aster` to
 `build/jvm-classes`, then runs `javap -v` across all `.class` files.
 
 ## Recent Coverage Additions

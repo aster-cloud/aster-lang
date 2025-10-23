@@ -39,7 +39,7 @@ npm run ci  # 包含 perf:benchmark（非阻塞模式）
 | **Large** | 1 | ~350 | 高复杂度单模块（50函数） | 解析器/类型系统极限 |
 
 ### Small 项目
-- 示例：`cnl/examples/greet.aster`
+- 示例：`test/cnl/examples/greet.aster`
 - 用途：检测编译管道基础性能
 - 特点：无依赖、单个函数
 

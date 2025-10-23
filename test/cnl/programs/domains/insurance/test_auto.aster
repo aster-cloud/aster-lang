@@ -1,0 +1,174 @@
+This module is test.insurance.auto.
+
+Define Driver with driverId: Text, age: Int, yearsLicensed: Int, accidentCount: Int, violationCount: Int, creditScore: Int.
+
+Define Vehicle with vin: Text, year: Int, make: Text, model: Text, value: Int, safetyRating: Int.
+
+Define PolicyQuote with approved: Bool, reason: Text, monthlyPremium: Int, deductible: Int, coverageLimit: Int.
+
+To calculateAgeFactor with age: Int, produce Int:
+  If <(age, 25),:
+    Return 250.
+  If <(age, 35),:
+    Return 150.
+  If <(age, 55),:
+    Return 120.
+  If <(age, 70),:
+    Return 140.
+  Return 180.
+
+To calculateVehicleFactor with vehicle: Vehicle, produce Int:
+  Let currentYear be 2025.
+  Let vehicleAge be -(currentYear, vehicle.year).
+  If >(vehicleAge, 10),:
+    Return 80.
+  If >(vehicleAge, 5),:
+    Return 100.
+  Return 120.
+
+To calculateBasePremium with driver: Driver, vehicle: Vehicle, produce Int:
+  Let ageFactor be calculateAgeFactor(driver.age).
+  Let vehicleFactor be calculateVehicleFactor(vehicle).
+  Return +(ageFactor, vehicleFactor).
+
+To calculateRiskMultiplier with driver: Driver, vehicle: Vehicle, produce Int:
+  Let baseMultiplier be 100.
+  If >(driver.accidentCount, 0),:
+    Let penalty be *(driver.accidentCount, 25).
+    Let baseMultiplier be +(baseMultiplier, penalty).
+  If >(driver.violationCount, 0),:
+    Let penalty be *(driver.violationCount, 15).
+    Let baseMultiplier be +(baseMultiplier, penalty).
+  If <(driver.creditScore, 650),:
+    Let baseMultiplier be +(baseMultiplier, 30).
+  If >(vehicle.safetyRating, 8),:
+    Let baseMultiplier be -(baseMultiplier, 10).
+  Return baseMultiplier.
+
+To determineDeductible with coverageType: Text, creditScore: Int, produce Int:
+  If =(coverageType, "Premium"),:
+    If >(creditScore, 750),:
+      Return 250.
+    Return 500.
+  If =(coverageType, "Standard"),:
+    If >(creditScore, 700),:
+      Return 500.
+    Return 1000.
+  Return 2000.
+
+To determineCoverageLimit with coverageType: Text, vehicleValue: Int, produce Int:
+  If =(coverageType, "Premium"),:
+    Return 500000.
+  If =(coverageType, "Standard"),:
+    Return 250000.
+  If >(vehicleValue, 30000),:
+    Return 100000.
+  Return 50000.
+
+To generateAutoQuote with driver: Driver, vehicle: Vehicle, coverageType: Text, produce PolicyQuote:
+  If <(driver.age, 18),:
+    Return PolicyQuote with approved = false, reason = "Driver under 18", monthlyPremium = 0, deductible = 0, coverageLimit = 0.
+  If >(driver.accidentCount, 3),:
+    Return PolicyQuote with approved = false, reason = "Too many accidents", monthlyPremium = 0, deductible = 0, coverageLimit = 0.
+  If >(driver.violationCount, 5),:
+    Return PolicyQuote with approved = false, reason = "Too many violations", monthlyPremium = 0, deductible = 0, coverageLimit = 0.
+  Let basePremium be calculateBasePremium(driver, vehicle).
+  Let riskMultiplier be calculateRiskMultiplier(driver, vehicle).
+  Let finalPremium be *(basePremium, riskMultiplier).
+  Let deductibleAmt be determineDeductible(coverageType, driver.creditScore).
+  Let coverageAmt be determineCoverageLimit(coverageType, vehicle.value).
+  Return PolicyQuote with approved = true, reason = "Quote approved", monthlyPremium = finalPremium, deductible = deductibleAmt, coverageLimit = coverageAmt.
+
+To testDriverUnder18, produce PolicyQuote:
+  Let driver be Driver with driverId = "D001", age = 16, yearsLicensed = 1, accidentCount = 0, violationCount = 0, creditScore = 700.
+  Let vehicle be Vehicle with vin = "V001", year = 2020, make = "Toyota", model = "Camry", value = 25000, safetyRating = 9.
+  Return generateAutoQuote(driver, vehicle, "Standard").
+
+To testTooManyAccidents, produce PolicyQuote:
+  Let driver be Driver with driverId = "D002", age = 35, yearsLicensed = 15, accidentCount = 4, violationCount = 1, creditScore = 650.
+  Let vehicle be Vehicle with vin = "V002", year = 2019, make = "Honda", model = "Accord", value = 22000, safetyRating = 8.
+  Return generateAutoQuote(driver, vehicle, "Premium").
+
+To testTooManyViolations, produce PolicyQuote:
+  Let driver be Driver with driverId = "D003", age = 28, yearsLicensed = 10, accidentCount = 1, violationCount = 6, creditScore = 680.
+  Let vehicle be Vehicle with vin = "V003", year = 2021, make = "Ford", model = "F150", value = 35000, safetyRating = 7.
+  Return generateAutoQuote(driver, vehicle, "Standard").
+
+To testYoungDriverPremiumCoverage, produce PolicyQuote:
+  Let driver be Driver with driverId = "D004", age = 22, yearsLicensed = 4, accidentCount = 0, violationCount = 1, creditScore = 720.
+  Let vehicle be Vehicle with vin = "V004", year = 2022, make = "Tesla", model = "Model3", value = 45000, safetyRating = 10.
+  Return generateAutoQuote(driver, vehicle, "Premium").
+
+To testMiddleAgedDriverStandardCoverage, produce PolicyQuote:
+  Let driver be Driver with driverId = "D005", age = 40, yearsLicensed = 22, accidentCount = 1, violationCount = 2, creditScore = 750.
+  Let vehicle be Vehicle with vin = "V005", year = 2018, make = "Chevrolet", model = "Malibu", value = 18000, safetyRating = 8.
+  Return generateAutoQuote(driver, vehicle, "Standard").
+
+To testSeniorDriverBasicCoverage, produce PolicyQuote:
+  Let driver be Driver with driverId = "D006", age = 68, yearsLicensed = 50, accidentCount = 0, violationCount = 0, creditScore = 800.
+  Let vehicle be Vehicle with vin = "V006", year = 2015, make = "Buick", model = "LaCrosse", value = 15000, safetyRating = 7.
+  Return generateAutoQuote(driver, vehicle, "Basic").
+
+To testPerfectDriverNewCar, produce PolicyQuote:
+  Let driver be Driver with driverId = "D007", age = 45, yearsLicensed = 27, accidentCount = 0, violationCount = 0, creditScore = 820.
+  Let vehicle be Vehicle with vin = "V007", year = 2024, make = "BMW", model = "X5", value = 65000, safetyRating = 10.
+  Return generateAutoQuote(driver, vehicle, "Premium").
+
+To testHighRiskDriverOldCar, produce PolicyQuote:
+  Let driver be Driver with driverId = "D008", age = 25, yearsLicensed = 7, accidentCount = 2, violationCount = 3, creditScore = 580.
+  Let vehicle be Vehicle with vin = "V008", year = 2010, make = "Nissan", model = "Altima", value = 8000, safetyRating = 6.
+  Return generateAutoQuote(driver, vehicle, "Basic").
+
+To testLowCreditScore, produce PolicyQuote:
+  Let driver be Driver with driverId = "D009", age = 32, yearsLicensed = 14, accidentCount = 1, violationCount = 1, creditScore = 600.
+  Let vehicle be Vehicle with vin = "V009", year = 2019, make = "Mazda", model = "CX5", value = 28000, safetyRating = 9.
+  Return generateAutoQuote(driver, vehicle, "Standard").
+
+To testHighValueVehicle, produce PolicyQuote:
+  Let driver be Driver with driverId = "D010", age = 50, yearsLicensed = 32, accidentCount = 0, violationCount = 0, creditScore = 780.
+  Let vehicle be Vehicle with vin = "V010", year = 2023, make = "Mercedes", model = "S-Class", value = 95000, safetyRating = 10.
+  Return generateAutoQuote(driver, vehicle, "Premium").
+
+To testOldVehicle, produce PolicyQuote:
+  Let driver be Driver with driverId = "D011", age = 38, yearsLicensed = 20, accidentCount = 0, violationCount = 1, creditScore = 710.
+  Let vehicle be Vehicle with vin = "V011", year = 2008, make = "Honda", model = "Civic", value = 6000, safetyRating = 7.
+  Return generateAutoQuote(driver, vehicle, "Basic").
+
+To testCalculateAgeFactorYoung, produce Int:
+  Return calculateAgeFactor(23).
+
+To testCalculateAgeFactorMiddle, produce Int:
+  Return calculateAgeFactor(42).
+
+To testCalculateAgeFactorSenior, produce Int:
+  Return calculateAgeFactor(72).
+
+To testCalculateVehicleFactorNew, produce Int:
+  Let vehicle be Vehicle with vin = "V012", year = 2024, make = "Audi", model = "A4", value = 50000, safetyRating = 9.
+  Return calculateVehicleFactor(vehicle).
+
+To testCalculateVehicleFactorOld, produce Int:
+  Let vehicle be Vehicle with vin = "V013", year = 2012, make = "Toyota", model = "Corolla", value = 10000, safetyRating = 8.
+  Return calculateVehicleFactor(vehicle).
+
+To testCalculateRiskMultiplierClean, produce Int:
+  Let driver be Driver with driverId = "D012", age = 35, yearsLicensed = 17, accidentCount = 0, violationCount = 0, creditScore = 750.
+  Let vehicle be Vehicle with vin = "V014", year = 2020, make = "Subaru", model = "Outback", value = 32000, safetyRating = 9.
+  Return calculateRiskMultiplier(driver, vehicle).
+
+To testCalculateRiskMultiplierHighRisk, produce Int:
+  Let driver be Driver with driverId = "D013", age = 26, yearsLicensed = 8, accidentCount = 3, violationCount = 4, creditScore = 590.
+  Let vehicle be Vehicle with vin = "V015", year = 2017, make = "Dodge", model = "Charger", value = 22000, safetyRating = 6.
+  Return calculateRiskMultiplier(driver, vehicle).
+
+To testDetermineDeductiblePremiumHigh, produce Int:
+  Return determineDeductible("Premium", 780).
+
+To testDetermineDeductibleStandardLow, produce Int:
+  Return determineDeductible("Standard", 680).
+
+To testDetermineCoverageLimitPremium, produce Int:
+  Return determineCoverageLimit("Premium", 40000).
+
+To testDetermineCoverageLimitBasicHighValue, produce Int:
+  Return determineCoverageLimit("Basic", 35000).

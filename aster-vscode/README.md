@@ -117,7 +117,7 @@ Aster 支持基于能力清单（Capability Manifest）的权限检查。
 
 ```bash
 # 启动 VSCode 时指定能力清单
-ASTER_CAPS=cnl/examples/capabilities.json code .
+ASTER_CAPS=test/cnl/examples/capabilities.json code .
 ```
 
 ### 清单格式
@@ -251,7 +251,7 @@ WontLost Ltd
 
 - 问题反馈：https://github.com/wontlost-ltd/aster-lang/issues
 - 文档：https://github.com/wontlost-ltd/aster-lang
-- 示例代码：`cnl/examples/`
+- 示例代码：`test/cnl/examples/`
 
 ## 更新日志
 

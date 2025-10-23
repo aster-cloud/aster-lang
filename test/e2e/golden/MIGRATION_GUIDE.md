@@ -7,9 +7,9 @@
 ## 迁移摘要
 
 ### 迁移统计
-- **Diagnostics 测试**: 48 个文件 (cnl/examples/ → test/e2e/golden/diagnostics/)
-- **Core IR 测试**: 41 个文件 (cnl/examples/ → test/e2e/golden/core/)
-- **AST 测试**: 2 个文件 (cnl/examples/ → test/e2e/golden/ast/)
+- **Diagnostics 测试**: 48 个文件 (test/cnl/examples/ → test/e2e/golden/diagnostics/)
+- **Core IR 测试**: 41 个文件 (test/cnl/examples/ → test/e2e/golden/core/)
+- **AST 测试**: 2 个文件 (test/cnl/examples/ → test/e2e/golden/ast/)
 - **总计**: 91 个测试文件
 
 ### 目录结构
@@ -36,8 +36,8 @@ test/e2e/golden/
 ### 之前（硬编码）
 ```typescript
 // 595 行代码，包含 340+ 行硬编码路径
-runOneAst('cnl/examples/greet.aster', 'cnl/examples/expected_greet.ast.json');
-runOneCore('cnl/examples/fetch.aster', 'cnl/examples/expected_fetch_core.json');
+runOneAst('test/cnl/examples/greet.aster', 'test/cnl/examples/expected_greet.ast.json');
+runOneCore('test/cnl/examples/fetch.aster', 'test/cnl/examples/expected_fetch_core.json');
 // ... 重复 90+ 次
 ```
 
@@ -69,12 +69,12 @@ for (const { input, expected } of astTests) {
 
 以下旧文件/目录已可安全删除（如果尚未删除）:
 
-- ❌ `cnl/examples/expected_*.ast.json` (已迁移到 test/e2e/golden/ast/)
-- ❌ `cnl/examples/expected_*_core.json` (已迁移到 test/e2e/golden/core/)
-- ❌ `cnl/examples/expected_*.diag.txt` (已迁移到 test/e2e/golden/diagnostics/)
+- ❌ `test/cnl/examples/expected_*.ast.json` (已迁移到 test/e2e/golden/ast/)
+- ❌ `test/cnl/examples/expected_*_core.json` (已迁移到 test/e2e/golden/core/)
+- ❌ `test/cnl/examples/expected_*.diag.txt` (已迁移到 test/e2e/golden/diagnostics/)
 
 **保留**:
-- ✅ `cnl/examples/*.aster` (作为示例代码和文档)
+- ✅ `test/cnl/examples/*.aster` (作为示例代码和文档)
 
 ## 相关文档
 

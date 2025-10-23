@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { lex, parse, canonicalize, lowerModule } from './dist/src/index.js';
 
-const file = 'cnl/examples/pii_type_basic.aster';
+const file = 'test/cnl/examples/pii_type_basic.aster';
 const source = readFileSync(file, 'utf8');
 
 console.log('Source:', source);

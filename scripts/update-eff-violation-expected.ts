@@ -33,8 +33,8 @@ async function updateExpectedFiles(): Promise<void> {
   const { typecheckModule } = await import('../src/typecheck.js');
 
   for (const test of tests) {
-    const inputFile = `cnl/examples/${test}.aster`;
-    const outputFile = `cnl/examples/expected_${test}.diag.txt`;
+    const inputFile = `test/cnl/programs/effects/${test}.aster`;
+    const outputFile = `test/cnl/programs/effects/expected_${test}.diag.txt`;
 
     console.log(`更新 ${test}...`);
     try {

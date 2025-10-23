@@ -83,13 +83,13 @@ function compareDirs(a: string, b: string): { ok: boolean; errors: string[] } {
 
 async function main(): Promise<void> {
   const inputs = [
-    'cnl/examples/login.aster',
-    'cnl/examples/greet.aster',
-    'cnl/examples/enum_exhaustiveness.aster',
-    'cnl/examples/match_enum.aster',
-    'cnl/examples/result_trycatch.aster',
-    'cnl/examples/list_ops.aster',
-    'cnl/examples/map_ops.aster',
+    'test/cnl/programs/examples/login.aster',
+    'test/cnl/programs/examples/greet.aster',
+    'test/cnl/programs/patterns/enum_exhaustiveness.aster',
+    'test/cnl/programs/patterns/match_enum.aster',
+    'test/cnl/programs/error-handling/result_trycatch.aster',
+    'test/cnl/programs/collections/list_ops.aster',
+    'test/cnl/programs/collections/map_ops.aster',
   ];
   // Ensure build
   sh('npm run build');
@@ -122,4 +122,3 @@ main().catch(e => {
   console.error('determinism script failed:', e);
   process.exit(1);
 });
-

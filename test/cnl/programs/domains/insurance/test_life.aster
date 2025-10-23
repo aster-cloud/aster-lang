@@ -1,0 +1,204 @@
+This module is test.insurance.life.
+
+Define Applicant with applicantId: Text, age: Int, gender: Text, smoker: Bool, bmi: Int, occupation: Text, healthScore: Int.
+
+Define PolicyRequest with coverageAmount: Int, termYears: Int, policyType: Text.
+
+Define LifeQuote with approved: Bool, reason: Text, monthlyPremium: Int, coverageAmount: Int, termYears: Int.
+
+To calculateBaseRate with age: Int, termYears: Int, produce Int:
+  If <(age, 30),:
+    If >(termYears, 20),:
+      Return 50.
+    Return 40.
+  If <(age, 45),:
+    If >(termYears, 20),:
+      Return 75.
+    Return 60.
+  If <(age, 60),:
+    If >(termYears, 20),:
+      Return 120.
+    Return 95.
+  If >(termYears, 15),:
+    Return 180.
+  Return 150.
+
+To calculateHealthMultiplier with applicant: Applicant, produce Int:
+  Let multiplier be 100.
+  If applicant.smoker,:
+    Let multiplier be +(multiplier, 100).
+  If >(applicant.bmi, 30),:
+    Let multiplier be +(multiplier, 40).
+  If >(applicant.bmi, 35),:
+    Let multiplier be +(multiplier, 30).
+  If <(applicant.healthScore, 60),:
+    Let multiplier be +(multiplier, 50).
+  If >(applicant.healthScore, 85),:
+    Let multiplier be -(multiplier, 20).
+  Return multiplier.
+
+To calculateOccupationMultiplier with occupation: Text, produce Int:
+  If =(occupation, "HighRisk"),:
+    Return 150.
+  If =(occupation, "ModerateRisk"),:
+    Return 120.
+  If =(occupation, "Office"),:
+    Return 90.
+  Return 100.
+
+To calculateRiskScore with applicant: Applicant, produce Int:
+  Let riskScore be 0.
+  If applicant.smoker,:
+    Let riskScore be +(riskScore, 30).
+  If >(applicant.bmi, 30),:
+    Let riskScore be +(riskScore, 20).
+  If <(applicant.healthScore, 60),:
+    Let riskScore be +(riskScore, 25).
+  If =(applicant.occupation, "HighRisk"),:
+    Let riskScore be +(riskScore, 35).
+  If >(applicant.age, 60),:
+    Let riskScore be +(riskScore, 20).
+  Return riskScore.
+
+To generateLifeQuote with applicant: Applicant, request: PolicyRequest, produce LifeQuote:
+  If <(applicant.age, 18),:
+    Return LifeQuote with approved = false, reason = "Age below 18", monthlyPremium = 0, coverageAmount = 0, termYears = 0.
+  If >(applicant.age, 80),:
+    Return LifeQuote with approved = false, reason = "Age above 80", monthlyPremium = 0, coverageAmount = 0, termYears = 0.
+  If <(applicant.healthScore, 40),:
+    Return LifeQuote with approved = false, reason = "Health score too low", monthlyPremium = 0, coverageAmount = 0, termYears = 0.
+  If >(request.coverageAmount, 5000000),:
+    Return LifeQuote with approved = false, reason = "Coverage exceeds maximum", monthlyPremium = 0, coverageAmount = 0, termYears = 0.
+  Let baseRate be calculateBaseRate(applicant.age, request.termYears).
+  Let healthMultiplier be calculateHealthMultiplier(applicant).
+  Let occupationMultiplier be calculateOccupationMultiplier(applicant.occupation).
+  Let combinedMultiplier be *(healthMultiplier, occupationMultiplier).
+  Let monthlyPremium be *(baseRate, combinedMultiplier).
+  Return LifeQuote with approved = true, reason = "Quote approved", monthlyPremium = monthlyPremium, coverageAmount = request.coverageAmount, termYears = request.termYears.
+
+To testApplicantTooYoung, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A001", age = 16, gender = "Male", smoker = false, bmi = 22, occupation = "Student", healthScore = 90.
+  Let request be PolicyRequest with coverageAmount = 500000, termYears = 20, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testApplicantTooOld, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A002", age = 85, gender = "Female", smoker = false, bmi = 25, occupation = "Retired", healthScore = 70.
+  Let request be PolicyRequest with coverageAmount = 250000, termYears = 10, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testHealthScoreTooLow, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A003", age = 45, gender = "Male", smoker = true, bmi = 35, occupation = "Office", healthScore = 35.
+  Let request be PolicyRequest with coverageAmount = 1000000, termYears = 20, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testCoverageExceedsMaximum, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A004", age = 40, gender = "Female", smoker = false, bmi = 24, occupation = "Office", healthScore = 85.
+  Let request be PolicyRequest with coverageAmount = 6000000, termYears = 30, policyType = "Whole".
+  Return generateLifeQuote(applicant, request).
+
+To testYoungHealthyNonSmokerShortTerm, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A005", age = 28, gender = "Male", smoker = false, bmi = 23, occupation = "Office", healthScore = 88.
+  Let request be PolicyRequest with coverageAmount = 750000, termYears = 15, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testYoungHealthyNonSmokerLongTerm, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A006", age = 30, gender = "Female", smoker = false, bmi = 21, occupation = "Office", healthScore = 92.
+  Let request be PolicyRequest with coverageAmount = 1000000, termYears = 25, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testMiddleAgedSmokerHighBMI, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A007", age = 45, gender = "Male", smoker = true, bmi = 32, occupation = "ModerateRisk", healthScore = 65.
+  Let request be PolicyRequest with coverageAmount = 500000, termYears = 20, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testMiddleAgedNonSmokerLowBMI, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A008", age = 42, gender = "Female", smoker = false, bmi = 22, occupation = "Office", healthScore = 85.
+  Let request be PolicyRequest with coverageAmount = 1500000, termYears = 20, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testOlderApplicantHealthy, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A009", age = 58, gender = "Male", smoker = false, bmi = 26, occupation = "Office", healthScore = 78.
+  Let request be PolicyRequest with coverageAmount = 800000, termYears = 15, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testHighRiskOccupation, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A010", age = 35, gender = "Male", smoker = false, bmi = 25, occupation = "HighRisk", healthScore = 80.
+  Let request be PolicyRequest with coverageAmount = 1000000, termYears = 20, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testModerateRiskOccupation, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A011", age = 40, gender = "Female", smoker = false, bmi = 24, occupation = "ModerateRisk", healthScore = 82.
+  Let request be PolicyRequest with coverageAmount = 750000, termYears = 20, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testOfficeWorkerLowRisk, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A012", age = 38, gender = "Male", smoker = false, bmi = 23, occupation = "Office", healthScore = 86.
+  Let request be PolicyRequest with coverageAmount = 1200000, termYears = 20, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testSmokerVeryHighBMI, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A013", age = 50, gender = "Male", smoker = true, bmi = 38, occupation = "Office", healthScore = 58.
+  Let request be PolicyRequest with coverageAmount = 500000, termYears = 15, policyType = "Term".
+  Return generateLifeQuote(applicant, request).
+
+To testExcellentHealthHighScore, produce LifeQuote:
+  Let applicant be Applicant with applicantId = "A014", age = 35, gender = "Female", smoker = false, bmi = 20, occupation = "Office", healthScore = 95.
+  Let request be PolicyRequest with coverageAmount = 2000000, termYears = 30, policyType = "Whole".
+  Return generateLifeQuote(applicant, request).
+
+To testCalculateBaseRateYoungShort, produce Int:
+  Return calculateBaseRate(28, 15).
+
+To testCalculateBaseRateYoungLong, produce Int:
+  Return calculateBaseRate(29, 25).
+
+To testCalculateBaseRateMiddleShort, produce Int:
+  Return calculateBaseRate(42, 18).
+
+To testCalculateBaseRateMiddleLong, produce Int:
+  Return calculateBaseRate(43, 22).
+
+To testCalculateBaseRateOlderShort, produce Int:
+  Return calculateBaseRate(55, 12).
+
+To testCalculateBaseRateOlderLong, produce Int:
+  Return calculateBaseRate(57, 20).
+
+To testCalculateBaseRateSeniorShort, produce Int:
+  Return calculateBaseRate(68, 10).
+
+To testCalculateHealthMultiplierClean, produce Int:
+  Let applicant be Applicant with applicantId = "A015", age = 35, gender = "Male", smoker = false, bmi = 23, occupation = "Office", healthScore = 88.
+  Return calculateHealthMultiplier(applicant).
+
+To testCalculateHealthMultiplierSmoker, produce Int:
+  Let applicant be Applicant with applicantId = "A016", age = 40, gender = "Male", smoker = true, bmi = 24, occupation = "Office", healthScore = 75.
+  Return calculateHealthMultiplier(applicant).
+
+To testCalculateHealthMultiplierHighBMI, produce Int:
+  Let applicant be Applicant with applicantId = "A017", age = 45, gender = "Female", smoker = false, bmi = 36, occupation = "Office", healthScore = 70.
+  Return calculateHealthMultiplier(applicant).
+
+To testCalculateHealthMultiplierExcellent, produce Int:
+  Let applicant be Applicant with applicantId = "A018", age = 32, gender = "Female", smoker = false, bmi = 21, occupation = "Office", healthScore = 92.
+  Return calculateHealthMultiplier(applicant).
+
+To testCalculateOccupationMultiplierHighRisk, produce Int:
+  Return calculateOccupationMultiplier("HighRisk").
+
+To testCalculateOccupationMultiplierModerate, produce Int:
+  Return calculateOccupationMultiplier("ModerateRisk").
+
+To testCalculateOccupationMultiplierOffice, produce Int:
+  Return calculateOccupationMultiplier("Office").
+
+To testCalculateOccupationMultiplierUnknown, produce Int:
+  Return calculateOccupationMultiplier("Teacher").
+
+To testCalculateRiskScoreLowRisk, produce Int:
+  Let applicant be Applicant with applicantId = "A019", age = 30, gender = "Female", smoker = false, bmi = 22, occupation = "Office", healthScore = 85.
+  Return calculateRiskScore(applicant).
+
+To testCalculateRiskScoreHighRisk, produce Int:
+  Let applicant be Applicant with applicantId = "A020", age = 65, gender = "Male", smoker = true, bmi = 34, occupation = "HighRisk", healthScore = 55.
+  Return calculateRiskScore(applicant).

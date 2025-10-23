@@ -46,11 +46,11 @@ To login with user: Text and pass: Text, produce Result of User or AuthErr. It p
 ## Math and Match (IR-driven)
 
 - Arithmetic/Compare (core IR): emits add(a,b) and cmp(a,b)
-  - Generate: `./gradlew :aster-asm-emitter:run --args=build/jvm-classes < cnl/examples/arith_compare_core.json`
+  - Generate: `./gradlew :aster-asm-emitter:run --args=build/jvm-classes < test/cnl/examples/arith_compare_core.json`
   - Inspect: `javap -classpath build/jvm-classes -v app.math.add_fn` and `app.math.cmp_fn`
 
 - Match (two-case, core IR): data Color, pick(Color?) returning Text
-  - Generate: `./gradlew :aster-asm-emitter:run --args=build/jvm-classes < cnl/examples/match_two_core.json`
+  - Generate: `./gradlew :aster-asm-emitter:run --args=build/jvm-classes < test/cnl/examples/match_two_core.json`
   - Inspect: `javap -classpath build/jvm-classes -v app.match.pick_fn`
 
 ## Native Login Example

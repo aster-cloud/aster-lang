@@ -16,7 +16,7 @@
 | 2025-10-14 20:34 | code-index__find_files | pattern=**/*lexer* | 定位 lexer 相关文件 |
 | 2025-10-14 20:34 | shell (rg) | \"comment\" src/lexer.ts | 确认注释处理逻辑位置 |
 | 2025-10-14 20:34 | shell (sed) | src/lexer.ts 1-220 | 阅读词法器实现细节 |
-| 2025-10-14 20:34 | shell (sed) | cnl/src/lexer.mjs 1-200 | 对比旧版词法器行为 |
+| 2025-10-14 20:34 | shell (sed) | test/cnl/src/lexer.mjs 1-200 | 对比旧版词法器行为 |
 | 2025-10-14 20:35 | shell (rg) | \"comment\" | 全局检索注释处理相关实现 |
 | 2025-10-14 20:35 | shell (rg) | \"collectAsync\" | 查找 collectAsync 定义与调用 |
 | 2025-10-14 20:35 | shell (sed) | src/typecheck.ts 920-1040 | 查看 collectAsync 实现 |
@@ -78,14 +78,14 @@
 | 2025-10-17 01:44 | apply_patch | src/lower_to_core.ts | 传递注解至 Core IR 并序列化参数 |
 | 2025-10-17 01:45 | apply_patch | aster-asm-emitter/CoreModel.java | 扩充 Core 模型字段与参数的注解表示 |
 | 2025-10-17 01:45 | apply_patch | aster-asm-emitter/Main.java | 输出 JVM 字段注解并校验参数类型 |
-| 2025-10-17 01:46 | apply_patch | cnl/examples/loan_with_constraints.aster | 新增约束示例并含参数注解 |
+| 2025-10-17 01:46 | apply_patch | test/cnl/examples/loan_with_constraints.aster | 新增约束示例并含参数注解 |
 | 2025-10-17 01:45 | apply_patch | src/types.ts | 重写 Data/Func 类型以暴露注解信息 |
 | 2025-10-17 01:45 | apply_patch | src/parser/annotation-parser.ts | 调整返回值使 optional 字段符合 exactOptionalPropertyTypes |
 | 2025-10-17 01:45 | shell (npm run build) | -- | TypeScript 构建成功并生成 PEG 解析器 |
-| 2025-10-17 01:46 | shell (node dist/scripts/aster.js class) | cnl/examples/loan_with_constraints.aster --out build/jvm-classes | 生成含约束注解的 JVM 类文件 |
+| 2025-10-17 01:46 | shell (node dist/scripts/aster.js class) | test/cnl/examples/loan_with_constraints.aster --out build/jvm-classes | 生成含约束注解的 JVM 类文件 |
 | 2025-10-17 01:46 | shell (javap) | build/jvm-classes/finance/loan/constraints/LoanApplicationConstrained.class | 验证字段注解生成与参数值 |
 | 2025-10-17 01:47 | apply_patch | aster-asm-emitter/Main.java | 为函数参数生成注解并添加参数注解写入逻辑 |
-| 2025-10-17 01:48 | shell (node dist/scripts/aster.js class) | cnl/examples/loan_with_constraints.aster --out build/jvm-classes | 重新生成类以包含参数注解 |
+| 2025-10-17 01:48 | shell (node dist/scripts/aster.js class) | test/cnl/examples/loan_with_constraints.aster --out build/jvm-classes | 重新生成类以包含参数注解 |
 | 2025-10-17 01:48 | shell (javap) | build/jvm-classes/finance/loan/constraints/normalizeLoanAmount_fn.class | 验证函数参数注解写入 RuntimeVisibleParameterAnnotations |
 | 2025-10-17 01:49 | apply_patch | quarkus-policy-api/src/test/java/io/aster/policy/api/validation/AsterConstraintIntegrationTest.java | 新增集成测试覆盖生成类注解与语义校验 |
 | 2025-10-17 01:49 | shell (./gradlew) | :quarkus-policy-api:compileJava | 同步约束编译成果并生成资源 |

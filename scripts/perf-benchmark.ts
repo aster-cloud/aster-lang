@@ -134,7 +134,7 @@ async function main(): Promise<void> {
 async function prepareProjects(): Promise<
   [Map<string, string>, Map<string, string>, Map<string, string>]
 > {
-  const smallText = await fs.readFile('cnl/examples/greet.aster', 'utf8');
+  const smallText = await fs.readFile('test/cnl/programs/examples/greet.aster', 'utf8');
   const smallProject = new Map<string, string>([['examples/greet.aster', smallText]]);
 
   const mediumProject = generateMediumProject(40, 42);

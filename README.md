@@ -41,10 +41,10 @@ To greet user: maybe User, produce Text:
 npm run build
 
 # Parse CNL → AST (JSON)
-node dist/scripts/cli.js cnl/examples/greet.aster
+node dist/scripts/cli.js test/cnl/examples/greet.aster
 
 # Lower to Core IR (JSON)
-node dist/scripts/emit-core.js cnl/examples/greet.aster
+node dist/scripts/emit-core.js test/cnl/examples/greet.aster
 ```
 
 ## Installation & Requirements
@@ -73,16 +73,16 @@ Examples:
 
 ```bash
 # Parse to AST
-node dist/scripts/cli.js cnl/examples/greet.aster
+node dist/scripts/cli.js test/cnl/examples/greet.aster
 
 # Emit Core IR
-node dist/scripts/emit-core.js cnl/examples/greet.aster
+node dist/scripts/emit-core.js test/cnl/examples/greet.aster
 
 # Emit Java sources to build/jvm-src
-node dist/scripts/emit-jvm.js cnl/examples/greet.aster
+node dist/scripts/emit-jvm.js test/cnl/examples/greet.aster
 
 # Run Core IR on Truffle (auto-lower .aster)
-node dist/scripts/aster.js truffle cnl/examples/if_param.aster -- true
+node dist/scripts/aster.js truffle test/cnl/examples/if_param.aster -- true
 ```
 
 Truffle can also run an existing Core IR JSON:
@@ -102,7 +102,7 @@ Typical flow to produce a runnable JAR for examples:
 
 ```bash
 # Generate class files from a CNL program
-node dist/scripts/emit-classfiles.js cnl/examples/greet.aster
+node dist/scripts/emit-classfiles.js test/cnl/examples/greet.aster
 
 # Create a jar from emitted classes
 node dist/scripts/jar-jvm.js
@@ -126,7 +126,7 @@ Interop strict nullability (non-blocking CI smoke):
 
 ```
 # Demonstrates strict failure when passing null to a non-null interop param
-npm run verify:asm:nullstrict   # see cnl/examples/null_strict_core.json
+npm run verify:asm:nullstrict   # see test/cnl/examples/null_strict_core.json
 ```
 
 ### Lambda Syntax & Verification
@@ -187,7 +187,7 @@ Examples:
 
 ```
 # Auto-lower CNL to Core and run with arg(s)
-node dist/scripts/aster.js truffle cnl/examples/if_param.aster -- true
+node dist/scripts/aster.js truffle test/cnl/examples/if_param.aster -- true
 
 # Run an existing Core JSON with arg(s)
 node dist/scripts/aster.js truffle build/if_param_core.json -- false
@@ -237,7 +237,7 @@ Note: The npm package is not intended for public distribution during early devel
 - `src/` — TypeScript compiler pipeline (canonicalizer, lexer, parser, Core IR, JVM emitter, LSP)
 - `scripts/` — build/test utilities (PEG build, golden, emit/jar, REPL, LSP smoke) compiled to `dist/scripts`
 - `test/` — property, fuzz, and benchmark tests
-- `cnl/examples/` — sample programs and golden fixtures
+- `test/cnl/examples/` — sample programs and golden fixtures
 - `docs/` — VitePress site (API docs via TypeDoc); `dist/` — build output
 - Gradle modules: `aster-asm-emitter/`, `truffle/`, `examples/*` (Java 21 toolchain)
 
@@ -316,11 +316,11 @@ npm run format:file -- --write --preserve-comments path/to/file.aster
 
 ## Examples
 
-Example CNL programs live in `cnl/examples`. JVM demo projects live under `examples/*` and assume generated classes are placed in `build/jvm-classes`:
+Example CNL programs live in `test/cnl/examples`. JVM demo projects live under `examples/*` and assume generated classes are placed in `build/jvm-classes`:
 
 ```bash
 # Arithmetic example end-to-end
-./gradlew :aster-asm-emitter:run --args=build/jvm-classes < cnl/examples/arith_compare_core.json
+./gradlew :aster-asm-emitter:run --args=build/jvm-classes < test/cnl/examples/arith_compare_core.json
 npm run math:jar && ./gradlew :examples:math-jvm:run
 
 # Text demo (interop mappings)

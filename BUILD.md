@@ -57,7 +57,7 @@ export GRADLE_OPTS="--enable-native-access=ALL-UNNAMED"
 ./gradlew-java25 :quarkus-policy-api:test --tests PolicyGraphQLResourceTest
 
 # Generate Aster class files
-npm run emit:class cnl/stdlib/finance/loan.aster
+npm run emit:class test/cnl/stdlib/finance/loan.aster
 ```
 
 ## IDE Setup

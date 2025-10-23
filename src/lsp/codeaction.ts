@@ -354,7 +354,7 @@ function suggestModuleFromPath(fsPath: string): string {
     const rel = path.relative(root, fsPath);
     const noExt = rel.replace(/\.[^.]+$/, '');
     const parts = noExt.split(path.sep).filter(Boolean);
-    // If under cnl/, drop leading segment
+    // If under test/cnl/, drop leading segment
     if (parts[0] === 'cnl') parts.shift();
     return parts.join('.').replace(/[^A-Za-z0-9_.]/g, '_') || 'main';
   } catch {

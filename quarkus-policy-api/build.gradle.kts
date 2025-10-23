@@ -65,27 +65,27 @@ val generateAsterJar by tasks.registering(Exec::class) {
     commandLine = if (System.getProperty("os.name").lowercase().contains("win")) {
         listOf("cmd", "/c",
             "npm", "run", "emit:class",
-            "cnl/stdlib/finance/loan.aster",
-            "cnl/stdlib/finance/creditcard.aster",
-            "cnl/stdlib/finance/lending/enterprise.aster",
-            "cnl/stdlib/finance/lending/personal.aster",
-            "cnl/stdlib/healthcare/eligibility.aster",
-            "cnl/stdlib/healthcare/claims.aster",
-            "cnl/stdlib/insurance/auto.aster",
-            "cnl/stdlib/insurance/life.aster",
+            "test/cnl/stdlib/finance/loan.aster",
+            "test/cnl/stdlib/finance/creditcard.aster",
+            "test/cnl/stdlib/finance/lending/enterprise.aster",
+            "test/cnl/stdlib/finance/lending/personal.aster",
+            "test/cnl/stdlib/healthcare/eligibility.aster",
+            "test/cnl/stdlib/healthcare/claims.aster",
+            "test/cnl/stdlib/insurance/auto.aster",
+            "test/cnl/stdlib/insurance/life.aster",
             "&&",
             "npm", "run", "jar:jvm")
     } else {
         listOf("sh", "-c",
             "npm run emit:class " +
-            "cnl/stdlib/finance/loan.aster " +
-            "cnl/stdlib/finance/creditcard.aster " +
-            "cnl/stdlib/finance/lending/enterprise.aster " +
-            "cnl/stdlib/finance/lending/personal.aster " +
-            "cnl/stdlib/healthcare/eligibility.aster " +
-            "cnl/stdlib/healthcare/claims.aster " +
-            "cnl/stdlib/insurance/auto.aster " +
-            "cnl/stdlib/insurance/life.aster " +
+            "test/cnl/stdlib/finance/loan.aster " +
+            "test/cnl/stdlib/finance/creditcard.aster " +
+            "test/cnl/stdlib/finance/lending/enterprise.aster " +
+            "test/cnl/stdlib/finance/lending/personal.aster " +
+            "test/cnl/stdlib/healthcare/eligibility.aster " +
+            "test/cnl/stdlib/healthcare/claims.aster " +
+            "test/cnl/stdlib/insurance/auto.aster " +
+            "test/cnl/stdlib/insurance/life.aster " +
             "&& npm run jar:jvm")
     }
 }

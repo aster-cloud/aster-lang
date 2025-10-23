@@ -1054,9 +1054,9 @@ export function analyzeDocument(document: TextDocument): Diagnostic[] {
 6. **误报控制**：净化函数、白名单域名
 7. **真实场景**：注册、支付、分析集成
 
-测试文件位置：`cnl/examples/pii_taint_*.aster`
+测试文件位置：`test/cnl/examples/pii_taint_*.aster`
 
-期望诊断文件：`cnl/examples/expected_pii_taint_*.diag.txt`
+期望诊断文件：`test/cnl/examples/expected_pii_taint_*.diag.txt`
 
 ## 11. 未来扩展
 

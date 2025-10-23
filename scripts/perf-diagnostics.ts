@@ -30,10 +30,22 @@ function createMockGetOrParse(): (doc: TextDocument) => { text: string; tokens: 
 }
 
 async function measureDiagnosticsPerformance(): Promise<void> {
-  const examplesDir = 'cnl/examples';
-  const files = readdirSync(examplesDir)
-    .filter(f => f.endsWith('.aster'))
-    .map(f => join(examplesDir, f));
+  const programsRoot = 'test/cnl/programs';
+  function collectAsterFiles(dir: string): string[] {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    const out: string[] = [];
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        out.push(...collectAsterFiles(full));
+      } else if (entry.isFile() && entry.name.endsWith('.aster')) {
+        out.push(full);
+      }
+    }
+    return out;
+  }
+  const files = collectAsterFiles(programsRoot);
 
   console.log(`测试 ${files.length} 个文件的诊断性能...\n`);
 

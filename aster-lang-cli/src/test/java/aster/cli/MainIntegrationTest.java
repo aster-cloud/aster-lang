@@ -36,7 +36,7 @@ class MainIntegrationTest {
     final CliResult result =
         runCli(
             "compile",
-            "cnl/examples/hello.aster",
+            "test/cnl/examples/hello.aster",
             "--output",
             outDir.toString());
     assertEquals(0, result.exitCode());
@@ -51,7 +51,7 @@ class MainIntegrationTest {
   @Test
   void typecheckReportsError() {
     final CliResult result =
-        runCli("typecheck", "cnl/examples/eff_violation_chain.aster");
+        runCli("typecheck", "test/cnl/examples/eff_violation_chain.aster");
     assertEquals(2, result.exitCode());
     assertTrue(result.stderr().toLowerCase().contains("error"));
   }

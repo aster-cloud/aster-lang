@@ -37,7 +37,7 @@ function getOrParse(doc: TextDocument): { text: string; tokens: readonly any[]; 
 }
 
 async function prepareSmallScenario(): Promise<TestScenario> {
-  const greetPath = 'cnl/examples/greet.aster';
+  const greetPath = 'test/cnl/programs/examples/greet.aster';
   const text = await fs.readFile(greetPath, 'utf8');
   const files = new Map<string, string>();
   files.set('greet.aster', text);

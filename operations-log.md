@@ -4,10 +4,10 @@
 - 工具：code-index__set_project_path → path='.'，初始化当前仓库索引
 - 工具：code-index__build_deep_index → 重新索引 1080 个文件，确保 .aster 样例可检索
 - 命令：zsh -lc "rg --files | grep 'annotations_notempty\\.aster'" → 定位验证注解样例路径
-- 命令：zsh -lc "sed -n '1,160p' cnl/examples/annotations_notempty.aster" → 读取注解语法示例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/lambda_cnl.aster" → 采集 CNL Lambda 基线语法
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/nested_generic_function.aster" → 了解嵌套泛型用例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/fetch_dashboard.aster" → 观察高级语法特性（async/Result）
+- 命令：zsh -lc "sed -n '1,160p' test/cnl/examples/annotations_notempty.aster" → 读取注解语法示例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/lambda_cnl.aster" → 采集 CNL Lambda 基线语法
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/nested_generic_function.aster" → 了解嵌套泛型用例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/fetch_dashboard.aster" → 观察高级语法特性（async/Result）
 - 命令：zsh -lc "sed -n '1,200p' aster-core/src/main/antlr/AsterLexer.g4" → 审查词法关键字定义（含 OF/ANNOTATION）
 - 命令：zsh -lc "sed -n '1,420p' aster-core/src/main/antlr/AsterParser.g4" → 复核注解、lambda、泛型语法规则
 - 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 记录新西兰时区时间戳
@@ -116,23 +116,23 @@
 - 工具：code-index__set_project_path → path='.'，初始化当前仓库索引供检索使用
 - 命令：zsh -lc "find . -name '*.aster' | head" → 验证 .aster 样例分布
 - 命令：zsh -lc "find . -name 'annotations_notempty.aster'" → 确认注解样例路径
-- 命令：zsh -lc \"sed -n '1,160p' cnl/examples/annotations_notempty.aster\" → 阅读@NotEmpty 嵌套位置
-- 命令：zsh -lc \"sed -n '1,160p' cnl/examples/annotations_pattern.aster\" → 收集 @Pattern(regexp: ...) 参数格式
-- 命令：zsh -lc \"sed -n '1,160p' cnl/examples/annotations_range.aster\" → 记录 @Range(min,max) 结构
-- 命令：zsh -lc \"sed -n '1,160p' cnl/examples/annotations_mixed.aster\" → 观察多注解叠加排列
-- 命令：zsh -lc \"sed -n '1,160p' cnl/examples/annotations_multiline.aster\" → 解析多行多字段注解组合
-- 命令：zsh -lc \"sed -n '1,160p' cnl/examples/map_ops.aster\" → 复核 Map 类型参数语法
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/lambda_cnl*.aster\" → 批量读取 CNL Lambda 各变体语法
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/nested_generic_function.aster\" → 捕捉嵌套泛型在函数体中的写法
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/nested_generic_lambda.aster\" → 观察 lambda 内部的泛型返回
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/fetch_dashboard.aster\" → 梳理 Start/Wait for/async 语法
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/login.aster\" → 验证 Result of + effect 语法组合
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/pii_type_mixed.aster\" → 记录类型注解 @pii 在 Result/Maybe 中的位置
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/rules_engine.aster\" → 审查列表字面量、not 调用、递归函数等写法
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/test-bad-syntax.aster\" → 确认负面样例结构（故意不合法）
-- 命令：zsh -lc \"sed -n '1,200p' cnl/examples/test_invalid.aster\" → 确认缺失冒号导致的负面测试
-- 命令：zsh -lc \"sed -n '1,200p' cnl/src/lexer.mjs\" → 对照当前词法规则缺失 @/[ ] 等符号
-- 命令：zsh -lc \"sed -n '1,200p' cnl/src/parser.mjs\" → 分析语法未覆盖 lambda、注解、not 表达式等位置
+- 命令：zsh -lc \"sed -n '1,160p' test/cnl/examples/annotations_notempty.aster\" → 阅读@NotEmpty 嵌套位置
+- 命令：zsh -lc \"sed -n '1,160p' test/cnl/examples/annotations_pattern.aster\" → 收集 @Pattern(regexp: ...) 参数格式
+- 命令：zsh -lc \"sed -n '1,160p' test/cnl/examples/annotations_range.aster\" → 记录 @Range(min,max) 结构
+- 命令：zsh -lc \"sed -n '1,160p' test/cnl/examples/annotations_mixed.aster\" → 观察多注解叠加排列
+- 命令：zsh -lc \"sed -n '1,160p' test/cnl/examples/annotations_multiline.aster\" → 解析多行多字段注解组合
+- 命令：zsh -lc \"sed -n '1,160p' test/cnl/examples/map_ops.aster\" → 复核 Map 类型参数语法
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/lambda_cnl*.aster\" → 批量读取 CNL Lambda 各变体语法
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/nested_generic_function.aster\" → 捕捉嵌套泛型在函数体中的写法
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/nested_generic_lambda.aster\" → 观察 lambda 内部的泛型返回
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/fetch_dashboard.aster\" → 梳理 Start/Wait for/async 语法
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/login.aster\" → 验证 Result of + effect 语法组合
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/pii_type_mixed.aster\" → 记录类型注解 @pii 在 Result/Maybe 中的位置
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/rules_engine.aster\" → 审查列表字面量、not 调用、递归函数等写法
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/test-bad-syntax.aster\" → 确认负面样例结构（故意不合法）
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/examples/test_invalid.aster\" → 确认缺失冒号导致的负面测试
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/src/lexer.mjs\" → 对照当前词法规则缺失 @/[ ] 等符号
+- 命令：zsh -lc \"sed -n '1,200p' test/cnl/src/parser.mjs\" → 分析语法未覆盖 lambda、注解、not 表达式等位置
 - 命令：zsh -lc \"node - <<'EOF' ...\" → 使用 canonicalize+lex+parse 验证 map_ops.aster 现状
 - 命令：zsh -lc ".claude/scripts/test-all-examples.sh" → 复核 Java parser 当前失败列表及报错
 - 命令：zsh -lc "./gradlew :aster-core:test --tests \"AstBuilderTest.*\"" → 校验核心测试基线
@@ -240,8 +240,8 @@
   - 命令：zsh -lc "sed -n '360,460p' src/typecheck.ts" → 细读效应与能力检查逻辑
   - 命令：zsh -lc "sed -n '720,940p' src/typecheck.ts" → 分析模式匹配及构造器诊断
   - 命令：zsh -lc "sed -n '940,1020p' src/typecheck.ts" → 了解 await 和调用诊断
-  - 命令：zsh -lc "rg \" as \" cnl/examples -g'*.aster' | head" → 搜索导入别名示例
-  - 命令：zsh -lc "sed -n '1,120p' cnl/examples/eff_alias_import.aster" → 确认证据语法
+  - 命令：zsh -lc "rg \" as \" test/cnl/examples -g'*.aster' | head" → 搜索导入别名示例
+  - 命令：zsh -lc "sed -n '1,120p' test/cnl/examples/eff_alias_import.aster" → 确认证据语法
   - 命令：zsh -lc "sed -n '1,200p' src/config/effect_config.ts" → 查看效果前缀配置
   - 命令：zsh -lc "sed -n '200,280p' src/config/effect_config.ts" → 确认 getIO/CPU 前缀实现
   - 命令：zsh -lc "sed -n '1,200p' src/capabilities.ts" → 理解能力清单结构
@@ -555,7 +555,7 @@
 ## 补充内容
 
 ### 1. 增强版别名导入测试
-- **文件**：`cnl/examples/eff_alias_import.aster`
+- **文件**：`test/cnl/examples/eff_alias_import.aster`
 - **内容**：
   - 多别名混用测试（Http as H, Db as D, Time as T）
   - 别名与直接导入混用（H.get + Http.get）
@@ -563,7 +563,7 @@
 - **期望输出**：6条错误（3条英文+3条中文），验证别名解析正确
 
 ### 2. 未映射别名边界测试
-- **文件**：`cnl/examples/eff_alias_unmapped.aster`
+- **文件**：`test/cnl/examples/eff_alias_unmapped.aster`
 - **测试场景**：
   - 未定义别名调用（X.get - 未声明导入）
   - 正常别名调用（H.get - 已声明导入Http as H）
@@ -580,8 +580,8 @@
 在 `scripts/golden.ts:277-280` 注册：
 ```typescript
 await runOneTypecheck(
-  'cnl/examples/eff_alias_unmapped.aster',
-  'cnl/examples/expected_eff_alias_unmapped.diag.txt'
+  'test/cnl/examples/eff_alias_unmapped.aster',
+  'test/cnl/examples/expected_eff_alias_unmapped.diag.txt'
 );
 ```
 
@@ -718,8 +718,8 @@ await runOneTypecheck(
 - `src/config/effect_config.ts` - 效果推断配置模块，支持从 `.aster/effects.json` 加载自定义配置
 - `.aster/effects.example.json` - 示例配置文件（包含自定义前缀如 MyHttpClient、MyORM 等）
 - `.aster/README.md` - 配置文件使用文档
-- `cnl/examples/eff_custom_prefix.aster` - 自定义前缀测试用例
-- `cnl/examples/expected_eff_custom_prefix.diag.txt` - 测试预期输出
+- `test/cnl/examples/eff_custom_prefix.aster` - 自定义前缀测试用例
+- `test/cnl/examples/expected_eff_custom_prefix.diag.txt` - 测试预期输出
 
 ### 修改文件
 - `src/config/effects.ts` - 重构为向后兼容层，从 effect_config.ts 导出常量
@@ -816,7 +816,7 @@ await runOneTypecheck(
     - 增补覆盖访问器路径的针对性单测（特别是 LSP 诊断与 Formatter），确保行为与 golden 长期一致。
     - 若后续扩展发射器映射，建议为常见模式添加 golden 代码生成用例，锁定输出。
 2025-10-06 10:59 NZST - Ran `npm run build` → success. Output: Built headers PEG parser → dist/peg/headers-parser.js
-2025-10-06 10:59 NZST - Ran `npm run test` → failed during `fmt:examples`. Error: cnl/examples/fetch_dashboard.aster contains bare expression statements (AST/CORE). Suggest using 'Return <expr>.' or 'Let _ be <expr>.'
+2025-10-06 10:59 NZST - Ran `npm run test` → failed during `fmt:examples`. Error: test/cnl/examples/fetch_dashboard.aster contains bare expression statements (AST/CORE). Suggest using 'Return <expr>.' or 'Let _ be <expr>.'
 2025-10-06 11:05 NZST - Patched `src/parser.ts` to move bare-expression error check after `Start`/`Wait` handlers to allow keyword statements. Rebuilt and re-ran tests: all passed (golden + property).
 2025-10-06 11:10 NZST - 依据 `.claude/CODE_REVIEW_GUIDE.md` 重做代码审查；生成 `.claude/review-report.md`（评分、五层法、建议），结论：通过。 
 2025-10-06 11:14 NZST - 新增解析顺序回归测试：`test/property.test.ts` 中增加 `testStartWaitPrecedence`，验证 Start/Wait 优先于裸表达式报错；运行 `npm run test:property` 全部通过。
@@ -924,36 +924,36 @@ await runOneTypecheck(
 2025-10-08 10:47 NZDT - 调用 MCP 工具 `sequential-thinking` 分析 Effect Violation Tests 修复任务的执行重点与潜在风险。
 2025-10-08 10:47 NZDT - 使用 `code-index__set_project_path` 将索引根目录设为 `/Users/rpang/IdeaProjects/aster-lang`，便于后续检索。
 2025-10-08 10:47 NZDT - 调用 `code-index__build_deep_index` 重建索引（473 个文件），准备文件分析。
-2025-10-08 10:48 NZDT - 调用 `code-index__get_file_summary` 以读取 `cnl/examples/eff_violation_files_calls_secrets.aster`，提示仍需 deep index 支持。
+2025-10-08 10:48 NZDT - 调用 `code-index__get_file_summary` 以读取 `test/cnl/examples/eff_violation_files_calls_secrets.aster`，提示仍需 deep index 支持。
 2025-10-08 10:48 NZDT - 运行 `ls` 查看仓库根目录现状，为确认相关文件位置。
 2025-10-08 10:48 NZDT - 运行 `cat operations-log.md` 回顾既有日志内容，避免重复记录。
 2025-10-08 10:49 NZDT - 运行 `TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"` 获取最新 NZDT 时间用于记录。
 2025-10-08 10:49 NZDT - 运行 `tail -n 5 operations-log.md` 获取补丁上下文，准备追加日志。
-2025-10-08 10:48 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_files_calls_secrets.aster`：删除辅助函数，直接调用 `Secrets.get` 与 `Files.write` 制造直接违规。
+2025-10-08 10:48 NZDT - 使用 `apply_patch` 更新 `test/cnl/examples/eff_violation_files_calls_secrets.aster`：删除辅助函数，直接调用 `Secrets.get` 与 `Files.write` 制造直接违规。
 2025-10-08 10:49 NZDT - 运行 `for f in eff_violation_*.aster ... cat` 扫描 5 个效应违规示例，确认是否存在跨函数调用。
-2025-10-08 10:49 NZDT - 使用 `apply_patch` 精简 `cnl/examples/eff_violation_http_calls_sql.aster`，直接在 `web_handler` 中调用 `Db.query` 制造即时违规。
-2025-10-08 10:49 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_secrets_calls_ai.aster`，让 `secure_flow` 直接调用 `AiModel.generate`。
-2025-10-08 10:49 NZDT - 使用 `apply_patch` 更新 `cnl/examples/eff_violation_sql_calls_files.aster`，在 `db_init` 中直接执行 `Files.read` 与 `Db.connect`。
-2025-10-08 10:50 NZDT - 使用 `apply_patch` 将 `cnl/examples/eff_violation_transitive.aster` 简化为单一 `top_http`，直接调用 `Secrets.get` 制造直接违规。
-2025-10-08 10:50 NZDT - 读取 `cnl/examples/expected_eff_violation_*.diag.txt` 现有内容，确认此前仅包含 @io 提示。
-2025-10-08 10:50 NZDT - 运行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_files_calls_secrets.aster` 并重定向输出，生成新的 expected 诊断文件。
+2025-10-08 10:49 NZDT - 使用 `apply_patch` 精简 `test/cnl/examples/eff_violation_http_calls_sql.aster`，直接在 `web_handler` 中调用 `Db.query` 制造即时违规。
+2025-10-08 10:49 NZDT - 使用 `apply_patch` 更新 `test/cnl/examples/eff_violation_secrets_calls_ai.aster`，让 `secure_flow` 直接调用 `AiModel.generate`。
+2025-10-08 10:49 NZDT - 使用 `apply_patch` 更新 `test/cnl/examples/eff_violation_sql_calls_files.aster`，在 `db_init` 中直接执行 `Files.read` 与 `Db.connect`。
+2025-10-08 10:50 NZDT - 使用 `apply_patch` 将 `test/cnl/examples/eff_violation_transitive.aster` 简化为单一 `top_http`，直接调用 `Secrets.get` 制造直接违规。
+2025-10-08 10:50 NZDT - 读取 `test/cnl/examples/expected_eff_violation_*.diag.txt` 现有内容，确认此前仅包含 @io 提示。
+2025-10-08 10:50 NZDT - 运行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts test/cnl/examples/eff_violation_files_calls_secrets.aster` 并重定向输出，生成新的 expected 诊断文件。
 2025-10-08 10:51 NZDT - 尝试改用 `./node_modules/.bin/tsx` 执行同一命令以消除 npx 警告，但因未安装本地 tsx（退出 127）而失败。
 2025-10-08 10:51 NZDT - 采用 `node --loader ts-node/esm` 执行 typecheck，随后加上 `NODE_NO_WARNINGS=1` 再运行以去除警告并刷新 expected 文件。
-2025-10-08 10:52 NZDT - 修正 `cnl/examples/eff_violation_secrets_calls_ai.aster`，将违规调用调整为 `Ai.predict` 以匹配 `Ai.` 前缀。
+2025-10-08 10:52 NZDT - 修正 `test/cnl/examples/eff_violation_secrets_calls_ai.aster`，将违规调用调整为 `Ai.predict` 以匹配 `Ai.` 前缀。
 2025-10-08 10:52 NZDT - 批量运行 `NODE_NO_WARNINGS=1 ASTER_CAP_EFFECTS_ENFORCE=1 node --loader ts-node/esm scripts/typecheck-cli.ts` 刷新 http/sql/secrets/transitive 四个效应违规示例的 expected 诊断。
 2025-10-08 10:53 NZDT - 对 `eff_violation_empty_caps.aster` 执行同一 typecheck，输出 `Typecheck OK`，未出现预期错误。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_http_calls_sql.aster` 确认示例直接调用违规 capability，无需辅助函数。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/expected_eff_violation_http_calls_sql.diag.txt` 核对现有诊断输出。
-2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_http_calls_sql.aster` 验证错误信息与 expected 一致。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_secrets_calls_ai.aster` 检查是否存在跨函数调用。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/expected_eff_violation_secrets_calls_ai.diag.txt` 核对旧有诊断文本。
-2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_secrets_calls_ai.aster`，确认 ERROR/WARN 输出符合预期。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_sql_calls_files.aster` 核查是否需调整。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/expected_eff_violation_sql_calls_files.diag.txt` 比对诊断文件。
-2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_sql_calls_files.aster` 确认错误文本匹配。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/eff_violation_transitive.aster` 检查是否存在辅助函数。
-2025-10-08 10:55 NZST - 运行 `cat cnl/examples/expected_eff_violation_transitive.diag.txt` 审阅现有 expected 输出。
-2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts cnl/examples/eff_violation_transitive.aster` 验证诊断信息与 expected 一致。
+2025-10-08 10:55 NZST - 运行 `cat test/cnl/examples/eff_violation_http_calls_sql.aster` 确认示例直接调用违规 capability，无需辅助函数。
+2025-10-08 10:55 NZST - 运行 `cat test/cnl/examples/expected_eff_violation_http_calls_sql.diag.txt` 核对现有诊断输出。
+2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts test/cnl/examples/eff_violation_http_calls_sql.aster` 验证错误信息与 expected 一致。
+2025-10-08 10:55 NZST - 运行 `cat test/cnl/examples/eff_violation_secrets_calls_ai.aster` 检查是否存在跨函数调用。
+2025-10-08 10:55 NZST - 运行 `cat test/cnl/examples/expected_eff_violation_secrets_calls_ai.diag.txt` 核对旧有诊断文本。
+2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts test/cnl/examples/eff_violation_secrets_calls_ai.aster`，确认 ERROR/WARN 输出符合预期。
+2025-10-08 10:55 NZST - 运行 `cat test/cnl/examples/eff_violation_sql_calls_files.aster` 核查是否需调整。
+2025-10-08 10:55 NZST - 运行 `cat test/cnl/examples/expected_eff_violation_sql_calls_files.diag.txt` 比对诊断文件。
+2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts test/cnl/examples/eff_violation_sql_calls_files.aster` 确认错误文本匹配。
+2025-10-08 10:55 NZST - 运行 `cat test/cnl/examples/eff_violation_transitive.aster` 检查是否存在辅助函数。
+2025-10-08 10:55 NZST - 运行 `cat test/cnl/examples/expected_eff_violation_transitive.diag.txt` 审阅现有 expected 输出。
+2025-10-08 10:55 NZST - 执行 `ASTER_CAP_EFFECTS_ENFORCE=1 npx tsx scripts/typecheck-cli.ts test/cnl/examples/eff_violation_transitive.aster` 验证诊断信息与 expected 一致。
 2025-10-08 10:55 NZST - 运行 `npm run build`，构建任务顺利完成。
 2025-10-08 10:55 NZST - 尝试执行 `npm run golden`，因缺少 `golden` 脚本失败（npm error Missing script: "golden"）。
 2025-10-08 10:57 NZDT - 运行 `npm run test:golden`，命令执行失败；`eff_violation_*` 多个黄金测试缺少预期错误输出（输出为空或仅 Typecheck OK），详见终端日志。
@@ -1111,7 +1111,7 @@ await runOneTypecheck(
 2025-10-08 15:38 NZST - 执行 `nl -ba src/capabilities.ts`、`nl -ba src/config/semantic.ts | sed -n '1,220p'`，提取能力枚举、前缀映射及 Effect 枚举定义。
 2025-10-08 15:38 NZST - 执行 `nl -ba src/typecheck.ts | sed -n '180,340p'` 与 `sed -n '430,520p'`，收集 manifest 校验与效果/能力推断核心实现。
 2025-10-08 15:39 NZST - 执行 `nl -ba src/lsp/server.ts | sed -n '730,830p'`、`nl -ba scripts/typecheck-cli.ts`，记录 manifest 解析与加载路径。
-2025-10-08 15:39 NZST - 读取 `cnl/examples/eff_violation_*.aster` 及对应 `expected_*.diag.txt`，采样三组黄金用例内容。
+2025-10-08 15:39 NZST - 读取 `test/cnl/examples/eff_violation_*.aster` 及对应 `expected_*.diag.txt`，采样三组黄金用例内容。
 2025-10-08 15:40 NZST - 执行 `nl -ba scripts/golden.ts | sed -n '1,520p'`，确认 golden 框架中 capability enforcement 用例执行方式。
 2025-10-08 15:40 NZST - 执行 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'` 获取文档时间戳。
 2025-10-08 15:47 NZDT - 调用 MCP 工具 `sequential-thinking` 分析任务 78dafcf7-fa65-4175-bbea-9b8b6efa5850 的类型调整范围与潜在风险。
@@ -1201,7 +1201,7 @@ await runOneTypecheck(
   - typecheck 建立 `imports` 映射，但效果收集未使用
   - 效果前缀匹配基于原始名称字符串，未解析别名
   - examples 未覆盖 alias 导入场景
-2025-10-09 01:00 NZDT - 修正解析器 parseDottedIdent 允许首段 TYPE_IDENT，并在 `use` 语句的 `as` 别名位置接受 TYPE_IDENT（支持 `use Http as H.`）。新增/确认用例：`cnl/examples/eff_alias_import.aster`；创建期望文件 `cnl/examples/expected_eff_alias_import.diag.txt`（为空）。执行 `npm run test:golden` → 全部通过（115/115）。
+2025-10-09 01:00 NZDT - 修正解析器 parseDottedIdent 允许首段 TYPE_IDENT，并在 `use` 语句的 `as` 别名位置接受 TYPE_IDENT（支持 `use Http as H.`）。新增/确认用例：`test/cnl/examples/eff_alias_import.aster`；创建期望文件 `test/cnl/examples/expected_eff_alias_import.diag.txt`（为空）。执行 `npm run test:golden` → 全部通过（115/115）。
 2025-10-09 09:52 NZDT - 使用 `sequential-thinking__sequentialthinking` 工具梳理 Medium 规模项目生成器需求与风险。
 2025-10-09 09:52 NZDT - 调用 `code-index__set_project_path` 与 `code-index__find_files`，定位 `test/benchmark.ts` 以便扩展生成逻辑。
 2025-10-09 09:52 NZDT - 使用 `apply_patch` 更新 `test/benchmark.ts`，实现 Medium 项目生成器及相关辅助函数。
@@ -1593,18 +1593,18 @@ await runOneTypecheck(
 - 2025-10-15 19:46 NZDT | code-index(search_code_advanced) | pattern=`class EnterpriseInfo` 查看企业贷款输入字段
 - 2025-10-15 19:47 NZDT | code-index(search_code_advanced) | pattern=`class LoanTypes` 查看贷款通用类型结构
 - 2025-10-15 19:47 NZDT | code-index(search_code_advanced) | pattern=`class Decision` 查看贷款决策输出字段
-- 2025-10-15 19:47 NZDT | shell(ls) | `ls cnl/stdlib/healthcare` 检查医疗策略文件
-- 2025-10-15 19:47 NZDT | code-index(get_file_summary) | `cnl/stdlib/healthcare/eligibility.aster` 失败：需构建深度索引
+- 2025-10-15 19:47 NZDT | shell(ls) | `ls test/cnl/stdlib/healthcare` 检查医疗策略文件
+- 2025-10-15 19:47 NZDT | code-index(get_file_summary) | `test/cnl/stdlib/healthcare/eligibility.aster` 失败：需构建深度索引
 - 2025-10-15 19:47 NZDT | code-index(build_deep_index) | 重新索引仓库以支持 .aster 文件解析
 - 2025-10-15 19:47 NZDT | code-index(search_code_advanced) | pattern=`checkServiceEligibility` (`eligibility.aster`) 未检索到匹配
 - 2025-10-15 19:47 NZDT | code-index(search_code_advanced) | pattern=`Check` (`eligibility.aster`) 未检索到匹配
-- 2025-10-15 19:48 NZDT | shell(sed) | `sed -n '1,120p' cnl/stdlib/healthcare/eligibility.aster` 阅读医疗资格策略签名
-- 2025-10-15 19:48 NZDT | shell(sed) | `sed -n '1,160p' cnl/stdlib/healthcare/claims.aster` 阅读索赔策略签名
-- 2025-10-15 19:48 NZDT | shell(sed) | `sed -n '1,200p' cnl/stdlib/finance/creditcard.aster` 阅读信用卡策略签名
-- 2025-10-15 19:48 NZDT | shell(sed) | `sed -n '1,200p' cnl/stdlib/finance/lending/enterprise.aster` 阅读企业贷款策略签名
-- 2025-10-15 19:49 NZDT | shell(sed) | `sed -n '1,200p' cnl/stdlib/finance/lending/personal.aster` 阅读个人贷款策略签名
+- 2025-10-15 19:48 NZDT | shell(sed) | `sed -n '1,120p' test/cnl/stdlib/healthcare/eligibility.aster` 阅读医疗资格策略签名
+- 2025-10-15 19:48 NZDT | shell(sed) | `sed -n '1,160p' test/cnl/stdlib/healthcare/claims.aster` 阅读索赔策略签名
+- 2025-10-15 19:48 NZDT | shell(sed) | `sed -n '1,200p' test/cnl/stdlib/finance/creditcard.aster` 阅读信用卡策略签名
+- 2025-10-15 19:48 NZDT | shell(sed) | `sed -n '1,200p' test/cnl/stdlib/finance/lending/enterprise.aster` 阅读企业贷款策略签名
+- 2025-10-15 19:49 NZDT | shell(sed) | `sed -n '1,200p' test/cnl/stdlib/finance/lending/personal.aster` 阅读个人贷款策略签名
 - 2025-10-15 19:49 NZDT | shell(rg) | `rg "evaluateLoanEligibility" -n cnl` 定位贷款标准策略文件
-- 2025-10-15 19:49 NZDT | shell(sed) | `sed -n '1,160p' cnl/stdlib/finance/loan.aster` 阅读贷款资格策略签名
+- 2025-10-15 19:49 NZDT | shell(sed) | `sed -n '1,160p' test/cnl/stdlib/finance/loan.aster` 阅读贷款资格策略签名
 - 2025-10-15 19:49 NZDT | code-index(search_code_advanced) | pattern=`convertToAsterPatient` 分析医疗输入映射
 - 2025-10-15 19:49 NZDT | code-index(search_code_advanced) | pattern=`convertToAsterLoanApplication` 分析贷款输入映射
 - 2025-10-15 19:49 NZDT | code-index(search_code_advanced) | pattern=`convertToAsterCreditCardApplicant` 分析信用卡输入映射
@@ -1620,12 +1620,12 @@ await runOneTypecheck(
 - 2025-10-15 19:53 NZDT | shell(nl) | `nl -ba PolicyGraphQLResource.java | sed -n '130,220p'` 标注医疗与贷款查询方法行号
 - 2025-10-15 19:53 NZDT | shell(nl) | `nl -ba PolicyGraphQLResource.java | sed -n '330,520p'` 标注医疗与贷款输入映射位置
 - 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba PolicyGraphQLResource.java | sed -n '520,720p'` 标注信用卡与个人贷款映射位置
-- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba cnl/stdlib/healthcare/eligibility.aster | sed -n '1,80p'` 获取医疗资格策略签名
-- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba cnl/stdlib/healthcare/claims.aster | sed -n '1,80p'` 获取医疗索赔策略签名
-- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba cnl/stdlib/finance/creditcard.aster | sed -n '1,120p'` 获取信用卡策略字段
-- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba cnl/stdlib/finance/lending/enterprise.aster | sed -n '1,80p'` 获取企业贷款策略字段
-- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba cnl/stdlib/finance/lending/personal.aster | sed -n '1,80p'` 获取个人贷款策略字段
-- 2025-10-15 19:55 NZDT | shell(nl) | `nl -ba cnl/stdlib/finance/loan.aster | sed -n '1,80p'` 获取贷款资格策略字段
+- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba test/cnl/stdlib/healthcare/eligibility.aster | sed -n '1,80p'` 获取医疗资格策略签名
+- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba test/cnl/stdlib/healthcare/claims.aster | sed -n '1,80p'` 获取医疗索赔策略签名
+- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba test/cnl/stdlib/finance/creditcard.aster | sed -n '1,120p'` 获取信用卡策略字段
+- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba test/cnl/stdlib/finance/lending/enterprise.aster | sed -n '1,80p'` 获取企业贷款策略字段
+- 2025-10-15 19:54 NZDT | shell(nl) | `nl -ba test/cnl/stdlib/finance/lending/personal.aster | sed -n '1,80p'` 获取个人贷款策略字段
+- 2025-10-15 19:55 NZDT | shell(nl) | `nl -ba test/cnl/stdlib/finance/loan.aster | sed -n '1,80p'` 获取贷款资格策略字段
 - 2025-10-15 19:55 NZDT | shell(nl) | `nl -ba LoanTypes.java | sed -n '10,120p'` 获取贷款 GraphQL 类型定义
 - 2025-10-15 19:55 NZDT | shell(nl) | `nl -ba PersonalLendingTypes.java | sed -n '68,180p'` 获取个人贷款 GraphQL 类型定义
 - 2025-10-15 19:55 NZDT | shell(ls) | `ls quarkus-policy-api/.claude` 检查目标文档目录
@@ -1633,12 +1633,12 @@ await runOneTypecheck(
 - 2025-10-15 19:56 NZDT | apply_patch | 更新 operations-log.md 记录行号截取与目录检查操作
 - 2025-10-15 19:57 NZDT | code-index(search_code_advanced) | pattern=`private java.util.Map<String, Object> buildContext` 未找到方法定义
 - 2025-10-15 19:57 NZDT | code-index(search_code_advanced) | regex=`buildContext\\(` 定位上下文构建方法及调用位置
-- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To checkServiceEligibility" cnl/stdlib/healthcare/eligibility.aster` 记录策略签名行号
-- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To processClaim" cnl/stdlib/healthcare/claims.aster` 记录策略签名行号
-- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To evaluateCreditCardApplication" cnl/stdlib/finance/creditcard.aster` 记录策略签名行号
-- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To evaluateEnterpriseLoan" cnl/stdlib/finance/lending/enterprise.aster` 记录策略签名行号
-- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To evaluatePersonalLoan" cnl/stdlib/finance/lending/personal.aster` 记录策略签名行号
-- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To evaluateLoanEligibility" cnl/stdlib/finance/loan.aster` 记录策略签名行号
+- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To checkServiceEligibility" test/cnl/stdlib/healthcare/eligibility.aster` 记录策略签名行号
+- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To processClaim" test/cnl/stdlib/healthcare/claims.aster` 记录策略签名行号
+- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To evaluateCreditCardApplication" test/cnl/stdlib/finance/creditcard.aster` 记录策略签名行号
+- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To evaluateEnterpriseLoan" test/cnl/stdlib/finance/lending/enterprise.aster` 记录策略签名行号
+- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To evaluatePersonalLoan" test/cnl/stdlib/finance/lending/personal.aster` 记录策略签名行号
+- 2025-10-15 19:58 NZDT | shell(rg) | `rg -n "To evaluateLoanEligibility" test/cnl/stdlib/finance/loan.aster` 记录策略签名行号
 - 2025-10-15 19:59 NZDT | shell(date) | `TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M:%S %Z'` 获取当前时间
 - 2025-10-15 19:59 NZDT | apply_patch | 更新 operations-log.md 记录策略签名检索与时间戳
 - 2025-10-15 20:02 NZDT | shell(date) | `TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M:%S %Z'` 获取最新时间
@@ -1649,8 +1649,8 @@ await runOneTypecheck(
 - 2025-10-15 21:07:17 NZDT | shell(tail) | `nl -ba operations-log.md | tail -n 20` 查看既有日志格式
 - 2025-10-15 21:07:17 NZDT | apply_patch | 调整 `aster-asm-emitter/src/main/java/aster/emitter/Main.java` 增加布尔局部追踪与原始类型装箱
 - 2025-10-15 21:08:04 NZDT | shell(gradlew) | `./gradlew :aster-asm-emitter:build` 验证 emitter 模块编译通过
-- 2025-10-15 21:09:04 NZDT | shell(npm) | `npm run emit:class cnl/stdlib/**/*.aster` 重新生成策略类字节码
-- 2025-10-15 21:08:32 NZDT | shell(npm) | `npm run emit:class "cnl/stdlib/**/*.aster"` 失败：glob 未展开导致 ENOENT
+- 2025-10-15 21:09:04 NZDT | shell(npm) | `npm run emit:class test/cnl/stdlib/**/*.aster` 重新生成策略类字节码
+- 2025-10-15 21:08:32 NZDT | shell(npm) | `npm run emit:class "test/cnl/stdlib/**/*.aster"` 失败：glob 未展开导致 ENOENT
 - 2025-10-15 21:09:45 NZDT | shell(npm) | `npm run jar:jvm` 更新合并后的 JVM 策略 JAR
 - 2025-10-15 21:16:41 NZDT | shell(gradlew) | `cd quarkus-policy-api && ./gradlew test` 失败：子模块缺少 wrapper
 - 2025-10-15 21:16:41 NZDT | shell(gradlew) | `./gradlew test` (workdir=quarkus-policy-api) 失败：缺少 wrapper
@@ -1661,8 +1661,8 @@ await runOneTypecheck(
 - 2025-10-15 22:13:44 NZDT | code-index(search) | `code-index__search_code_advanced(pattern='emitApplySimpleExpr', file_pattern='*.java')` 定位字节码生成函数
 - 2025-10-15 22:13:44 NZDT | shell(sed) | `sed -n '350,520p' aster-asm-emitter/src/main/java/aster/emitter/Main.java` 查看 Let/If 处理逻辑
 - 2025-10-15 22:13:44 NZDT | shell(sed) | `sed -n '1680,1820p' aster-asm-emitter/src/main/java/aster/emitter/Main.java` 查看 emitApplySimpleExpr 相关实现
-- 2025-10-15 22:13:44 NZDT | shell(sed) | `sed -n '1,120p' cnl/stdlib/healthcare/eligibility.aster` 核对策略源码中的 If+Let 模式
-- 2025-10-15 22:13:44 NZDT | shell(sed) | `sed -n '1,160p' cnl/stdlib/insurance/life.aster` 比对 life 策略中的 Let 复绑定
+- 2025-10-15 22:13:44 NZDT | shell(sed) | `sed -n '1,120p' test/cnl/stdlib/healthcare/eligibility.aster` 核对策略源码中的 If+Let 模式
+- 2025-10-15 22:13:44 NZDT | shell(sed) | `sed -n '1,160p' test/cnl/stdlib/insurance/life.aster` 比对 life 策略中的 Let 复绑定
 - 2025-10-15 22:13:44 NZDT | shell(rg) | `rg --files -g'*.aster'` 枚举策略文件位置
 - 2025-10-15 22:13:44 NZDT | shell(tail) | `tail -n 20 operations-log.md` 对齐日志格式
 - 2025-10-15 22:13:44 NZDT | shell(date) | `TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M:%S %Z'` 获取当前时区时间
@@ -1685,14 +1685,14 @@ await runOneTypecheck(
 - 2025-10-15 22:43:52 NZDT | code-index(build_deep_index) | `code-index__build_deep_index()` 重建深度索引
 - 2025-10-15 22:43:55 NZDT | code-index(find_files) | `pattern='**/personal.aster'` 未返回结果
 - 2025-10-15 22:43:58 NZDT | code-index(refresh_index) | `code-index__refresh_index()` 触发索引刷新
-- 2025-10-15 22:44:02 NZDT | code-index(find_files) | `pattern='cnl/stdlib/finance/lending/personal.aster'` 仍无匹配
-- 2025-10-15 22:44:06 NZDT | shell(ls) | `ls ../cnl/stdlib/finance` 验证存在 lending/creditcard 目录
-- 2025-10-15 22:44:09 NZDT | shell(ls) | `ls ../cnl/stdlib/finance/lending` 确认 `personal.aster`、`enterprise.aster`
-- 2025-10-15 22:44:13 NZDT | shell(sed) | `sed -n '1,200p' ../cnl/stdlib/finance/lending/personal.aster` 提取个人贷款策略源码上半段
-- 2025-10-15 22:44:17 NZDT | shell(sed) | `sed -n '200,400p' ../cnl/stdlib/finance/lending/personal.aster` 提取个人贷款策略源码下半段
+- 2025-10-15 22:44:02 NZDT | code-index(find_files) | `pattern='test/cnl/stdlib/finance/lending/personal.aster'` 仍无匹配
+- 2025-10-15 22:44:06 NZDT | shell(ls) | `ls ../test/cnl/stdlib/finance` 验证存在 lending/creditcard 目录
+- 2025-10-15 22:44:09 NZDT | shell(ls) | `ls ../test/cnl/stdlib/finance/lending` 确认 `personal.aster`、`enterprise.aster`
+- 2025-10-15 22:44:13 NZDT | shell(sed) | `sed -n '1,200p' ../test/cnl/stdlib/finance/lending/personal.aster` 提取个人贷款策略源码上半段
+- 2025-10-15 22:44:17 NZDT | shell(sed) | `sed -n '200,400p' ../test/cnl/stdlib/finance/lending/personal.aster` 提取个人贷款策略源码下半段
 - 2025-10-15 22:44:22 NZDT | shell(javap) | `javap -classpath ../build/jvm-classes -c aster.finance.creditcard.determineFinalCreditLimit_fn` 反编译信用卡额度函数
 - 2025-10-15 22:44:26 NZDT | shell(javap) | `javap -classpath ../build/jvm-classes -c aster.finance.enterprise_lending.evaluateEnterpriseLoan_fn | sed -n '240,320p'` 抽取企业贷款字节码段
-- 2025-10-15 22:44:30 NZDT | shell(sed) | `sed -n '1,200p' ../cnl/stdlib/finance/creditcard.aster` 查看信用卡策略定义
+- 2025-10-15 22:44:30 NZDT | shell(sed) | `sed -n '1,200p' ../test/cnl/stdlib/finance/creditcard.aster` 查看信用卡策略定义
 - 2025-10-15 22:44:34 NZDT | shell(date) | `TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M %Z'` 记录当前时间（NZDT）
 - 2025-10-16 00:04:31 NZDT | shell(cat) | `cat quarkus-policy-api/.claude/context-initial.json` 回顾主AI收集的初始上下文
 - 2025-10-16 00:04:31 NZDT | shell(sed) | `sed -n '300,460p' aster-asm-emitter/src/main/java/aster/emitter/Main.java` 抽取emitFunc中Let及条件块实现细节
@@ -1703,9 +1703,9 @@ await runOneTypecheck(
 - 2025-10-16 08:45:12 NZDT | sequential-thinking | `sequentialthinking` 梳理Phase 2回归诊断与修复步骤
 - 2025-10-16 08:45:28 NZDT | code-index(set_project_path) | `code-index__set_project_path(path='.')` 初始化索引根目录
 - 2025-10-16 08:45:34 NZDT | code-index(build_deep_index) | `code-index__build_deep_index()` 重建索引以支持.aster检索
-- 2025-10-16 08:45:40 NZDT | code-index(find_files) | `pattern='cnl/stdlib/insurance/life.aster'` 未返回结果，需回退shell检索
+- 2025-10-16 08:45:40 NZDT | code-index(find_files) | `pattern='test/cnl/stdlib/insurance/life.aster'` 未返回结果，需回退shell检索
 - 2025-10-16 08:45:48 NZDT | shell(find) | `find cnl -name "*.aster" -exec grep -l "generateLifeQuote" {} \;` 定位人寿报价函数源文件
-- 2025-10-16 08:45:56 NZDT | shell(sed) | `sed -n '1,200p' cnl/stdlib/insurance/life.aster` 读取generateLifeQuote源码
+- 2025-10-16 08:45:56 NZDT | shell(sed) | `sed -n '1,200p' test/cnl/stdlib/insurance/life.aster` 读取generateLifeQuote源码
 - 2025-10-16 08:46:18 NZDT | apply_patch | 更新`aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java`以接入函数签名推断
 - 2025-10-16 08:46:32 NZDT | apply_patch | 更新`aster-asm-emitter/src/main/java/aster/emitter/Main.java`新增Let诊断日志并传递functionSchemas
 - 2025-10-16 08:47:15 NZDT | shell(gradlew) | `./gradlew test` 运行失败（aster-vaadin-native-deployment缺失Undertow依赖）
@@ -1985,7 +1985,7 @@ await runOneTypecheck(
 - 工具：apply_patch → 向 AsmUtilities 新增 GeneratorAdapter 封装方法
 - 工具：apply_patch → 更新 Main.emitApplySimpleExpr 使用 GeneratorAdapter.math/ifCmp
 - 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests aster.emitter.GoldenClassTest" → ✅ Golden 测试通过
-- 命令：zsh -lc "./gradlew :aster-asm-emitter:run --args 'build/trace-out' < cnl/examples/expected_greet_core.json" → 生成 trace 对比样本
+- 命令：zsh -lc "./gradlew :aster-asm-emitter:run --args 'build/trace-out' < test/cnl/examples/expected_greet_core.json" → 生成 trace 对比样本
 - 命令：zsh -lc \"jshell --class-path 'aster-asm-emitter/build/classes/java/main:aster-runtime/build/classes/java/main:/Users/rpang/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm/9.8/dc19ecb3f7889b7860697215cae99c0f9b6f6b4b/asm-9.8.jar:/Users/rpang/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-commons/9.8/36e4d212970388e5bd2c5180292012502df461bb/asm-commons-9.8.jar:/Users/rpang/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-util/9.8/395f1c1f035258511f27bc9b2583d76e4b143f59/asm-util-9.8.jar' <<'EOF'\n...jshell script...\nEOF\" → 使用 TraceClassVisitor 输出 greet_fn 实际/基线字节码
 - 命令：zsh -lc "diff -u aster-asm-emitter/build/trace-out/greet_fn.actual.trace aster-asm-emitter/build/trace-out/greet_fn.golden.trace" → 字节码文本一致
 # 2025-10-17 20:58 NZST ExpressionEmitter 基础结构启动
@@ -2463,15 +2463,15 @@ await runOneTypecheck(
 - 命令：zsh -lc "sed -n '1,200p' aster-core/src/main/java/aster/core/parser/AstBuilder.java" → 核对 AST 构建路径
 - 工具：apply_patch → 更新 JavaCompilerBackend.java，补全 AST 序列化逻辑与辅助函数
 - 命令：zsh -lc "./gradlew-java25 :aster-lang-cli:compileJava" → 编译 Java 后端确认通过
-- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/hello.aster --json'" → 生成 hello.aster AST JSON
-- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/int_match.aster --json'" → 生成 int_match.aster AST JSON
+- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse test/cnl/examples/hello.aster --json'" → 生成 hello.aster AST JSON
+- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse test/cnl/examples/int_match.aster --json'" → 生成 int_match.aster AST JSON
 - 工具：apply_patch → 更新 docs/testing.md，记录测试输出
 - 工具：apply_patch → 更新 docs/workstreams/native-cli/verification/verification.md，登记验证结果
 
 # 2025-10-21 20:44 NZST Java Parser 泛型缺失修复执行
 
 - 工具：sequential-thinking__sequentialthinking ×4 | 参数：thoughtNumber=1..4,totalThoughts=4 | 输出：梳理泛型缺失根因、比较语法与构建器差异并制定执行顺序
-- 命令：zsh -lc "cat cnl/examples/id_generic.aster" | 目的：确认示例语法源文本 → 结果：函数声明未显式标注类型参数
+- 命令：zsh -lc "cat test/cnl/examples/id_generic.aster" | 目的：确认示例语法源文本 → 结果：函数声明未显式标注类型参数
 - 工具：code-index__set_project_path | 参数：path='.' | 输出：初始化索引（1072 文件）
 - 工具：code-index__search_code_advanced | 参数：pattern='typeParams' | 输出：定位 Java/TS 侧类型参数处理引用
 - 命令：zsh -lc "sed -n '1,200p' aster-core/src/main/antlr/AsterParser.g4" | 目的：核对 funcDecl 语法 → 结果：未包含 typeParamList
@@ -2483,7 +2483,7 @@ await runOneTypecheck(
 - 工具：apply_patch | 目标文件：aster-core/src/main/java/aster/core/parser/AstBuilder.java | 操作：读取显式类型参数并实现推断逻辑、维护 declaredTypeNames
 - 工具：apply_patch | 目标文件：aster-core/src/main/java/aster/core/parser/AstBuilder.java | 操作：新增 collectTypeParamCandidates 与 looksLikeTypeParam 辅助方法
 - 命令：zsh -lc "./gradlew-java25 :aster-core:compileJava" | 目的：生成语法并编译核心模块 → 结果：成功
-- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/id_generic.aster --json'" | 目的：验证泛型输出 → 结果：typeParams=["T"]
+- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse test/cnl/examples/id_generic.aster --json'" | 目的：验证泛型输出 → 结果：typeParams=["T"]
 - 命令：zsh -lc "./gradlew-java25 :aster-core:test" | 目的：运行核心测试 → 结果：全部通过
 - 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'" | 目的：记录 NZST 时间戳 → 结果：2025-10-21 20:44
 
@@ -2493,13 +2493,13 @@ await runOneTypecheck(
 - 工具：code-index__set_project_path → path='.' 初始化索引；code-index__build_deep_index → 构建 1074 文件深度索引
 - 工具：apply_patch ×5 → 调整 `aster-core` Decl.Func 默认值、AstBuilder 能力解析、JavaCompilerBackend 序列化、AstBuilderTest/AstSerializationTest 断言
 - 工具：apply_patch ×12 → 更新 TypeScript `types/base.ts`、`types.ts`、`ast.ts`、`parser/decl-parser.ts`、`formatter.ts`、`typecheck.ts`、`lsp/pii_diagnostics.ts`、`lower_to_core.ts`、`core_ir.ts`、`core_ir.mjs`、`lower_to_core.mjs`
-- 工具：apply_patch ×2 → 清理 `cnl/src` Core/Lower 函数能力处理保持一致顺序
+- 工具：apply_patch ×2 → 清理 `test/cnl/src` Core/Lower 函数能力处理保持一致顺序
 - 命令：zsh -lc "./gradlew-java25 :aster-core:test" → Java 单元测试
 - 命令：zsh -lc "npm run build" → TypeScript 编译
 - 命令：zsh -lc "npm run test" → 多轮执行黄金/性质测试直至通过
-- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/{hello,int_match,policy_demo}.aster --json' --rerun-tasks" → 生成 Java AST JSON
-- 命令：zsh -lc "node dist/scripts/cli.js cnl/examples/{hello,int_match,policy_demo}.aster" → 生成 TypeScript AST JSON
-- 工具：python3/Node 脚本 → 批量修正 `cnl/examples` 目录下 AST/Core 期望 JSON（新增 effect 字段、调整顺序，共 129 文件）
+- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse test/cnl/examples/{hello,int_match,policy_demo}.aster --json' --rerun-tasks" → 生成 Java AST JSON
+- 命令：zsh -lc "node dist/scripts/cli.js test/cnl/examples/{hello,int_match,policy_demo}.aster" → 生成 TypeScript AST JSON
+- 工具：python3/Node 脚本 → 批量修正 `test/cnl/examples` 目录下 AST/Core 期望 JSON（新增 effect 字段、调整顺序，共 129 文件）
 - 工具：python3 脚本 → 提取 Java CLI 输出 JSON 写入 `.claude/ast-java-{hello,int_match,policy_demo}.json`
 - 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 记录任务完成时间
 
@@ -2598,7 +2598,7 @@ await runOneTypecheck(
 - 工具：apply_patch → 将导入单测语句统一改写为首字母大写的 Use
 - 命令：zsh -lc "./gradlew-java25 :aster-core:test --tests \"AstBuilderTest.parseImport*\"" → 再次确认大小写兼容调整后单测通过
 - 命令：zsh -lc ".claude/scripts/test-all-examples.sh" → 重新统计 Java 示例通过率（50/131，38.1%），Use 语句解析正常，仍受注解与比较语法限制
-- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/eff_alias_import.aster --json' --rerun-tasks" → 定位后续失败根因（效能注解冒号仍未实现）
+- 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse test/cnl/examples/eff_alias_import.aster --json' --rerun-tasks" → 定位后续失败根因（效能注解冒号仍未实现）
 - 命令：zsh -lc "ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse tmp_use_full.aster --json' --rerun-tasks" → 复现顶层 Use 后函数失败，触发 module 规则调整
 - 命令：zsh -lc "rm tmp_use_full.aster" → 清理解构临时模块样例
 - 命令：zsh -lc "cat <<'EOF' > .claude/p4-batch3-report.md …" → 生成批次 3 完成报告（记录修改与测试结果）
@@ -2609,26 +2609,26 @@ await runOneTypecheck(
 - 命令：zsh -lc "sed -n '1,200p' /tmp/test_results.txt" → 通读完整测试输出确认通过率
 - 工具：code-index__set_project_path → path='.'（索引 1083 个文件，供后续检索）
 - 工具：code-index__refresh_index → 重建索引（示例文件仍未出现，需转用 shell 阅读）
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/annotations_notempty.aster" → 阅读注解非空样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/annotations_pattern.aster" → 阅读注解正则样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/map_ops.aster" → 阅读 Map 操作样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/lambda_cnl.aster" → 阅读 CNL 风格 lambda 样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/lambda_cnl_short.aster" → 阅读精简 lambda 样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/nested_generic_function.aster" → 阅读嵌套泛型函数样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/test-bad-syntax.aster" → 确认负面语法样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/fetch_dashboard.aster" → 检查异步 Result 语句
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/pii_type_mixed.aster" → 检查类型注解组合语法
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/rules_engine.aster" → 检查 Define a 句式
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/test_invalid.aster" → 确认缺冒号负面样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/annotations_notempty.aster" → 阅读注解非空样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/annotations_pattern.aster" → 阅读注解正则样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/map_ops.aster" → 阅读 Map 操作样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/lambda_cnl.aster" → 阅读 CNL 风格 lambda 样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/lambda_cnl_short.aster" → 阅读精简 lambda 样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/nested_generic_function.aster" → 阅读嵌套泛型函数样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/test-bad-syntax.aster" → 确认负面语法样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/fetch_dashboard.aster" → 检查异步 Result 语句
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/pii_type_mixed.aster" → 检查类型注解组合语法
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/rules_engine.aster" → 检查 Define a 句式
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/test_invalid.aster" → 确认缺冒号负面样例
 - 工具：sequential-thinking__sequentialthinking → 汇总失败类别并初步评估 ROI
 - 工具：sequential-thinking__sequentialthinking → 本轮修复任务启动前梳理需求与风险
 - 命令：zsh -lc "rg --files -g 'pii_type_mixed.aster'" → 查找样例文件路径
 - 命令：zsh -lc "rg --files -g 'operations-log.md'" → 枚举操作日志位置
 - 命令：zsh -lc "tail -n 20 operations-log.md" → 查看现有记录格式
 - 命令：zsh -lc "tail -n 5 operations-log.md" → 确认追加内容位置
-- 命令：zsh -lc "sed -n '1,160p' cnl/examples/pii_type_mixed.aster" → 阅读 PII 注解类型样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/fetch_dashboard.aster" → 阅读 Result effect 样例
-- 命令：zsh -lc "sed -n '1,200p' cnl/examples/rules_engine.aster" → 阅读 Define 冠词样例
+- 命令：zsh -lc "sed -n '1,160p' test/cnl/examples/pii_type_mixed.aster" → 阅读 PII 注解类型样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/fetch_dashboard.aster" → 阅读 Result effect 样例
+- 命令：zsh -lc "sed -n '1,200p' test/cnl/examples/rules_engine.aster" → 阅读 Define 冠词样例
 - 工具：code-index__set_project_path → 设置检索根目录（1083 文件）
 - 工具：code-index__refresh_index → 重建索引（1083 文件）
 - 工具：code-index__find_files (pattern="*.g4") → 未返回结果
@@ -2659,7 +2659,7 @@ await runOneTypecheck(
 - 命令：zsh -lc "sed -n '360,430p' src/types/base.ts" → 查看 TypeScript 基础类型接口
 - 命令：zsh -lc "rg -n 'new Type.' aster-core/src/main/java -g '*.java'" → 搜索 Type AST 构造点
 - 命令：zsh -lc "rg -n 'typeList' aster-core/src/main/antlr/AsterParser.g4'" → 检查类型列表规则引用
-- 命令：zsh -lc "./gradlew :aster-lang-cli:run --args 'parse cnl/examples/fetch_dashboard.aster --json'" → 验证 CLI 当前解析结果
+- 命令：zsh -lc "./gradlew :aster-lang-cli:run --args 'parse test/cnl/examples/fetch_dashboard.aster --json'" → 验证 CLI 当前解析结果
 - 命令：zsh -lc "rg -n 'TypePii' -g '*.ts'" → 查找 TypeScript 中 TypePii 处理
 - 命令：zsh -lc "rg -n \"Type\\.TypeName\"" → 统计 Type 构造使用点
 - 命令：zsh -lc "./.claude/scripts/test-all-examples.sh" → 复现当前示例解析失败列表
@@ -2856,7 +2856,7 @@ await runOneTypecheck(
 - 命令：zsh -lc "cat <<'EOF' > /tmp/test_readme.md\n# ...\nEOF" → 预生成测试 README 草稿（未直接写入仓库）
 - 工具：apply_patch → 新增 `test/README.md`，填充测试入口说明与金字塔目标
 - 工具：apply_patch → 新增 `test/TESTING_GUIDE.md`，编写 200+ 行贡献指南
-- 工具：apply_patch → 新增 `cnl/examples/README.md`，说明示例库双重角色
+- 工具：apply_patch → 新增 `test/cnl/examples/README.md`，说明示例库双重角色
 - 工具：apply_patch → 新增 `.claude/phase5.4-documentation.md`，记录文档清单与核对结果
 - 命令：zsh -lc "cat operations-log.md" → 检查既有日志格式以保持一致
 - 命令：zsh -lc "tail -n 40 operations-log.md" → 获取日志尾部片段，确认追加位置
@@ -2865,7 +2865,7 @@ await runOneTypecheck(
 - 工具：apply_patch → 调整 `test/TESTING_GUIDE.md` 删除冗余分隔线以压缩行数
 - 命令：zsh -lc "head -n 20 test/TESTING_GUIDE.md" → 检查文件开头格式保持一致
 - 命令：zsh -lc "wc -l test/TESTING_GUIDE.md" → 复核行数已降至 300 行
-- 命令：zsh -lc "wc -l test/README.md cnl/examples/README.md" → 确认入口与示例文档行数符合要求
+- 命令：zsh -lc "wc -l test/README.md test/cnl/examples/README.md" → 确认入口与示例文档行数符合要求
 - 命令：zsh -lc "rg -n \"Phase 5.3 回归测试修复\" docs/testing.md" → 获取回归测试记录所在行号（68）
 # 2025-10-22 23:03 NZDT Phase 6.2 canonicalizer 单测执行
 - 工具：sequential-thinking__sequentialthinking → 梳理单测目标、识别风险与执行步骤
@@ -3191,3 +3191,54 @@ await runOneTypecheck(
 - 命令：zsh -lc "nl -ba src/typecheck.ts | sed -n '400,460p'" → 提取 E203 诊断来源的旧效应检查逻辑
 - 命令：zsh -lc "nl -ba src/effect_inference.ts | sed -n '360,420p'" → 标注 E207 等推断诊断的行号与信息
 - 工具：apply_patch → 新增 .claude/lsp-capmanifest-codeaction-investigation.md 记录 manifest code action 调查结论
+- 命令：bash -lc "mkdir -p test/cnl/programs/effects test/cnl/programs/privacy test/cnl/programs/lambda test/cnl/programs/annotations test/cnl/programs/stdlib/surface test/cnl/programs/stdlib/truffle test/cnl/programs/stdlib/archive test/cnl/programs/truffle/core test/cnl/programs/core-reference test/cnl/programs/basics test/cnl/programs/patterns test/cnl/programs/async test/cnl/programs/business/finance test/cnl/programs/business/policy test/cnl/programs/integration/interop test/cnl/programs/integration/capabilities test/cnl/programs/library test/cnl/programs/domains test/cnl/programs/regression/eligibility test/cnl/tooling/src test/cnl/tooling/scripts" → 创建 cnl 迁移目标目录结构
+- 命令：bash -lc "cp -f test/cnl/examples/eff_*.aster test/cnl/programs/effects/" → 迁移效应系统 ASTER 示例
+- 命令：bash -lc "cp -f test/cnl/examples/expected_eff_* test/cnl/programs/effects/" → 迁移效应系统预期输出
+- 命令：bash -lc "cp -f test/cnl/examples/pii_*.aster test/cnl/programs/privacy/" → 迁移隐私 ASTER 示例
+- 命令：bash -lc "cp -f test/cnl/examples/expected_pii_* test/cnl/programs/privacy/" → 迁移隐私预期输出
+- 命令：bash -lc "cp -f test/cnl/examples/lambda_*.aster test/cnl/programs/lambda/" → 迁移 Lambda ASTER 示例
+- 命令：bash -lc "cp -f test/cnl/examples/expected_lambda_* test/cnl/programs/lambda/" → 迁移 Lambda 预期输出
+- 命令：bash -lc "cp -f test/cnl/examples/annotations_*.aster test/cnl/programs/annotations/" → 迁移注解 ASTER 示例
+- 命令：bash -lc "cp -f test/cnl/examples/expected_annotations_* test/cnl/programs/annotations/" → 迁移注解预期输出
+- 命令：bash -lc "cp -f test/cnl/examples/stdlib_*.aster test/cnl/programs/stdlib/surface/" → 迁移 stdlib 表层 ASTER 示例
+- 命令：bash -lc "cp -f test/cnl/examples/expected_stdlib_* test/cnl/programs/stdlib/surface/" → 迁移 stdlib 预期输出
+- 命令：bash -lc "cp -f test/cnl/examples/truffle_stdlib_* test/cnl/programs/stdlib/truffle/" → 迁移 truffle stdlib 资源
+- 命令：bash -lc "cp -f test/cnl/examples/truffle_core_* test/cnl/programs/truffle/core/" → 迁移 truffle 核心示例
+- 命令：bash -lc "find test/cnl/examples -maxdepth 1 -name \"*_core.json\" ! -name \"expected_*\" -exec cp -f {} test/cnl/programs/core-reference/ \\;" → 迁移核心参考 JSON
+- 命令：bash -lc "cp -f test/cnl/examples/test_*.aster test/cnl/programs/basics/" → 迁移基础类 ASTER 示例
+- 命令：bash -lc "find test/cnl/examples -name \"*match*.aster\" -exec cp -f {} test/cnl/programs/patterns/ \\;" → 迁移模式匹配示例
+- 命令：bash -lc "while IFS= read -r -d '' file; do cp -f \"$file\" test/cnl/programs/async/; done < <(find test/cnl/examples \\( -name \"fetch_*.aster\" -o -name \"*async*.aster\" -o -name \"incremental*.aster\" \\) -print0)" → 迁移异步相关示例（规避 xargs 限制）
+- 命令：bash -lc "find test/cnl/examples \\( -name \"loan*.aster\" -o -name \"creditcard*.aster\" -o -name \"risk*.aster\" -o -name \"fraud*.aster\" \\) -exec cp -f {} test/cnl/programs/business/finance/ \\;" → 迁移金融领域示例
+- 命令：bash -lc "find test/cnl/examples \\( -name \"policy_*.aster\" -o -name \"capdemo.aster\" \\) -exec cp -f {} test/cnl/programs/business/policy/ \\;" → 迁移策略引擎示例
+- 命令：bash -lc "find test/cnl/examples \\( -name \"interop_*.aster\" -o -name \"cli_tool.aster\" \\) -exec cp -f {} test/cnl/programs/integration/interop/ \\;" → 迁移互操作示例
+- 命令：bash -lc "cp -f test/cnl/examples/capabilities*.json test/cnl/programs/integration/capabilities/" → 迁移能力清单 JSON
+- 命令：bash -lc "cp -f test/cnl/examples/*.bak test/cnl/programs/stdlib/archive/" → 迁移 stdlib 备份文件
+- 命令：bash -lc "cp -f test/cnl/examples/README.md test/cnl/programs/README.md" → 迁移示例 README
+- 命令：bash -lc "cp -f test/cnl/README.md test/cnl/README.md" → 迁移顶层 README
+- 命令：bash -lc "cp -f test/cnl/src/*.mjs test/cnl/tooling/src/" → 迁移工具源码
+- 命令：bash -lc "cp -f test/cnl/scripts/*.mjs test/cnl/tooling/scripts/" → 迁移工具脚本
+- 命令：bash -lc "cp -rf test/cnl/stdlib/* test/cnl/programs/library/" → 迁移 stdlib 库目录
+- 命令：bash -lc "cp -rf test/cnl/test/* test/cnl/programs/domains/" → 迁移领域测试目录
+- 命令：bash -lc "cp -f test/cnl/test_*.aster test/cnl/programs/regression/eligibility/" → 迁移回归 eligibility ASTER 示例
+- 命令：bash -lc "find test/cnl -type f | wc -l" → 统计迁移后文件数量（369）
+- 命令：bash -lc "find cnl -type f -name \"*.aster\" | wc -l" → 统计源目录 ASTER 文件数量（162）
+- 命令：bash -lc "python3 - <<'PY'\nimport os\nsrc_root = 'test/cnl/examples'\ndst_root = 'test/cnl'\nsource_files = {}\nfor root, _, files in os.walk(src_root):\n    for f in files:\n        if f == '.DS_Store':\n            continue\n        source_files.setdefault(f, []).append(os.path.join(root, f))\n\ndest_files = set()\nfor root, _, files in os.walk(dst_root):\n    for f in files:\n        if f == '.DS_Store':\n            continue\n        dest_files.add(f)\n\nmissing = sorted(f for f in source_files if f not in dest_files)\nif missing:\n    print('\\n'.join(missing))\nPY" → 排查未迁移文件基于文件名比对
+- 命令：bash -lc "python3 - <<'PY'\nimport os\nfrom pathlib import Path\nbase = Path('test/cnl')\npaths = {\n    'programs/effects': base / 'programs/effects',\n    'programs/privacy': base / 'programs/privacy',\n    'programs/lambda': base / 'programs/lambda',\n    'programs/annotations': base / 'programs/annotations',\n    'programs/stdlib/surface': base / 'programs/stdlib/surface',\n    'programs/stdlib/truffle': base / 'programs/stdlib/truffle',\n    'programs/stdlib/archive': base / 'programs/stdlib/archive',\n    'programs/truffle/core': base / 'programs/truffle/core',\n    'programs/core-reference': base / 'programs/core-reference',\n    'programs/basics': base / 'programs/basics',\n    'programs/patterns': base / 'programs/patterns',\n    'programs/async': base / 'programs/async',\n    'programs/business/finance': base / 'programs/business/finance',\n    'programs/business/policy': base / 'programs/business/policy',\n    'programs/integration/interop': base / 'programs/integration/interop',\n    'programs/integration/capabilities': base / 'programs/integration/capabilities',\n    'programs/library': base / 'programs/library',\n    'programs/domains': base / 'programs/domains',\n    'programs/regression/eligibility': base / 'programs/regression/eligibility',\n    'tooling/src': base / 'tooling/src',\n    'tooling/scripts': base / 'tooling/scripts',\n    'programs/stdlib': base / 'programs/stdlib'\n}\nfor key, path in paths.items():\n    count = sum(1 for _ in path.rglob('*') if _.is_file()) if path.exists() else 0\n    print(f\"{key}: {count}\")\nPY" → 统计目标分类文件数量
+- 命令：bash -lc "TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'" → 获取迁移报告时间戳
+- 工具：apply_patch → 新增 .claude/cnl-migration-execution-report.md 记录迁移执行报告
+- 2025-10-24 02:05:58 NZDT | 命令：bash -lc "find test/cnl -type f -name '*.aster' | wc -l" → 统计迁移后 ASTER 文件数量（169）
+- 2025-10-24 02:05:59 NZDT | 命令：bash -lc "find cnl -type f -name '*.aster' | wc -l" → 统计旧目录 ASTER 文件数量（162）
+- 2025-10-24 02:06:00 NZDT | 命令：bash -lc "python3 - <<'PY' [...] PY" → 对比旧/新目录 ASTER 路径集合，确认差异仅为目录结构变更
+- 2025-10-24 02:06:01 NZDT | 命令：bash -lc "python3 - <<'PY' [...] PY" → 以文件名集合比对确认新目录未缺失旧有 ASTER 文件
+- 2025-10-24 02:06:35 NZDT | 命令：bash -lc "timestamp=$(TZ=Pacific/Auckland date '+%Y%m%d-%H%M%S'); dest='.claude/cnl-backup-$timestamp'; mkdir -p \"$dest\"; cp -a cnl \"$dest\"" → 备份旧 cnl 目录至 .claude/cnl-backup-20251024-020635/cnl
+- 2025-10-24 02:06:36 NZDT | 命令：bash -lc "find .claude/cnl-backup-20251024-020635/cnl -type f -name '*.aster' | wc -l" → 校验备份 ASTER 文件数量（162）
+- 2025-10-24 08:00 NZST | 工具：code-index__set_project_path(".") → 重建索引根目录至仓库根
+- 2025-10-24 08:00 NZST | 工具：code-index__search_code_advanced("test/cnl/examples") → 汇总遗留旧路径引用
+- 2025-10-24 08:01 NZST | 命令：zsh -lc "sed -n '1,200p' scripts/golden.ts" → 审阅黄金脚本当前路径
+- 2025-10-24 08:05 NZST | 命令：zsh -lc "perl -0pi -e '...'"（多次）→ 批量替换 `scripts/golden.ts` 及 `scripts/golden.js` 中的 `test/cnl/examples` 路径为 `test/cnl/programs`
+- 2025-10-24 08:10 NZST | 工具：apply_patch → 重写 `scripts/update-all-core-golden.js` 以递归扫描新目录
+- 2025-10-24 08:12 NZST | 工具：apply_patch → 更新 `scripts/update-eff-violation-expected.ts` 输入/输出路径
+- 2025-10-24 08:15 NZST | 工具：apply_patch → 调整 `scripts/verify-*`, `scripts/determinism.ts`, `scripts/perf-*`, `scripts/test-medium-diagnostics.ts`, `scripts/build-hello-native.sh` 等文件引用新路径
+- 2025-10-24 08:18 NZST | 命令：zsh -lc "rg 'test/cnl/examples' scripts" → 确认脚本目录内已无旧路径残留
+- 2025-10-24 08:19 NZST | 工具：apply_patch → 更新 `.claude/cnl-path-references-update-report.md` 添加补充更新记录
+- 2025-10-24 08:21 NZST | 命令：zsh -lc "npm run build && npm run test:golden 2>&1 | head -100" → 构建项目并验证黄金测试通过（输出前 100 行）

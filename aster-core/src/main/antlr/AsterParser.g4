@@ -2,7 +2,7 @@
  * Aster CNL 语法规则（核心版本）
  *
  * 基于 TypeScript Parser 迁移而来，当前实现核心语法规则，
- * 足以解析 `cnl/examples/hello.aster` 等基础样例。
+ * 足以解析 `test/cnl/examples/hello.aster` 等基础样例。
  *
  * 后续任务将补充复杂特性（类型系统、模式匹配、泛型等）。
  */

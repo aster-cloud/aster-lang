@@ -60,17 +60,17 @@
 | 2025-10-07 23:11 | shell (npm run test:property) | - | 属性测试全部绿，Start/Wait 语法覆盖 |
 | 2025-10-08 09:59 | sequential-thinking | totalThoughts=6 | 审查 Effect Violation Tests 任务，梳理覆盖与风险 |
 | 2025-10-08 09:59 | code-index__set_project_path | path=/Users/rpang/IdeaProjects/aster-lang | 初始化代码索引以便检索审查文件 |
-| 2025-10-08 10:00 | shell (sed/cat) | cnl/examples/eff_violation_*.aster | 快速浏览16个效应违规示例与expected输出 |
+| 2025-10-08 10:00 | shell (sed/cat) | test/cnl/examples/eff_violation_*.aster | 快速浏览16个效应违规示例与expected输出 |
 | 2025-10-08 10:43 | sequential-thinking | totalThoughts=4 | 调查 Capability Enforcement 前置思考 |
 | 2025-10-08 10:43 | code-index__find_files | pattern=**/operations-log.md | 失败：未设置项目路径 |
 | 2025-10-08 10:43 | code-index__set_project_path | path=. | 设置索引根目录，加载 473 个文件 |
 | 2025-10-08 10:44 | code-index__find_files | pattern=**/operations-log.md | 定位现有操作日志文件（2 个结果） |
-| 2025-10-08 10:44 | shell (cat) | cnl/examples/eff_violation_chain.aster | 查看链式能力违规示例源码 |
-| 2025-10-08 10:44 | shell (cat) | cnl/examples/eff_violation_files_calls_secrets.aster | 查看 Files→Secrets 示例源码 |
-| 2025-10-08 10:45 | shell (cat) | cnl/examples/expected_eff_violation_chain.diag.txt | 阅读黄金诊断输出 |
-| 2025-10-08 10:45 | shell (cat) | cnl/examples/expected_eff_violation_files_calls_secrets.diag.txt | 阅读黄金诊断输出 |
-| 2025-10-08 10:45 | shell (cat) | cnl/examples/eff_violation_empty_caps.aster | 检查空 capability 列表示例 |
-| 2025-10-08 10:45 | shell (cat) | cnl/examples/expected_eff_violation_empty_caps.diag.txt | 确认 expected 输出为空 |
+| 2025-10-08 10:44 | shell (cat) | test/cnl/examples/eff_violation_chain.aster | 查看链式能力违规示例源码 |
+| 2025-10-08 10:44 | shell (cat) | test/cnl/examples/eff_violation_files_calls_secrets.aster | 查看 Files→Secrets 示例源码 |
+| 2025-10-08 10:45 | shell (cat) | test/cnl/examples/expected_eff_violation_chain.diag.txt | 阅读黄金诊断输出 |
+| 2025-10-08 10:45 | shell (cat) | test/cnl/examples/expected_eff_violation_files_calls_secrets.diag.txt | 阅读黄金诊断输出 |
+| 2025-10-08 10:45 | shell (cat) | test/cnl/examples/eff_violation_empty_caps.aster | 检查空 capability 列表示例 |
+| 2025-10-08 10:45 | shell (cat) | test/cnl/examples/expected_eff_violation_empty_caps.diag.txt | 确认 expected 输出为空 |
 | 2025-10-08 10:46 | shell (sed) | scripts/golden.ts 320-420 | 了解 golden 测试脚本如何启用 enforcement |
 | 2025-10-08 10:46 | shell (sed) | docs/reference/effects-capabilities.md 60-150 | 阅读能力列表设计文档 |
 | 2025-10-08 10:47 | shell (sed) | src/effect_inference.ts 1-220 | 阅读效果推断与传播实现 |
@@ -142,9 +142,9 @@
 | 2025-10-08 14:26 | shell (sed) | src/typecheck.ts 720-860 | 查看`unifyTypes`实现 |
 | 2025-10-08 14:26 | shell (npm run) | build | 编译 TypeScript 并生成 PEG Parser |
 | 2025-10-08 14:26 | shell (cat) | /tmp/bad_generic_return.aster | 写入问题示例用于验证 |
-| 2025-10-08 14:27 | shell (ls) | cnl/examples | 列出现有泛型示例 |
-| 2025-10-08 14:27 | shell (sed) | cnl/examples/id_generic.aster | 检查泛型正例 |
-| 2025-10-08 14:28 | shell (sed) | cnl/examples/bad_generic.aster | 检查泛型负例 |
+| 2025-10-08 14:27 | shell (ls) | test/cnl/examples | 列出现有泛型示例 |
+| 2025-10-08 14:27 | shell (sed) | test/cnl/examples/id_generic.aster | 检查泛型正例 |
+| 2025-10-08 14:28 | shell (sed) | test/cnl/examples/bad_generic.aster | 检查泛型负例 |
 | 2025-10-08 14:28 | shell (node) | dist/scripts/typecheck-cli.js /tmp/bad_generic_return.aster | 记录当前对问题示例的诊断 |
 | 2025-10-08 14:30 | shell (python3) | 写入 .claude/context-generic-typecheck.json | 汇总泛型类型检查上下文 |
 | 2025-10-08 14:34 | sequential-thinking | totalThoughts=4 | 阶段B/C 任务理解与风险梳理 |
@@ -153,12 +153,12 @@
 | 2025-10-08 14:34 | code-index__get_file_summary | file=src/typecheck.ts | 获取`tEquals`附近结构 |
 | 2025-10-08 14:34 | code-index__search_code_advanced | pattern="function tEquals" context=40 | 拉取`tEquals`实现上下文 |
 | 2025-10-08 14:35 | shell (apply_patch) | src/typecheck.ts | 初步加入 TypeVar 名称比较逻辑 |
-| 2025-10-08 14:35 | shell (apply_patch) | cnl/examples/bad_generic_return_type.aster | 新建负例 CNL 文件 |
+| 2025-10-08 14:35 | shell (apply_patch) | test/cnl/examples/bad_generic_return_type.aster | 新建负例 CNL 文件 |
 | 2025-10-08 14:35 | shell (npm run build) | - | 失败：TS2678 提示 TypeVar 比较类型不兼容 |
 | 2025-10-08 14:36 | shell (apply_patch) | src/typecheck.ts | 重构`tEquals`以显式转 Core.Type 并移除宽松分支 |
 | 2025-10-08 14:36 | shell (npm run build) | - | 成功：编译并重建 PEG Parser |
 | 2025-10-08 14:36 | shell (node) | dist/scripts/typecheck-cli.js bad_generic_return_type.aster | 捕获返回类型不匹配诊断 |
-| 2025-10-08 14:36 | shell (apply_patch) | cnl/examples/expected_bad_generic_return_type.diag.txt | 写入黄金期望诊断 |
+| 2025-10-08 14:36 | shell (apply_patch) | test/cnl/examples/expected_bad_generic_return_type.diag.txt | 写入黄金期望诊断 |
 | 2025-10-08 14:36 | shell (npm run typecheck) | - | 通过：tsc --noEmit |
 | 2025-10-08 14:36 | shell (npm run test:golden) | - | 通过：黄金测试含新负例 |
 | 2025-10-08 14:36 | shell (node) | dist/scripts/typecheck-cli.js bad_generic_return_type.aster | 手动确认返回类型错误输出 |
@@ -200,8 +200,8 @@
 | 2025-10-08 14:51 | shell (find) | docs/workstreams/P2-1 | 查看既有工作流文档结构 |
 | 2025-10-08 14:52 | shell (npm run typecheck) | - | 通过：tsc --noEmit |
 | 2025-10-08 14:53 | shell (npm run test) | - | 通过：fmt/build/golden/property 全部成功，输出含结构化日志 |
-| 2025-10-08 14:53 | shell (node) | LOG_LEVEL=DEBUG dist/scripts/typecheck-cli.js cnl/examples/id_generic.aster | 验证结构化日志输出与性能指标 |
-| 2025-10-08 14:54 | shell (node) | ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG dist/scripts/typecheck-cli.js cnl/examples/id_generic.aster | 验证parser调试Logger在Debug级别输出 |
+| 2025-10-08 14:53 | shell (node) | LOG_LEVEL=DEBUG dist/scripts/typecheck-cli.js test/cnl/examples/id_generic.aster | 验证结构化日志输出与性能指标 |
+| 2025-10-08 14:54 | shell (node) | ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG dist/scripts/typecheck-cli.js test/cnl/examples/id_generic.aster | 验证parser调试Logger在Debug级别输出 |
 | 2025-10-08 14:54 | shell (mkdir) | docs/workstreams/P2-4/implementation | 创建实现文档目录 |
 | 2025-10-08 14:54 | shell (date) | TZ=Pacific/Auckland | 获取文档时间戳 |
 | 2025-10-08 14:55 | apply_patch | 新增 structured-logging-usage.md | 编写结构化日志使用文档 |
@@ -221,10 +221,10 @@
 | 2025-10-09 00:06 | shell (sed -n) | src/typecheck.ts 420-520 | 阅读 collectEffects 具体实现 |
 | 2025-10-09 00:06 | shell (sed -n) | src/typecheck.ts 1-140 | 确认模块级前缀加载方式 |
 | 2025-10-09 00:06 | shell (cat) | .aster/effects.example.json | 查看示例配置内容 |
-| 2025-10-09 00:06 | shell (cat) | cnl/examples/eff_custom_prefix.aster | 阅读测试用例 |
+| 2025-10-09 00:06 | shell (cat) | test/cnl/examples/eff_custom_prefix.aster | 阅读测试用例 |
 | 2025-10-09 00:06 | shell (rg) | "eff_custom_prefix" scripts/golden.ts | 查找黄金测试注册 |
 | 2025-10-09 00:06 | shell (sed -n) | scripts/golden.ts 240-320 | 审查黄金测试段落 |
-| 2025-10-09 00:06 | shell (cat) | cnl/examples/expected_eff_custom_prefix.diag.txt | 查看预期诊断输出 |
+| 2025-10-09 00:06 | shell (cat) | test/cnl/examples/expected_eff_custom_prefix.diag.txt | 查看预期诊断输出 |
 | 2025-10-09 00:06 | shell (rg) | "IO_PREFIXES" src/config/semantic.ts | 验证默认前缀集合 |
 | 2025-10-09 00:06 | shell (sed -n) | src/config/semantic.ts 100-140 | 对比默认配置内容 |
 | 2025-10-09 00:07 | shell (rg) | "customPatterns" -g*.ts | 确认字段引用情况 |

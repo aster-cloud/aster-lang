@@ -797,7 +797,7 @@ warning[ASYNC_DUPLICATE_WAIT]: Async task "profile" was waited multiple times (2
 - **类型检查器**: `src/typecheck.ts` (lines 1489-1606) - `collectAsync` 函数与错误检查逻辑
 - **类型定义**: `src/types.ts` - `AsyncInfo`、`AsyncStart`、`WaitExpr` 类型定义
 - **测试文件**: `test/async-discipline.test.ts` - 12 个测试用例覆盖所有错误类型
-- **示例代码**: `cnl/examples/` - 异步编程示例（未包含负例）
+- **示例代码**: `test/cnl/examples/` - 异步编程示例（未包含负例）
 
 ### 设计决策
 
@@ -1280,7 +1280,7 @@ npm run test:lsp      # LSP属性测试
 
 1. 更新 `.aster/effects.json` 配置
 2. 更新 `src/config/effects.ts` 常量定义
-3. 添加测试用例到 `cnl/examples/eff_*.aster`
+3. 添加测试用例到 `test/cnl/examples/eff_*.aster`
 
 ### 3. 新增 LSP 功能
 

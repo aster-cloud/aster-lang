@@ -338,7 +338,7 @@ function countLines(files: Map<string, string>): number {
 }
 
 async function prepareSmallProject(): Promise<ProjectDefinition> {
-  const greetPath = path.resolve('cnl/examples/greet.aster');
+  const greetPath = path.resolve('test/cnl/programs/examples/greet.aster');
   const text = await fs.readFile(greetPath, 'utf8');
   const files = new Map<string, string>();
   files.set('examples/greet.aster', text);

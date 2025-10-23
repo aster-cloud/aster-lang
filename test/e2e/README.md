@@ -241,9 +241,9 @@ The parser generates `span` objects containing source position information (`sta
 
 Using separate prune functions ensures each test type gets the appropriate level of detail.
 
-### Migration from cnl/examples/
+### Migration from test/cnl/examples/
 
-All golden tests have been migrated from `cnl/examples/` to `test/e2e/golden/` as part of Phase 3 refactoring (Oct 2025). See `.claude/phase3.7-completion-report.md` for details.
+All golden tests have been migrated from `test/cnl/examples/` to `test/e2e/golden/` as part of Phase 3 refactoring (Oct 2025). See `.claude/phase3.7-completion-report.md` for details.
 
 ## References
 

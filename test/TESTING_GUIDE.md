@@ -101,7 +101,7 @@
 ### 端到端测试（E2E）
 
 - 目标：模拟用户路径，通常通过 CLI 或脚本执行 Aster 编译流程。
-- 位置：`test/e2e/` 与 `cnl/examples/`（黄金数据）。
+- 位置：`test/e2e/` 与 `test/cnl/examples/`（黄金数据）。
 - Golden 测试：将输出写入 `test/e2e/golden/expected/*.json`，并在代码中调用比较器。
 - 注意：新增 Golden 文件必须在 PR 中一同提交，且保持内容可读、注释明确。
 
@@ -133,7 +133,7 @@
 
 3. **准备输入与期望**  
    - 单元/集成测试：直接写字符串或 JSON。  
-   - Golden 测试：在 `cnl/examples/` 新建 `.aster` 或 `.json`，再运行对比脚本生成 expected。  
+   - Golden 测试：在 `test/cnl/examples/` 新建 `.aster` 或 `.json`，再运行对比脚本生成 expected。  
    - 回归测试：引用 `.claude/phase5.3-test-failures-analysis.md` 等文档提供的失败案例。
 
 4. **编写测试文件**  
@@ -216,7 +216,7 @@ import { compareGolden } from '../helpers/golden.js';
 it('应该匹配预期 JSON', async () => {
   await compareGolden({
     name: 'effects/pii_violation',
-    actual: runCliAndCollectJson('cnl/examples/pii_violation.aster')
+    actual: runCliAndCollectJson('test/cnl/examples/pii_violation.aster')
   });
 });
 ```
@@ -235,13 +235,13 @@ it('应该匹配预期 JSON', async () => {
 - 仅更新 Golden：`npm run test:golden -- --update`
 - Java 侧测试：`./gradlew :aster-core:test`
 - CLI 集成：`ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse <file>.aster --json'`
-- 调试 CLI：`LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/xxx.aster`
+- 调试 CLI：`LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js test/cnl/examples/xxx.aster`
 
 ---
 
 ## Golden 测试维护流程
 
-1. 在 `cnl/examples/` 添加或更新示例，命名规则见 `cnl/examples/README.md`。  
+1. 在 `test/cnl/examples/` 添加或更新示例，命名规则见 `test/cnl/examples/README.md`。  
 2. 运行 `npm run test:golden -- --update` 生成新的 expected 文件。  
 3. 检查 `test/e2e/golden/expected/` 下的 diff，确认仅包含预期变更。  
 4. 在 PR 描述中链接相关设计或需求，说明 Golden 变更原因。  

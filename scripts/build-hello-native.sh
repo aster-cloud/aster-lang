@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # 1) Emit classfiles for greet
-npm run emit:class cnl/examples/greet.aster
+npm run emit:class test/cnl/programs/examples/greet.aster
 
 # 2) Package to jar
 npm run jar:jvm
@@ -11,4 +11,3 @@ npm run jar:jvm
 ./gradlew :examples:hello-native:nativeCompile
 
 echo "Binary at examples/hello-native/build/native/nativeCompile/hello-aster"
-

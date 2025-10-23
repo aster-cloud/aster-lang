@@ -6,7 +6,7 @@
 
 > `const` **IO\_PREFIXES**: readonly `string`[]
 
-Defined in: [config/semantic.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/7044bd6c549b9ab67789410d73995edfebc62745/src/config/semantic.ts#L100)
+Defined in: [config/semantic.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/6475e49b97ba6dba5931ad0c705e0cf6865a0b29/src/config/semantic.ts#L100)
 
 已知的 IO 操作前缀（用于 effect 推断）。
 

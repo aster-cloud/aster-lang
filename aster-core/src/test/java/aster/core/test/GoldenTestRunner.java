@@ -28,8 +28,8 @@ import java.util.concurrent.TimeUnit;
  * <b>使用示例</b>：
  * <pre>{@code
  * var runner = new GoldenTestRunner(Path.of("."));
- * JsonNode tsOutput = runner.runTypeScript("canonicalize", Path.of("cnl/examples/hello.aster"));
- * JsonNode javaOutput = runner.runJava("canonicalize", Path.of("cnl/examples/hello.aster"));
+ * JsonNode tsOutput = runner.runTypeScript("canonicalize", Path.of("test/cnl/examples/hello.aster"));
+ * JsonNode javaOutput = runner.runJava("canonicalize", Path.of("test/cnl/examples/hello.aster"));
  * runner.assertJsonEquals(tsOutput, javaOutput);
  * }</pre>
  */
@@ -58,7 +58,7 @@ public class GoldenTestRunner {
      * @throws InterruptedException 如果进程等待被中断
      */
     public JsonNode runTypeScript(String stage, Path inputFile) throws IOException, InterruptedException {
-        // 构造 npm 命令（例如：npm run canonicalize -- cnl/examples/hello.aster）
+        // 构造 npm 命令（例如：npm run canonicalize -- test/cnl/examples/hello.aster）
         ProcessBuilder pb = new ProcessBuilder();
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
             pb.command("cmd", "/c", "npm", "run", stage, "--", inputFile.toString());

@@ -13,8 +13,8 @@ import { canonicalize } from '../src/canonicalizer.js';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
-// CNL examples 路径
-const EXAMPLES_PATH = join(process.cwd(), 'cnl/examples');
+// CNL programs 路径
+const PROGRAMS_PATH = join(process.cwd(), 'test/cnl/programs');
 
 // 模拟 getOrParse 函数
 function getOrParse(doc: TextDocument): { text: string; tokens: readonly any[]; ast: any } {
@@ -32,12 +32,23 @@ function getOrParse(doc: TextDocument): { text: string; tokens: readonly any[]; 
 
 async function loadExampleFiles(): Promise<TextDocument[]> {
   console.log('📂 Loading CNL example files...');
-  const files = await fs.readdir(EXAMPLES_PATH);
-  const cnlFiles = files.filter(f => f.endsWith('.aster'));
-
+  async function collect(dir: string): Promise<string[]> {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const out: string[] = [];
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        out.push(...(await collect(full)));
+      } else if (entry.isFile() && entry.name.endsWith('.aster')) {
+        out.push(full);
+      }
+    }
+    return out;
+  }
+  const cnlFiles = await collect(PROGRAMS_PATH);
   const documents: TextDocument[] = [];
-  for (const file of cnlFiles) {
-    const filePath = join(EXAMPLES_PATH, file);
+  for (const filePath of cnlFiles) {
     const content = await fs.readFile(filePath, 'utf8');
     const uri = `file://${filePath}`;
     const doc = TextDocument.create(uri, 'cnl', 1, content);

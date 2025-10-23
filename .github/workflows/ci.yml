@@ -108,9 +108,9 @@ jobs:
       - name: Test CLI tools
         run: |
           echo "Testing AST CLI..."
-          node dist/scripts/cli.js cnl/examples/greet.cnl > /tmp/greet-ast.json
+          node dist/scripts/cli.js test/cnl/examples/greet.cnl > /tmp/greet-ast.json
           echo "Testing Core IR CLI..."
-          node dist/scripts/emit-core.js cnl/examples/greet.cnl > /tmp/greet-core.json
+          node dist/scripts/emit-core.js test/cnl/examples/greet.cnl > /tmp/greet-core.json
           echo "CLI tools working correctly"
 
   benchmark:
@@ -192,7 +192,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Emit classfiles from example
-        run: npm run emit:class cnl/examples/greet.cnl
+        run: npm run emit:class test/cnl/examples/greet.cnl
 
       - name: Verify generated classes with javap
         run: npm run javap:verify

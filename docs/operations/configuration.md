@@ -84,12 +84,12 @@
    - 若 `missingRequired` 非空，需要补全必需变量。
 2. 结构化日志验证：
    ```bash
-   LOG_LEVEL=DEBUG node dist/scripts/cli.js cnl/examples/greet.aster
+   LOG_LEVEL=DEBUG node dist/scripts/cli.js test/cnl/examples/greet.aster
    ```
    - 确认输出 JSON 包含 `level`, `timestamp`, `component`, `message`。
 3. 能力校验验证：
    ```bash
-   ASTER_CAPS=cnl/examples/capabilities.json npm run typecheck
+   ASTER_CAPS=test/cnl/examples/capabilities.json npm run typecheck
    ```
    - 确认能力违规会触发带有错误 ID（如 `E1001`）的诊断。
 4. 安全基线：
@@ -99,7 +99,7 @@
    ```
 5. Gradle/Java 链路：
    ```bash
-  npm run emit:class -- cnl/examples/greet.aster
+  npm run emit:class -- test/cnl/examples/greet.aster
    npm run javap:verify
    ```
    - 若 `JAVA_HOME` 缺失会立即报错，部署前必须验证。

@@ -6,10 +6,10 @@
 | 2025-10-21 23:19 | sequential-thinking | totalThoughts≈3 | 梳理语法与 AST 改动步骤 |
 | 2025-10-21 23:19 | shell (rg) | --files -g 'AGENTS.md' | 未找到 AGENTS.md |
 | 2025-10-21 23:19 | shell (rg) | -n \"@pii\" | 收集 @pii 使用上下文 |
-| 2025-10-21 23:19 | shell (sed) | cnl/examples/pii_type_basic.aster 1-80 | 查看 PII 样例内容 |
+| 2025-10-21 23:19 | shell (sed) | test/cnl/examples/pii_type_basic.aster 1-80 | 查看 PII 样例内容 |
 | 2025-10-21 23:19 | shell (rg) | --files -g 'annotations_*.aster' | 列出注解样例文件 |
-| 2025-10-21 23:19 | shell (sed) | cnl/examples/annotations_mixed.aster 1-120 | 阅读多注解用法 |
-| 2025-10-21 23:19 | shell (sed) | cnl/examples/privacy_user_data.aster 1-80 | 失败：文件不存在 |
+| 2025-10-21 23:19 | shell (sed) | test/cnl/examples/annotations_mixed.aster 1-120 | 阅读多注解用法 |
+| 2025-10-21 23:19 | shell (sed) | test/cnl/examples/privacy_user_data.aster 1-80 | 失败：文件不存在 |
 | 2025-10-21 23:19 | shell (rg) | --files -g 'privacy_*.aster' | 未找到匹配的隐私样例 |
 | 2025-10-21 23:19 | shell (rg) | -n \"@sensitive\" | 确认注解定义位置 |
 | 2025-10-21 23:19 | shell (rg) | -n \"typeDecl\" aster-core/src/main/antlr/AsterParser.g4 | 未检出 typeDecl 规则 |
@@ -29,7 +29,7 @@
 | 2025-10-21 23:19 | apply_patch | 新建 operations-log.md | 初始化 P4-2 日志表头 |
 | 2025-10-21 23:19 | shell (date) | TZ=Pacific/Auckland | 获取 NZST 时间戳 |
 | 2025-10-21 23:19 | apply_patch | 更新 operations-log.md | 追加历史操作记录 |
-| 2025-10-21 23:23 | shell (sed) | cnl/examples/pii_type_in_data.aster 1-120 | 查看数据注解样例 |
+| 2025-10-21 23:23 | shell (sed) | test/cnl/examples/pii_type_in_data.aster 1-120 | 查看数据注解样例 |
 | 2025-10-21 23:23 | shell (rg) | --files -g '*Test.java' | 枚举测试目录 |
 | 2025-10-21 23:23 | shell (date) | TZ=Pacific/Auckland | 更新 NZST 时间戳 |
 | 2025-10-21 23:23 | apply_patch | 更新 operations-log.md | 记录新增操作 |

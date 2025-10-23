@@ -100,8 +100,8 @@ Without declaring `It performs io`, this will trigger a typecheck error.
 Enable checks by setting `ASTER_CAPS` to a JSON manifest file.
 
 Environment examples:
-- CLI: `ASTER_CAPS=cnl/examples/capabilities.json node dist/scripts/typecheck-cli.js cnl/examples/capdemo.aster`
-- LSP: `ASTER_CAPS=cnl/examples/capabilities.json npm run lsp`
+- CLI: `ASTER_CAPS=test/cnl/examples/capabilities.json node dist/scripts/typecheck-cli.js test/cnl/examples/capdemo.aster`
+- LSP: `ASTER_CAPS=test/cnl/examples/capabilities.json npm run lsp`
 
 Manifest schema (JSON):
 

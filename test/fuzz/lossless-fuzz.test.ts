@@ -6,11 +6,25 @@ import { buildCstLossless } from '../../src/cst_builder.js';
 import { printCNLFromCst } from '../../src/cst_printer.js';
 
 function readExamples(): string[] {
-  const dir = path.join(process.cwd(), 'cnl', 'examples');
-  return fsn
-    .readdirSync(dir)
-    .filter(f => f.endsWith('.aster'))
-    .map(f => fsn.readFileSync(path.join(dir, f), 'utf8'));
+  const dir = path.join(process.cwd(), 'test/cnl', 'programs');
+
+  // Recursively find all .aster files
+  function findAsterFiles(directory: string): string[] {
+    const entries = fsn.readdirSync(directory, { withFileTypes: true });
+    const files: string[] = [];
+    for (const entry of entries) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...findAsterFiles(fullPath));
+      } else if (entry.name.endsWith('.aster')) {
+        files.push(fullPath);
+      }
+    }
+    return files;
+  }
+
+  const files = findAsterFiles(dir);
+  return files.map(f => fsn.readFileSync(f, 'utf8'));
 }
 
 function mulberry32(a: number): () => number {

@@ -60,19 +60,19 @@ time ./aster-lang-cli/build/native/nativeCompile/aster version
 ./aster help
 
 # 类型检查
-./aster typecheck cnl/examples/hello.aster
+./aster typecheck test/cnl/examples/hello.aster
 
 # 编译为 JVM 字节码
-./aster compile cnl/examples/hello.aster --output ./build/classes
+./aster compile test/cnl/examples/hello.aster --output ./build/classes
 
 # 生成 JAR 包
-./aster jar cnl/examples/hello.aster --output ./build/hello.jar
+./aster jar test/cnl/examples/hello.aster --output ./build/hello.jar
 
 # 解析输出 AST
-./aster parse cnl/examples/hello.aster
+./aster parse test/cnl/examples/hello.aster
 
 # 降级到 Core IR
-./aster core cnl/examples/hello.aster
+./aster core test/cnl/examples/hello.aster
 ```
 
 ### 高级选项
@@ -273,7 +273,7 @@ upx --best ./aster
 ./gradlew :aster-lang-cli:test --tests MainIntegrationTest
 ```
 
-单元测试覆盖参数解析与子进程桥接逻辑，集成测试验证 CLI 对 `cnl/examples` 样例的实际编译效果。
+单元测试覆盖参数解析与子进程桥接逻辑，集成测试验证 CLI 对 `test/cnl/examples` 样例的实际编译效果。
 
 ## 链接
 

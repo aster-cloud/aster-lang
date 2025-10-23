@@ -134,4 +134,4 @@ From CNL examples end-to-end (parse → lower → emit ASM → javap):
 npm run verify:asm:lambda:cnl
 ```
 
-This emits classes for the lambda examples in `cnl/examples/` and runs `javap -v` on all emitted `.class` files.
+This emits classes for the lambda examples in `test/cnl/examples/` and runs `javap -v` on all emitted `.class` files.

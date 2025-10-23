@@ -6,8 +6,8 @@
 - 指令与结果：
   - `npm run typecheck` → 通过（tsc --noEmit）。
   - `npm run test` → 通过（黄金测试、属性测试全部成功，输出结构化 JSON 日志）。
-  - `LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.aster` → 通过，输出 INFO 级日志与性能指标。
-  - `ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js cnl/examples/id_generic.aster` → 通过，输出与上次一致。
+  - `LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js test/cnl/examples/id_generic.aster` → 通过，输出 INFO 级日志与性能指标。
+  - `ASTER_DEBUG_TYPES=1 LOG_LEVEL=DEBUG node dist/scripts/typecheck-cli.js test/cnl/examples/id_generic.aster` → 通过，输出与上次一致。
 
 ## 2025-10-08 Typecheck 能力验证
 - 日期：2025-10-08 16:33 NZDT
@@ -35,7 +35,7 @@
 - 日期：2025-10-15 19:21 NZST
 - 执行者：Codex
 - 指令与结果：
-  - `./gradlew :quarkus-policy-api:test` → 失败（缺少 `cnl/stdlib/finance/loan.cnl` 等策略资产，任务 `generateAsterJar` 退出码 1）
+  - `./gradlew :quarkus-policy-api:test` → 失败（缺少 `test/cnl/stdlib/finance/loan.cnl` 等策略资产，任务 `generateAsterJar` 退出码 1）
 
 ## 2025-10-17 quarkus-policy-api 测试回归
 - 日期：2025-10-17 09:32 NZDT
@@ -54,8 +54,8 @@
 - 执行者：Codex
 - 指令与结果：
   - `./gradlew-java25 :aster-lang-cli:compileJava` → 通过（确认 Java 编译器后端增量代码可编译）
-  - `ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/hello.aster --json'` → 通过（输出包含 `Module/Func/String` 等节点完整 JSON）
-  - `ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse cnl/examples/int_match.aster --json'` → 通过（输出 `Match` 与 `PatternInt` 节点 JSON）
+  - `ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse test/cnl/examples/hello.aster --json'` → 通过（输出包含 `Module/Func/String` 等节点完整 JSON）
+  - `ASTER_COMPILER=java ./gradlew-java25 :aster-lang-cli:run --args 'parse test/cnl/examples/int_match.aster --json'` → 通过（输出 `Match` 与 `PatternInt` 节点 JSON）
 
 ## 2025-10-21 P4 批次 2 类型注解
 - 日期：2025-10-21 23:40 NZST

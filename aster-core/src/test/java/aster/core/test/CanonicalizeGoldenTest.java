@@ -34,7 +34,7 @@ public class CanonicalizeGoldenTest {
      */
     @Test
     void testHelloAsterCanonicalize() throws Exception {
-        Path input = Path.of("cnl/examples/hello.aster");
+        Path input = Path.of("test/cnl/examples/hello.aster");
 
         // 运行 TypeScript 版本
         JsonNode tsOutput = runner.runTypeScript("canonicalize", input);
@@ -55,7 +55,7 @@ public class CanonicalizeGoldenTest {
      */
     @Test
     void testDataDeclCanonicalize() throws Exception {
-        Path input = Path.of("cnl/examples/person.aster");
+        Path input = Path.of("test/cnl/examples/person.aster");
 
         // 运行 TypeScript 版本
         JsonNode tsOutput = runner.runTypeScript("canonicalize", input);
@@ -71,7 +71,7 @@ public class CanonicalizeGoldenTest {
      */
     @Test
     void testFuncDeclCanonicalize() throws Exception {
-        Path input = Path.of("cnl/examples/math.aster");
+        Path input = Path.of("test/cnl/examples/math.aster");
 
         // 运行 TypeScript 版本
         JsonNode tsOutput = runner.runTypeScript("canonicalize", input);
@@ -85,7 +85,7 @@ public class CanonicalizeGoldenTest {
      */
     @Test
     void testEnumDeclCanonicalize() throws Exception {
-        Path input = Path.of("cnl/examples/status.aster");
+        Path input = Path.of("test/cnl/examples/status.aster");
 
         // 运行 TypeScript 版本
         JsonNode tsOutput = runner.runTypeScript("canonicalize", input);
@@ -99,7 +99,7 @@ public class CanonicalizeGoldenTest {
      */
     @Test
     void testComplexExprCanonicalize() throws Exception {
-        Path input = Path.of("cnl/examples/calculator.aster");
+        Path input = Path.of("test/cnl/examples/calculator.aster");
 
         // 运行 TypeScript 版本
         JsonNode tsOutput = runner.runTypeScript("canonicalize", input);

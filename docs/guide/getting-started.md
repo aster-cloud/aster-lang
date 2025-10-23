@@ -236,14 +236,14 @@ Aster 使用**黄金测试**（golden tests）来验证编译器行为的正确�
 
 ### 黄金测试工作流程
 
-1. **编写 CNL 程序**：例如 `cnl/examples/my_test.aster`
+1. **编写 CNL 程序**：例如 `test/cnl/examples/my_test.aster`
 2. **生成期望输出**：
    ```bash
    # 生成 AST 期望输出
-   node dist/scripts/cli.js cnl/examples/my_test.aster > cnl/examples/expected_my_test.ast.json
+   node dist/scripts/cli.js test/cnl/examples/my_test.aster > test/cnl/examples/expected_my_test.ast.json
 
    # 生成 Core IR 期望输出
-   node dist/scripts/emit-core.js cnl/examples/my_test.aster > cnl/examples/expected_my_test_core.json
+   node dist/scripts/emit-core.js test/cnl/examples/my_test.aster > test/cnl/examples/expected_my_test_core.json
    ```
 
 3. **运行测试**：
@@ -252,7 +252,7 @@ Aster 使用**黄金测试**（golden tests）来验证编译器行为的正确�
    ```
 
 测试框架会自动：
-- 解析所有 `cnl/examples/*.aster` 文件
+- 解析所有 `test/cnl/examples/*.aster` 文件
 - 比较实际输出与 `expected_*.ast.json` 和 `expected_*_core.json`
 - 报告任何差异
 
@@ -260,11 +260,11 @@ Aster 使用**黄金测试**（golden tests）来验证编译器行为的正确�
 
 ```bash
 # 将您的 greet_user.aster 复制到 examples
-cp greet_user.aster cnl/examples/
+cp greet_user.aster test/cnl/examples/
 
 # 生成期望输出
-node dist/scripts/cli.js cnl/examples/greet_user.aster > cnl/examples/expected_greet_user.ast.json
-node dist/scripts/emit-core.js cnl/examples/greet_user.aster > cnl/examples/expected_greet_user_core.json
+node dist/scripts/cli.js test/cnl/examples/greet_user.aster > test/cnl/examples/expected_greet_user.ast.json
+node dist/scripts/emit-core.js test/cnl/examples/greet_user.aster > test/cnl/examples/expected_greet_user_core.json
 
 # 运行测试
 npm run test:golden
@@ -276,12 +276,12 @@ npm run test:golden
 
 ### 探索更多示例
 
-查看 `cnl/examples/` 目录中的示例程序：
+查看 `test/cnl/examples/` 目录中的示例程序：
 
-- `cnl/examples/greet.aster` - 简单的问候函数（模式匹配）
-- `cnl/examples/login.aster` - 认证逻辑（Result 类型 + I/O 效果）
-- `cnl/examples/fetch_dashboard.aster` - 异步并发（`Start` 和 `Wait`）
-- `cnl/examples/policy_demo.aster` - 策略引擎演示
+- `test/cnl/examples/greet.aster` - 简单的问候函数（模式匹配）
+- `test/cnl/examples/login.aster` - 认证逻辑（Result 类型 + I/O 效果）
+- `test/cnl/examples/fetch_dashboard.aster` - 异步并发（`Start` 和 `Wait`）
+- `test/cnl/examples/policy_demo.aster` - 策略引擎演示
 
 ### 阅读文档
 
@@ -297,7 +297,7 @@ npm run test:golden
 
 ```bash
 # 生成 .class 文件
-node dist/scripts/emit-classfiles.js cnl/examples/greet.aster
+node dist/scripts/emit-classfiles.js test/cnl/examples/greet.aster
 
 # 创建 JAR 包
 node dist/scripts/jar-jvm.js
@@ -360,10 +360,10 @@ npm run build
 npm run test:golden:update
 
 # 检查 git diff 确认变化是预期的
-git diff cnl/examples/expected_*.json
+git diff test/cnl/examples/expected_*.json
 
 # 如果变化合理，提交更新
-git add cnl/examples/expected_*.json
+git add test/cnl/examples/expected_*.json
 git commit -m "Update golden test expectations"
 ```
 
@@ -431,7 +431,7 @@ ls -la dist/scripts/
 
 如果遇到其他问题：
 
-1. **查看示例程序**：`cnl/examples/` 中有 50+ 个经过测试的示例
+1. **查看示例程序**：`test/cnl/examples/` 中有 50+ 个经过测试的示例
 2. **阅读文档**：`docs/` 目录包含完整的语言和工具文档
 3. **查看 CI 脚本**：`package.json` 中的 `scripts` 部分展示了所有可用命令
 4. **提交 Issue**：https://github.com/wontlost-ltd/aster-lang/issues

@@ -16,7 +16,7 @@ public class RegenerateGolden {
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
       System.err.println("用法: RegenerateGolden <scenario> <input-json-path>");
-      System.err.println("示例: RegenerateGolden set_statement cnl/examples/set_statement_core.json");
+      System.err.println("示例: RegenerateGolden set_statement test/cnl/examples/set_statement_core.json");
       System.exit(1);
     }
 

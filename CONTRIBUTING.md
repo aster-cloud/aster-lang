@@ -47,7 +47,7 @@ npm run build
 npm test
 
 # Run the CLI
-npm run build && node dist/scripts/cli.js cnl/examples/greet.aster
+npm run build && node dist/scripts/cli.js test/cnl/examples/greet.aster
 ```
 
 ### Development Commands
@@ -119,7 +119,7 @@ Snapshot tests that compare actual output with expected JSON:
 npm run test:golden
 ```
 
-Add new examples in `cnl/examples/` and run `npm run test:golden:update` to generate expected outputs.
+Add new examples in `test/cnl/examples/` and run `npm run test:golden:update` to generate expected outputs.
 
 ### Property Tests
 

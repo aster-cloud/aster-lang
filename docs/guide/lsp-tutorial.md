@@ -8,7 +8,7 @@ This short walkthrough shows how to use Aster’s LSP code actions (Quick Fixes)
 
 ## 1) Start with a rough file
 
-Create a new file, for example `cnl/tutorial/demo.aster`, with intentionally missing pieces:
+Create a new file, for example `test/cnl/tutorial/demo.aster`, with intentionally missing pieces:
 
 ```
 To hello, produce Text
