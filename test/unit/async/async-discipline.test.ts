@@ -23,7 +23,8 @@ const ASYNC_ERROR_CODES = new Set([
   ErrorCode.ASYNC_START_NOT_WAITED,
   ErrorCode.ASYNC_WAIT_NOT_STARTED,
   ErrorCode.ASYNC_DUPLICATE_START,
-  ErrorCode.ASYNC_DUPLICATE_WAIT
+  ErrorCode.ASYNC_DUPLICATE_WAIT,
+  ErrorCode.ASYNC_WAIT_BEFORE_START
 ]);
 
 function compileAndGetDiagnostics(source: string): Array<{ severity: string; message: string; code?: string }> {
@@ -377,7 +378,7 @@ To fetchTimeline with id: Text, produce Text. It performs io:
   });
 
   describe('Wait 与 Start 顺序', () => {
-    it('Wait 在 Start 之前当前实现不会报告错误', () => {
+    it('Wait 在 Start 之前应报告错误', () => {
       const source = `
 This module is test.async.wait_before_start.simple.
 
@@ -393,14 +394,13 @@ To fetchProfile with id: Text, produce Text. It performs io:
 `;
 
       const diagnostics = compileAndGetDiagnostics(source);
-      const asyncIssues = diagnostics.filter(
-        d => d.code !== undefined && ASYNC_ERROR_CODES.has(d.code as ErrorCode)
-      );
+      const waitBeforeStart = diagnostics.filter(d => d.code === ErrorCode.ASYNC_WAIT_BEFORE_START);
 
-      assert.equal(asyncIssues.length, 0, '当前实现未检测 Wait 在 Start 前的非法顺序');
+      assert.equal(waitBeforeStart.length, 1, 'Wait 在 Start 前应产生调度错误');
+      assert.equal(waitBeforeStart[0]!.message.includes('profile'), true, '诊断应包含任务名 profile');
     });
 
-    it('Wait 在 Start 前且 Start 位于分支仍不会触发错误', () => {
+    it('Wait 在 Start 前且 Start 位于分支应报告错误', () => {
       const source = `
 This module is test.async.wait_before_start.branch.
 
@@ -415,18 +415,16 @@ To fetchData with u: User, produce Text. It performs io:
 To fetchProfile with id: Text, produce Text. It performs io:
   Return "Profile".
 `;
-
       const diagnostics = compileAndGetDiagnostics(source);
-      const asyncIssues = diagnostics.filter(
-        d => d.code !== undefined && ASYNC_ERROR_CODES.has(d.code as ErrorCode)
-      );
+      const waitBeforeStart = diagnostics.filter(d => d.code === ErrorCode.ASYNC_WAIT_BEFORE_START);
 
-      assert.equal(asyncIssues.length, 0, '分支中的 Start 也不会触发顺序相关诊断');
+      assert.equal(waitBeforeStart.length, 1, '分支中的提前 Wait 应被检测');
+      assert.equal(waitBeforeStart[0]!.message.includes('profile'), true, '诊断应包含任务名 profile');
     });
   });
 
   describe('分支中的多重 Start', () => {
-    it('If 分支重复 Start 会被视为重复启动', () => {
+    it('If 互斥分支的重复 Start 不再报错', () => {
       const source = `
 This module is test.async.branch_duplicate.if.
 
@@ -446,10 +444,10 @@ To fetchProfile with id: Text, produce Text. It performs io:
 
       const diagnostics = compileAndGetDiagnostics(source);
       const duplicateStart = diagnostics.filter(d => d.code === ErrorCode.ASYNC_DUPLICATE_START);
+      const waitBeforeStart = diagnostics.filter(d => d.code === ErrorCode.ASYNC_WAIT_BEFORE_START);
 
-      assert.equal(duplicateStart.length, 1, '两个互斥分支的重复 Start 仍被视为重复');
-      assert.equal(duplicateStart[0]!.message.includes('profile'), true, '诊断应包含任务名 profile');
-      assert.equal(duplicateStart[0]!.message.includes('2'), true, '诊断应包含出现次数 2');
+      assert.equal(duplicateStart.length, 0, '互斥分支中的重复 Start 不应触发重复诊断');
+      assert.equal(waitBeforeStart.length, 0, '此场景不存在 Wait 顺序问题');
     });
 
     it('多个条件路径触发相同 Start 会被累计', () => {
@@ -552,17 +550,11 @@ To fetchProfile with id: Text, produce Text. It performs io:
 
       const diagnostics = compileAndGetDiagnostics(source);
       const duplicateStart = diagnostics.filter(d => d.code === ErrorCode.ASYNC_DUPLICATE_START);
-      const otherAsyncIssues = diagnostics.filter(
-        d =>
-          d.code !== undefined &&
-          ASYNC_ERROR_CODES.has(d.code as ErrorCode) &&
-          d.code !== ErrorCode.ASYNC_DUPLICATE_START
-      );
+      const waitBeforeStart = diagnostics.filter(d => d.code === ErrorCode.ASYNC_WAIT_BEFORE_START);
 
-      assert.equal(duplicateStart.length, 1, '应仅有重复 Start 的诊断');
-      assert.equal(otherAsyncIssues.length, 0, '其余异步诊断不应出现');
-      assert.equal(duplicateStart[0]!.message.includes('profile'), true, '诊断应包含任务名 profile');
-      assert.equal(duplicateStart[0]!.message.includes('2'), true, '诊断应包含出现次数 2');
+      assert.equal(duplicateStart.length, 0, '互斥分支不再产生重复 Start 诊断');
+      assert.equal(waitBeforeStart.length, 1, '应检测到 Wait-before-Start 顺序错误');
+      assert.equal(waitBeforeStart[0]!.message.includes('profile'), true, '诊断应包含任务名 profile');
     });
   });
 });

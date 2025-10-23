@@ -49,6 +49,7 @@ export const enum ErrorCode {
   ASYNC_WAIT_NOT_STARTED = "E501",
   ASYNC_DUPLICATE_START = "E502",
   ASYNC_DUPLICATE_WAIT = "E503",
+  ASYNC_WAIT_BEFORE_START = "E504",
 }
 
 export interface ErrorMetadata {
@@ -103,6 +104,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.ASYNC_WAIT_NOT_STARTED]: "Waiting for async task '{task}' that was never started",
   [ErrorCode.ASYNC_DUPLICATE_START]: "Async task '{task}' started multiple times ({count} occurrences)",
   [ErrorCode.ASYNC_DUPLICATE_WAIT]: "Async task '{task}' waited multiple times ({count} occurrences)",
+  [ErrorCode.ASYNC_WAIT_BEFORE_START]: "等待异步任务 '{task}' 时，该任务尚未启动或启动顺序错误",
 };
 
 export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
@@ -406,6 +408,13 @@ export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
     severity: 'warning',
     message: "Async task '{task}' waited multiple times ({count} occurrences)",
     help: "确保每个任务仅等待一次，或使用单独的同步机制。",
+  },
+  [ErrorCode.ASYNC_WAIT_BEFORE_START]: {
+    code: ErrorCode.ASYNC_WAIT_BEFORE_START,
+    category: 'async',
+    severity: 'error',
+    message: "等待异步任务 '{task}' 时，该任务尚未启动或启动顺序错误",
+    help: "确认对应的 Start 出现在 Wait 之前，且位于可以访问的作用域内。",
   },
 };
 

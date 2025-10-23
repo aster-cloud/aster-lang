@@ -78,6 +78,39 @@
 # 2025-10-22 06:36 NZST 剩余样例修复 深度分析回合
 
 - 工具：sequential-thinking__sequentialthinking → 明确本轮需要先调研23个失败样例并按类别收敛根因
+
+# 2025-10-23 15:42 NZST Canonicalizer 阶段四测试扩展 初始执行
+
+- 工具：sequential-thinking__sequentialthinking → 分析 Canonicalizer 阶段测试任务、风险与执行步骤
+- 命令：zsh -lc "sed -n '1,200p' test/unit/canonicalizer/canonicalizer.test.ts" → 查看现有规范化测试与断言风格
+- 命令：zsh -lc "sed -n '1,200p' .claude/test-expansion-plan.md" → 获取阶段四测试扩展清单
+- 命令：zsh -lc "sed -n '1,240p' src/canonicalizer.ts" → 复核规范化实现与需覆盖的分支
+- 命令：zsh -lc "ls docs" → 确认文档目录结构
+- 命令：zsh -lc "ls docs/workstreams" → 查找可用的任务 workstream
+- 命令：zsh -lc "rg --files -g'operations-log.md'" → 定位操作日志文件位置
+- 命令：zsh -lc "sed -n '1,80p' operations-log.md" → 了解操作日志记录格式
+- 命令：zsh -lc "rg \"MODULE_IS\" -n src/tokens.ts src/tokens.js src/tokens.d.ts" → 查找关键字定义（后两路径不存在）
+- 命令：zsh -lc "sed -n '1,200p' src/tokens.ts" → 确认关键字与枚举导出来源
+- 命令：zsh -lc "sed -n '1,200p' src/config/semantic.ts" → 查看关键字常量定义
+- 命令：zsh -lc "sed -n '200,400p' src/config/semantic.ts" → 继续阅读关键字配置
+- 工具：code-index__set_project_path → 设置索引根目录 '.'
+- 工具：code-index__build_deep_index → 重建索引以便后续检索
+- 工具：code-index__get_file_summary → 获取 canonicalizer 单测文件概览
+- 工具：apply_patch → 更新 test/unit/canonicalizer/canonicalizer.test.ts，新增阶段四测试用例
+- 工具：apply_patch → 调整混合缩进测试的预期缩进宽度
+- 命令：zsh -lc "npm run test:unit" → 单元测试执行（失败，Canonicalizer 新增用例断言不符）
+- 命令：zsh -lc "node --test dist/test/unit/canonicalizer/canonicalizer.test.js" → 聚焦 Canonicalizer 测试（失败输出分析）
+- 命令：zsh -lc "node --test dist/test/unit/canonicalizer/canonicalizer.test.js | rg 'not ok' -n -C2" → 快速定位失败子测试
+- 工具：apply_patch → 修正多余空行测试的断言
+- 命令：zsh -lc "node --input-type=module <<'NODE' ... NODE" → 直接验证注释规范化输出
+- 工具：apply_patch → 调整多行注释测试的期望结果
+- 命令：zsh -lc "node --input-type=module <<'NODE' ... NODE" → 检查多余空行清理后的真实结构
+- 工具：apply_patch → 更新空白行清理测试的断言
+- 命令：zsh -lc "npm run test:unit" → 单元测试执行（失败，仍有空白断言差异）
+- 命令：zsh -lc "node --test dist/test/unit/canonicalizer/canonicalizer.test.js | rg 'not ok' -n -C1" → 再次确认剩余失败场景
+- 命令：zsh -lc "npm run test:unit" → 单元测试执行（全部通过）
+- 工具：apply_patch → 新增 .claude/canonicalizer-tests-phase4.md 记录阶段报告
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 记录新西兰时区时间戳
 - 工具：sequential-thinking__sequentialthinking → 列出读取注解、Lambda、泛型、async等代表性文件的顺序
 - 工具：sequential-thinking__sequentialthinking → 固化执行顺序，准备按批次提取样例内容
 - 工具：code-index__set_project_path → path='.'，初始化当前仓库索引供检索使用
@@ -2961,6 +2994,14 @@ await runOneTypecheck(
 - 工具：code-index__search_code_advanced → pattern='scheduleAsync'（无命中，确认函数缺失）
 - 命令：bash -lc "sed -n '1,200p' test/unit/async/async-discipline.test.ts" → 了解现有 12 个异步纪律测试结构
 - 命令：bash -lc "sed -n '200,400p' test/unit/async/async-discipline.test.ts" → 确认已有测试覆盖范围与断言方式
+- 工具：sequential-thinking__sequentialthinking → 复盘 async 调度语义上下文收集任务理解
+- 工具：code-index__set_project_path → path='.'（复用现有索引，确保检索可用）
+- 工具：code-index__search_code_advanced → pattern='scheduleAsync' → 未命中，确认仓库尚无该函数
+- 工具：code-index__search_code_advanced → pattern='validateSchedule' → 未命中，确认仓库尚无该函数
+- 工具：code-index__search_code_advanced → pattern='async discipline' → 定位 src/typecheck.ts 中 checkAsyncDiscipline 实现
+- 命令：bash -lc "sed -n '300,520p' src/typecheck.ts" → 阅读 checkAsyncDiscipline 细节
+- 命令：bash -lc "nl -ba src/typecheck.ts | sed -n '1000,1180p'" → 获取 collectAsync 定义与返回结构
+- 命令：bash -lc "nl -ba test/unit/async/async-discipline.test.ts | sed -n '1,200p'" → 审阅异步纪律单测结构
 - 命令：bash -lc "rg \"If\" test/unit/async -n" → 检查当前 async 单测是否已有条件分支示例（未命中）
 - 命令：bash -lc "rg \"Start\" -n test/unit | head" → 统计仓库内 Start 语句测试分布
 - 命令：bash -lc "rg \"When\" test/unit -n | head -n 20" → 调研 Match/When 语法用例
@@ -3020,3 +3061,133 @@ await runOneTypecheck(
 - 命令：bash -lc "node --test dist/test/unit/**/*.test.js | tee .claude/phase8.4-test-results.txt" → 记录单测 TAP 输出到 .claude/phase8.4-test-results.txt，141/141 通过
 - 工具：apply_patch → 在 .claude/test-architecture-context.json 追加 phase8_summary（记录 13 项新增与验证结果）
 - 工具：apply_patch → 新增 .claude/phase8-unit-test-completion.md，汇总 Phase 8 覆盖率变化与验证结论
+
+# 2025-10-23 14:33 NZST 测试覆盖基线扫描
+
+- 工具：sequential-thinking__sequentialthinking → 梳理测试覆盖分析任务拆解与潜在风险
+- 命令：zsh -lc "ls" → 确认仓库根目录结构与可写路径
+- 命令：zsh -lc "ls .claude" → 检查既有 MCP 资料与日志目录
+- 工具：code-index__get_settings_info → 检查索引状态，确认需重新配置项目路径
+- 工具：code-index__set_project_path → path='/Users/rpang/IdeaProjects/aster-lang'，初始化 1187 个文件索引
+- 工具：code-index__build_deep_index → 构建深度索引以支持语义检索
+- 工具：code-index__get_file_summary → 摘要解析 test/unit/parser/parser.test.ts 测试结构
+- 工具：code-index__search_code_advanced → 统计 parser/emitter/canonicalizer/lowering 单测中 test/it 语句数量
+- 命令：zsh -lc "sed -n '1,320p' test/unit/parser/parser.test.ts" → 精读语法分析器现有测试覆盖
+- 命令：zsh -lc "sed -n '1,440p' test/unit/emitter/emitter.test.ts" → 精读 JVM emitter 单测
+- 命令：zsh -lc "sed -n '1,160p' test/unit/canonicalizer/canonicalizer.test.ts" → 审查规范化器单测
+- 命令：zsh -lc "sed -n '1,440p' test/unit/lowering/lowering.test.ts" → 审查降级阶段单测
+- 命令：zsh -lc "sed -n '1,200p' src/canonicalizer.ts" → 收集规范化器实现细节
+- 命令：zsh -lc "sed -n '1,400p' src/jvm/emitter.ts" → 收集 JVM emitter 覆盖面
+- 命令：zsh -lc "sed -n '1,400p' src/lower_to_core.ts" → 收集降级实现分支
+- 命令：zsh -lc "sed -n '1,400p' src/parser.ts" → 盘点顶层解析流程关键路径
+- 命令：zsh -lc "sed -n '1,200p' src/parser/import-parser.ts" → 盘点模块头与 import 解析
+- 命令：zsh -lc "sed -n '1,400p' src/parser/decl-parser.ts" → 盘点函数/类型声明解析
+- 命令：zsh -lc "sed -n '1,400p' src/parser/expr-stmt-parser.ts" → 盘点语句/表达式解析分支
+- 命令：zsh -lc "sed -n '1,400p' src/parser/type-parser.ts" → 盘点类型与效果解析逻辑
+- 命令：zsh -lc "sed -n '1,200p' src/parser/annotation-parser.ts" → 盘点注解解析约束
+- 命令：zsh -lc "cat .claude/test-expansion-plan.md" → 对照阶段一测试扩展清单
+- 命令：zsh -lc "npm run build" → 编译 TypeScript 与生成 PEG 解析器
+- 命令：zsh -lc "node --test dist/test/unit/parser/parser.test.js" → 快速迭代验证新增 Parser 单测
+- 命令：zsh -lc "npm run test:unit" → 全量单元测试回归确认 185 项全部通过
+- 记录：2025-10-23 15:17 NZST 阶段二 Lowering 测试扩展作业开始
+- 工具：sequential-thinking__sequentialthinking → 阶段二任务理解与风险识别，确认需覆盖 29 项降级路径
+- 工具：code-index__set_project_path → path='/Users/rpang/IdeaProjects/aster-lang'，准备索引供查阅
+- 工具：code-index__find_files → pattern='.claude/test-expansion-plan.md'，未命中文件（需 fallback）
+- 命令：zsh -lc "cat .claude/test-expansion-plan.md" → 获取阶段二详细测试清单
+- 工具：code-index__build_deep_index → 深度索引 1187 个文件以支持 AST/IR 辅助查阅
+- 工具：code-index__get_file_summary → 读取 lowering 单测结构与 helper
+- 命令：zsh -lc "sed -n '1,200p' test/unit/lowering/lowering.test.ts" → 查现有降级测试案例
+- 命令：zsh -lc "sed -n '200,400p' test/unit/lowering/lowering.test.ts" → 查 Result/List map 场景实现
+- 命令：zsh -lc "sed -n '1,200p' src/lower_to_core.ts" → 理解声明与语句降级实现
+- 命令：zsh -lc "sed -n '200,400p' src/lower_to_core.ts" → 理解表达式降级各分支
+- 命令：zsh -lc "sed -n '400,600p' src/lower_to_core.ts" → 理解类型降级与 TypeVar 处理
+- 命令：zsh -lc "sed -n '1,200p' src/ast.ts" → 查 AST 构造器
+- 工具：apply_patch → lowering.test.ts 新增 CapabilityKind 导入与字段类型引用
+- 工具：apply_patch → lowering.test.ts 扩充 effectCaps/Set/Match 等高优单测
+- 工具：apply_patch → lowering.test.ts 扩充 表达式/Scope/类型/注解 等剩余单测
+- 命令：zsh -lc "npm run test:unit" → 首次构建失败（Construct 测试缺少 span 字段）
+- 工具：apply_patch → 调整 Construct 测试字段补齐 span
+- 命令：zsh -lc "npm run test:unit" → 单元测试 214/214 通过，包含新增 Lowering 覆盖
+- 工具：apply_patch → 新增 .claude/lowering-tests-phase2.md 阶段报告（含验证结论）
+- 记录：2025-10-23 15:29 NZST 阶段三 Emitter 测试扩展作业开始
+- 工具：sequential-thinking__sequentialthinking → 阶段三任务理解与风险识别，确认需追加 40 项 JVM 代码生成用例
+- 工具：sequential-thinking__sequentialthinking → 补充分析 Core IR 构造需求与辅助函数风险
+- 工具：code-index__set_project_path → path='/Users/rpang/IdeaProjects/aster-lang'，刷新索引用于 Core/Emitter 查阅
+- 命令：zsh -lc "cat .claude/test-expansion-plan.md" → 获取阶段三测试扩展清单
+- 命令：zsh -lc "sed -n '1,200p' test/unit/emitter/emitter.test.ts" → 复核现有 9 项 emitter 单测
+- 命令：zsh -lc "sed -n '200,400p' test/unit/emitter/emitter.test.ts" → 复核 Scope/Await 等辅助场景
+- 命令：zsh -lc "sed -n '1,200p' src/jvm/emitter.ts" → 分析 javaType/emitExpr/emitStatement 实现
+- 命令：zsh -lc "sed -n '200,400p' src/jvm/emitter.ts" → 分析 Match fallback、Scope、Start/Wait 输出
+- 命令：zsh -lc "sed -n '400,800p' src/jvm/emitter.ts" → 确认 emitFunc fallback 与枚举映射逻辑
+- 记录：2025-10-23 15:35 NZST 阶段三 emitter 测试实现编码开始
+- 工具：apply_patch → test/unit/emitter/emitter.test.ts 新增 emitJavaClassContent 辅助函数
+- 工具：apply_patch → test/unit/emitter/emitter.test.ts 批量追加阶段三 40 项 JVM 代码生成单测
+- 命令：zsh -lc "npm run test:unit" → 构建与 254 项单测全通过，新增 emitter 场景运行正常
+- 工具：apply_patch → 新增 .claude/emitter-tests-phase3.md 阶段报告（含新增用例统计与验证结果）
+- 记录：2025-10-23 23:19 NZST effect 配置缓存上下文采集任务启动
+- 工具：sequential-thinking__sequentialthinking → 梳理 effect 缓存任务范围与风险点，确认需汇总实现、失效机制与测试
+- 工具：code-index__set_project_path → path='/Users/rpang/IdeaProjects/aster-lang'，同步索引指向当前仓库
+- 命令：zsh -lc "ls -a" → 检查仓库根目录，确认 operations-log.md 位置
+- 工具：code-index__build_deep_index → 构建深度索引 1196 个文件，为 effect 配置检索做准备
+- 工具：code-index__get_file_summary → file='src/config/effect_config.ts'，获取行数与导出信息
+- 命令：zsh -lc "sed -n '1,200p' src/config/effect_config.ts" → 阅读缓存声明与加载逻辑
+- 命令：zsh -lc "sed -n '200,400p' src/config/effect_config.ts" → 阅读缓存回退与兼容函数实现
+- 工具：code-index__get_file_summary → file='src/config/config-service.ts'，获取单例配置概况
+- 命令：zsh -lc "sed -n '1,160p' src/config/config-service.ts" → 确认环境变量读取与单例缓存行为
+- 工具：code-index__search_code_advanced → pattern='resetConfigForTesting'，定位缓存重置调用场景
+- 命令：zsh -lc "sed -n '1,260p' test/integration/capabilities/effect-config.test.ts" → 解析集成测试覆盖的缓存用例
+- 命令：zsh -lc "sed -n '260,520p' test/integration/capabilities/effect-config.test.ts" → 确认测试收尾流程
+- 工具：code-index__search_code_advanced → pattern='loadEffectConfig'，盘点配置加载引用
+- 命令：zsh -lc "sed -n '1,320p' test/unit/config/config-service.test.ts" → 阅读单测中的缓存验证逻辑
+- 工具：code-index__search_code_advanced → pattern='effectConfigPath'，确认路径使用面
+- 命令：zsh -lc "ls .claude" → 核对上下文目录，确认输出目标存在
+- 命令：zsh -lc \"TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'\" → 记录生成时间戳
+- 工具：apply_patch → 新增 .claude/effect-cache-context.json 填入缓存机制汇总
+- 命令：zsh -lc \"TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'\" → 记录操作日志时间
+- 记录：2025-10-23 23:35 NZST effect 配置缓存改进实施阶段启动
+- 工具：sequential-thinking__sequentialthinking → 梳理九项子任务执行顺序与风险，确认需逐步更新缓存与测试
+- 命令：zsh -lc "cat .claude/effect-cache-context.json" → 回顾现有缓存机制分析
+- 命令：zsh -lc "cat .claude/effect-cache-reflection.json" → 获取技术反思与测试策略
+- 命令：zsh -lc "sed -n '1,200p' src/config/effect_config.ts" → 审查当前缓存实现
+- 命令：zsh -lc "sed -n '200,400p' src/config/effect_config.ts" → 确认向后兼容函数依赖点
+- 命令：zsh -lc "sed -n '1,200p' src/config/config-service.ts" → 检查单例环境变量读取逻辑
+- 命令：zsh -lc "TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'" → 记录时间戳用于后续报告
+- 工具：apply_patch → 更新 src/config/effect_config.ts，引入 EffectConfigSnapshot 并重构 cachedSnapshot
+- 工具：apply_patch → 在 src/config/effect_config.ts 新增 shouldReload 双重校验逻辑
+- 命令：zsh -lc "npm run typecheck" → 变更后执行 TypeScript 编译校验（通过）
+- 工具：apply_patch → 调整 src/config/effect_config.ts，shouldReload 支持缺失文件哨兵并在 loadEffectConfig 中集成快照刷新
+- 命令：zsh -lc "npm run typecheck" → 第三步改动后再次通过类型检验
+- 工具：apply_patch → 在 src/config/effect_config.ts 导出 reloadEffectConfig(force?) API
+- 命令：zsh -lc "npm run typecheck" → 新增公开 API 后类型校验通过
+- 工具：apply_patch → 更新 src/config/config-service.ts，增加 cachedEffectConfigPath 并在 getInstance 中检测环境变量变更
+- 命令：zsh -lc "npm run typecheck" → ConfigService 变更后类型校验通过
+- 工具：apply_patch → 新增 test/unit/config/effect-config-cache.test.ts，覆盖时间戳、强制刷新与环境变量场景
+- 命令：zsh -lc "npm run typecheck" → 新增单测后类型检查通过
+- 工具：apply_patch → 调整 test/unit/config/effect-config-cache.test.ts，使用缓存突变验证强制刷新逻辑
+- 命令：zsh -lc "npm run typecheck" → 单测更新后类型检查通过
+- 工具：apply_patch → 更新 test/unit/config/config-service.test.ts，适配快照缓存与自动重载行为
+- 命令：zsh -lc "npm run typecheck" → 配置服务单测更新后类型检查通过
+- 工具：apply_patch → 修改 src/effect_inference.ts 按调用时动态读取前缀，避免缓存旧配置
+- 命令：zsh -lc "npm run typecheck" → 效果推断模块更新后类型检查通过
+- 工具：apply_patch → 调整 test/unit/effect/effect-inference.test.ts 断言，验证配置刷新生效
+- 命令：zsh -lc "npm run typecheck" → 效果推断单测更新后类型检查通过
+- 命令：zsh -lc "npm run test" → 全量测试套件执行完成（通过）
+- 命令：zsh -lc "npm run test:coverage" → 生成覆盖率报告（行 77.12%，分支 72.76%）
+- 工具：sequential-thinking__sequentialthinking → 梳理 capability manifest code action 调查步骤与风险点
+- 命令：zsh -lc "ls scripts" → 确认 smoke 测试脚本位置
+- 命令：zsh -lc "sed -n '1,200p' scripts/lsp-capmanifest-codeaction-smoke.ts" → 阅读 LSP capability manifest code action 烟测脚本
+- 命令：zsh -lc "sed -n '1,200p' src/lsp/codeaction.ts" → 检查 LSP code action 注册与 capability 快速修复逻辑
+- 命令：zsh -lc "sed -n '200,400p' src/lsp/codeaction.ts" → 继续阅读 manifest 允许/收窄操作实现
+- 命令：zsh -lc "sed -n '1,200p' src/lsp/diagnostics.ts" → 确认 LSP 诊断转换逻辑与 capability manifest 缓存
+- 命令：zsh -lc "sed -n '320,420p' src/lsp/diagnostics.ts" → 检查 TypecheckDiagnostic 到 LSP Diagnostic 的 code/data 映射
+- 命令：zsh -lc "sed -n '120,220p' src/typecheck.ts" → 查找 CAPABILITY_NOT_ALLOWED 诊断构造位置
+- 命令：zsh -lc "sed -n '1,200p' src/typecheck/diagnostics.ts" → 确认 typecheck 诊断 code 与 data 填充方式
+- 命令：zsh -lc "sed -n '340,440p' src/effect_inference.ts" → 确认 E207 等推断诊断的生成逻辑
+- 命令：zsh -lc "TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'" → 记录调查报告时间戳
+- 命令：zsh -lc "ls .claude" → 检查上下文目录与既有调查文档
+- 命令：zsh -lc "nl -ba src/lsp/codeaction.ts | sed -n '60,90p'" → 获取 manifests 快速修复条件的行号
+- 命令：zsh -lc "nl -ba src/error_codes.ts | sed -n '30,60p'" → 确认 CAPABILITY_NOT_ALLOWED 的枚举值为 E300
+- 命令：zsh -lc "nl -ba src/typecheck.ts | sed -n '140,200p'" → 获取 E300 诊断生成的行号与 data 字段
+- 命令：zsh -lc "nl -ba src/typecheck.ts | sed -n '400,460p'" → 提取 E203 诊断来源的旧效应检查逻辑
+- 命令：zsh -lc "nl -ba src/effect_inference.ts | sed -n '360,420p'" → 标注 E207 等推断诊断的行号与信息
+- 工具：apply_patch → 新增 .claude/lsp-capmanifest-codeaction-investigation.md 记录 manifest code action 调查结论

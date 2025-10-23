@@ -9,6 +9,7 @@ import type { TextDocument } from 'vscode-languageserver-textdocument';
 import { computeDisambiguationEdits } from './analysis.js';
 import { loadCapabilityManifest } from './diagnostics.js';
 import { ConfigService } from '../config/config-service.js';
+import { ErrorCode } from '../error_codes.js';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -63,7 +64,7 @@ export function registerCodeActionHandlers(
       }
 
       // 处理能力清单相关的 Quick Fix
-      if (code === 'CAPABILITY_NOT_ALLOWED' && capsPath) {
+      if (code === ErrorCode.CAPABILITY_NOT_ALLOWED && capsPath) {
         const capRaw = ((d as any).data?.cap as string) || '';
         // 将 CapabilityKind 转换为清单使用的小写键名
         const cap = capRaw.toLowerCase();

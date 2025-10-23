@@ -100,4 +100,161 @@ describe('canonicalizer', () => {
       assert.strictEqual(twice, once);
     });
   });
+
+  describe('换行符规范', () => {
+    it('应该将 CRLF 转换为 LF', () => {
+      const input = ['Line1', 'Line2', 'Line3'].join('\r\n') + '\r\n';
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['Line1', 'Line2', 'Line3', ''].join('\n'));
+      assert.strictEqual(result.includes('\r'), false);
+    });
+
+    it('应该将混合换行符统一为 LF', () => {
+      const input = 'LineA\rLineB\r\nLineC\nLineD';
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['LineA', 'LineB', 'LineC', 'LineD'].join('\n'));
+      assert.strictEqual(result.includes('\r'), false);
+    });
+  });
+
+  describe('关键字大小写扩展', () => {
+    it('应该统一多词关键字的大小写', () => {
+      const input = ['THIS MODULE IS Sample.', 'WAIT FOR OPTION OF value.', 'ERR OF Issue.'].join('\n');
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['this module is Sample.', 'wait for option of value.', 'err of Issue.'].join('\n'));
+    });
+
+    it('应该在多行语句中保持关键字规范化', () => {
+      const input = ['It PERFORMS duty.', 'THIS MODULE IS Example.', 'WAIT FOR option OF value.'].join('\n');
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['it performs duty.', 'this module is Example.', 'wait for option of value.'].join('\n'));
+    });
+  });
+
+  describe('注释边界扩展', () => {
+    it('应该移除连续多行注释并保留空行', () => {
+      const input = ['# outer comment', '  // inner comment', 'Return value.'].join('\n');
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['','Return value.'].join('\n'));
+      assert.strictEqual(result.includes('comment'), false);
+    });
+
+    it('应该处理包含特殊字符的注释', () => {
+      const input = ['// 注释包含!@#$%^&*()', 'Return value.'].join('\n');
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['','Return value.'].join('\n'));
+      assert.strictEqual(result.includes('!@#$'), false);
+    });
+
+    it('应该保留行尾注释并清理多余空格', () => {
+      const input = 'Return value.    // trailing comment';
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, 'Return value. // trailing comment');
+    });
+
+    it('应该保留字符串中的注释符号', () => {
+      const input = 'Return "// not comment" and "# still string".';
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, 'Return "// not comment" and "# still string".');
+    });
+  });
+
+  describe('缩进与空白扩展', () => {
+    it('应该将混合缩进转换为两个空格单位', () => {
+      const input = ['\tLine one', ' \tLine two', '  \t Line three'].join('\n');
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['  Line one', '   Line two', '     Line three'].join('\n'));
+    });
+
+    it('应该转换行内制表符并保持标点规范', () => {
+      const input = 'Return\tvalue ,\tplease.';
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, 'Return value, please.');
+      assert.strictEqual(result.includes('\t'), false);
+    });
+
+    it('应该移除仅包含空白的行尾空格', () => {
+      const input = ['Line1', '   ', 'Line2'].join('\n');
+      const result = canonicalize(input);
+      const lines = result.split('\n');
+
+      assert.strictEqual(lines[1], '');
+      assert.strictEqual(result, ['Line1', '', 'Line2'].join('\n'));
+    });
+
+    it('应该清理多余空行中的空白字符', () => {
+      const input = ['LineA', '  ', '', '   ', 'LineB'].join('\n');
+      const result = canonicalize(input);
+      const lines = result.split('\n');
+
+      assert.strictEqual(lines.length, 3);
+      assert.strictEqual(lines[1], '');
+      assert.strictEqual(result, ['LineA', '', 'LineB'].join('\n'));
+    });
+  });
+
+  describe('字符串字面量扩展', () => {
+    it('应该保留嵌套引号结构', () => {
+      const input = 'Return "He said \\"Hello\\" and \'hi\'" and \'others\'.';
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, 'Return "He said \\"Hello\\" and \'hi\'" and \'others\'.');
+    });
+
+    it('应该保留字符串中的转义字符', () => {
+      const input = 'Return "path\\\\to\\\\file and \\t tab".';
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, 'Return "path\\\\to\\\\file and \\t tab".');
+    });
+
+    it('应该允许多行字符串块保持原样', () => {
+      const input = ['Return "first line', '  second line', 'third line".'].join('\n');
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['Return "first line', '  second line', 'third line".'].join('\n'));
+    });
+  });
+
+  describe('Unicode 字符处理', () => {
+    it('应该保留 Unicode 内容', () => {
+      const input = 'Return "火花 🚀".';
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, 'Return "火花 🚀".');
+    });
+  });
+
+  describe('结构保持', () => {
+    it('应该保留语句关键结构与缩进', () => {
+      const input = ['To greet, produce Text:', '\tReturn value.'].join('\r\n');
+      const result = canonicalize(input);
+
+      assert.strictEqual(result, ['To greet, produce Text:', '  Return value.'].join('\n'));
+    });
+  });
+
+  describe('组合场景', () => {
+    it('应该在组合场景下完成规范化', () => {
+      const input = ['THIS MODULE IS Sample', '\tWait FOR Option OF value , please.', '# comment', 'Return "Tab\tInside".'].join(
+        '\r\n'
+      );
+      const result = canonicalize(input);
+
+      assert.strictEqual(
+        result,
+        ['this module is Sample', '  wait for option of value, please.', '', 'Return "Tab  Inside".'].join('\n')
+      );
+    });
+  });
 });

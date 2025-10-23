@@ -37,6 +37,9 @@ export class ConfigService {
   /** 效果配置文件路径（默认 .aster/effects.json） */
   readonly effectConfigPath: string;
 
+  /** 缓存实例初始化时使用的效果配置路径，便于检测环境变量变更 */
+  readonly cachedEffectConfigPath: string;
+
   /** 日志级别（默认 INFO） */
   readonly logLevel: LogLevel;
 
@@ -53,6 +56,7 @@ export class ConfigService {
     // 读取环境变量并设置默认值
     this.effectsEnforce = process.env.ASTER_CAP_EFFECTS_ENFORCE !== '0';
     this.effectConfigPath = process.env.ASTER_EFFECT_CONFIG || '.aster/effects.json';
+    this.cachedEffectConfigPath = this.effectConfigPath;
     this.logLevel = this.parseLogLevel(process.env.LOG_LEVEL);
     this.capsManifestPath = process.env.ASTER_CAPS || null;
     this.debugTypes = process.env.ASTER_DEBUG_TYPES === '1';
@@ -97,6 +101,14 @@ export class ConfigService {
    * @returns ConfigService 实例
    */
   static getInstance(): ConfigService {
+    const currentEffectConfigPath = process.env.ASTER_EFFECT_CONFIG || '.aster/effects.json';
+    if (
+      ConfigService.instance !== null &&
+      ConfigService.instance.cachedEffectConfigPath !== currentEffectConfigPath
+    ) {
+      ConfigService.instance = null;
+    }
+
     if (ConfigService.instance === null) {
       ConfigService.instance = new ConfigService();
     }

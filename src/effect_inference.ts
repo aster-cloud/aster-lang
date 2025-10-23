@@ -5,10 +5,6 @@ import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
 import { resolveAlias } from './typecheck.js';
 import { ErrorCode } from './error_codes.js';
 
-// 从配置获取效果推断前缀（模块级，避免重复调用）
-const IO_PREFIXES = getIOPrefixes();
-const CPU_PREFIXES = getCPUPrefixes();
-
 export interface EffectConstraint {
   caller: string;
   callee: string;
@@ -21,6 +17,8 @@ interface FunctionAnalysis {
 }
 
 export function inferEffects(core: Core.Module, imports?: Map<string, string>): TypecheckDiagnostic[] {
+  const ioPrefixes = getIOPrefixes();
+  const cpuPrefixes = getCPUPrefixes();
   const funcIndex = new Map<string, Core.Func>();
   for (const decl of core.decls) {
     if (decl.kind === 'Func') funcIndex.set(decl.name, decl);
@@ -33,7 +31,7 @@ export function inferEffects(core: Core.Module, imports?: Map<string, string>): 
 
   // 第一遍：收集局部效果和约束
   for (const func of funcIndex.values()) {
-    const analysis = analyzeFunction(func, funcIndex, imports);
+    const analysis = analyzeFunction(func, funcIndex, ioPrefixes, cpuPrefixes, imports);
     constraints.push(...analysis.constraints);
 
     const declared = new Set<Effect>(func.effects);
@@ -62,7 +60,13 @@ export function inferEffects(core: Core.Module, imports?: Map<string, string>): 
   return buildDiagnostics(funcIndex, declaredEffects, inferredEffects, requiredEffects);
 }
 
-function analyzeFunction(func: Core.Func, index: Map<string, Core.Func>, imports?: Map<string, string>): FunctionAnalysis {
+function analyzeFunction(
+  func: Core.Func,
+  index: Map<string, Core.Func>,
+  ioPrefixes: readonly string[],
+  cpuPrefixes: readonly string[],
+  imports?: Map<string, string>
+): FunctionAnalysis {
   const constraints: EffectConstraint[] = [];
   const localEffects = new Set<Effect>();
 
@@ -73,7 +77,9 @@ function analyzeFunction(func: Core.Func, index: Map<string, Core.Func>, imports
         const calleeName = extractFunctionName(e.target);
         if (calleeName) {
           const resolvedName = imports ? resolveAlias(calleeName, imports) : calleeName;
-          if (!index.has(resolvedName)) recordBuiltinEffect(resolvedName, localEffects);
+          if (!index.has(resolvedName)) {
+            recordBuiltinEffect(resolvedName, localEffects, ioPrefixes, cpuPrefixes);
+          }
           if (index.has(resolvedName)) {
             const constraint: EffectConstraint = { caller: func.name, callee: resolvedName };
             const call = e as Core.Call;
@@ -96,9 +102,14 @@ function extractFunctionName(expr: Core.Expression): string | null {
   return expr.kind === 'Name' ? expr.name : null;
 }
 
-function recordBuiltinEffect(name: string, effects: Set<Effect>): void {
-  if (IO_PREFIXES.some(prefix => name.startsWith(prefix))) effects.add(Effect.IO);
-  if (CPU_PREFIXES.some(prefix => name.startsWith(prefix))) effects.add(Effect.CPU);
+function recordBuiltinEffect(
+  name: string,
+  effects: Set<Effect>,
+  ioPrefixes: readonly string[],
+  cpuPrefixes: readonly string[]
+): void {
+  if (ioPrefixes.some(prefix => name.startsWith(prefix))) effects.add(Effect.IO);
+  if (cpuPrefixes.some(prefix => name.startsWith(prefix))) effects.add(Effect.CPU);
 }
 
 function propagateEffects(

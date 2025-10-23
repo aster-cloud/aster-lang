@@ -373,7 +373,7 @@ describe('effect_inference 推断', () => {
     assert.ok(findDiagnostic(diagnostics, ErrorCode.EFF_INFER_MISSING_IO, 'loadViaAlias'));
   });
 
-  it('配置重置后仍沿用缓存效果配置', { concurrency: false }, async () => {
+  it('配置重置后应识别最新效果配置', { concurrency: false }, async () => {
     const firstConfigPath = path.join(tempDir, 'effects-cache-first.json');
     const secondConfigPath = path.join(tempDir, 'effects-cache-second.json');
     fs.writeFileSync(
@@ -447,11 +447,11 @@ describe('effect_inference 推断', () => {
       );
       assert.equal(
         findDiagnostic(updatedDiagnostics, ErrorCode.EFF_INFER_MISSING_IO, 'externalProbe'),
-        false
+        true
       );
       assert.equal(
         findDiagnostic(updatedDiagnostics, ErrorCode.EFF_INFER_MISSING_CPU, 'heavyComputeAfter'),
-        false
+        true
       );
     } finally {
       process.env.ASTER_EFFECT_CONFIG = originalConfig ?? defaultConfigPath;

@@ -320,14 +320,16 @@ function checkGenericTypeParameters(
  * 完整的异步纪律检查，包括：
  * 1. Start 未 Wait → error
  * 2. Wait 引用不存在的 Start → error
- * 3. 重复 Start → error
+ * 3. 重复 Start → error（控制流敏感）
  * 4. 重复 Wait → warning
+ * 5. Wait-before-Start / 作用域违规 → error
  */
 function checkAsyncDiscipline(
   f: Core.Func,
   diagnostics: DiagnosticBuilder
 ): void {
   const asyncInfo = collectAsync(f.body);
+  const schedule = scheduleAsync(f.body);
   const isPlaceholderSpan = (span: Span): boolean =>
     span.start.line === 0 &&
     span.start.col === 0 &&
@@ -353,21 +355,7 @@ function checkAsyncDiscipline(
     diagnostics.error(ErrorCode.ASYNC_WAIT_NOT_STARTED, firstSpan, { task: name });
   }
 
-  // 3. 检查重复 Start
-  for (const [name, spans] of asyncInfo.starts) {
-    if (spans.length > 1) {
-      for (let i = 1; i < spans.length; i++) {
-        const span = spans[i]!;
-        const targetSpan = isPlaceholderSpan(span) ? undefined : span;
-        diagnostics.error(ErrorCode.ASYNC_DUPLICATE_START, targetSpan, {
-          task: name,
-          count: spans.length,
-        });
-      }
-    }
-  }
-
-  // 4. 检查重复 Wait
+  // 3. 检查重复 Wait
   for (const [name, spans] of asyncInfo.waits) {
     if (spans.length > 1) {
       for (let i = 1; i < spans.length; i++) {
@@ -380,6 +368,9 @@ function checkAsyncDiscipline(
       }
     }
   }
+
+  // 4. 控制流敏感的调度验证（Wait-before-Start / 条件分支重复 Start）
+  validateSchedule(schedule, asyncInfo, diagnostics);
 }
 
 /**
@@ -442,10 +433,6 @@ function checkEffects(
   // - If @io is declared but only CPU-like work is found, emit an info (IO subsumes CPU; not harmful).
   if (!effs.has('io') && hasIO && effs.has('cpu'))
     diagnostics.info(ErrorCode.EFF_SUPERFLUOUS_IO_CPU_ONLY, f.span, { func: f.name });
-
-  // - If @io is declared but no obvious IO/CPU is found, keep a low-severity warning.
-  if (!effs.has('io') && hasIO && !effs.has('cpu'))
-    diagnostics.warning(ErrorCode.EFF_SUPERFLUOUS_IO, f.span, { func: f.name });
 
   if (!effs.has('cpu') && hasCPU)
     diagnostics.warning(ErrorCode.EFF_SUPERFLUOUS_CPU, f.span, { func: f.name });
@@ -1040,6 +1027,28 @@ export interface AsyncAnalysis {
   waits: Map<string, Span[]>;  // 任务名 -> Wait 位置列表
 }
 
+/**
+ * 表示单个异步调度节点，记录语句类型与控制流上下文。
+ */
+export interface ScheduleNode {
+  kind: 'Start' | 'Wait';
+  name: string;
+  index: number;
+  blockDepth: number;
+  conditionalDepth: number;
+  origin: Span | undefined;
+}
+
+/**
+ * 异步调度图，按执行顺序收集所有调度节点。
+ */
+export interface AsyncSchedule {
+  nodes: ScheduleNode[];
+  taskNames: Set<string>;
+  conditionalPaths: Map<number, string>;
+  conditionalBranches: Map<number, Set<string>>;
+}
+
 function collectAsync(b: Core.Block): AsyncAnalysis {
   const starts = new Map<string, Span[]>();
   const waits = new Map<string, Span[]>();
@@ -1080,4 +1089,318 @@ function collectAsync(b: Core.Block): AsyncAnalysis {
 
   new AsyncVisitor().visitBlock(b, createVisitorContext());
   return { starts, waits };
+}
+
+function scheduleAsync(b: Core.Block): AsyncSchedule {
+  const nodes: ScheduleNode[] = [];
+  const taskNames = new Set<string>();
+
+  const toSpan = (origin: Origin | undefined): Span | undefined =>
+    origin ? { start: origin.start, end: origin.end } : undefined;
+
+  class ScheduleBuilder extends DefaultCoreVisitor {
+    private index = 0;
+    private blockDepth = 0;
+    private readonly conditionalStack: Array<{ id: number; value: string }> = [];
+    private readonly pathRegistry = new Map<string, number>();
+    private readonly pathLookup = new Map<number, string>();
+    private readonly branchRegistry = new Map<number, Set<string>>();
+    private nextConditionalId = 1;
+    private nextPathId = 1;
+    private isRootBlock = true;
+
+    private currentPathId(): number {
+      if (this.conditionalStack.length === 0) return 0;
+      const key = this.conditionalStack.map(entry => `${entry.id}:${entry.value}`).join('|');
+      let id = this.pathRegistry.get(key);
+      if (id === undefined) {
+        id = this.nextPathId++;
+        this.pathRegistry.set(key, id);
+        this.pathLookup.set(id, key);
+      }
+      return id;
+    }
+
+    private withConditional(condId: number, value: string, fn: () => void): void {
+      this.registerBranch(condId, value);
+      this.conditionalStack.push({ id: condId, value });
+      try {
+        fn();
+      } finally {
+        this.conditionalStack.pop();
+      }
+    }
+
+    private registerBranch(condId: number, value: string): void {
+      let branches = this.branchRegistry.get(condId);
+      if (!branches) {
+        branches = new Set();
+        this.branchRegistry.set(condId, branches);
+      }
+      branches.add(value);
+    }
+
+    override visitBlock(block: Core.Block, ctx: import('./visitor.js').VisitorContext): void {
+      const isRoot = this.isRootBlock;
+      if (isRoot) {
+        this.isRootBlock = false;
+      } else {
+        this.blockDepth++;
+      }
+
+      for (const statement of block.statements) {
+        this.visitStatement(statement, ctx);
+      }
+
+      if (!isRoot) {
+        this.blockDepth--;
+      }
+    }
+
+    override visitStatement(s: Core.Statement, ctx: import('./visitor.js').VisitorContext): void {
+      const currentIndex = this.index++;
+      const pathId = this.currentPathId();
+
+      if (s.kind === 'Start') {
+        nodes.push({
+          kind: 'Start',
+          name: s.name,
+          index: currentIndex,
+          blockDepth: this.blockDepth,
+          conditionalDepth: pathId,
+          origin: toSpan(s.origin),
+        });
+        taskNames.add(s.name);
+      } else if (s.kind === 'Wait') {
+        for (const name of s.names) {
+          nodes.push({
+            kind: 'Wait',
+            name,
+            index: currentIndex,
+            blockDepth: this.blockDepth,
+            conditionalDepth: pathId,
+            origin: toSpan(s.origin),
+          });
+          taskNames.add(name);
+        }
+      }
+
+      switch (s.kind) {
+        case 'Let':
+        case 'Set':
+        case 'Return':
+          this.visitExpression(s.expr, ctx);
+          return;
+        case 'If': {
+          this.visitExpression(s.cond, ctx);
+          const condId = this.nextConditionalId++;
+          this.registerBranch(condId, 'then');
+          this.withConditional(condId, 'then', () => {
+            this.visitBlock(s.thenBlock, ctx);
+          });
+          this.withConditional(condId, 'else', () => {
+            if (s.elseBlock) {
+              this.visitBlock(s.elseBlock, ctx);
+            }
+          });
+          return;
+        }
+        case 'Match': {
+          this.visitExpression(s.expr, ctx);
+          const condId = this.nextConditionalId++;
+          let branchIndex = 0;
+          for (const kase of s.cases) {
+            if (kase.pattern) this.visitPattern?.(kase.pattern, ctx);
+            const branchLabel = `case#${branchIndex++}`;
+            this.withConditional(condId, branchLabel, () => {
+              if (kase.body.kind === 'Return') {
+                this.visitExpression(kase.body.expr, ctx);
+              } else {
+                this.visitBlock(kase.body, ctx);
+              }
+            });
+          }
+          return;
+        }
+        case 'Scope':
+          this.visitBlock({ kind: 'Block', statements: s.statements }, ctx);
+          return;
+        case 'Start':
+          this.visitExpression(s.expr, ctx);
+          return;
+        case 'Wait':
+          return;
+      }
+    }
+
+    getConditionalPaths(): Map<number, string> {
+      const result = new Map<number, string>();
+      result.set(0, 'root');
+      for (const [id, key] of this.pathLookup) {
+        result.set(id, key);
+      }
+      return result;
+    }
+
+    getConditionalBranches(): Map<number, Set<string>> {
+      return this.branchRegistry;
+    }
+  }
+
+  const builder = new ScheduleBuilder();
+  builder.visitBlock(b, createVisitorContext());
+  return {
+    nodes,
+    taskNames,
+    conditionalPaths: builder.getConditionalPaths(),
+    conditionalBranches: builder.getConditionalBranches(),
+  };
+}
+
+function validateSchedule(
+  schedule: AsyncSchedule,
+  analysis: AsyncAnalysis,
+  diagnostics: DiagnosticBuilder
+): void {
+  const startsByTask = new Map<string, ScheduleNode[]>();
+  const waitsByTask = new Map<string, ScheduleNode[]>();
+
+  for (const node of schedule.nodes) {
+    if (node.kind === 'Start') {
+      const bucket = startsByTask.get(node.name);
+      if (bucket) {
+        bucket.push(node);
+      } else {
+        startsByTask.set(node.name, [node]);
+      }
+    } else {
+      const bucket = waitsByTask.get(node.name);
+      if (bucket) {
+        bucket.push(node);
+      } else {
+        waitsByTask.set(node.name, [node]);
+      }
+    }
+  }
+
+  const assignmentCache = new Map<number, Map<number, string>>();
+  const parseAssignments = (node: ScheduleNode): Map<number, string> => {
+    const cached = assignmentCache.get(node.conditionalDepth);
+    if (cached) return cached;
+    const signature = schedule.conditionalPaths.get(node.conditionalDepth);
+    const assignments = new Map<number, string>();
+    if (signature && signature !== 'root') {
+      for (const part of signature.split('|')) {
+        if (!part) continue;
+        const [condIdStr, value] = part.split(':', 2);
+        if (!condIdStr || value === undefined) continue;
+        const idNum = Number(condIdStr);
+        if (!Number.isNaN(idNum)) {
+          assignments.set(idNum, value);
+        }
+      }
+    }
+    assignmentCache.set(node.conditionalDepth, assignments);
+    return assignments;
+  };
+
+  const pathsCompatible = (a: ScheduleNode, b: ScheduleNode): boolean => {
+    const aAssignments = parseAssignments(a);
+    const bAssignments = parseAssignments(b);
+    for (const [condId, value] of aAssignments) {
+      const other = bAssignments.get(condId);
+      if (other !== undefined && other !== value) {
+        return false;
+      }
+    }
+    for (const [condId, value] of bAssignments) {
+      const other = aAssignments.get(condId);
+      if (other !== undefined && other !== value) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const isPlaceholderSpan = (span: Span | undefined): boolean =>
+    !span || (
+      span.start.line === 0 &&
+      span.start.col === 0 &&
+      span.end.line === 0 &&
+      span.end.col === 0
+    );
+
+  const pickFirstRealSpan = (spans: Span[] | undefined): Span | undefined =>
+    spans?.find(span => !isPlaceholderSpan(span));
+
+  const resolveSpan = (node: ScheduleNode, fallbacks: Span[] | undefined): Span | undefined =>
+    isPlaceholderSpan(node.origin) ? pickFirstRealSpan(fallbacks) : node.origin;
+
+  const hasBranchCoverage = (candidates: ScheduleNode[]): boolean => {
+    if (candidates.length === 0) return false;
+    const coverage = new Map<number, Set<string>>();
+    for (const candidate of candidates) {
+      const assignments = parseAssignments(candidate);
+      if (assignments.size === 0) return false;
+      for (const [condId, value] of assignments) {
+        let bucket = coverage.get(condId);
+        if (!bucket) {
+          bucket = new Set();
+          coverage.set(condId, bucket);
+        }
+        bucket.add(value);
+      }
+    }
+
+    for (const [condId, observed] of coverage) {
+      const possible = schedule.conditionalBranches.get(condId);
+      if (!possible || possible.size === 0) return false;
+      for (const value of possible) {
+        if (!observed.has(value)) return false;
+      }
+    }
+    return coverage.size > 0;
+  };
+
+  for (const [taskName, waitNodes] of waitsByTask) {
+    const startNodes = startsByTask.get(taskName) ?? [];
+    for (const wait of waitNodes) {
+      const candidates = startNodes.filter(
+        candidate => candidate.index < wait.index && pathsCompatible(candidate, wait)
+      );
+
+      let validStart = candidates.find(candidate => candidate.blockDepth <= wait.blockDepth);
+
+      if (!validStart) {
+        const deeperCandidates = candidates.filter(candidate => candidate.blockDepth > wait.blockDepth);
+        if (deeperCandidates.length > 0 && hasBranchCoverage(deeperCandidates)) {
+          validStart = deeperCandidates[0];
+        }
+      }
+
+      if (!validStart) {
+        diagnostics.error(ErrorCode.ASYNC_WAIT_BEFORE_START, resolveSpan(wait, analysis.waits.get(taskName)), {
+          task: taskName,
+        });
+      }
+    }
+  }
+
+  for (const [taskName, startNodes] of startsByTask) {
+    startNodes.sort((a, b) => a.index - b.index);
+    const observed: ScheduleNode[] = [];
+    const count = analysis.starts.get(taskName)?.length ?? startNodes.length;
+
+    for (const start of startNodes) {
+      const conflicting = observed.find(prev => pathsCompatible(prev, start));
+      if (conflicting) {
+        diagnostics.error(ErrorCode.ASYNC_DUPLICATE_START, resolveSpan(start, analysis.starts.get(taskName)), {
+          task: taskName,
+          count,
+        });
+      } else {
+        observed.push(start);
+      }
+    }
+  }
 }

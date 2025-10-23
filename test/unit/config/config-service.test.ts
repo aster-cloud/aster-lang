@@ -196,7 +196,7 @@ describe('effect_config', () => {
     }
   });
 
-  it('应该缓存配置避免重复读取', async () => {
+  it('应该在文件未变更时使用缓存并在变更后重新加载', async () => {
     const temp = createTempJsonFile({
       patterns: {
         io: {
@@ -212,7 +212,9 @@ describe('effect_config', () => {
 
       const mod = await importEffectModule('cache-behavior');
       const first = mod.loadEffectConfig();
+      const cached = mod.loadEffectConfig();
 
+      assert.strictEqual(first, cached);
       fs.writeFileSync(
         temp.path,
         JSON.stringify({
@@ -227,10 +229,13 @@ describe('effect_config', () => {
         'utf8'
       );
 
+      const updatedTime = new Date(Date.now() + 5_000);
+      fs.utimesSync(temp.path, updatedTime, updatedTime);
+
       const second = mod.loadEffectConfig();
 
-      assert.deepStrictEqual(first.patterns.io.http, ['FirstHttp.']);
-      assert.deepStrictEqual(second.patterns.io.http, ['FirstHttp.']);
+      assert.notStrictEqual(second, first);
+      assert.deepStrictEqual(second.patterns.io.http, ['SecondHttp.']);
     } finally {
       temp.cleanup();
     }

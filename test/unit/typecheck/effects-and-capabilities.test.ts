@@ -63,8 +63,9 @@ This module is test.typecheck.superfluous_io.
 To ping, produce Text. It performs io:
   Return "pong".
 `);
+    // E203 已移除，现在由 E207 (EFF_INFER_REDUNDANT_IO) 基于效应推断检测
     assert.equal(
-      diagnostics.some(d => d.code === ErrorCode.EFF_SUPERFLUOUS_IO),
+      diagnostics.some(d => d.code === ErrorCode.EFF_INFER_REDUNDANT_IO),
       true,
       '未使用 IO 时应该提示冗余 io'
     );

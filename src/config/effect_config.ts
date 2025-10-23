@@ -58,6 +58,22 @@ export interface EffectInferenceConfig {
   };
 }
 
+/**
+ * 配置快照结构。
+ *
+ * 记录最近一次成功加载的配置内容与文件元数据，便于后续失效检测。
+ */
+export interface EffectConfigSnapshot {
+  /** 最近一次加载的配置内容 */
+  config: EffectInferenceConfig;
+  /** 解析时使用的配置文件路径 */
+  filePath: string;
+  /** 文件最近修改时间（毫秒） */
+  mtimeMs: number;
+  /** 文件大小（字节） */
+  size: number;
+}
+
 // ============================================================
 // 默认配置
 // ============================================================
@@ -98,7 +114,7 @@ const DEFAULT_CONFIG: EffectInferenceConfig = {
  *
  * 避免重复读取配置文件，提升性能。
  */
-let cachedConfig: EffectInferenceConfig | null = null;
+let cachedSnapshot: EffectConfigSnapshot | null = null;
 
 /**
  * 重置配置缓存（仅用于测试）。
@@ -107,7 +123,7 @@ let cachedConfig: EffectInferenceConfig | null = null;
  * 重置后，下次调用 loadEffectConfig() 会重新读取配置文件。
  */
 export function resetConfigForTesting(): void {
-  cachedConfig = null;
+  cachedSnapshot = null;
 }
 
 /**
@@ -185,28 +201,86 @@ function mergeWithDefault(userConfig: Partial<EffectInferenceConfig>): EffectInf
   };
 }
 
-export function loadEffectConfig(): EffectInferenceConfig {
-  // 返回缓存配置（如果已加载）
-  if (cachedConfig) {
-    return cachedConfig;
+/**
+ * 判断是否需要重新加载配置文件。
+ *
+ * 基于缓存快照与当前文件状态进行双重校验。
+ *
+ * @param filePath - 当前配置文件路径
+ * @returns 文件已变更时返回 true
+ */
+function shouldReload(filePath: string): boolean {
+  if (!cachedSnapshot) {
+    return true;
   }
 
+  if (cachedSnapshot.filePath !== filePath) {
+    return true;
+  }
+
+  try {
+    const stat = fs.statSync(filePath);
+    if (cachedSnapshot.mtimeMs === -1 && cachedSnapshot.size === -1) {
+      return true;
+    }
+    if (cachedSnapshot.mtimeMs !== stat.mtimeMs) {
+      return true;
+    }
+    if (cachedSnapshot.size !== stat.size) {
+      return true;
+    }
+    return false;
+  } catch {
+    return !(cachedSnapshot.mtimeMs === -1 && cachedSnapshot.size === -1);
+  }
+}
+
+export function loadEffectConfig(): EffectInferenceConfig {
   // 从 ConfigService 获取配置文件路径
   const configPath = ConfigService.getInstance().effectConfigPath;
 
+  if (!shouldReload(configPath) && cachedSnapshot) {
+    return cachedSnapshot.config;
+  }
+
   try {
+    const stat = fs.statSync(configPath);
     // 尝试读取配置文件（参考 src/lsp/server.ts:752-755 的模式）
     const content = fs.readFileSync(configPath, 'utf8');
     const userConfig = JSON.parse(content) as Partial<EffectInferenceConfig>;
     // 合并用户配置与默认配置，确保所有字段都存在
-    cachedConfig = mergeWithDefault(userConfig);
-    return cachedConfig;
+    const config = mergeWithDefault(userConfig);
+    cachedSnapshot = {
+      config,
+      filePath: configPath,
+      mtimeMs: stat.mtimeMs,
+      size: stat.size,
+    };
+    return cachedSnapshot.config;
   } catch {
     // 配置文件不存在或解析失败，使用默认配置
     // 静默降级，不抛出错误（与现有模式一致）
-    cachedConfig = DEFAULT_CONFIG;
-    return cachedConfig;
+    cachedSnapshot = {
+      config: DEFAULT_CONFIG,
+      filePath: configPath,
+      mtimeMs: -1,
+      size: -1,
+    };
+    return cachedSnapshot.config;
   }
+}
+
+/**
+ * 重新加载效果配置缓存。
+ *
+ * @param force - 传入 true 时先清空缓存后再加载，确保读取最新文件
+ * @returns 最新的效果推断配置
+ */
+export function reloadEffectConfig(force = false): EffectInferenceConfig {
+  if (force) {
+    cachedSnapshot = null;
+  }
+  return loadEffectConfig();
 }
 
 // ============================================================
