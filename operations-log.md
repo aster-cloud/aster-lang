@@ -3242,3 +3242,13 @@ await runOneTypecheck(
 - 2025-10-24 08:18 NZST | 命令：zsh -lc "rg 'test/cnl/examples' scripts" → 确认脚本目录内已无旧路径残留
 - 2025-10-24 08:19 NZST | 工具：apply_patch → 更新 `.claude/cnl-path-references-update-report.md` 添加补充更新记录
 - 2025-10-24 08:21 NZST | 命令：zsh -lc "npm run build && npm run test:golden 2>&1 | head -100" → 构建项目并验证黄金测试通过（输出前 100 行）
+- 2025-10-24 14:16:44 NZST | 命令：bash -lc "sed -n '1,200p' src/lsp/utils.ts" → 阅读待补测的 LSP 工具函数实现
+- 2025-10-24 14:16:55 NZST | 命令：bash -lc "sed -n '1,200p' test/unit/lsp/pii-diagnostics.test.ts" → 参考现有 LSP 测试的断言风格
+- 2025-10-24 14:17:02 NZST | 命令：bash -lc "sed -n '1,200p' test/unit/typecheck/type-system.test.ts" → 借鉴现有单元测试结构与中文描述风格
+- 2025-10-24 14:17:02 NZST | 命令：bash -lc "rg \"TokenKind\" -g\"*.ts\" -n" → 检索 TokenKind 定义与使用位置，为构造测试数据做准备
+- 2025-10-24 14:17:08 NZST | 工具：apply_patch → 新增 `test/unit/lsp/utils.test.ts` 覆盖 buildIdIndex 与 exprTypeText
+- 2025-10-24 14:19:42 NZST | 工具：apply_patch → 调整 `test/unit/lsp/utils.test.ts` 解决 Token 只读属性与类型断言问题
+- 2025-10-24 14:19:48 NZST | 命令：bash -lc "npm test -- test/unit/lsp/utils.test.ts" → 执行全量测试，因 Node 无法直接加载 .ts 扩展导致失败（ERR_UNKNOWN_FILE_EXTENSION）
+- 2025-10-24 14:19:55 NZST | 命令：bash -lc "node --test dist/test/unit/lsp/utils.test.js" → 在编译输出上单独执行新测试套件并确认全部通过
+- 2025-10-24 14:20:27 NZST | 命令：bash -lc "npm run test:coverage 2>&1 | grep utils.ts" → 获取 utils.ts 覆盖率报告（行/语句/分支均达 85%-100%）
+- 2025-10-24 14:25:59 NZST | 工具：apply_patch → 新增 `.claude/utils-test-verification.md` 记录测试与覆盖率结果

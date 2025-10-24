@@ -136,3 +136,5 @@ function toGuideUri(rel: string): string | null {
     return null;
   } catch { return null; }
 }
+
+export { toGuideUri };

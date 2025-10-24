@@ -71,3 +71,17 @@
 - 指令与结果：
   - `npm run build` → 通过（编译 dist 并生成 PEG 解析器）。
   - `npm run test:regression` → 通过（6/6 通过，4 个 TODO 用例已注释跳过）。
+
+## 2025-10-24 TypeSystem.equals 测试扩展验证
+- 日期：2025-10-24 13:21 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm test` → 通过（串行执行 fmt、build、unit、integration、golden、property 流水线，全量用例成功）。
+  - `npm run test:coverage` → 通过（生成覆盖率报告，`src/typecheck/type_system.ts` equals 分支命中）。
+
+## 2025-10-24 TypeSystem helper 覆盖率提升
+- 日期：2025-10-24 14:00 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm run test:unit` → 首次因 Core.Parameter 缺少 annotations 报错，修复测试数据后重跑通过。
+  - `npm run test:coverage` → 通过（`src/typecheck/type_system.ts` statements 覆盖率提升至 76.09%，format/expand/infer/ConstraintSolver 分支命中）。
