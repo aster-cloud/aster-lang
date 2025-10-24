@@ -1,6 +1,7 @@
 package aster.emitter;
 
 import aster.core.ir.CoreModel;
+import aster.core.typecheck.BuiltinTypes;
 
 import static org.objectweb.asm.Opcodes.ACONST_NULL;
 import static org.objectweb.asm.Opcodes.ALOAD;
@@ -417,7 +418,7 @@ public class CallEmitter {
               paramDesc = "J";
             } else if (tn.name.equals("Double")) {
               paramDesc = "D";
-            } else if (tn.name.equals("Text")) {
+            } else if (BuiltinTypes.isStringType(tn.name)) {
               paramDesc = "Ljava/lang/String;";
             } else {
               String internal = tn.name.contains(".") ? tn.name.replace('.', '/') : toInternal(currentPkg, tn.name);
@@ -438,7 +439,7 @@ public class CallEmitter {
             retDesc = "J";
           } else if (rtn.name.equals("Double")) {
             retDesc = "D";
-          } else if (rtn.name.equals("Text")) {
+          } else if (BuiltinTypes.isStringType(rtn.name)) {
             retDesc = "Ljava/lang/String;";
           } else {
             String internal = rtn.name.contains(".") ? rtn.name.replace('.', '/') : toInternal(currentPkg, rtn.name);

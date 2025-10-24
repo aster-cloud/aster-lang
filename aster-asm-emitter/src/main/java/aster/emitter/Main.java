@@ -1,6 +1,7 @@
 package aster.emitter;
 
 import aster.core.ir.CoreModel;
+import aster.core.typecheck.BuiltinTypes;
 
 import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
@@ -935,7 +936,7 @@ public final class Main {
                 } else if (tn.name.equals("Double")) {
                   primitiveType = 'D';
                   fieldDesc = "D";
-                } else if (tn.name.equals("Text")) {
+                } else if (BuiltinTypes.isStringType(tn.name)) {
                   fieldDesc = "Ljava/lang/String;";
                 }
               }
@@ -1233,13 +1234,11 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     if (expr instanceof CoreModel.Call call && call.target instanceof CoreModel.Name target && ctx != null) {
       var schema = ctx.functionSchemas().get(target.name);
       if (schema != null && schema.ret instanceof CoreModel.TypeName rtn) {
-        return switch (rtn.name) {
-          case "Text" -> "Ljava/lang/String;";
-          default -> {
-            String internal = rtn.name.contains(".") ? rtn.name.replace('.', '/') : toInternal(pkg, rtn.name);
-            yield "L" + internal + ';';
-          }
-        };
+        if (BuiltinTypes.isStringType(rtn.name)) {
+          return "Ljava/lang/String;";
+        }
+        String internal = rtn.name.contains(".") ? rtn.name.replace('.', '/') : toInternal(pkg, rtn.name);
+        return "L" + internal + ';';
       }
     }
     return "Ljava/lang/Object;";
@@ -1364,12 +1363,12 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
   static String jDesc(String pkg, CoreModel.Type t) {
     if (t instanceof CoreModel.TypeName tn) {
       return switch (tn.name) {
-        case "Text" -> "Ljava/lang/String;";
-        case "Int" -> "I";
-        case "Bool" -> "Z";
-        case "Long" -> "J";
-        case "Double" -> "D";
-        case "Number" -> "Ljava/lang/Double;"; // Map primitive Number to boxed Double
+        case BuiltinTypes.STRING, BuiltinTypes.TEXT -> "Ljava/lang/String;";
+        case BuiltinTypes.INT -> "I";
+        case BuiltinTypes.BOOL -> "Z";
+        case BuiltinTypes.LONG -> "J";
+        case BuiltinTypes.DOUBLE -> "D";
+        case BuiltinTypes.NUMBER -> "Ljava/lang/Double;"; // Map primitive Number to boxed Double
         default -> {
           String internal = (tn.name.contains(".")) ? tn.name.replace('.', '/') : toInternal(pkg, tn.name);
           yield "L" + internal + ';';

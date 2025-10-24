@@ -300,7 +300,7 @@ class ExpressionEmitterConstructTest {
     CoreModel.Field nameField = new CoreModel.Field();
     nameField.name = "name";
     CoreModel.TypeName textType = new CoreModel.TypeName();
-    textType.name = "Text";
+    textType.name = "String";
     nameField.type = textType;
 
     CoreModel.Field activeField = new CoreModel.Field();
@@ -336,12 +336,72 @@ class ExpressionEmitterConstructTest {
     CoreModel.Field streetField = new CoreModel.Field();
     streetField.name = "street";
     CoreModel.TypeName streetType = new CoreModel.TypeName();
-    streetType.name = "Text";
+    streetType.name = "String";
     streetField.type = streetType;
 
     addressData.fields = List.of(streetField);
 
     module.decls = List.of(personData, addressData);
+
+    var context = new ContextBuilder(module);
+    var scope = new ScopeStack();
+    var typeResolver = new TypeResolver(scope, Map.of(), Map.of(), context);
+    var nameEmitter = new NameEmitter(typeResolver, null);
+    var callEmitter = new CallEmitter(typeResolver, new SignatureResolver(false), null, StdlibInliner.instance());
+    var emitter = new ExpressionEmitter(context, typeResolver, scope, new LinkedHashMap<>(), nameEmitter, callEmitter);
+    return new Fixture(scope, emitter);
+  }
+
+  /**
+   * 验证 Text 类型（向后兼容）能正确映射为 Ljava/lang/String;
+   * <p>
+   * 这个测试确保代码生成层支持 DSL 中使用 Text 类型注解的旧代码。
+   */
+  @Test
+  void emitConstructWithTextFieldBackwardCompatibility() {
+    var fixture = newFixtureWithTextType();
+
+    CoreModel.StringE stringExpr = new CoreModel.StringE();
+    stringExpr.value = "Legacy Text Field";
+
+    CoreModel.FieldInit field = new CoreModel.FieldInit();
+    field.name = "message";
+    field.expr = stringExpr;
+
+    CoreModel.Construct construct = new CoreModel.Construct();
+    construct.typeName = "Message";
+    construct.fields = List.of(field);
+
+    MethodNode mv = new MethodNode();
+    fixture.emitter.emitExpression(construct, mv, fixture.scope, "Ljava/lang/Object;");
+
+    AbstractInsnNode[] nodes = mv.instructions.toArray();
+    MethodInsnNode constructor = assertInstanceOf(MethodInsnNode.class, nodes[nodes.length - 1]);
+    assertEquals(Opcodes.INVOKESPECIAL, constructor.getOpcode());
+    // 验证 Text 类型正确映射为 Ljava/lang/String; 而非 Lapp/Text;
+    assertEquals("(Ljava/lang/String;)V", constructor.desc,
+        "Text 类型应映射为 Ljava/lang/String; 以保持向后兼容");
+  }
+
+  /**
+   * 创建包含 Text 类型字段的测试夹具（用于测试向后兼容）
+   */
+  private Fixture newFixtureWithTextType() {
+    CoreModel.Module module = new CoreModel.Module();
+    module.name = "app";
+
+    // 定义包含 Text 类型字段的 Data
+    CoreModel.Data messageData = new CoreModel.Data();
+    messageData.name = "Message";
+
+    CoreModel.Field messageField = new CoreModel.Field();
+    messageField.name = "message";
+    CoreModel.TypeName textType = new CoreModel.TypeName();
+    textType.name = "Text"; // 使用 Text 而非 String，测试向后兼容
+    messageField.type = textType;
+
+    messageData.fields = List.of(messageField);
+    module.decls = List.of(messageData);
 
     var context = new ContextBuilder(module);
     var scope = new ScopeStack();

@@ -1,6 +1,8 @@
 plugins {
     `java-library`
     antlr
+    id("me.champeau.jmh") version "0.7.2"
+    jacoco
 }
 
 repositories {
@@ -67,4 +69,39 @@ tasks.register<Test>("goldenTest") {
         events("passed", "skipped", "failed")
         showStandardStreams = true
     }
+}
+
+// JMH 性能测试配置
+jmh {
+    warmupIterations.set(2)
+    iterations.set(5)
+    fork.set(1)
+    threads.set(1)
+    timeUnit.set("ms")
+    benchmarkMode.set(listOf("avgt"))
+    includes.set(listOf(".*Benchmark.*"))
+}
+
+// JaCoCo 覆盖率配置
+jacoco {
+    toolVersion = "0.8.14"  // 官方支持 Java 25
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+
+    // 排除 ANTLR 生成的代码
+    classDirectories.setFrom(
+        files(classDirectories.files.map {
+            fileTree(it) {
+                exclude("**/parser/**")
+            }
+        })
+    )
 }

@@ -39,10 +39,10 @@ class CanonicalizerGoldenTest {
     void testAllExamplesMatchTypeScriptOutput() throws IOException {
         // 获取项目根目录
         Path projectRoot = Paths.get(System.getProperty("user.dir")).getParent();
-        Path examplesDir = projectRoot.resolve("test/cnl/examples");
+        Path examplesDir = projectRoot.resolve("test/cnl/programs/examples");
 
         if (!Files.exists(examplesDir)) {
-            fail("test/cnl/examples 目录不存在: " + examplesDir);
+            fail("test/cnl/programs/examples 目录不存在: " + examplesDir);
         }
 
         // 获取所有 .aster 文件
@@ -175,7 +175,7 @@ class CanonicalizerGoldenTest {
     @Test
     void testSingleExample_Hello() throws IOException, InterruptedException {
         Path projectRoot = Paths.get(System.getProperty("user.dir")).getParent();
-        Path helloFile = projectRoot.resolve("test/cnl/examples/hello.aster");
+        Path helloFile = projectRoot.resolve("test/cnl/programs/examples/hello.aster");
 
         if (!Files.exists(helloFile)) {
             System.out.println("跳过测试: hello.aster 不存在");

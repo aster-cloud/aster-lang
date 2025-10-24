@@ -2,6 +2,7 @@ plugins {
   java
   application
   id("me.champeau.jmh") version "0.7.2"
+  jacoco
 }
 
 java {
@@ -69,4 +70,19 @@ jmh {
   timeUnit.set("ms")
   benchmarkMode.set(listOf("avgt"))
   includes.set(listOf(".*Benchmark.*"))
+}
+
+// JaCoCo 覆盖率配置
+jacoco {
+  toolVersion = "0.8.14"  // 官方支持 Java 25
+}
+
+tasks.jacocoTestReport {
+  dependsOn(tasks.test)
+
+  reports {
+    xml.required.set(true)
+    html.required.set(true)
+    csv.required.set(false)
+  }
 }

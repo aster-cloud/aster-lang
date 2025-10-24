@@ -203,6 +203,21 @@ jobs:
       - name: Verify examples compile (blocking)
         run: npm run verify:examples
 
+      - name: Run Java core module tests
+        run: ./gradlew :aster-core:test :aster-asm-emitter:test
+
+      - name: Generate aggregated coverage report
+        run: ./gradlew jacocoAggregateReport
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            build/reports/jacoco/aggregate/
+            aster-core/build/reports/jacoco/test/
+            aster-asm-emitter/build/reports/jacoco/test/
+
   quarkus-policy-api:
     name: Quarkus Policy API Tests
     runs-on: ubuntu-latest

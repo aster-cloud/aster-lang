@@ -1,6 +1,7 @@
 package aster.emitter;
 
 import aster.core.ir.CoreModel;
+import aster.core.typecheck.BuiltinTypes;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -257,11 +258,11 @@ public final class ExpressionEmitter {
           if (schemaField.name.equals(f.name)) {
             if (schemaField.type instanceof CoreModel.TypeName tn) {
               fieldDesc = switch (tn.name) {
-                case "Int" -> "I";
-                case "Bool" -> "Z";
-                case "Long" -> "J";
-                case "Double" -> "D";
-                case "Text" -> "Ljava/lang/String;";
+                case BuiltinTypes.INT -> "I";
+                case BuiltinTypes.BOOL -> "Z";
+                case BuiltinTypes.LONG -> "J";
+                case BuiltinTypes.DOUBLE -> "D";
+                case BuiltinTypes.STRING, BuiltinTypes.TEXT -> "Ljava/lang/String;";
                 default -> "Ljava/lang/Object;";
               };
             }

@@ -43,42 +43,42 @@ class GoldenClassTest {
 
   @Test
   void testGreetFunction() throws Exception {
-    runGoldenTest("greet", "test/cnl/examples/expected_greet_core.json");
+    runGoldenTest("greet", "test/e2e/golden/core/expected_greet_core.json");
   }
 
   @Test
   void testDataStructure() throws Exception {
-    runGoldenTest("data", "test/cnl/examples/expected_stdlib_collections_core.json");
+    runGoldenTest("data", "test/e2e/golden/core/expected_stdlib_collections_core.json");
   }
 
   @Test
   void testComplexLogic() throws Exception {
-    runGoldenTest("complex", "test/cnl/examples/nested_match_core.json");
+    runGoldenTest("complex", "test/cnl/programs/core-reference/nested_match_core.json");
   }
 
   @Test
   void testLambdaClosure() throws Exception {
-    runGoldenTest("lambda_closure", "test/cnl/examples/lambda_closure_core.json");
+    runGoldenTest("lambda_closure", "test/cnl/programs/core-reference/lambda_closure_core.json");
   }
 
   @Test
   void testResultTryCatch() throws Exception {
-    runGoldenTest("result_trycatch", "test/cnl/examples/result_trycatch_core.json");
+    runGoldenTest("result_trycatch", "test/cnl/programs/core-reference/result_trycatch_core.json");
   }
 
   @Test
   void testArithmeticExpr() throws Exception {
-    runGoldenTest("arithmetic_expr", "test/cnl/examples/arithmetic_expr_core.json");
+    runGoldenTest("arithmetic_expr", "test/cnl/programs/core-reference/arithmetic_expr_core.json");
   }
 
   @Test
   void testNestedCall() throws Exception {
-    runGoldenTest("nested_call", "test/cnl/examples/nested_call_core.json");
+    runGoldenTest("nested_call", "test/cnl/programs/core-reference/nested_call_core.json");
   }
 
   @Test
   void testMatchCtor() throws Exception {
-    runGoldenTest("match_ctor", "test/cnl/examples/match_ctor_core.json");
+    runGoldenTest("match_ctor", "test/cnl/programs/core-reference/match_ctor_core.json");
   }
 
   /**
