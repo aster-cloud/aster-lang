@@ -1,3 +1,10 @@
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    maven("https://maven.pkg.jetbrains.space/public/p/ij/intellij-platform-plugin")
+  }
+}
+
 rootProject.name = "aster-lang"
 include(":aster-asm-emitter")
 include("aster-core")
@@ -6,6 +13,9 @@ include(":aster-runtime")
 project(":aster-runtime").projectDir = file("aster-runtime")
 include("aster-validation")
 project(":aster-validation").projectDir = file("aster-validation")
+
+include(":aster-idea")
+project(":aster-idea").projectDir = file("aster-idea")
 
 // Native Image 主项目
 include(":aster-lang-cli")

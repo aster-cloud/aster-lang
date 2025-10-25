@@ -1,3 +1,10 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url 'https://maven.pkg.jetbrains.space/public/p/ij/intellij-platform-plugin' }
+    }
+}
+
 rootProject.name = 'aster-lang'
 include ':aster-core'
 project(':aster-core').projectDir = file('aster-core')
@@ -7,6 +14,8 @@ include ':aster-validation'
 project(':aster-validation').projectDir = file('aster-validation')
 include ':aster-lang-cli'
 project(':aster-lang-cli').projectDir = file('aster-lang-cli')
+include ':aster-idea'
+project(':aster-idea').projectDir = file('aster-idea')
 include ':examples:hello-native'
 project(':examples:hello-native').projectDir = file('examples/hello-native')
 include ':examples:login-native'

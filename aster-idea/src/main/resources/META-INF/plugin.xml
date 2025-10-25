@@ -1,0 +1,30 @@
+<idea-plugin>
+  <id>io.aster.idea</id>
+  <name>Aster IntelliJ 插件</name>
+  <version>0.1.0</version>
+  <vendor email="dev@aster.io" url="https://github.com/aster-lang">Aster 项目组</vendor>
+
+  <description><![CDATA[
+    <p>提供基础的 Aster 语言 IDE 支持：文件类型识别与一键 CLI 类型检查。</p>
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.lang</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Aster" implementationClass="io.aster.idea.lang.AsterFileType" fieldName="INSTANCE" language="TEXT"/>
+    <notificationGroup id="Aster CLI" displayType="BALLOON"/>
+  </extensions>
+
+  <actions>
+    <action id="io.aster.idea.actions.AsterTypecheckAction"
+            class="io.aster.idea.actions.AsterTypecheckAction"
+            text="Aster: 类型检查当前文件"
+            description="使用 npm run typecheck:file 对当前 .aster 文件执行类型检查"
+            icon="io.aster.idea.icons.AsterIcons.FILE">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="AnalyzeStacktraceOnError"/>
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift T"/>
+    </action>
+  </actions>
+</idea-plugin>

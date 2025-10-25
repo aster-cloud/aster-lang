@@ -451,3 +451,108 @@ aster run app.jar arg1 arg2 --main com.example.Main
 > "Line 212 那个 catch (CancellationException ignored) 是关键。取消就是取消，不是错误。这才叫理解语义。"
 >
 > "**这代码有好品味。通过。**"
+
+# 2025-10-25 16:14 NZST — Codex
+
+- 使用 `mcp__sequential-thinking__sequentialthinking` 梳理阶段 A 执行策略，确认需覆盖 CLI 常用命令并生成报告
+- 阅读 `.claude/context-native-build.json`、`.claude/context-native-detailed.json` 与 `.claude/native-build-plan.md` 同步已有分析结论
+- 执行 `java -version`、`native-image --version` 校验 GraalVM 25.0 环境；运行 `./gradlew :aster-lang-cli:jar` 构建 CLI JAR
+- 通过 `java -agentlib:native-image-agent=...` 运行 `aster.cli.Main --help/--version`，并以默认 TypeScript 后端执行 `compile test/cnl/programs/basics/test_all_comparisons.aster`
+- 由于 CLI JAR 缺少 Main-Class 及 Gradle `installDist` 在 `org.jetbrains.intellij` 插件上报错，改用手工拼接 classpath（包含 `aster-core`/`aster-runtime`/`aster-asm-emitter` 及 Jackson、ANTLR、ASM 依赖）在 `ASTER_COMPILER=java` 模式下执行 compile
+- 调用 `native-image-configure` 未直接生成配置，改以 `jq` 将 `reachability-metadata.json` 转换为 `reflect-config.json`、`resource-config.json`、`proxy-config.json`
+- 产出位于 `build/native-config-agent/`，准备对比现有配置并编写 `.claude/phase-a-agent-report.md`
+
+# 2025-10-25 16:51 NZST — Codex
+
+- 调用 `mcp__sequential-thinking__sequentialthinking`（分析 Phase B 任务范围与风险）
+- 执行 `cat docs/workstreams/native-cli/operations-log.md` 检查历史记录
+- 执行 `ls .claude` 搜索 Phase B 相关草稿
+- 执行 `rg --files --glob '*phase-b*' .claude`（未发现 Phase B 文件）
+- 执行 `rg "Phase B"`（未发现 Phase B 文本记录）
+- 执行 `git status --short` 审阅当前工作区差异
+- 执行 `rg "funcHints" -n` 定位 Java 与 ASM 发射器实现
+- 执行 `sed -n '200,320p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java` 阅读 runCompile 逻辑
+- 执行 `rg "coreModule" -n aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java` 理解字段使用
+- 执行 `sed -n '120,220p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java` 查看类型检查流程
+- 执行 `sed -n '980,1100p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java` 解析 Core IR 降级输出
+- 执行 `ls aster-core/src/main/java/aster/core/ir` 浏览 Core IR 模型源文件
+- 执行 `sed -n '1,200p' aster-core/src/main/java/aster/core/ir/CoreModel.java` 了解函数声明结构
+- 执行 `sed -n '150,230p' aster-asm-emitter/docs/type-inference.md` 查找 funcHints 文档说明
+- 执行 `rg "funcHints" -n aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java` 定位类型解析使用点
+- 执行 `sed -n '60,140p' aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java` 阅读推断规则
+- 执行 `sed -n '140,220p' aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java` 检查数值类型规约
+- 执行 `sed -n '220,320p' aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java` 确认 schema 回退逻辑
+- 执行 `sed -n '22,40p' aster-asm-emitter/src/main/java/aster/emitter/Main.java` 确认上下文记录结构
+- 执行 `sed -n '320,420p' aster-asm-emitter/src/main/java/aster/emitter/Main.java` 查看 funcHints 获取方式
+- 执行 `rg "pkgName" -n aster-asm-emitter/src/main/java/aster/emitter/Main.java` 确认包名生成逻辑
+- 执行 `sed -n '1,80p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java` 检查导入与字段定义
+- 执行 `rg "Float" -n`（确认仓库中浮点类型使用场景）
+- 执行 `TZ=Pacific/Auckland date "+%Y-%m-%d %H:%M NZST"` 获取记录时间
+- 使用 `apply_patch` 更新 `aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java`，实现基于 Core IR 的 funcHints 基础映射
+- 使用 `apply_patch` 更新 `docs/workstreams/native-cli/operations-log.md` 写入本次操作留痕
+- 使用 `apply_patch` 新建 `.claude/phase-b-status-report.md` 输出阶段状态报告
+- 再次执行 `TZ=Pacific/Auckland date "+%Y-%m-%d %H:%M NZST"` 确认文档时间戳
+
+# 2025-10-25 16:55 NZST — Codex
+
+- 调用 `mcp__sequential-thinking__sequentialthinking` 梳理 Phase C 配置补全任务
+- 调用 `mcp__code-index__set_project_path` 与 `mcp__code-index__find_files` 确认 native-image 配置文件位置
+- 阅读 `.claude/phase-a-agent-report.md` 获取 Phase A 关键发现
+- 使用 `jq` 从 `build/native-config-agent/reflect-config.json` 筛选 `aster.*`、`com.fasterxml.jackson.*` 与 `sun.management.VMManagementImpl` 条目并覆盖项目内 `reflect-config.json`
+- 通过重写 `resource-config.json` 添加 `package-lock.json`、`dist/scripts/.*`、`META-INF/services/.*` 等模式，保留 CLI 所需资源
+- 运行 `jq empty` 校验两份 JSON 的语法正确性
+- 确认代理配置仅涉及 Gradle，记录无需创建 `proxy-config.json`
+
+# 2025-10-25 17:34 NZST — Codex
+
+- 调用 `mcp__sequential-thinking__sequentialthinking` 评估阶段 E 验证任务与潜在风险
+- 执行 `ASTER_COMPILER=java ./gradlew :aster-lang-cli:test`，确认 Java 编译器后端测试通过
+- 执行 `./gradlew build`，遇到 `test/cnl/stdlib/finance/loan.aster` 缺失导致 `:quarkus-policy-api:generateAsterJar` 与 `:aster-lang-cli:generateAsterJar` 失败，记录错误详情等待主流程决策
+- 执行 `./gradlew :aster-lang-cli:run --args="--help"`，核实 CLI 帮助文本已包含 `native` 命令与主要选项
+- 再次执行 `ASTER_COMPILER=java ./gradlew :aster-lang-cli:test` 与 `./gradlew :aster-lang-cli:test`，验证 Java/TypeScript 两个编译器后端在最新实现下均正常
+- 记录 `TZ=Pacific/Auckland date "+%Y-%m-%d %H:%M NZST"`，准备用于后续文档时间戳与报告
+
+# 2025-10-25 17:35 NZST — Codex
+
+- 使用 `apply_patch` 更新 `docs/testing.md`，补录阶段 E 测试命令与执行结果
+- 使用 `apply_patch` 新建 `docs/native-build-guide.md`，撰写 Native 构建指南并记录 Phase A~D 细节
+- 使用 `apply_patch` 更新 `README.md`，新增 Native 构建章节与示例命令
+- 使用 `apply_patch` 新建 `.claude/final-verification-report.md`，汇总阶段状态、测试结论与交付物
+
+# 2025-10-25 17:54 NZST — Codex
+
+| 序号 | 工具 | 参数摘要 | 输出摘要 |
+| --- | --- | --- | --- |
+| 1 | mcp__sequential-thinking__sequentialthinking | thought_number=1，total_thoughts=6 | 梳理任务目标、风险与执行步骤 |
+| 2 | mcp__sequential-thinking__sequentialthinking | 重复调用（参数解析失败） | 工具返回 `Invalid thoughtNumber` 错误 |
+| 3 | update_plan | 步骤=4，step1=进行中 | 初始化修复计划 |
+| 4 | mcp__code-index__find_files | pattern=`**/CommandHandler.java` | 失败，提示需先设置项目路径 |
+| 5 | mcp__code-index__set_project_path | path=`.` | 成功设置索引根目录并扫描 1301 个文件 |
+| 6 | mcp__code-index__find_files | pattern=`**/CommandHandler.java` | 找到 `aster-lang-cli/src/main/java/aster/cli/CommandHandler.java` |
+| 7 | mcp__code-index__get_file_summary | file=`CommandHandler.java` | 返回 `needs_deep_index` 提示 |
+| 8 | mcp__code-index__build_deep_index | — | 重新构建索引，完成全量符号提取 |
+| 9 | mcp__code-index__get_file_summary | file=`CommandHandler.java` | 获取文件结构摘要 |
+| 10 | shell | `sed -n '150,260p' CommandHandler.java` | 阅读 `handleNative` 现有实现 |
+| 11 | shell | `sed -n '110,190p' CommandHandler.java` | 阅读 `handleJar` 实现细节 |
+| 12 | shell | `sed -n '1,200p' CommandLineParser.java'` | 命令失败，提示 `unexpected EOF` |
+| 13 | shell | `sed -n '1,200p' CommandLineParser.java` | 查看参数解析逻辑 |
+| 14 | shell | `rg "DEFAULT_JAR_OUT" CommandHandler.java` | 确认默认 JAR 输出常量位置 |
+| 15 | shell | `sed -n '1,100p' CommandHandler.java` | 检查类级常量定义 |
+| 16 | update_plan | step1=完成，step2=进行中 | 更新计划状态，准备实现改动 |
+| 17 | shell | `apply_patch`（新增 IOException/InvalidPathException 导入） | 成功更新导入列表 |
+| 18 | shell | `apply_patch`（提取 handleJar 辅助方法并新增工具函数） | 成功重构 JAR 输出逻辑 |
+| 19 | shell | `sed -n '150,230p' CommandHandler.java` | 校验新增私有方法位置与内容 |
+| 20 | shell | `apply_patch`（更新 handleNative 逻辑） | 成功接入新工具方法 |
+| 21 | update_plan | step2=完成，step3=进行中 | 标记代码修复完成，进入文档阶段 |
+| 22 | shell | `TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M'` | 获取 NZST 时间戳 `2025-10-25 17:54` |
+| 23 | shell | `apply_patch`（新增 .claude/handleNative-refactoring-report.md） | 生成重构说明文档 |
+| 24 | shell | `sed -n '1,120p' operations-log.md` | 阅读既有操作日志，准备追加记录 |
+
+# 2025-10-25 17:56 NZST — Codex
+
+| 序号 | 工具 | 参数摘要 | 输出摘要 |
+| --- | --- | --- | --- |
+| 1 | shell | `./gradlew :aster-lang-cli:compileJava` | 构建成功，完成 `aster-lang-cli:compileJava` 目标 |
+| 2 | shell | `TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M'` | 获取 NZST 时间戳 `2025-10-25 17:56` |
+| 3 | shell | `nl -ba aster-lang-cli/src/main/java/aster/cli/CommandHandler.java \| sed -n '130,230p'` | 获取 handleJar 与辅助方法的行号视图 |
+| 4 | shell | `nl -ba aster-lang-cli/src/main/java/aster/cli/CommandHandler.java \| sed -n '230,270p'` | 获取 handleNative 新逻辑的行号视图 |

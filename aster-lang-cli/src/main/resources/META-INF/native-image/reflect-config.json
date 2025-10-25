@@ -1,2 +1,375 @@
 [
+  {
+    "name": "aster.core.ast.Annotation"
+  },
+  {
+    "name": "aster.core.ast.AstNode"
+  },
+  {
+    "name": "aster.core.ast.Block",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.util.List",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Decl"
+  },
+  {
+    "name": "aster.core.ast.Decl$Func",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "aster.core.ast.Span",
+          "java.util.List",
+          "java.util.List",
+          "aster.core.ast.Type",
+          "java.util.List",
+          "aster.core.ast.Block",
+          "java.util.List",
+          "java.util.List",
+          "boolean",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Decl$Parameter",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "aster.core.ast.Type",
+          "java.util.List",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Expr"
+  },
+  {
+    "name": "aster.core.ast.Expr$Call",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "aster.core.ast.Expr",
+          "java.util.List",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Expr$Name",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Module",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.List",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Span",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "aster.core.ast.Span$Position",
+          "aster.core.ast.Span$Position"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Span$Position",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Stmt"
+  },
+  {
+    "name": "aster.core.ast.Stmt$Case$CaseBody"
+  },
+  {
+    "name": "aster.core.ast.Stmt$Let",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "aster.core.ast.Expr",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Stmt$Return",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "aster.core.ast.Expr",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ast.Type"
+  },
+  {
+    "name": "aster.core.ast.Type$TypeName",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.List",
+          "aster.core.ast.Span"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Annotation"
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Block",
+    "fields": [
+      {
+        "name": "origin"
+      },
+      {
+        "name": "statements"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Call",
+    "fields": [
+      {
+        "name": "args"
+      },
+      {
+        "name": "origin"
+      },
+      {
+        "name": "target"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Decl"
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Expr"
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Func",
+    "fields": [
+      {
+        "name": "body"
+      },
+      {
+        "name": "effects"
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "origin"
+      },
+      {
+        "name": "params"
+      },
+      {
+        "name": "ret"
+      },
+      {
+        "name": "typeParams"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Let",
+    "fields": [
+      {
+        "name": "expr"
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "origin"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Module",
+    "fields": [
+      {
+        "name": "decls"
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "origin"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Name",
+    "fields": [
+      {
+        "name": "name"
+      },
+      {
+        "name": "origin"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Origin",
+    "fields": [
+      {
+        "name": "end"
+      },
+      {
+        "name": "file"
+      },
+      {
+        "name": "start"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Param",
+    "fields": [
+      {
+        "name": "annotations"
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "type"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Position",
+    "fields": [
+      {
+        "name": "col"
+      },
+      {
+        "name": "line"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Return",
+    "fields": [
+      {
+        "name": "expr"
+      },
+      {
+        "name": "origin"
+      }
+    ]
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Stmt"
+  },
+  {
+    "name": "aster.core.ir.CoreModel$Type"
+  },
+  {
+    "name": "aster.core.ir.CoreModel$TypeName",
+    "fields": [
+      {
+        "name": "name"
+      },
+      {
+        "name": "origin"
+      }
+    ]
+  },
+  {
+    "name": "com.fasterxml.jackson.databind.ext.Java7SupportImpl",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.management.VMManagementImpl",
+    "fields": [
+      {
+        "name": "compTimeMonitoringSupport"
+      },
+      {
+        "name": "currentThreadCpuTimeSupport"
+      },
+      {
+        "name": "objectMonitorUsageSupport"
+      },
+      {
+        "name": "otherThreadCpuTimeSupport"
+      },
+      {
+        "name": "remoteDiagnosticCommandsSupport"
+      },
+      {
+        "name": "synchronizerUsageSupport"
+      },
+      {
+        "name": "threadAllocatedMemorySupport"
+      },
+      {
+        "name": "threadContentionMonitoringSupport"
+      }
+    ],
+    "jniAccessible": true
+  }
 ]

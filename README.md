@@ -91,6 +91,23 @@ Truffle can also run an existing Core IR JSON:
 node dist/scripts/aster.js truffle build/if_param_core.json -- false
 ```
 
+## Native 构建
+
+- Native 支持现已集成 CLI，可通过 GraalVM Native Image 将编译器与用户程序打包为独立可执行文件。
+- 环境要求：GraalVM JDK 25+，并使用 `gu install native-image` 安装原生工具链。
+- 快速示例：
+
+```bash
+# 构建 CLI 原生可执行文件
+./gradlew :aster-lang-cli:nativeCompile
+
+# 将用户程序转换为原生二进制
+aster native examples/cli-jvm/src/main/resources/hello.aster --output hello-native
+```
+
+- 查看完整操作手册与阶段设计，请参考 `docs/native-build-guide.md`。
+
+
 ## JVM Targets
 
 Two paths are available:

@@ -9,6 +9,8 @@ import aster.cli.compiler.JavaCompilerBackend;
 import aster.cli.compiler.TypeScriptCompilerBackend;
 import aster.cli.hotswap.JarFileWatcher;
 import aster.cli.hotswap.JarHotSwapRunner;
+import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -141,14 +143,18 @@ public final class CommandHandler {
    * 处理 jar 命令，可选源文件，默认输出到 build/aster-out。
    */
   public int handleJar(ParsedCommand parsed) throws CommandLineException, BridgeException {
+    final Path output = resolveJarOutput(parsed);
+    return handleJar(parsed, output);
+  }
+
+  private int handleJar(ParsedCommand parsed, Path output)
+      throws CommandLineException, BridgeException {
     final List<String> args = parsed.arguments();
     final List<String> cliArgs = new ArrayList<>();
     if (!args.isEmpty()) {
       final Path source = pathResolver.resolveExistingFile(args.getFirst(), "源文件");
       cliArgs.add(source.toString());
     }
-    final Path output =
-        pathResolver.resolvePath(parsed.options().getOrDefault("output", DEFAULT_JAR_OUT), "输出文件");
     cliArgs.add("--out");
     cliArgs.add(output.toString());
     if (parsed.flag("json")) {
@@ -158,6 +164,96 @@ public final class CommandHandler {
     final Result result = backend.execute("native:cli:jar", cliArgs);
     return handleSuccessOrDiagnostics(
         result, "JAR 打包完成: %s".formatted(output), "JAR 打包失败");
+  }
+
+  private Path resolveJarOutput(ParsedCommand parsed) throws CommandLineException {
+    final String outputOption = parsed.options().getOrDefault("output", DEFAULT_JAR_OUT);
+    return pathResolver.resolvePath(outputOption, "输出文件");
+  }
+
+  private String extractOutputName(ParsedCommand parsed) {
+    final String optionOutput = parsed.option("output");
+    if (optionOutput != null && !optionOutput.isBlank()) {
+      return optionOutput;
+    }
+
+    final List<String> args = parsed.arguments();
+    if (args.isEmpty()) {
+      return "app";
+    }
+
+    final String source = args.getFirst();
+    try {
+      final Path sourcePath = Path.of(source);
+      final Path fileName = sourcePath.getFileName();
+      if (fileName != null) {
+        return sanitizeOutputName(fileName.toString());
+      }
+      return sanitizeOutputName(source);
+    } catch (InvalidPathException e) {
+      return sanitizeOutputName(source);
+    }
+  }
+
+  private String sanitizeOutputName(String candidate) {
+    String sanitized = candidate;
+    if (sanitized.endsWith(".cnl")) {
+      sanitized = sanitized.substring(0, sanitized.length() - 4);
+    } else if (sanitized.endsWith(".aster")) {
+      sanitized = sanitized.substring(0, sanitized.length() - 6);
+    }
+    return sanitized.isEmpty() ? "app" : sanitized;
+  }
+
+  private boolean isGraalVMAvailable() {
+    final ProcessBuilder pb = new ProcessBuilder("native-image", "--version");
+    pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+    pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+    try {
+      final Process process = pb.start();
+      final int exitCode = process.waitFor();
+      return exitCode == 0;
+    } catch (IOException e) {
+      return false;
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return false;
+    }
+  }
+
+  /**
+   * 处理 native 命令，依赖 GraalVM 提供的 native-image。
+   */
+  public int handleNative(ParsedCommand parsed) throws CommandLineException, BridgeException {
+    if (!isGraalVMAvailable()) {
+      System.err.println("错误: 未找到 native-image 工具");
+      System.err.println("请安装 GraalVM 并运行: gu install native-image");
+      return 1;
+    }
+
+    final Path jarOutput = resolveJarOutput(parsed);
+    final int jarResult = handleJar(parsed, jarOutput);
+    if (jarResult != 0) {
+      return jarResult;
+    }
+
+    try {
+      final String outputName = extractOutputName(parsed);
+      final ProcessBuilder pb =
+          new ProcessBuilder(
+              "native-image",
+              "-jar",
+              jarOutput.toString(),
+              "-o",
+              outputName,
+              "--no-fallback");
+      pb.inheritIO();
+      final Process process = pb.start();
+      return process.waitFor();
+    } catch (Exception e) {
+      System.err.println("构建失败: " + e.getMessage());
+      return 1;
+    }
   }
 
   /**
@@ -303,6 +399,7 @@ public final class CommandHandler {
     System.out.println("  compile <file> [--output <dir>]    编译 CNL 为 JVM 字节码");
     System.out.println("  typecheck <file> [--caps <json>]   执行类型检查，可指定能力配置");
     System.out.println("  jar <file?> [--output <file>]      生成 JAR（未提供文件时复用上次编译结果）");
+    System.out.println("  native <file?>                     使用 GraalVM 构建原生可执行文件");
     System.out.println("  run <jar> [args...] --main <class> 运行 JAR 文件（支持热插拔）");
     System.out.println("  version                            查看当前版本");
     System.out.println("  help                               查看帮助");

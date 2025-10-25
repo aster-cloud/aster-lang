@@ -85,3 +85,13 @@
 - 指令与结果：
   - `npm run test:unit` → 首次因 Core.Parameter 缺少 annotations 报错，修复测试数据后重跑通过。
   - `npm run test:coverage` → 通过（`src/typecheck/type_system.ts` statements 覆盖率提升至 76.09%，format/expand/infer/ConstraintSolver 分支命中）。
+
+## 2025-10-25 Native 构建阶段 E 综合验证
+- 日期：2025-10-25 17:34 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `ASTER_COMPILER=java ./gradlew :aster-lang-cli:test` → 通过（生成 CLI JAR，执行全部单元与集成测试）。
+  - `./gradlew build` → 失败（`test/cnl/stdlib/finance/loan.aster` 缺失导致 `:quarkus-policy-api:generateAsterJar` 与 `:aster-lang-cli:generateAsterJar` 退出码 1）。
+  - `./gradlew :aster-lang-cli:run --args="--help"` → 通过（帮助文本包含 `native` 命令及相关选项）。
+  - `ASTER_COMPILER=java ./gradlew :aster-lang-cli:test` → 通过（验证 Java 编译器后端回归）。
+  - `./gradlew :aster-lang-cli:test` → 通过（默认 TypeScript 编译器后端测试通过）。

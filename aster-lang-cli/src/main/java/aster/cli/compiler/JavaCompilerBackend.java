@@ -261,8 +261,8 @@ public final class JavaCompilerBackend implements CompilerBackend {
                 }
             }
 
-            // 准备 funcHints（暂时传入空 Map，TODO: 后续从 TypeChecker 集成）
-            java.util.Map<String, java.util.Map<String, Character>> funcHints = java.util.Collections.emptyMap();
+            // 准备 funcHints（Phase B：基于 Core IR 生成基础类型提示）
+            java.util.Map<String, java.util.Map<String, Character>> funcHints = buildFuncHints(this.coreModule);
 
             // 调用 asm-emitter API
             aster.emitter.Main.CompileResult result = aster.emitter.Main.compile(
@@ -291,6 +291,51 @@ public final class JavaCompilerBackend implements CompilerBackend {
         } catch (Exception e) {
             return new Result(1, "", "编译失败: " + e.getMessage() + "\n" + getStackTrace(e), List.of());
         }
+    }
+
+    private java.util.Map<String, java.util.Map<String, Character>> buildFuncHints(aster.core.ir.CoreModel.Module module) {
+        if (module == null || module.decls == null || module.decls.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+
+        String pkgName = (module.name == null || module.name.isEmpty()) ? "app" : module.name;
+        java.util.Map<String, Character> globalHints = new java.util.LinkedHashMap<>();
+
+        for (var decl : module.decls) {
+            if (decl instanceof aster.core.ir.CoreModel.Func func) {
+                Character hint = toPrimitiveHint(func.ret);
+                if (hint != null) {
+                    globalHints.put(func.name, hint);
+                    globalHints.put(pkgName + "." + func.name, hint);
+                }
+            }
+        }
+
+        if (globalHints.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+
+        java.util.Map<String, java.util.Map<String, Character>> result = new java.util.LinkedHashMap<>();
+        for (var decl : module.decls) {
+            if (decl instanceof aster.core.ir.CoreModel.Func func) {
+                String key = pkgName + "." + func.name;
+                result.put(key, new java.util.LinkedHashMap<>(globalHints));
+            }
+        }
+        return result;
+    }
+
+    private Character toPrimitiveHint(aster.core.ir.CoreModel.Type type) {
+        if (type instanceof aster.core.ir.CoreModel.TypeName typeName && typeName.name != null) {
+            return switch (typeName.name) {
+                case "Int" -> 'I';
+                case "Bool", "Boolean" -> 'Z';
+                case "Long" -> 'J';
+                case "Double", "Float" -> 'D'; // Float 同步使用双精度提示，JVM 指令可兼容
+                default -> null;
+            };
+        }
+        return null;
     }
 
     /**
