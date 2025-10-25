@@ -21,8 +21,8 @@ if (!fs.existsSync(abs)) {
 
 const hasWrapper = fs.existsSync(path.join(cwd, 'gradlew'));
 const runCmd = hasWrapper ? (process.platform === 'win32' ? 'gradlew.bat' : './gradlew') : 'gradle';
-const offlineArgs = ['--no-daemon', '--offline', '--console=plain', ':truffle:run', `--args=${abs}`];
-const onlineArgs = ['--no-daemon', '--console=plain', ':truffle:run', `--args=${abs}`];
+const offlineArgs = ['--no-daemon', '--offline', '--console=plain', ':aster-truffle:run', `--args=${abs}`];
+const onlineArgs = ['--no-daemon', '--console=plain', ':aster-truffle:run', `--args=${abs}`];
 
 const env: Record<string, string | undefined> = {
   GRADLE_USER_HOME: path.resolve('build/.gradle'),

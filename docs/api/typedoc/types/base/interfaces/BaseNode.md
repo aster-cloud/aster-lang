@@ -4,7 +4,9 @@
 
 # Interface: BaseNode\<S\>
 
-Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8b88510e1ccceb11c9859896707837644101a436/src/types/base.ts#L32)
+Defined in: [types/base.ts:39](https://github.com/wontlost-ltd/aster-lang/blob/f7cb9921608f3ae45a73f2ee7f3ec458307b0f7f/src/types/base.ts#L39)
+
+所有 AST 和 Core IR 节点的根接口。
 
 ## Extended by
 
@@ -58,29 +60,31 @@ Defined in: [types/base.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 `S` = [`Span`](../../interfaces/Span.md) \| [`Origin`](../../interfaces/Origin.md)
 
+Span 类型（AST: Span, Core: Origin）
+
 ## Properties
 
 ### kind
 
 > `readonly` **kind**: `string`
 
-Defined in: [types/base.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8b88510e1ccceb11c9859896707837644101a436/src/types/base.ts#L33)
+Defined in: [types/base.ts:40](https://github.com/wontlost-ltd/aster-lang/blob/f7cb9921608f3ae45a73f2ee7f3ec458307b0f7f/src/types/base.ts#L40)
 
 ***
 
 ### span?
 
-> `readonly` `optional` **span**: `HasFileProp`\<`S`\> *extends* `true` ? `never` : [`Span`](../../interfaces/Span.md)
+> `readonly` `optional` **span**: [`HasFileProp`](../type-aliases/HasFileProp.md)\<`S`\> *extends* `true` ? `never` : [`Span`](../../interfaces/Span.md)
 
-Defined in: [types/base.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8b88510e1ccceb11c9859896707837644101a436/src/types/base.ts#L34)
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/f7cb9921608f3ae45a73f2ee7f3ec458307b0f7f/src/types/base.ts#L41)
 
 ***
 
 ### origin?
 
-> `readonly` `optional` **origin**: `HasFileProp`\<`S`\> *extends* `true` ? [`Origin`](../../interfaces/Origin.md) : `never`
+> `readonly` `optional` **origin**: [`HasFileProp`](../type-aliases/HasFileProp.md)\<`S`\> *extends* `true` ? [`Origin`](../../interfaces/Origin.md) : `never`
 
-Defined in: [types/base.ts:35](https://github.com/wontlost-ltd/aster-lang/blob/8b88510e1ccceb11c9859896707837644101a436/src/types/base.ts#L35)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/f7cb9921608f3ae45a73f2ee7f3ec458307b0f7f/src/types/base.ts#L42)
 
 ***
 
@@ -88,4 +92,4 @@ Defined in: [types/base.ts:35](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:36](https://github.com/wontlost-ltd/aster-lang/blob/8b88510e1ccceb11c9859896707837644101a436/src/types/base.ts#L36)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/f7cb9921608f3ae45a73f2ee7f3ec458307b0f7f/src/types/base.ts#L43)

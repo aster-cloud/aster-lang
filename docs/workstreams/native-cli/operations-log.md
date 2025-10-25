@@ -556,3 +556,11 @@ aster run app.jar arg1 arg2 --main com.example.Main
 | 2 | shell | `TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M'` | 获取 NZST 时间戳 `2025-10-25 17:56` |
 | 3 | shell | `nl -ba aster-lang-cli/src/main/java/aster/cli/CommandHandler.java \| sed -n '130,230p'` | 获取 handleJar 与辅助方法的行号视图 |
 | 4 | shell | `nl -ba aster-lang-cli/src/main/java/aster/cli/CommandHandler.java \| sed -n '230,270p'` | 获取 handleNative 新逻辑的行号视图 |
+
+# 2025-10-25 18:20 NZST — Codex
+
+- 调用 `mcp__sequential-thinking__sequentialthinking` 梳理 Truffle 深度分析任务、风险与执行步骤
+- 使用 `mcp__code-index__set_project_path(path='.')` 初始化检索根目录，配合 `mcp__code-index__build_deep_index()`、`find_files(pattern='aster-truffle/**')` 枚举模块文件
+- 通过多次 `shell`（`sed`/`nl`）阅读 `aster-truffle` 核心源码、`scripts/aster.ts` 与 `settings.gradle`，记录节点实现与 CLI 集成现状
+- 执行 `mcp__exa__web_search_exa(query='GraalVM Truffle partial evaluation specialization interpreter overview')` 收集 Truffle 部分求值与特化资料
+- 使用 `apply_patch` 新增 `.claude/truffle-analysis-report.md` 与 `.claude/truffle-integration-proposal.md`，输出可行性报告与实验性集成提案

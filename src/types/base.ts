@@ -23,11 +23,18 @@ import type { Effect, CapabilityKind } from '../config/semantic.js';
 // ============================================================
 
 /**
+ * 类型帮助器：检查类型 T 是否有 'file' 属性。
+ *
+ * @typeParam T - 要检查的类型
+ * @internal
+ */
+export type HasFileProp<T> = 'file' extends keyof T ? true : false;
+
+/**
  * 所有 AST 和 Core IR 节点的根接口。
  *
  * @typeParam S - Span 类型（AST: Span, Core: Origin）
  */
-type HasFileProp<T> = 'file' extends keyof T ? true : false;
 
 export interface BaseNode<S = Span | Origin> {
   readonly kind: string;

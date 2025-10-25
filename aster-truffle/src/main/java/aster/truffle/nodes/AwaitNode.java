@@ -18,6 +18,10 @@ public final class AwaitNode extends Node {
     Profiler.inc("await");
     // 当前简化实现：直接执行子表达式并返回结果
     // 未来可能需要与Start/Wait节点协作实现真正的async/await语义
-    return Exec.exec(expr, frame);
+    // 注意：此实现仅为同步执行，不具备真正的异步语义
+    throw new UnsupportedOperationException(
+        "异步操作 (await) 在 Truffle 后端尚未支持。" +
+        "请使用 Java 或 TypeScript 后端运行异步代码。"
+    );
   }
 }

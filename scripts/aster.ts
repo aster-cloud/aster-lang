@@ -17,7 +17,7 @@ function usage(code = 2): never {
       `  jvm <file.aster> [--out DIR] [--watch]    Emit Java sources (default build/jvm-src)\n` +
       `  class <file.aster> [--out DIR] [--watch]  Emit .class files (default build/jvm-classes)\n` +
       `  jar [<file.aster>] [--out FILE]  Create JAR from classes; if file given, build classes first\n` +
-      `  truffle <file.(cnl|json)> [-- args...]  Run Core IR on Truffle (auto-lower .aster to JSON)\n` +
+      `  truffle <file.(aster|json)> [-- args...]  Run Core IR on Truffle (auto-lower .aster to JSON)\n` +
       `  help                     Show this help\n`
   );
   process.exit(code);
@@ -151,7 +151,7 @@ async function cmdTruffle(input: string, passthrough: string[]): Promise<void> {
       GRADLE_OPTS: `${process.env.GRADLE_OPTS ?? ''} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Stack=false`.trim(),
       ...env,
     };
-    const proc = cp.spawn(runCmd, [':truffle:run', `--args=${argsStr}`], {
+    const proc = cp.spawn(runCmd, [':aster-truffle:run', `--args=${argsStr}`], {
       stdio: 'inherit',
       env: env2,
     });

@@ -53,3 +53,7 @@
 - [BaseList](interfaces/BaseList.md)
 - [BaseMap](interfaces/BaseMap.md)
 - [BaseFuncType](interfaces/BaseFuncType.md)
+
+## Type Aliases
+
+- [HasFileProp](type-aliases/HasFileProp.md)

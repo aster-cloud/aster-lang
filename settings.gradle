@@ -22,8 +22,8 @@ include ':examples:login-native'
 project(':examples:login-native').projectDir = file('examples/login-native')
 include ':examples:math-jvm'
 project(':examples:math-jvm').projectDir = file('examples/math-jvm')
-include ':truffle'
-project(':truffle').projectDir = file('truffle')
+include ':aster-truffle'
+project(':aster-truffle').projectDir = file('aster-truffle')
 include ':examples:login-jvm'
 project(':examples:login-jvm').projectDir = file('examples/login-jvm')
 include ':examples:text-jvm'

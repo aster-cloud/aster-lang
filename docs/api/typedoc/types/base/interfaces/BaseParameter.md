@@ -4,7 +4,7 @@
 
 # Interface: BaseParameter\<T\>
 
-Defined in: [types/base.ts:109](https://github.com/wontlost-ltd/aster-lang/blob/8b88510e1ccceb11c9859896707837644101a436/src/types/base.ts#L109)
+Defined in: [types/base.ts:116](https://github.com/wontlost-ltd/aster-lang/blob/f7cb9921608f3ae45a73f2ee7f3ec458307b0f7f/src/types/base.ts#L116)
 
 参数基础接口。
 
@@ -25,7 +25,7 @@ Defined in: [types/base.ts:109](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:110](https://github.com/wontlost-ltd/aster-lang/blob/8b88510e1ccceb11c9859896707837644101a436/src/types/base.ts#L110)
+Defined in: [types/base.ts:117](https://github.com/wontlost-ltd/aster-lang/blob/f7cb9921608f3ae45a73f2ee7f3ec458307b0f7f/src/types/base.ts#L117)
 
 ***
 
@@ -33,4 +33,4 @@ Defined in: [types/base.ts:110](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **type**: `T`
 
-Defined in: [types/base.ts:111](https://github.com/wontlost-ltd/aster-lang/blob/8b88510e1ccceb11c9859896707837644101a436/src/types/base.ts#L111)
+Defined in: [types/base.ts:118](https://github.com/wontlost-ltd/aster-lang/blob/f7cb9921608f3ae45a73f2ee7f3ec458307b0f7f/src/types/base.ts#L118)
