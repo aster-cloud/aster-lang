@@ -15,6 +15,8 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * 集中处理所有 CLI 子命令，统一依赖注入与公共逻辑，避免 Main 承担过多职责。
@@ -212,42 +214,28 @@ public final class CommandHandler {
 
     try (JarHotSwapRunner runner = new JarHotSwapRunner(jarPath)) {
       if (watchMode) {
-        // 监控模式：监控文件变化并自动重载
         System.out.println("启动热插拔监控模式...");
         System.out.println("主类: " + mainClass);
         System.out.println("JAR: " + jarPath);
         System.out.println();
 
+        final BlockingQueue<Path> reloadQueue = new LinkedBlockingQueue<>();
         try (JarFileWatcher watcher = new JarFileWatcher(jarPath, (path) -> {
-          try {
-            System.out.println();
-            System.out.println("=== 文件已修改，重新加载... ===");
-            runner.reload();
-            runner.run(mainClass, appArgs);
-          } catch (Exception e) {
-            System.err.println("重载失败: " + e.getMessage());
-            e.printStackTrace();
-          }
+          reloadQueue.offer(path);
+          runner.stop();
         })) {
-          // 首次运行
           runner.run(mainClass, appArgs);
-
-          // 启动监控
           watcher.start();
-
-          // 等待用户中断（Ctrl+C）
           System.out.println();
           System.out.println("按 Ctrl+C 停止监控...");
-          runner.join();
-
+          runWatchLoop(runner, mainClass, appArgs, reloadQueue);
         }
       } else {
-        // 普通模式：运行一次
         System.out.println("运行 JAR: " + jarPath);
         System.out.println("主类: " + mainClass);
         System.out.println();
         runner.run(mainClass, appArgs);
-        runner.join();
+        runner.waitForCompletion();
       }
 
       return 0;
@@ -263,6 +251,43 @@ public final class CommandHandler {
       System.err.println("发生错误: " + e.getMessage());
       e.printStackTrace();
       return EXIT_COMPILER_ERROR;
+    }
+  }
+
+  private void runWatchLoop(
+      JarHotSwapRunner runner,
+      String mainClass,
+      String[] appArgs,
+      BlockingQueue<Path> reloadQueue)
+      throws InterruptedException {
+    while (true) {
+      try {
+        runner.waitForCompletion();
+      } catch (JarHotSwapRunner.RunnerException e) {
+        System.err.println("运行失败: " + e.getMessage());
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw e;
+      }
+
+      final Path changed;
+      try {
+        changed = reloadQueue.take();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw e;
+      }
+      reloadQueue.clear();
+
+      System.out.println();
+      System.out.println("=== 文件已修改，重新加载... ===");
+      System.out.println("路径: " + changed);
+      try {
+        runner.reload();
+        runner.run(mainClass, appArgs);
+      } catch (JarHotSwapRunner.RunnerException e) {
+        System.err.println("重载失败: " + e.getMessage());
+      }
     }
   }
 

@@ -1,3 +1,23 @@
+# 2025-10-25 14:45 NZST JAR 热插拔重构 初始操作
+
+- 工具：sequential-thinking__sequentialthinking → 梳理任务范围、风险与执行步骤
+- 工具：code-index__set_project_path → path='.'，初始化代码索引以供检索
+- 工具：code-index__build_deep_index → 重建索引 1295 个文件，确保检索可用
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 记录当前新西兰时间戳
+- 工具：apply_patch → 更新 HotSwapClassLoader 构造函数父加载器为系统加载器并调整注释
+- 命令：zsh -lc "./gradlew :aster-lang-cli:compileJava" → 验证阶段1编译通过
+- 工具：apply_patch → 重构 JarHotSwapRunner 引入状态机、单线程执行器与停止/等待机制
+- 命令：zsh -lc "./gradlew :aster-lang-cli:compileJava" → 失败（CommandHandler 仍调用 join 方法，待阶段3修复）
+- 工具：apply_patch → 重写 CommandHandler run/watch 模式，集成新 Runner API 与监控循环
+- 命令：zsh -lc "./gradlew :aster-lang-cli:compileJava" → 失败（JarFileWatcher 构造抛出 IOException 未处理，已调整方法签名）
+- 命令：zsh -lc "./gradlew :aster-lang-cli:compileJava" → 验证阶段3编译通过
+- 工具：apply_patch → 全量重写 JarHotSwapRunnerTest，覆盖并发、异常、stop 与重载场景
+- 命令：zsh -lc "./gradlew :aster-lang-cli:compileJava" → 验证阶段4编译通过
+- 工具：apply_patch → 修正测试编译单元收集方式，兼容 JavaCompiler API
+- 命令：zsh -lc "./gradlew :aster-lang-cli:test" → 全量测试通过
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 获取报告时间戳
+- 工具：apply_patch → 新增 .claude/refactoring-report.md 记录重构成果
+
 # 2025-10-22 01:16 NZST 剩余样例修复 初始分析
 
 - 工具：sequential-thinking__sequentialthinking → 梳理剩余失败样例分类、识别语法缺口与潜在风险
@@ -3288,3 +3308,48 @@ await runOneTypecheck(
 - 2025-10-24 23:35:49 NZDT | 命令：bash -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java" → 了解 Text/String 解析映射背景
 - 2025-10-24 23:36:21 NZDT | 命令：bash -lc "sed -n '220,300p' aster-asm-emitter/src/main/java/aster/emitter/ExpressionEmitter.java" → 验证 emitConstruct 中 Text → Ljava/lang/String; 映射逻辑
 - 2025-10-24 23:38:02 NZDT | 工具：sequential-thinking → 总结审查观察，准备撰写审查报告
+- 2025-10-25 14:29 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=1,totalThoughts=6 → 梳理 JAR 热插拔审查任务目标与总体步骤
+- 2025-10-25 14:29 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=2,totalThoughts=6 → 识别关键线程安全与资源管理风险点
+- 2025-10-25 14:29 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=3,totalThoughts=6 → 确认需先检索指南与核心代码文件
+- 2025-10-25 14:30 NZDT | 命令：zsh -lc "ls" → 查看仓库根目录结构
+- 2025-10-25 14:31 NZDT | 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取当前新西兰时区时间戳
+- 2025-10-25 14:32 NZDT | 工具：code-index__set_project_path | 参数：path='.' → 初始化仓库索引供热插拔审查使用
+- 2025-10-25 14:32 NZDT | 工具：code-index__build_deep_index | 参数：- → 建立深度索引以便提取符号信息
+- 2025-10-25 14:32 NZDT | 工具：code-index__get_file_summary | 参数：HotSwapClassLoader.java → 获取类加载器实现概要
+- 2025-10-25 14:32 NZDT | 工具：code-index__get_file_summary | 参数：JarHotSwapRunner.java → 概览运行器接口与依赖
+- 2025-10-25 14:32 NZDT | 工具：code-index__get_file_summary | 参数：JarFileWatcher.java → 获取文件监控实现摘要
+- 2025-10-25 14:32 NZDT | 工具：code-index__get_file_summary | 参数：CommandHandler.java → 提取 handleRun 相关上下文
+- 2025-10-25 14:32 NZDT | 工具：code-index__get_file_summary | 参数：JarHotSwapRunnerTest.java → 了解测试场景覆盖
+- 2025-10-25 14:33 NZDT | 工具：code-index__find_files | 参数：'.claude/CODE_REVIEW_GUIDE.md' → 未检索到文件，准备手动确认
+- 2025-10-25 14:33 NZDT | 工具：code-index__find_files | 参数：'**/CODE_REVIEW_GUIDE.md' → 仍未命中，转用 shell 列表
+- 2025-10-25 14:33 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-lang-cli/src/main/java/aster/cli/hotswap/HotSwapClassLoader.java" → 阅读类加载器源码
+- 2025-10-25 14:34 NZDT | 命令：zsh -lc "sed -n '1,220p' aster-lang-cli/src/main/java/aster/cli/hotswap/JarHotSwapRunner.java" → 阅读运行器实现
+- 2025-10-25 14:35 NZDT | 命令：zsh -lc "sed -n '1,220p' aster-lang-cli/src/main/java/aster/cli/hotswap/JarFileWatcher.java" → 阅读文件监控逻辑
+- 2025-10-25 14:35 NZDT | 命令：zsh -lc "rg -n 'handleRun' aster-lang-cli/src/main/java/aster/cli/CommandHandler.java" → 定位 CLI 入口方法
+- 2025-10-25 14:35 NZDT | 命令：zsh -lc "sed -n '194,280p' aster-lang-cli/src/main/java/aster/cli/CommandHandler.java" → 阅读 handleRun 方法
+- 2025-10-25 14:36 NZDT | 命令：zsh -lc "sed -n '1,220p' aster-lang-cli/src/test/java/aster/cli/hotswap/JarHotSwapRunnerTest.java" → 审查测试覆盖情况
+- 2025-10-25 14:36 NZDT | 命令：zsh -lc "ls .claude" → 确认审查指南路径
+- 2025-10-25 14:36 NZDT | 命令：zsh -lc "sed -n '1,200p' .claude/CODE_REVIEW_GUIDE.md" → 复核审查标准
+- 2025-10-25 14:37 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=4,totalThoughts=7 → 总结已阅代码，准备梳理审查要点
+- 2025-10-25 14:37 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=5,totalThoughts=7 → 识别线程与 ClassLoader 管理中的关键缺陷
+- 2025-10-25 14:37 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=6,totalThoughts=7 → 评估测试缺口并规划审查报告结构
+- 2025-10-25 14:38 NZDT | 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZDT'" → 获取审查报告时间戳
+- 2025-10-25 14:39 NZDT | 命令：zsh -lc "cat <<'EOF' > .claude/review-report.md" → 生成 JAR 热插拔审查报告
+- 2025-10-25 14:39 NZDT | 命令：zsh -lc "sed -n '1,200p' .claude/review-report.md" → 核对审查报告内容
+- 2025-10-25 15:14:05 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=1,totalThoughts=6 → 明确热插拔重写范围与执行顺序
+- 2025-10-25 15:14:06 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=2,totalThoughts=6 → 列出需要分析的核心文件与依赖
+- 2025-10-25 15:14:07 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=3,totalThoughts=6 → 规划 ExecutionSlot 架构与同步策略
+- 2025-10-25 15:14:08 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=4,totalThoughts=6 → 统一异常传播与取消语义评估
+- 2025-10-25 15:14:09 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=5,totalThoughts=6 → 设计测试场景与动态编译方案
+- 2025-10-25 15:14:10 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=6,totalThoughts=6 → 整合执行步骤与文档要求
+- 2025-10-25 15:14:20 NZDT | 命令：zsh -lc "ls" → 确认仓库根目录结构
+- 2025-10-25 15:14:24 NZDT | 命令：zsh -lc "rg --files -g'JarHotSwapRunner.java'" → 定位热插拔运行器源码
+- 2025-10-25 15:14:30 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-lang-cli/src/main/java/aster/cli/hotswap/JarHotSwapRunner.java" → 阅读现有实现细节
+- 2025-10-25 15:14:36 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-lang-cli/src/main/java/aster/cli/hotswap/HotSwapClassLoader.java" → 检查类加载器父加载器配置
+- 2025-10-25 15:14:42 NZDT | 命令：zsh -lc "sed -n '194,320p' aster-lang-cli/src/main/java/aster/cli/CommandHandler.java" → 获取 run/watch 模式逻辑
+- 2025-10-25 15:14:48 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-lang-cli/src/test/java/aster/cli/hotswap/JarHotSwapRunnerTest.java" → 评估旧版测试覆盖
+- 2025-10-25 15:17:02 NZDT | 工具：apply_patch → 重写 JarHotSwapRunner 使用 ExecutionSlot 串行化执行
+- 2025-10-25 15:17:45 NZDT | 工具：apply_patch → 更新 HotSwapClassLoader 以系统加载器为父级
+- 2025-10-25 15:18:32 NZDT | 工具：apply_patch → 重构 CommandHandler watch 模式为队列驱动与 waitForCompletion
+- 2025-10-25 15:19:58 NZDT | 工具：apply_patch → 重写 JarHotSwapRunnerTest 引入 JavaCompiler 动态构建 JAR
+- 2025-10-25 15:23:04 NZDT | 命令：zsh -lc "./gradlew :aster-lang-cli:test" → 执行 CLI 模块测试验证全部用例通过
