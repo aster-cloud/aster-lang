@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "get_user_info",
+      "typeParams": [],
       "params": [],
       "retType": {
         "kind": "Result",
@@ -12,14 +13,16 @@
           "kind": "TypePii",
           "baseType": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "sensitivity": "L2",
           "category": "email"
         },
         "err": {
           "kind": "TypeName",
-          "name": "Text"
+          "name": "Text",
+          "annotations": []
         }
       },
       "effects": [],
@@ -58,6 +61,7 @@
     {
       "kind": "Func",
       "name": "get_optional_phone",
+      "typeParams": [],
       "params": [],
       "retType": {
         "kind": "TypePii",
@@ -65,7 +69,8 @@
           "kind": "Maybe",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         },
         "sensitivity": "L3",

@@ -26,7 +26,7 @@ function createSpan(): Span {
 }
 
 function createTypeName(name: string): AstType {
-  return { kind: 'TypeName', name, span: createSpan() };
+  return { kind: 'TypeName', name, annotations: [], span: createSpan() };
 }
 
 // ============================================================================

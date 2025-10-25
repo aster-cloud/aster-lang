@@ -5,18 +5,21 @@
     {
       "kind": "Func",
       "name": "inc",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Int"
+        "name": "Int",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -37,6 +40,7 @@
     {
       "kind": "Func",
       "name": "maybeWithDefault",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
@@ -44,7 +48,8 @@
             "kind": "Maybe",
             "type": {
               "kind": "TypeName",
-              "name": "Int"
+              "name": "Int",
+              "annotations": []
             }
           }
         },
@@ -52,13 +57,15 @@
           "name": "d",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Int"
+        "name": "Int",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -92,6 +99,7 @@
     {
       "kind": "Func",
       "name": "mapMaybe",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
@@ -99,7 +107,8 @@
             "kind": "Maybe",
             "type": {
               "kind": "TypeName",
-              "name": "Int"
+              "name": "Int",
+              "annotations": []
             }
           }
         }
@@ -108,7 +117,8 @@
         "kind": "Maybe",
         "type": {
           "kind": "TypeName",
-          "name": "Int"
+          "name": "Int",
+          "annotations": []
         }
       },
       "effects": [],
@@ -143,18 +153,21 @@
     {
       "kind": "Func",
       "name": "logErr",
+      "typeParams": [],
       "params": [
         {
           "name": "e",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -175,6 +188,7 @@
     {
       "kind": "Func",
       "name": "mapOk",
+      "typeParams": [],
       "params": [
         {
           "name": "r",
@@ -182,11 +196,13 @@
             "kind": "Result",
             "ok": {
               "kind": "TypeName",
-              "name": "Int"
+              "name": "Int",
+              "annotations": []
             },
             "err": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             }
           }
         }
@@ -195,11 +211,13 @@
         "kind": "Result",
         "ok": {
           "kind": "TypeName",
-          "name": "Int"
+          "name": "Int",
+          "annotations": []
         },
         "err": {
           "kind": "TypeName",
-          "name": "Text"
+          "name": "Text",
+          "annotations": []
         }
       },
       "effects": [],
@@ -234,6 +252,7 @@
     {
       "kind": "Func",
       "name": "tapError",
+      "typeParams": [],
       "params": [
         {
           "name": "r",
@@ -241,11 +260,13 @@
             "kind": "Result",
             "ok": {
               "kind": "TypeName",
-              "name": "Int"
+              "name": "Int",
+              "annotations": []
             },
             "err": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             }
           }
         }
@@ -254,11 +275,13 @@
         "kind": "Result",
         "ok": {
           "kind": "TypeName",
-          "name": "Int"
+          "name": "Int",
+          "annotations": []
         },
         "err": {
           "kind": "TypeName",
-          "name": "Text"
+          "name": "Text",
+          "annotations": []
         }
       },
       "effects": [],

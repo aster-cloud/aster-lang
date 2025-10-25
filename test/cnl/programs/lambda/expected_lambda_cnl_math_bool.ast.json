@@ -5,10 +5,12 @@
     {
       "kind": "Func",
       "name": "compute",
+      "typeParams": [],
       "params": [],
       "retType": {
         "kind": "TypeName",
-        "name": "Int"
+        "name": "Int",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -26,13 +28,15 @@
                   "name": "x",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Int"
+                    "name": "Int",
+                    "annotations": []
                   }
                 }
               ],
               "retType": {
                 "kind": "TypeName",
-                "name": "Int"
+                "name": "Int",
+                "annotations": []
               },
               "body": {
                 "kind": "Block",
@@ -83,18 +87,21 @@
     {
       "kind": "Func",
       "name": "invert",
+      "typeParams": [],
       "params": [
         {
           "name": "v",
           "type": {
             "kind": "TypeName",
-            "name": "Bool"
+            "name": "Bool",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Bool"
+        "name": "Bool",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -112,13 +119,15 @@
                   "name": "x",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Bool"
+                    "name": "Bool",
+                    "annotations": []
                   }
                 }
               ],
               "retType": {
                 "kind": "TypeName",
-                "name": "Bool"
+                "name": "Bool",
+                "annotations": []
               },
               "body": {
                 "kind": "Block",

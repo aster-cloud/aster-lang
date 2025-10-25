@@ -50,7 +50,7 @@ class CompilerBackendSelectionTest {
      * 测试：Java 编译器后端
      */
     @Test
-    void testJavaBackend() {
+    void testJavaBackend() throws Exception {
         CompilerBackend backend = new JavaCompilerBackend();
         CommandHandler handler = new CommandHandler(
             mockBridge, mockPathResolver, mockDiagnosticFormatter, mockVersionReader, backend);
@@ -60,20 +60,26 @@ class CompilerBackendSelectionTest {
     }
 
     /**
-     * 测试：Java 编译器的所有阶段初始状态应为不可用
+     * 测试：Java 编译器 Phase 1 阶段可用性
+     * - Java 实现：lex, canonicalize, parse, core, typecheck
+     * - 委托给 TypeScript：compile, jar
      */
     @Test
-    void testJavaBackendStagesInitiallyUnavailable() {
+    void testJavaBackendStagesAvailability() throws Exception {
         CompilerBackend backend = new JavaCompilerBackend();
 
-        // 验证所有阶段初始状态为不可用
-        assertFalse(backend.isStageAvailable("native:cli:class"), "compile 阶段应不可用");
-        assertFalse(backend.isStageAvailable("native:cli:typecheck"), "typecheck 阶段应不可用");
-        assertFalse(backend.isStageAvailable("native:cli:jar"), "jar 阶段应不可用");
-        assertFalse(backend.isStageAvailable("parse"), "parse 阶段应不可用");
-        assertFalse(backend.isStageAvailable("core"), "core 阶段应不可用");
-        assertFalse(backend.isStageAvailable("canonicalize"), "canonicalize 阶段应不可用");
-        assertFalse(backend.isStageAvailable("lex"), "lex 阶段应不可用");
+        // Phase 1: Java 实现的阶段应可用
+        assertTrue(backend.isStageAvailable("lex"), "lex 阶段应可用");
+        assertTrue(backend.isStageAvailable("canonicalize"), "canonicalize 阶段应可用");
+        assertTrue(backend.isStageAvailable("parse"), "parse 阶段应可用");
+        assertTrue(backend.isStageAvailable("core"), "core 阶段应可用");
+        assertTrue(backend.isStageAvailable("typecheck"), "typecheck 阶段应可用");
+        assertTrue(backend.isStageAvailable("native:cli:core"), "native:cli:core 阶段应可用");
+        assertTrue(backend.isStageAvailable("native:cli:typecheck"), "native:cli:typecheck 阶段应可用");
+
+        // Phase 1: 委托给 TypeScript 的阶段也应可用
+        assertTrue(backend.isStageAvailable("native:cli:class"), "compile 阶段应可用（委托）");
+        assertTrue(backend.isStageAvailable("native:cli:jar"), "jar 阶段应可用（委托）");
     }
 
     /**
@@ -92,16 +98,16 @@ class CompilerBackendSelectionTest {
     }
 
     /**
-     * 测试：Java 编译器在执行不可用阶段时应返回友好错误消息
+     * 测试：Java 编译器在执行未知阶段时应返回友好错误消息
      */
     @Test
-    void testJavaBackendReturnsErrorForUnavailableStage() {
+    void testJavaBackendReturnsErrorForUnknownStage() throws Exception {
         CompilerBackend backend = new JavaCompilerBackend();
 
-        var result = backend.execute("native:cli:class", java.util.List.of("test.aster"));
+        var result = backend.execute("unknown-stage", java.util.List.of("test.aster"));
 
-        assertEquals(1, result.exitCode(), "执行不可用阶段应返回非零退出码");
-        assertTrue(result.stderr().contains("Java 编译器尚未实现阶段"), "错误信息应提示未实现");
+        assertEquals(1, result.exitCode(), "执行未知阶段应返回非零退出码");
+        assertTrue(result.stderr().contains("Java 编译器尚未实现阶段"), "错误信息应提示未实现阶段");
         assertTrue(result.stderr().contains("ASTER_COMPILER=typescript"), "错误信息应提示如何回退");
     }
 }

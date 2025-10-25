@@ -18,6 +18,19 @@
 - 命令：zsh -lc "sed -n '120,240p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java" → 检查 CLI parse 阶段是否执行 canonicalize
 - 工具：apply_patch → 更新 AsterParser.g4，允许注解名称使用 IDENT 或 TYPE_IDENT
 - 工具：apply_patch → 更新 AstBuilder.java，统一注解名称解析并支持 TYPE_IDENT
+
+# 2025-10-25 10:05 NZDT Phase 2 compile/jar 上下文扫描
+
+- 工具：sequential-thinking__sequentialthinking → 梳理 Phase 2 纯 Java compile/jar 上下文收集步骤与风险
+- 工具：code-index__set_project_path → path='.'，初始化索引以便搜索 asm-emitter 相关代码
+- 工具：code-index__search_code_advanced → pattern='asm-emitter'，定位 Gradle 模块与脚本引用
+- 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/build.gradle.kts" → 收集 ASM 依赖版本与运行配置
+- 命令：zsh -lc "sed -n '1,200p' aster-core/src/main/java/aster/core/ir/CoreModel.java" → 审阅 Core IR 定义与 JSON 序列化注解
+- 命令：zsh -lc "sed -n '1,200p' scripts/emit-classfiles.ts" → 确认 TypeScript Bridge 入口及 Gradle 调度逻辑
+- 命令：zsh -lc "sed -n '1,200p' scripts/jar-jvm.ts" → 理解现有 JAR 打包流程与依赖
+- 命令：zsh -lc "rg --files -g'*.java' aster-asm-emitter/src/test/java | head" → 浏览 ASM emitter 测试套件结构
+- 命令：zsh -lc "find test -name 'expected_*_core.json' | head" → 确认 Core IR 样例输入位置
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 记录新西兰时区时间戳
 - 命令：zsh -lc "./gradlew :aster-core:generateGrammarSource" → 重新生成 ANTLR 语法代码
 - 命令：zsh -lc "./gradlew :aster-core:test" → 回归核心单测（通过）
 - 命令：zsh -lc "npm run test:golden" → TypeScript 黄金测试通过

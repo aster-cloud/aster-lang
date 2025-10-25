@@ -5,25 +5,29 @@
     {
       "kind": "Func",
       "name": "cmp",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         },
         {
           "name": "y",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Bool"
+        "name": "Bool",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -57,25 +61,29 @@
     {
       "kind": "Func",
       "name": "add",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         },
         {
           "name": "y",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Int"
+        "name": "Int",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],

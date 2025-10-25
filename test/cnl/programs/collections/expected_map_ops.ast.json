@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "val",
+      "typeParams": [],
       "params": [
         {
           "name": "m",
@@ -12,11 +13,13 @@
             "kind": "Map",
             "key": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             },
             "val": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             }
           }
         },
@@ -24,7 +27,8 @@
           "name": "k",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         }
       ],
@@ -32,7 +36,8 @@
         "kind": "Maybe",
         "type": {
           "kind": "TypeName",
-          "name": "Text"
+          "name": "Text",
+          "annotations": []
         }
       },
       "effects": [],
@@ -67,6 +72,7 @@
     {
       "kind": "Func",
       "name": "valStrict",
+      "typeParams": [],
       "params": [
         {
           "name": "m",
@@ -74,11 +80,13 @@
             "kind": "Map",
             "key": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             },
             "val": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             }
           }
         },
@@ -86,13 +94,15 @@
           "name": "k",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],

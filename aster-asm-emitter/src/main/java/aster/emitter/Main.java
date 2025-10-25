@@ -77,22 +77,100 @@ public final class Main {
     return msg + " [" + file + ":" + o.start.line + ":" + o.start.col + "-" + o.end.line + ":" + o.end.col + "]";
   }
 
+  /**
+   * 编译结果，包含模块映射和错误信息。
+   */
+  public static class CompileResult {
+    public final Map<String, String> moduleMapping;
+    public final List<String> errors;
+    public final boolean success;
+
+    public CompileResult(Map<String, String> moduleMapping, List<String> errors, boolean success) {
+      this.moduleMapping = moduleMapping;
+      this.errors = errors;
+      this.success = success;
+    }
+
+    public static CompileResult ok(Map<String, String> moduleMapping) {
+      return new CompileResult(moduleMapping, List.of(), true);
+    }
+
+    public static CompileResult error(List<String> errors) {
+      return new CompileResult(Map.of(), errors, false);
+    }
+  }
+
+  /**
+   * 编译 Core IR 模块为 JVM 字节码。
+   *
+   * 注意：此方法不保证线程安全，调用方需要同步。
+   *
+   * @param module Core IR 模块
+   * @param outputDir 输出目录，将写入 .class 文件
+   * @param funcHints 函数类型提示（可选，用于优化）
+   * @return 编译结果，包含模块映射和错误信息
+   */
+  public static CompileResult compile(CoreModel.Module module, Path outputDir, Map<String, Map<String, Character>> funcHints) {
+    // 清理静态状态，确保每次调用隔离
+    DIAG_OVERLOAD = true;
+    NULL_STRICT = false;
+    NULL_POLICY_OVERRIDE.clear();
+
+    List<String> errors = new ArrayList<>();
+    Map<String, String> moduleMapping = new LinkedHashMap<>();
+
+    try {
+      Files.createDirectories(outputDir);
+
+      Map<String, Map<String, Character>> hints = (funcHints != null) ? funcHints : new LinkedHashMap<>();
+
+      var context = new ContextBuilder(module);
+      // Build function schemas map
+      Map<String, CoreModel.Func> functionSchemas = new LinkedHashMap<>();
+      for (var d : module.decls) {
+        if (d instanceof CoreModel.Func fn) {
+          functionSchemas.put(fn.name, fn);
+        }
+      }
+      var ctx = new Ctx(outputDir, context, new java.util.concurrent.atomic.AtomicInteger(0), hints, new LinkedHashMap<>(), functionSchemas);
+      String pkgName = (module.name == null || module.name.isEmpty()) ? "app" : module.name;
+
+      // 记录模块映射（当前实现中 cnl == jvm）
+      moduleMapping.put(pkgName, pkgName);
+
+      for (var d : module.decls) {
+        if (d instanceof CoreModel.Data data) emitData(ctx, pkgName, data);
+        else if (d instanceof CoreModel.Enum en) emitEnum(ctx, pkgName, en);
+        else if (d instanceof CoreModel.Func fn) emitFunc(ctx, pkgName, module, fn);
+      }
+
+      return CompileResult.ok(moduleMapping);
+    } catch (Exception ex) {
+      errors.add("编译失败: " + ex.getMessage());
+      if (ex.getCause() != null) {
+        errors.add("原因: " + ex.getCause().getMessage());
+      }
+      return CompileResult.error(errors);
+    }
+  }
+
   public static void main(String[] args) throws Exception {
+    // 从 System.in 读取 Core IR
     CoreContext coreCtx = ModuleLoader.load(System.in);
+
+    // 应用 CoreContext 的配置到静态状态
     DIAG_OVERLOAD = coreCtx.diagOverload();
     NULL_STRICT = coreCtx.nullPolicy().strict();
     NULL_POLICY_OVERRIDE.clear();
     NULL_POLICY_OVERRIDE.putAll(coreCtx.nullPolicy().overrides());
 
-    var mapper = new ObjectMapper();
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     var module = coreCtx.module();
-    var out = Paths.get(args.length > 0 ? args[0] : "build/jvm-classes");
-    Files.createDirectories(out);
+    var outputDir = Paths.get(args.length > 0 ? args[0] : "build/jvm-classes");
 
-    Map<String, Map<String, Character>> hints = new java.util.LinkedHashMap<>();
+    // 转换 funcHints 格式
+    Map<String, Map<String, Character>> hints = new LinkedHashMap<>();
     for (var entry : coreCtx.hints().entrySet()) {
-      Map<String, Character> m = new java.util.LinkedHashMap<>();
+      Map<String, Character> m = new LinkedHashMap<>();
       for (var hint : entry.getValue().entrySet()) {
         String kind = hint.getValue();
         if (kind != null && !kind.isEmpty()) m.put(hint.getKey(), kind.charAt(0));
@@ -100,33 +178,34 @@ public final class Main {
       hints.put(entry.getKey(), m);
     }
 
-    var context = new ContextBuilder(module);
-    // Build function schemas map
-    Map<String, CoreModel.Func> functionSchemas = new java.util.LinkedHashMap<>();
-    for (var d : module.decls) {
-      if (d instanceof CoreModel.Func fn) {
-        functionSchemas.put(fn.name, fn);
+    // 调用新的 compile() API
+    CompileResult result = compile(module, outputDir, hints);
+
+    if (!result.success) {
+      System.err.println("编译失败:");
+      for (String error : result.errors) {
+        System.err.println("  " + error);
       }
+      System.exit(1);
+      return;
     }
-    var ctx = new Ctx(out, context, new java.util.concurrent.atomic.AtomicInteger(0), hints, new java.util.LinkedHashMap<>(), functionSchemas);
-    String pkgName = (module.name == null || module.name.isEmpty()) ? "app" : module.name;
-    for (var d : module.decls) {
-      if (d instanceof CoreModel.Data data) emitData(ctx, pkgName, data);
-      else if (d instanceof CoreModel.Enum en) emitEnum(ctx, pkgName, en);
-      else if (d instanceof CoreModel.Func fn) emitFunc(ctx, pkgName, module, fn);
-    }
-    // Emit package map artifact for tooling
+
+    // 写入 package-map.json（向后兼容）
     try {
       var outRoot = Paths.get("build/aster-out");
       Files.createDirectories(outRoot);
       var mapPath = outRoot.resolve("package-map.json");
-      String pkg = pkgName;
-      String json = "{\n  \"modules\": [{ \"cnl\": \"" + pkg + "\", \"jvm\": \"" + pkg + "\" }]\n}";
-      Files.writeString(mapPath, json, java.nio.charset.StandardCharsets.UTF_8);
+
+      // 从 result.moduleMapping 生成 JSON
+      String pkgName = module.name != null && !module.name.isEmpty() ? module.name : "app";
+      String json = "{\n  \"modules\": [{ \"cnl\": \"" + pkgName + "\", \"jvm\": \"" + pkgName + "\" }]\n}";
+      Files.writeString(mapPath, json, StandardCharsets.UTF_8);
       System.out.println("WROTE package-map.json to " + mapPath.toAbsolutePath());
     } catch (Exception ex) {
       System.err.println("WARN: failed to write package-map.json: " + ex.getMessage());
     }
+
+    System.exit(0);
   }
 
   static void emitData(Ctx ctx, String pkg, CoreModel.Data d) throws IOException {

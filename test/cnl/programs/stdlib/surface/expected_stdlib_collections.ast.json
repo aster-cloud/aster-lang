@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "length",
+      "typeParams": [],
       "params": [
         {
           "name": "xs",
@@ -12,14 +13,16 @@
             "kind": "List",
             "type": {
               "kind": "TypeName",
-              "name": "Int"
+              "name": "Int",
+              "annotations": []
             }
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Int"
+        "name": "Int",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -49,6 +52,7 @@
     {
       "kind": "Func",
       "name": "head",
+      "typeParams": [],
       "params": [
         {
           "name": "xs",
@@ -56,7 +60,8 @@
             "kind": "List",
             "type": {
               "kind": "TypeName",
-              "name": "Int"
+              "name": "Int",
+              "annotations": []
             }
           }
         }
@@ -65,7 +70,8 @@
         "kind": "Maybe",
         "type": {
           "kind": "TypeName",
-          "name": "Int"
+          "name": "Int",
+          "annotations": []
         }
       },
       "effects": [],
@@ -86,18 +92,21 @@
     {
       "kind": "Func",
       "name": "id",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Int"
+        "name": "Int",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -118,6 +127,7 @@
     {
       "kind": "Func",
       "name": "mapId",
+      "typeParams": [],
       "params": [
         {
           "name": "xs",
@@ -125,7 +135,8 @@
             "kind": "List",
             "type": {
               "kind": "TypeName",
-              "name": "Int"
+              "name": "Int",
+              "annotations": []
             }
           }
         }
@@ -134,7 +145,8 @@
         "kind": "List",
         "type": {
           "kind": "TypeName",
-          "name": "Int"
+          "name": "Int",
+          "annotations": []
         }
       },
       "effects": [],

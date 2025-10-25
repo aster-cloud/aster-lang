@@ -10,115 +10,72 @@
           "name": "name",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
-          },
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 21
-            },
-            "end": {
-              "line": 3,
-              "col": 31
-            }
+            "name": "Text",
+            "annotations": []
           }
         },
         {
           "name": "discount",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 34
-            },
-            "end": {
-              "line": 3,
-              "col": 71
-            }
-          }
+          ]
         },
         {
           "name": "price",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 74
-            },
-            "end": {
-              "line": 3,
-              "col": 112
-            }
-          }
+          ]
         }
       ]
     },
     {
       "kind": "Func",
       "name": "applyDiscount",
+      "typeParams": [],
       "params": [
         {
           "name": "product",
           "type": {
             "kind": "TypeName",
-            "name": "Product"
-          },
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 23
-            },
-            "end": {
-              "line": 5,
-              "col": 39
-            }
+            "name": "Product",
+            "annotations": []
           }
         },
         {
           "name": "percent",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 42
-            },
-            "end": {
-              "line": 5,
-              "col": 78
-            }
-          }
+          ]
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Int"
+        "name": "Int",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -158,16 +115,6 @@
                   "value": 100
                 }
               ]
-            },
-            "span": {
-              "start": {
-                "line": 6,
-                "col": 3
-              },
-              "end": {
-                "line": 6,
-                "col": 50
-              }
             }
           },
           {
@@ -189,16 +136,6 @@
                   "name": "reduction"
                 }
               ]
-            },
-            "span": {
-              "start": {
-                "line": 7,
-                "col": 3
-              },
-              "end": {
-                "line": 7,
-                "col": 47
-              }
             }
           },
           {
@@ -206,49 +143,9 @@
             "expr": {
               "kind": "Name",
               "name": "finalPrice"
-            },
-            "span": {
-              "start": {
-                "line": 8,
-                "col": 3
-              },
-              "end": {
-                "line": 8,
-                "col": 21
-              }
             }
           }
-        ],
-        "span": {
-          "start": {
-            "line": 6,
-            "col": 3
-          },
-          "end": {
-            "line": 9,
-            "col": 1
-          }
-        }
-      },
-      "span": {
-        "start": {
-          "line": 5,
-          "col": 1
-        },
-        "end": {
-          "line": 9,
-          "col": 1
-        }
-      },
-      "nameSpan": {
-        "start": {
-          "line": 5,
-          "col": 4
-        },
-        "end": {
-          "line": 9,
-          "col": 1
-        }
+        ]
       }
     }
   ]

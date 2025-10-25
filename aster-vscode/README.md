@@ -100,6 +100,10 @@ code --install-extension aster-vscode-0.1.0.vsix
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
 | `aster.langServer.path` | `"dist/src/lsp/server.js"` | LSP 服务器路径（相对于工作区根目录） |
+| `aster.compiler` | `"typescript"` | 编译器后端：`typescript` 或 `java` |
+| `aster.cli.path` | `"aster-lang-cli/build/install/aster-lang-cli/bin/aster-lang-cli"` | Aster CLI 可执行文件路径 |
+| `aster.output.directory` | `"build/aster-out"` | 编译输出目录（相对于工作区根目录） |
+| `aster.debug.enabled` | `false` | 启用调试输出（设置 ASTER_DEBUG=true） |
 | `asterLanguageServer.index.persist` | `true` | 是否持久化工作区符号索引 |
 | `asterLanguageServer.index.path` | 无 | 自定义索引文件路径 |
 | `asterLanguageServer.format.mode` | `"lossless"` | 格式化模式：`lossless` 或 `normalize` |
@@ -152,6 +156,57 @@ ASTER_CAPS=test/cnl/examples/capabilities.json code .
 1. 按 `Cmd+Shift+P` (macOS) 或 `Ctrl+Shift+P` (Windows/Linux)
 2. 输入 "Aster: Start Language Server"
 3. 回车执行
+
+### ✨ Aster: Compile File
+**命令 ID**: `aster.compile`
+
+编译当前打开的 Aster 文件为 JVM 字节码。
+
+**前置条件**:
+- 已构建 Aster CLI: `./gradlew :aster-lang-cli:installDist`
+- 打开一个 `.aster` 文件
+
+**使用方式**:
+1. 打开 `.aster` 文件
+2. 按 `Cmd+Shift+P` → 输入 "Aster: Compile File"
+3. 编译结果输出到配置的输出目录（默认 `build/aster-out`）
+
+**环境变量**:
+- `ASTER_COMPILER`: 自动设置为配置中的编译器（typescript 或 java）
+- `ASTER_DEBUG`: 根据配置决定是否启用
+
+### ✨ Aster: Debug File
+**命令 ID**: `aster.debug`
+
+编译并启动调试会话。
+
+**前置条件**:
+- 已安装 Java 调试扩展（如 Debugger for Java）
+- 已构建 Aster CLI
+
+**使用方式**:
+1. 打开 `.aster` 文件
+2. 按 `Cmd+Shift+P` → 输入 "Aster: Debug File"
+3. 自动编译并启动调试器
+
+### ✨ Aster: Build Native Executable
+**命令 ID**: `aster.buildNative`
+
+构建原生可执行文件（即将推出）。
+
+**当前行为**: 编译为 JVM 字节码，原生构建功能开发中。
+
+### ✨ Aster: Package to JAR
+**命令 ID**: `aster.package`
+
+编译并打包为可执行 JAR 文件。
+
+**使用方式**:
+1. 打开 `.aster` 文件
+2. 按 `Cmd+Shift+P` → 输入 "Aster: Package to JAR"
+3. JAR 文件生成在输出目录中
+
+**输出位置**: `<output.directory>/<filename>.jar`
 
 ## 语法示例
 
@@ -254,6 +309,17 @@ WontLost Ltd
 - 示例代码：`test/cnl/examples/`
 
 ## 更新日志
+
+### 0.3.0 (2025-10-25)
+- ✨ **新功能**：添加编译命令（Aster: Compile File）
+- ✨ **新功能**：添加调试命令（Aster: Debug File）
+- ✨ **新功能**：添加原生构建命令（Aster: Build Native Executable）
+- ✨ **新功能**：添加打包命令（Aster: Package to JAR）
+- ⚙️ **配置项**：新增编译器选择（typescript/java）
+- ⚙️ **配置项**：新增 CLI 路径配置
+- ⚙️ **配置项**：新增输出目录配置
+- ⚙️ **配置项**：新增调试模式开关
+- 📝 **文档**：完善命令使用说明
 
 ### 0.2.0 (2025-10-14)
 - ✨ **LSP增强**：References现在返回所有真实引用（不仅是定义）

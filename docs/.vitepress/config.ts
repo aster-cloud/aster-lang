@@ -4,6 +4,10 @@ export default defineConfig({
   title: 'Aster Language',
   description: 'A pragmatic, safe, fast language with a human CNL surface',
   base: '/',
+  ignoreDeadLinks: [
+    // Ignore links to files outside docs directory (aster-vscode, etc.)
+    (url) => url.includes('../../../'),
+  ],
   markdown: {
     // 配置 Shiki 语法高亮主题
     theme: {

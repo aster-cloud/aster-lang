@@ -2,9 +2,22 @@ package aster.cli.compiler;
 
 import aster.cli.TypeScriptBridge.Result;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
+import java.util.stream.Stream;
 
 /**
  * Java 编译器后端实现
@@ -33,17 +46,29 @@ public final class JavaCompilerBackend implements CompilerBackend {
     private final Map<String, Boolean> availableStages;
 
     /**
-     * 创建 Java 编译器后端
+     * 模块映射（模块名 → JVM 包名），由 runCompile() 生成，供 runJar() 使用
+     */
+    private Map<String, String> moduleMapping;
+
+    /**
+     * Core IR 模块，由 lowerToCore() 生成，供后续阶段使用
+     */
+    private aster.core.ir.CoreModel.Module coreModule;
+
+    /**
+     * 创建 Java 编译器后端（Phase 2: 纯 Java 实现，不再依赖 TypeScript Bridge）
      */
     public JavaCompilerBackend() {
         this.availableStages = new HashMap<>();
         // 初始化所有阶段为未实现
-        registerStage("native:cli:class", false);  // 完整编译管线
-        registerStage("native:cli:typecheck", false);  // 类型检查
-        registerStage("native:cli:jar", false);  // JAR 打包
+        registerStage("native:cli:class", true);  // 完整编译管线（Phase 1: 委托给 TS）
+        registerStage("native:cli:typecheck", true);  // 类型检查 ✅ 已实现
+        registerStage("typecheck", true);  // 类型检查（别名）✅ 已实现
+        registerStage("native:cli:jar", true);  // JAR 打包（Phase 1: 委托给 TS）
         registerStage("native:cli:parse", true);  // 解析阶段 ✅ 已实现
         registerStage("parse", true);  // 解析阶段（别名）✅ 已实现
-        registerStage("core", false);  // Lower to Core 阶段
+        registerStage("native:cli:core", true);  // Lower to Core 阶段 ✅ 已实现
+        registerStage("core", true);  // Lower to Core 阶段（别名）✅ 已实现
         registerStage("canonicalize", true);  // 规范化阶段 ✅ 已实现
         registerStage("lex", true);  // 词法分析 ✅ 已实现
     }
@@ -76,11 +101,30 @@ public final class JavaCompilerBackend implements CompilerBackend {
         // TODO: 实现各编译阶段
         // 当各阶段迁移完成后，将在此处调用对应的 Java 实现
         return switch (stage) {
-            case "native:cli:class" -> compileToJvmClasses(args, envOverrides);
-            case "native:cli:typecheck" -> runTypecheck(args, envOverrides);
-            case "native:cli:jar" -> createJar(args, envOverrides);
+            // Phase 2: 纯 Java 编译管线（compile 和 jar 阶段已实现）
+            case "native:cli:class" -> {
+                // 完整编译管线：parse → lowerToCore → compile
+                if (args.isEmpty()) {
+                    yield new Result(1, "", "compile 阶段需要提供输入文件", List.of());
+                }
+
+                // 1. Lower to Core IR
+                Result coreResult = lowerToCore(args, envOverrides);
+                if (coreResult.exitCode() != 0) {
+                    yield coreResult;  // 失败时直接返回
+                }
+
+                // 2. Compile to bytecode
+                yield runCompile(args, envOverrides);
+            }
+
+            // Phase 2: JAR 打包阶段（纯 Java 实现）
+            case "native:cli:jar" -> runJar(args, envOverrides);
+
+            // Java 实现的阶段
+            case "native:cli:typecheck", "typecheck" -> runTypecheck(args, envOverrides);
             case "native:cli:parse", "parse" -> runParser(args, envOverrides);
-            case "core" -> lowerToCore(args, envOverrides);
+            case "native:cli:core", "core" -> lowerToCore(args, envOverrides);
             case "canonicalize" -> runCanonicalizer(args, envOverrides);
             case "lex" -> runLexer(args, envOverrides);
             default -> new Result(1, "", "未知的编译阶段: " + stage, List.of());
@@ -108,29 +152,330 @@ public final class JavaCompilerBackend implements CompilerBackend {
     }
 
     // ============================================================
-    // 各编译阶段实现（占位方法，待迁移时填充）
+    // 各编译阶段实现
     // ============================================================
 
-    private Result compileToJvmClasses(List<String> args, Map<String, String> envOverrides) {
-        // TODO: 实现完整编译管线
-        // 1. Parse → AST
-        // 2. Canonicalize → Normalized AST
-        // 3. Type Check → Typed AST
-        // 4. Lower to Core → Core IR
-        // 5. Effect Inference → Core IR with effects
-        // 6. Emit JVM Classes → .class files
-        throw new UnsupportedOperationException("compile to JVM classes 尚未实现");
-    }
-
     private Result runTypecheck(List<String> args, Map<String, String> envOverrides) {
-        // TODO: 实现类型检查
-        throw new UnsupportedOperationException("typecheck 尚未实现");
+        try {
+            if (args.isEmpty()) {
+                return new Result(1, "", "typecheck 阶段需要提供输入文件", List.of());
+            }
+
+            // 1. 解析 AST
+            String inputPath = args.get(0);
+            Result parseResult = runParser(List.of(inputPath), envOverrides);
+            if (parseResult.exitCode() != 0) {
+                return parseResult;  // 解析失败，直接返回错误
+            }
+
+            // 2. 反序列化 AST (从 JSON)
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            aster.core.ast.Module astModule = objectMapper.readValue(parseResult.stdout(), aster.core.ast.Module.class);
+
+            // 3. 降级到 Core IR
+            aster.core.lowering.CoreLowering lowering = new aster.core.lowering.CoreLowering();
+            aster.core.ir.CoreModel.Module coreModule = lowering.lowerModule(astModule);
+
+            // 4. 类型检查
+            aster.core.typecheck.TypeChecker typeChecker = new aster.core.typecheck.TypeChecker();
+            java.util.List<aster.core.typecheck.model.Diagnostic> diagnostics = typeChecker.typecheckModule(coreModule);
+
+            // 5. 检查是否有错误
+            boolean hasErrors = diagnostics.stream()
+                .anyMatch(d -> d.severity() == aster.core.typecheck.model.Diagnostic.Severity.ERROR);
+
+            // 6. 格式化诊断信息
+            String output = formatDiagnostics(diagnostics);
+
+            // 7. 根据结果返回（退出码 2 表示类型错误）
+            if (hasErrors) {
+                return new Result(2, "", output, List.of());
+            } else {
+                return new Result(0, output, "", List.of());
+            }
+        } catch (java.io.IOException e) {
+            return new Result(1, "", "读取文件失败: " + e.getMessage(), List.of());
+        } catch (Exception e) {
+            return new Result(1, "", "类型检查失败: " + e.getMessage() + "\n" + getStackTrace(e), List.of());
+        }
     }
 
-    private Result createJar(List<String> args, Map<String, String> envOverrides) {
-        // TODO: 实现 JAR 打包
-        throw new UnsupportedOperationException("jar 创建尚未实现");
+    private String formatDiagnostics(java.util.List<aster.core.typecheck.model.Diagnostic> diagnostics) {
+        if (diagnostics.isEmpty()) {
+            return "类型检查通过，无错误。";
+        }
+
+        var sb = new StringBuilder();
+        for (var diag : diagnostics) {
+            // 格式: severity: message [at file:line:col]
+            sb.append(diag.severity().toString().toLowerCase());
+            sb.append(": ");
+            sb.append(diag.message());
+
+            if (diag.span().isPresent()) {
+                var origin = diag.span().get();
+                sb.append(" [at ");
+                if (origin.file != null && !origin.file.isEmpty()) {
+                    sb.append(origin.file).append(":");
+                }
+                sb.append(origin.start.line)
+                  .append(":")
+                  .append(origin.start.col);
+                sb.append("]");
+            }
+
+            if (diag.help().isPresent()) {
+                sb.append("\n  help: ").append(diag.help().get());
+            }
+
+            sb.append("\n");
+        }
+        return sb.toString();
     }
+
+    /**
+     * 执行编译阶段，将 Core IR 编译为 JVM 字节码
+     * <p>
+     * 前置条件：必须先调用 lowerToCore() 生成 coreModule
+     *
+     * @param args 命令行参数（可能包含 --out <path>）
+     * @param envOverrides 环境变量覆盖
+     * @return 编译结果（成功时 exitCode=0，失败时 exitCode=1）
+     */
+    private Result runCompile(List<String> args, Map<String, String> envOverrides) {
+        try {
+            // 检查前置条件
+            if (this.coreModule == null) {
+                return new Result(1, "", "编译失败: 未找到 Core IR 模块，请先执行 lowerToCore() 阶段", List.of());
+            }
+
+            // 解析 --out 参数
+            java.nio.file.Path outputDir = java.nio.file.Path.of(System.getProperty("user.dir"))
+                .resolve("build")
+                .resolve("jvm-classes");
+
+            for (int i = 0; i < args.size(); i++) {
+                if ("--out".equals(args.get(i)) && i + 1 < args.size()) {
+                    outputDir = java.nio.file.Path.of(args.get(i + 1));
+                    break;
+                }
+            }
+
+            // 准备 funcHints（暂时传入空 Map，TODO: 后续从 TypeChecker 集成）
+            java.util.Map<String, java.util.Map<String, Character>> funcHints = java.util.Collections.emptyMap();
+
+            // 调用 asm-emitter API
+            aster.emitter.Main.CompileResult result = aster.emitter.Main.compile(
+                this.coreModule,
+                outputDir,
+                funcHints
+            );
+
+            // 处理编译结果
+            if (!result.success) {
+                String errorMessage = "编译失败:\n" + String.join("\n", result.errors);
+                return new Result(1, "", errorMessage, List.of());
+            }
+
+            // 保存 moduleMapping 到实例字段，供 runJar() 使用
+            this.moduleMapping = result.moduleMapping;
+
+            // 返回成功（输出字节码文件路径信息）
+            String successMessage = String.format(
+                "编译成功，字节码已生成到: %s\n模块映射: %s",
+                outputDir.toAbsolutePath(),
+                result.moduleMapping
+            );
+
+            return new Result(0, successMessage, "", List.of());
+        } catch (Exception e) {
+            return new Result(1, "", "编译失败: " + e.getMessage() + "\n" + getStackTrace(e), List.of());
+        }
+    }
+
+    /**
+     * 执行 JAR 打包阶段，将字节码和 aster-runtime 打包为可执行 JAR
+     * <p>
+     * 如果提供了源文件参数，将自动先执行编译管线（parse → lowerToCore → compile）
+     *
+     * @param args 可选的源文件路径（第一个参数）
+     * @param envOverrides 环境变量覆盖
+     * @return 打包结果（成功时 exitCode=0，失败时 exitCode=1）
+     */
+    private Result runJar(List<String> args, Map<String, String> envOverrides) {
+        try {
+            // 如果提供了源文件，先执行完整编译管线
+            if (!args.isEmpty() && !args.get(0).startsWith("--")) {
+                // 执行 parse → lowerToCore → compile（使用默认输出目录）
+                Result coreResult = lowerToCore(args, envOverrides);
+                if (coreResult.exitCode() != 0) {
+                    return coreResult;
+                }
+
+                // 调用 compile 时不传递 --out 参数（使用默认输出目录）
+                List<String> compileArgs = new ArrayList<>();
+                compileArgs.add(args.get(0));  // 只传递源文件路径
+                Result compileResult = runCompile(compileArgs, envOverrides);
+                if (compileResult.exitCode() != 0) {
+                    return compileResult;
+                }
+            }
+
+            // 检查前置条件
+            if (this.moduleMapping == null || this.moduleMapping.isEmpty()) {
+                return new Result(1, "", "JAR 打包失败: 未找到模块映射，请先执行 compile 阶段", List.of());
+            }
+
+            // 解析 --out 参数
+            Path workingDir = Path.of(System.getProperty("user.dir"));
+            Path classesDir = workingDir.resolve("build/jvm-classes");
+            Path jarFile = workingDir.resolve("build/aster-out/aster.jar");
+
+            for (int i = 0; i < args.size(); i++) {
+                if ("--out".equals(args.get(i)) && i + 1 < args.size()) {
+                    jarFile = Path.of(args.get(i + 1));
+                    break;
+                }
+            }
+
+            Path outDir = jarFile.getParent();
+
+            // 验证 classes 目录存在
+            if (!Files.exists(classesDir)) {
+                return new Result(1, "", "JAR 打包失败: 字节码目录不存在: " + classesDir, List.of());
+            }
+
+            // 创建输出目录
+            Files.createDirectories(outDir);
+
+            // 定位 aster-runtime JAR
+            Path runtimeJar = findRuntimeJar();
+            if (runtimeJar == null || !Files.exists(runtimeJar)) {
+                return new Result(1, "", "JAR 打包失败: 未找到 aster-runtime.jar，请先构建: ./gradlew :aster-runtime:jar", List.of());
+            }
+
+            // 创建 Manifest（暂不设置 Main-Class，因为模块名未知）
+            Manifest manifest = new Manifest();
+            manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+
+            // 打包 JAR（fat JAR：包含项目 classes + aster-runtime）
+            try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(jarFile.toFile()), manifest)) {
+                // 1. 添加项目 .class 文件
+                addDirectoryToJar(jos, classesDir, classesDir);
+
+                // 2. 合并 aster-runtime JAR（跳过 META-INF 避免冲突）
+                mergeJarFile(jos, runtimeJar);
+
+                // 3. 写入 package-map.json（可选）
+                if (this.moduleMapping != null && !this.moduleMapping.isEmpty()) {
+                    String packageMapJson = generatePackageMapJson(this.moduleMapping);
+                    jos.putNextEntry(new JarEntry("aster-asm-emitter/build/aster-out/package-map.json"));
+                    jos.write(packageMapJson.getBytes(StandardCharsets.UTF_8));
+                    jos.closeEntry();
+                }
+            }
+
+            // 验证生成
+            if (!Files.exists(jarFile)) {
+                return new Result(1, "", "JAR 打包失败: 文件未生成", List.of());
+            }
+
+            String successMessage = String.format("JAR 打包成功: %s", jarFile.toAbsolutePath());
+            return new Result(0, successMessage, "", List.of());
+
+        } catch (IOException e) {
+            return new Result(1, "", "JAR 打包失败: " + e.getMessage() + "\n" + getStackTrace(e), List.of());
+        } catch (Exception e) {
+            return new Result(1, "", "JAR 打包失败: " + e.getMessage() + "\n" + getStackTrace(e), List.of());
+        }
+    }
+
+    /**
+     * 递归添加目录下的所有文件到 JAR
+     */
+    private void addDirectoryToJar(JarOutputStream jos, Path sourceDir, Path baseDir) throws IOException {
+        try (Stream<Path> paths = Files.walk(sourceDir)) {
+            paths.filter(Files::isRegularFile).forEach(file -> {
+                try {
+                    String entryName = baseDir.relativize(file).toString().replace('\\', '/');
+                    jos.putNextEntry(new JarEntry(entryName));
+                    Files.copy(file, jos);
+                    jos.closeEntry();
+                } catch (IOException e) {
+                    throw new RuntimeException("添加文件到 JAR 失败: " + file, e);
+                }
+            });
+        }
+    }
+
+    /**
+     * 合并另一个 JAR 文件的内容（跳过 META-INF 目录）
+     */
+    private void mergeJarFile(JarOutputStream jos, Path jarPath) throws IOException {
+        try (JarFile jarFile = new JarFile(jarPath.toFile())) {
+            jarFile.stream()
+                .filter(entry -> !entry.getName().startsWith("META-INF/") && !entry.isDirectory())
+                .forEach(entry -> {
+                    try {
+                        jos.putNextEntry(new JarEntry(entry.getName()));
+                        try (InputStream is = jarFile.getInputStream(entry)) {
+                            is.transferTo(jos);
+                        }
+                        jos.closeEntry();
+                    } catch (IOException e) {
+                        throw new RuntimeException("合并 JAR 条目失败: " + entry.getName(), e);
+                    }
+                });
+        }
+    }
+
+    /**
+     * 定位 aster-runtime JAR 文件
+     */
+    private Path findRuntimeJar() {
+        // 优先从 Gradle 构建目录查找
+        Path projectRoot = Path.of(System.getProperty("user.dir"));
+        Path gradleJar = projectRoot.resolve("aster-runtime/build/libs/aster-runtime.jar");
+
+        if (Files.exists(gradleJar)) {
+            return gradleJar;
+        }
+
+        // 备用：从 classpath 查找（当作为库使用时）
+        String classpath = System.getProperty("java.class.path");
+        for (String entry : classpath.split(System.getProperty("path.separator"))) {
+            if (entry.contains("aster-runtime") && entry.endsWith(".jar")) {
+                Path jar = Path.of(entry);
+                if (Files.exists(jar)) {
+                    return jar;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 生成 package-map.json 内容
+     */
+    private String generatePackageMapJson(Map<String, String> moduleMapping) {
+        StringBuilder json = new StringBuilder();
+        json.append("{\n");
+        json.append("  \"modules\": [\n");
+
+        int i = 0;
+        for (Map.Entry<String, String> entry : moduleMapping.entrySet()) {
+            if (i > 0) json.append(",\n");
+            json.append("    { \"cnl\": \"").append(entry.getKey()).append("\", ");
+            json.append("\"jvm\": \"").append(entry.getValue()).append("\" }");
+            i++;
+        }
+
+        json.append("\n  ]\n");
+        json.append("}\n");
+        return json.toString();
+    }
+
 
     private Result runParser(List<String> args, Map<String, String> envOverrides) {
         try {
@@ -159,7 +504,7 @@ public final class JavaCompilerBackend implements CompilerBackend {
                                       int line, int charPositionInLine,
                                       String msg,
                                       org.antlr.v4.runtime.RecognitionException e) {
-                    errors.append(String.format("解析错误 (line %d:%d): %s\n", line, charPositionInLine, msg));
+                    errors.append(String.format("Parse error (line %d:%d): %s\n", line, charPositionInLine, msg));
                 }
 
                 public String getErrors() {
@@ -685,8 +1030,38 @@ public final class JavaCompilerBackend implements CompilerBackend {
     }
 
     private Result lowerToCore(List<String> args, Map<String, String> envOverrides) {
-        // TODO: 实现 Lower to Core
-        throw new UnsupportedOperationException("lower to core 尚未实现");
+        try {
+            if (args.isEmpty()) {
+                return new Result(1, "", "core 阶段需要提供输入文件", List.of());
+            }
+
+            // 1. 解析 AST
+            String inputPath = args.get(0);
+            Result parseResult = runParser(List.of(inputPath), envOverrides);
+            if (parseResult.exitCode() != 0) {
+                return parseResult;  // 解析失败，直接返回错误
+            }
+
+            // 2. 反序列化 AST (从 JSON)
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            aster.core.ast.Module astModule = objectMapper.readValue(parseResult.stdout(), aster.core.ast.Module.class);
+
+            // 3. 降级到 Core IR
+            aster.core.lowering.CoreLowering lowering = new aster.core.lowering.CoreLowering();
+            aster.core.ir.CoreModel.Module module = lowering.lowerModule(astModule);
+
+            // 保存到实例字段，供 runCompile() 使用
+            this.coreModule = module;
+
+            // 4. 序列化 Core IR 为 JSON
+            String coreJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(module);
+
+            return new Result(0, coreJson, "", List.of());
+        } catch (java.io.IOException e) {
+            return new Result(1, "", "读取文件失败: " + e.getMessage(), List.of());
+        } catch (Exception e) {
+            return new Result(1, "", "Core IR 降级失败: " + e.getMessage() + "\n" + getStackTrace(e), List.of());
+        }
     }
 
     private Result runCanonicalizer(List<String> args, Map<String, String> envOverrides) {

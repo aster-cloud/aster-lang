@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2025-10-24T03:32:07.585Z",
+  "generatedAt": "2025-10-25T01:02:43.428Z",
   "root": "/Users/rpang/IdeaProjects/aster-lang/test/lsp-index-fixture",
   "files": [
     {
@@ -40,8 +40,8 @@
               "col": 4
             },
             "end": {
-              "line": 7,
-              "col": 1
+              "line": 5,
+              "col": 8
             }
           }
         }
@@ -84,8 +84,8 @@
               "col": 4
             },
             "end": {
-              "line": 7,
-              "col": 1
+              "line": 5,
+              "col": 9
             }
           }
         }

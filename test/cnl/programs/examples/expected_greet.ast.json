@@ -11,26 +11,7 @@
           "type": {
             "kind": "TypeName",
             "name": "Text",
-            "span": {
-              "start": {
-                "line": 3,
-                "col": 22
-              },
-              "end": {
-                "line": 3,
-                "col": 26
-              }
-            }
-          },
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 18
-            },
-            "end": {
-              "line": 3,
-              "col": 26
-            }
+            "annotations": []
           }
         },
         {
@@ -38,43 +19,15 @@
           "type": {
             "kind": "TypeName",
             "name": "Text",
-            "span": {
-              "start": {
-                "line": 3,
-                "col": 34
-              },
-              "end": {
-                "line": 3,
-                "col": 38
-              }
-            }
-          },
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 28
-            },
-            "end": {
-              "line": 3,
-              "col": 38
-            }
+            "annotations": []
           }
         }
-      ],
-      "span": {
-        "start": {
-          "line": 3,
-          "col": 1
-        },
-        "end": {
-          "line": 3,
-          "col": 39
-        }
-      }
+      ]
     },
     {
       "kind": "Func",
       "name": "greet",
+      "typeParams": [],
       "params": [
         {
           "name": "user",
@@ -83,36 +36,7 @@
             "type": {
               "kind": "TypeName",
               "name": "User",
-              "span": {
-                "start": {
-                  "line": 5,
-                  "col": 21
-                },
-                "end": {
-                  "line": 5,
-                  "col": 25
-                }
-              }
-            },
-            "span": {
-              "start": {
-                "line": 5,
-                "col": 21
-              },
-              "end": {
-                "line": 5,
-                "col": 26
-              }
-            }
-          },
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 15
-            },
-            "end": {
-              "line": 5,
-              "col": 26
+              "annotations": []
             }
           }
         }
@@ -120,16 +44,7 @@
       "retType": {
         "kind": "TypeName",
         "name": "Text",
-        "span": {
-          "start": {
-            "line": 5,
-            "col": 36
-          },
-          "end": {
-            "line": 5,
-            "col": 40
-          }
-        }
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -141,69 +56,19 @@
             "kind": "Match",
             "expr": {
               "kind": "Name",
-              "name": "user",
-              "span": {
-                "start": {
-                  "line": 6,
-                  "col": 9
-                },
-                "end": {
-                  "line": 6,
-                  "col": 13
-                }
-              }
+              "name": "user"
             },
             "cases": [
               {
                 "kind": "Case",
                 "pattern": {
-                  "kind": "PatternNull",
-                  "span": {
-                    "start": {
-                      "line": 7,
-                      "col": 10
-                    },
-                    "end": {
-                      "line": 7,
-                      "col": 14
-                    }
-                  }
+                  "kind": "PatternNull"
                 },
                 "body": {
                   "kind": "Return",
                   "expr": {
                     "kind": "String",
-                    "value": "Hi, guest",
-                    "span": {
-                      "start": {
-                        "line": 7,
-                        "col": 23
-                      },
-                      "end": {
-                        "line": 7,
-                        "col": 34
-                      }
-                    }
-                  },
-                  "span": {
-                    "start": {
-                      "line": 7,
-                      "col": 16
-                    },
-                    "end": {
-                      "line": 7,
-                      "col": 35
-                    }
-                  }
-                },
-                "span": {
-                  "start": {
-                    "line": 7,
-                    "col": 5
-                  },
-                  "end": {
-                    "line": 7,
-                    "col": 35
+                    "value": "Hi, guest"
                   }
                 }
               },
@@ -215,110 +80,20 @@
                   "names": [
                     "id",
                     "name"
-                  ],
-                  "span": {
-                    "start": {
-                      "line": 8,
-                      "col": 10
-                    },
-                    "end": {
-                      "line": 8,
-                      "col": 24
-                    }
-                  }
+                  ]
                 },
                 "body": {
                   "kind": "Return",
                   "expr": {
                     "kind": "String",
-                    "value": "Welcome, {name}",
-                    "span": {
-                      "start": {
-                        "line": 8,
-                        "col": 33
-                      },
-                      "end": {
-                        "line": 8,
-                        "col": 50
-                      }
-                    }
-                  },
-                  "span": {
-                    "start": {
-                      "line": 8,
-                      "col": 26
-                    },
-                    "end": {
-                      "line": 8,
-                      "col": 51
-                    }
-                  }
-                },
-                "span": {
-                  "start": {
-                    "line": 8,
-                    "col": 5
-                  },
-                  "end": {
-                    "line": 8,
-                    "col": 51
+                    "value": "Welcome, {name}"
                   }
                 }
               }
-            ],
-            "span": {
-              "start": {
-                "line": 6,
-                "col": 3
-              },
-              "end": {
-                "line": 9,
-                "col": 1
-              }
-            }
+            ]
           }
-        ],
-        "span": {
-          "start": {
-            "line": 6,
-            "col": 3
-          },
-          "end": {
-            "line": 9,
-            "col": 1
-          }
-        }
-      },
-      "span": {
-        "start": {
-          "line": 5,
-          "col": 1
-        },
-        "end": {
-          "line": 9,
-          "col": 1
-        }
-      },
-      "nameSpan": {
-        "start": {
-          "line": 5,
-          "col": 4
-        },
-        "end": {
-          "line": 9,
-          "col": 1
-        }
+        ]
       }
     }
-  ],
-  "span": {
-    "start": {
-      "line": 1,
-      "col": 1
-    },
-    "end": {
-      "line": 9,
-      "col": 1
-    }
-  }
+  ]
 }

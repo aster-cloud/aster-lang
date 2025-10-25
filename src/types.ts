@@ -351,6 +351,7 @@ export interface TypePii extends AstNode {
 }
 
 export interface TypeName extends Base.BaseTypeName<Span> {
+  readonly annotations: readonly Annotation[];
   span: Span;
 }
 

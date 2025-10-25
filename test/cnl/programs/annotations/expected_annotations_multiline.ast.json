@@ -10,86 +10,50 @@
           "name": "userId",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 26
-            },
-            "end": {
-              "line": 3,
-              "col": 47
-            }
-          }
+          ]
         },
         {
           "name": "age",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 50
-            },
-            "end": {
-              "line": 3,
-              "col": 83
-            }
-          }
+          ]
         },
         {
           "name": "email",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 86
-            },
-            "end": {
-              "line": 3,
-              "col": 106
-            }
-          }
+          ]
         },
         {
           "name": "accountBalance",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
-          },
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 108
-            },
-            "end": {
-              "line": 3,
-              "col": 127
-            }
+            "name": "Int",
+            "annotations": []
           }
         }
       ]
@@ -102,80 +66,44 @@
           "name": "transactionId",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 26
-            },
-            "end": {
-              "line": 5,
-              "col": 54
-            }
-          }
+          ]
         },
         {
           "name": "amount",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
-          },
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 56
-            },
-            "end": {
-              "line": 5,
-              "col": 67
-            }
+            "name": "Int",
+            "annotations": []
           }
         },
         {
           "name": "feePercentage",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 70
-            },
-            "end": {
-              "line": 5,
-              "col": 112
-            }
-          }
+          ]
         },
         {
           "name": "timestamp",
           "type": {
             "kind": "TypeName",
-            "name": "Long"
-          },
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 114
-            },
-            "end": {
-              "line": 5,
-              "col": 129
-            }
+            "name": "Long",
+            "annotations": []
           }
         }
       ]
@@ -188,7 +116,8 @@
           "name": "applicationId",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
@@ -199,63 +128,35 @@
               "name": "Pattern",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 7,
-              "col": 30
-            },
-            "end": {
-              "line": 7,
-              "col": 91
-            }
-          }
+          ]
         },
         {
           "name": "requestedAmount",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 7,
-              "col": 94
-            },
-            "end": {
-              "line": 7,
-              "col": 146
-            }
-          }
+          ]
         },
         {
           "name": "termMonths",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 7,
-              "col": 149
-            },
-            "end": {
-              "line": 7,
-              "col": 188
-            }
-          }
+          ]
         }
       ]
     },
@@ -267,70 +168,43 @@
           "name": "productId",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 9,
-              "col": 22
-            },
-            "end": {
-              "line": 9,
-              "col": 46
-            }
-          }
+          ]
         },
         {
           "name": "price",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 9,
-              "col": 49
-            },
-            "end": {
-              "line": 9,
-              "col": 87
-            }
-          }
+          ]
         },
         {
           "name": "category",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 9,
-              "col": 90
-            },
-            "end": {
-              "line": 9,
-              "col": 113
-            }
-          }
+          ]
         }
       ]
     },
@@ -342,70 +216,43 @@
           "name": "street",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 11,
-              "col": 22
-            },
-            "end": {
-              "line": 11,
-              "col": 43
-            }
-          }
+          ]
         },
         {
           "name": "city",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 11,
-              "col": 46
-            },
-            "end": {
-              "line": 11,
-              "col": 65
-            }
-          }
+          ]
         },
         {
           "name": "zipCode",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Pattern",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 11,
-              "col": 68
-            },
-            "end": {
-              "line": 11,
-              "col": 111
-            }
-          }
+          ]
         }
       ]
     },
@@ -417,155 +264,92 @@
           "name": "firstName",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 13,
-              "col": 30
-            },
-            "end": {
-              "line": 13,
-              "col": 54
-            }
-          }
+          ]
         },
         {
           "name": "lastName",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 13,
-              "col": 57
-            },
-            "end": {
-              "line": 13,
-              "col": 80
-            }
-          }
+          ]
         },
         {
           "name": "age",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 13,
-              "col": 83
-            },
-            "end": {
-              "line": 13,
-              "col": 116
-            }
-          }
+          ]
         },
         {
           "name": "username",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Pattern",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 13,
-              "col": 119
-            },
-            "end": {
-              "line": 13,
-              "col": 161
-            }
-          }
+          ]
         },
         {
           "name": "creditScore",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 13,
-              "col": 164
-            },
-            "end": {
-              "line": 13,
-              "col": 204
-            }
-          }
+          ]
         },
         {
           "name": "country",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 13,
-              "col": 207
-            },
-            "end": {
-              "line": 13,
-              "col": 229
-            }
-          }
+          ]
         },
         {
           "name": "active",
           "type": {
             "kind": "TypeName",
-            "name": "Bool"
-          },
-          "span": {
-            "start": {
-              "line": 13,
-              "col": 231
-            },
-            "end": {
-              "line": 13,
-              "col": 243
-            }
+            "name": "Bool",
+            "annotations": []
           }
         }
       ]
@@ -573,34 +357,27 @@
     {
       "kind": "Func",
       "name": "validateAge",
+      "typeParams": [],
       "params": [
         {
           "name": "age",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 15,
-              "col": 22
-            },
-            "end": {
-              "line": 15,
-              "col": 54
-            }
-          }
+          ]
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Bool"
+        "name": "Bool",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -626,49 +403,9 @@
                   "value": 18
                 }
               ]
-            },
-            "span": {
-              "start": {
-                "line": 16,
-                "col": 3
-              },
-              "end": {
-                "line": 16,
-                "col": 22
-              }
             }
           }
-        ],
-        "span": {
-          "start": {
-            "line": 16,
-            "col": 3
-          },
-          "end": {
-            "line": 18,
-            "col": 1
-          }
-        }
-      },
-      "span": {
-        "start": {
-          "line": 15,
-          "col": 1
-        },
-        "end": {
-          "line": 18,
-          "col": 1
-        }
-      },
-      "nameSpan": {
-        "start": {
-          "line": 15,
-          "col": 4
-        },
-        "end": {
-          "line": 18,
-          "col": 1
-        }
+        ]
       }
     },
     {
@@ -679,80 +416,44 @@
           "name": "recordId",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 18,
-              "col": 30
-            },
-            "end": {
-              "line": 18,
-              "col": 53
-            }
-          }
+          ]
         },
         {
           "name": "taxRate",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 18,
-              "col": 56
-            },
-            "end": {
-              "line": 18,
-              "col": 92
-            }
-          }
+          ]
         },
         {
           "name": "totalIncome",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
-          },
-          "span": {
-            "start": {
-              "line": 18,
-              "col": 94
-            },
-            "end": {
-              "line": 18,
-              "col": 110
-            }
+            "name": "Int",
+            "annotations": []
           }
         },
         {
           "name": "totalExpenses",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
-          },
-          "span": {
-            "start": {
-              "line": 18,
-              "col": 112
-            },
-            "end": {
-              "line": 18,
-              "col": 130
-            }
+            "name": "Int",
+            "annotations": []
           }
         }
       ]

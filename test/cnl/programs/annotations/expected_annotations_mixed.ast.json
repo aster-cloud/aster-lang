@@ -10,7 +10,8 @@
           "name": "username",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
@@ -21,75 +22,49 @@
               "name": "Pattern",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 22
-            },
-            "end": {
-              "line": 3,
-              "col": 86
-            }
-          }
+          ]
         },
         {
           "name": "age",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 89
-            },
-            "end": {
-              "line": 3,
-              "col": 122
-            }
-          }
+          ]
         },
         {
           "name": "email",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "NotEmpty",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 3,
-              "col": 125
-            },
-            "end": {
-              "line": 3,
-              "col": 145
-            }
-          }
+          ]
         }
       ]
     },
     {
       "kind": "Func",
       "name": "registerAccount",
+      "typeParams": [],
       "params": [
         {
           "name": "user",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
@@ -100,46 +75,28 @@
               "name": "Pattern",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 26
-            },
-            "end": {
-              "line": 5,
-              "col": 86
-            }
-          }
+          ]
         },
         {
           "name": "userAge",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           },
           "annotations": [
             {
               "name": "Range",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 89
-            },
-            "end": {
-              "line": 5,
-              "col": 126
-            }
-          }
+          ]
         },
         {
           "name": "userEmail",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           },
           "annotations": [
             {
@@ -150,22 +107,13 @@
               "name": "Pattern",
               "params": {}
             }
-          ],
-          "span": {
-            "start": {
-              "line": 5,
-              "col": 129
-            },
-            "end": {
-              "line": 5,
-              "col": 223
-            }
-          }
+          ]
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Account"
+        "name": "Account",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -195,49 +143,9 @@
                   "name": "userEmail"
                 }
               ]
-            },
-            "span": {
-              "start": {
-                "line": 6,
-                "col": 3
-              },
-              "end": {
-                "line": 6,
-                "col": 44
-              }
             }
           }
-        ],
-        "span": {
-          "start": {
-            "line": 6,
-            "col": 3
-          },
-          "end": {
-            "line": 7,
-            "col": 1
-          }
-        }
-      },
-      "span": {
-        "start": {
-          "line": 5,
-          "col": 1
-        },
-        "end": {
-          "line": 7,
-          "col": 1
-        }
-      },
-      "nameSpan": {
-        "start": {
-          "line": 5,
-          "col": 4
-        },
-        "end": {
-          "line": 7,
-          "col": 1
-        }
+        ]
       }
     }
   ]

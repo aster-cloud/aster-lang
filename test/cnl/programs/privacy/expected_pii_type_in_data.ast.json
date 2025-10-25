@@ -12,7 +12,8 @@
             "kind": "TypePii",
             "baseType": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             },
             "sensitivity": "L2",
             "category": "email"
@@ -24,7 +25,8 @@
             "kind": "TypePii",
             "baseType": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             },
             "sensitivity": "L1",
             "category": "name"
@@ -35,10 +37,12 @@
     {
       "kind": "Func",
       "name": "create_user",
+      "typeParams": [],
       "params": [],
       "retType": {
         "kind": "TypeName",
-        "name": "User"
+        "name": "User",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],

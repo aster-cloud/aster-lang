@@ -68,6 +68,10 @@ public final class Main {
   }
 
   private static int handleNoCommand(ParsedCommand parsed, CommandHandler handler) {
+    if (parsed.isHelpRequested()) {
+      handler.printUsage();
+      return 0;
+    }
     if (parsed.isVersionRequested()) {
       handler.printVersion();
       return 0;

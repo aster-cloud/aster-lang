@@ -5,25 +5,29 @@
     {
       "kind": "Func",
       "name": "isLongerThan",
+      "typeParams": [],
       "params": [
         {
           "name": "s",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         },
         {
           "name": "n",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Bool"
+        "name": "Bool",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -41,20 +45,23 @@
                   "name": "t",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Text"
+                    "name": "Text",
+                    "annotations": []
                   }
                 },
                 {
                   "name": "k",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Int"
+                    "name": "Int",
+                    "annotations": []
                   }
                 }
               ],
               "retType": {
                 "kind": "TypeName",
-                "name": "Bool"
+                "name": "Bool",
+                "annotations": []
               },
               "body": {
                 "kind": "Block",

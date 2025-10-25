@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "fromResult",
+      "typeParams": [],
       "params": [
         {
           "name": "r",
@@ -12,18 +13,21 @@
             "kind": "Result",
             "ok": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             },
             "err": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             }
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -43,18 +47,21 @@
                     "kind": "Result",
                     "ok": {
                       "kind": "TypeName",
-                      "name": "Text"
+                      "name": "Text",
+                      "annotations": []
                     },
                     "err": {
                       "kind": "TypeName",
-                      "name": "Text"
+                      "name": "Text",
+                      "annotations": []
                     }
                   }
                 }
               ],
               "retType": {
                 "kind": "TypeName",
-                "name": "Text"
+                "name": "Text",
+                "annotations": []
               },
               "body": {
                 "kind": "Block",

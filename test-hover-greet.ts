@@ -48,7 +48,7 @@ function send(msg: any) {
 async function test() {
   console.log('[测试] 使用实际greet.aster内容测试hover...');
 
-  const greetText = readFileSync('test/cnl/examples/greet.aster', 'utf8');
+  const greetText = readFileSync('test/cnl/programs/examples/greet.aster', 'utf8');
   console.log('[测试] greet.aster内容:');
   console.log(greetText);
   console.log('[测试] ---');

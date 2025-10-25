@@ -5,18 +5,21 @@
     {
       "kind": "Func",
       "name": "greet",
+      "typeParams": [],
       "params": [
         {
           "name": "pfx",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -34,13 +37,15 @@
                   "name": "x",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Text"
+                    "name": "Text",
+                    "annotations": []
                   }
                 }
               ],
               "retType": {
                 "kind": "TypeName",
-                "name": "Text"
+                "name": "Text",
+                "annotations": []
               },
               "body": {
                 "kind": "Block",

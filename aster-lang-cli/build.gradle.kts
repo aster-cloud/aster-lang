@@ -27,6 +27,7 @@ tasks.withType<JavaCompile>().configureEach {
 dependencies {
   implementation(project(":aster-runtime"))
   implementation(project(":aster-core"))  // Java 编译器后端依赖
+  implementation(project(":aster-asm-emitter"))  // ASM 字节码生成器（Phase 2: runCompile）
   implementation(fileTree("${rootProject.projectDir}/build/aster-out") { include("aster.jar") })
 
   // 如果需要 Truffle 支持，取消注释：

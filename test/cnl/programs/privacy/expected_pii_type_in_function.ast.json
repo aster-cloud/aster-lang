@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "process_email",
+      "typeParams": [],
       "params": [
         {
           "name": "email",
@@ -12,7 +13,8 @@
             "kind": "TypePii",
             "baseType": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             },
             "sensitivity": "L2",
             "category": "email"
@@ -21,7 +23,8 @@
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],

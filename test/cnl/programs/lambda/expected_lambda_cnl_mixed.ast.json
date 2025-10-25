@@ -5,18 +5,21 @@
     {
       "kind": "Func",
       "name": "demo",
+      "typeParams": [],
       "params": [
         {
           "name": "pfx",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -34,13 +37,15 @@
                   "name": "x",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Text"
+                    "name": "Text",
+                    "annotations": []
                   }
                 }
               ],
               "retType": {
                 "kind": "TypeName",
-                "name": "Text"
+                "name": "Text",
+                "annotations": []
               },
               "body": {
                 "kind": "Block",
@@ -79,13 +84,15 @@
                   "name": "y",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Text"
+                    "name": "Text",
+                    "annotations": []
                   }
                 }
               ],
               "retType": {
                 "kind": "TypeName",
-                "name": "Text"
+                "name": "Text",
+                "annotations": []
               },
               "body": {
                 "kind": "Block",
@@ -158,25 +165,29 @@
     {
       "kind": "Func",
       "name": "compare",
+      "typeParams": [],
       "params": [
         {
           "name": "x",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         },
         {
           "name": "y",
           "type": {
             "kind": "TypeName",
-            "name": "Int"
+            "name": "Int",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Bool"
+        "name": "Bool",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
@@ -194,20 +205,23 @@
                   "name": "x1",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Int"
+                    "name": "Int",
+                    "annotations": []
                   }
                 },
                 {
                   "name": "y1",
                   "type": {
                     "kind": "TypeName",
-                    "name": "Int"
+                    "name": "Int",
+                    "annotations": []
                   }
                 }
               ],
               "retType": {
                 "kind": "TypeName",
-                "name": "Bool"
+                "name": "Bool",
+                "annotations": []
               },
               "body": {
                 "kind": "Block",

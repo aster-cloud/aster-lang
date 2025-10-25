@@ -1,8 +1,8 @@
 {
   "name": "aster-vscode",
   "displayName": "Aster Language",
-  "description": "VSCode 语言支持扩展：语法高亮、LSP 集成、代码补全、跳转定义、错误检查",
-  "version": "0.1.0",
+  "description": "VSCode 语言支持扩展：语法高亮、LSP 集成、代码补全、跳转定义、错误检查、编译、调试、打包",
+  "version": "0.3.0",
   "publisher": "wontlost",
   "author": "WontLost Ltd",
   "license": "MIT",
@@ -67,6 +67,22 @@
       {
         "command": "aster.startLanguageServer",
         "title": "Aster: Start Language Server"
+      },
+      {
+        "command": "aster.compile",
+        "title": "Aster: Compile File"
+      },
+      {
+        "command": "aster.debug",
+        "title": "Aster: Debug File"
+      },
+      {
+        "command": "aster.buildNative",
+        "title": "Aster: Build Native Executable"
+      },
+      {
+        "command": "aster.package",
+        "title": "Aster: Package to JAR"
       }
     ],
     "configuration": {
@@ -77,6 +93,27 @@
           "type": "string",
           "default": "dist/src/lsp/server.js",
           "description": "Path to Aster LSP entry (relative to workspace root)."
+        },
+        "aster.compiler": {
+          "type": "string",
+          "enum": ["typescript", "java"],
+          "default": "typescript",
+          "description": "选择编译器后端：typescript（默认）或 java"
+        },
+        "aster.cli.path": {
+          "type": "string",
+          "default": "aster-lang-cli/build/install/aster-lang-cli/bin/aster-lang-cli",
+          "description": "Path to Aster CLI executable (relative to workspace root)."
+        },
+        "aster.output.directory": {
+          "type": "string",
+          "default": "build/aster-out",
+          "description": "默认输出目录（相对于工作区根目录）"
+        },
+        "aster.debug.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用调试输出（设置 ASTER_DEBUG=true）"
         }
       }
     }

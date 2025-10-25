@@ -8,23 +8,48 @@
       "variants": [
         "NotFound",
         "Invalid"
+      ],
+      "variantSpans": [
+        {
+          "start": {
+            "line": 3,
+            "col": 22
+          },
+          "end": {
+            "line": 3,
+            "col": 30
+          }
+        },
+        {
+          "start": {
+            "line": 3,
+            "col": 32
+          },
+          "end": {
+            "line": 3,
+            "col": 39
+          }
+        }
       ]
     },
     {
       "kind": "Func",
       "name": "explain",
+      "typeParams": [],
       "params": [
         {
           "name": "e",
           "type": {
             "kind": "TypeName",
-            "name": "Err"
+            "name": "Err",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],

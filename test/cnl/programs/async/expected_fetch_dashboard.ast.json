@@ -10,14 +10,16 @@
           "name": "id",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         },
         {
           "name": "name",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         }
       ]
@@ -30,14 +32,16 @@
           "name": "profile",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         },
         {
           "name": "timeline",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         }
       ]
@@ -48,17 +52,41 @@
       "variants": [
         "InvalidCreds",
         "Locked"
+      ],
+      "variantSpans": [
+        {
+          "start": {
+            "line": 5,
+            "col": 26
+          },
+          "end": {
+            "line": 5,
+            "col": 38
+          }
+        },
+        {
+          "start": {
+            "line": 5,
+            "col": 40
+          },
+          "end": {
+            "line": 5,
+            "col": 46
+          }
+        }
       ]
     },
     {
       "kind": "Func",
       "name": "fetchDashboard",
+      "typeParams": [],
       "params": [
         {
           "name": "u",
           "type": {
             "kind": "TypeName",
-            "name": "User"
+            "name": "User",
+            "annotations": []
           }
         }
       ],
@@ -66,11 +94,13 @@
         "kind": "Result",
         "ok": {
           "kind": "TypeName",
-          "name": "Dash"
+          "name": "Dash",
+          "annotations": []
         },
         "err": {
           "kind": "TypeName",
-          "name": "AuthErr"
+          "name": "AuthErr",
+          "annotations": []
         }
       },
       "effects": [

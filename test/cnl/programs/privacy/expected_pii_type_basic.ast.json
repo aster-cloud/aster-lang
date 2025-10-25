@@ -5,12 +5,14 @@
     {
       "kind": "Func",
       "name": "get_email",
+      "typeParams": [],
       "params": [],
       "retType": {
         "kind": "TypePii",
         "baseType": {
           "kind": "TypeName",
-          "name": "Text"
+          "name": "Text",
+          "annotations": []
         },
         "sensitivity": "L2",
         "category": "email"

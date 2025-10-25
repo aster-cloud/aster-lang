@@ -38,8 +38,8 @@ graalvmNative {
 val generateAsterJar by tasks.registering(Exec::class) {
   workingDir = rootProject.projectDir
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
-    listOf("cmd", "/c", "npm", "run", "emit:class", "test/cnl/examples/login.aster", "&&", "npm", "run", "jar:jvm")
-  else listOf("sh", "-c", "npm run emit:class test/cnl/examples/login.aster && npm run jar:jvm")
+    listOf("cmd", "/c", "npm", "run", "emit:class", "test/cnl/programs/examples/login.aster", "&&", "npm", "run", "jar:jvm")
+  else listOf("sh", "-c", "npm run emit:class test/cnl/programs/examples/login.aster && npm run jar:jvm")
 }
 tasks.withType<JavaCompile>().configureEach {
   dependsOn(generateAsterJar)

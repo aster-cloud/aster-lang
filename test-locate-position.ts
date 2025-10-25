@@ -30,7 +30,7 @@ function locatePosition(text: string, search: string, offset = 0, context?: 'par
 
 async function test() {
   console.log('=== Testing Small Project (greet.aster) ===');
-  const greetText = await fs.readFile('test/cnl/examples/greet.aster', 'utf8');
+  const greetText = await fs.readFile('test/cnl/programs/examples/greet.aster', 'utf8');
   const smallPos = locatePosition(greetText, 'user', 0, 'parameter');
   console.log(`Position for 'user' parameter: line ${smallPos.line}, char ${smallPos.character}`);
   console.log(`Expected: line 4, char 18`);

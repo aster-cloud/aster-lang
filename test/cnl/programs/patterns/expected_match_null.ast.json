@@ -5,6 +5,7 @@
     {
       "kind": "Func",
       "name": "classify",
+      "typeParams": [],
       "params": [
         {
           "name": "v",
@@ -12,14 +13,16 @@
             "kind": "Maybe",
             "type": {
               "kind": "TypeName",
-              "name": "Text"
+              "name": "Text",
+              "annotations": []
             }
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],

@@ -66,11 +66,16 @@ public final class CommandHandler {
 
   /**
    * 根据环境变量选择编译器后端
+   * <p>
+   * 优先从环境变量读取 ASTER_COMPILER，如果未设置则从系统属性读取（用于测试）
    */
   private static CompilerBackend selectBackend(TypeScriptBridge bridge) {
-    final String compilerType = System.getenv("ASTER_COMPILER");
+    String compilerType = System.getenv("ASTER_COMPILER");
+    if (compilerType == null) {
+      compilerType = System.getProperty("ASTER_COMPILER");  // 测试时使用系统属性
+    }
     return "java".equals(compilerType)
-        ? new JavaCompilerBackend()
+        ? new JavaCompilerBackend()  // Phase 2: 纯 Java 实现，不再依赖 TypeScript Bridge
         : new TypeScriptCompilerBackend(bridge);
   }
 
@@ -168,7 +173,7 @@ public final class CommandHandler {
     }
 
     final Result result = backend.execute(script, cliArgs);
-    return handleSuccessOrDiagnostics(result, result.stdout(), "子命令执行失败");
+    return handleSuccessOrDiagnostics(result, "", "子命令执行失败");
   }
 
   /**
@@ -200,8 +205,12 @@ public final class CommandHandler {
     System.out.println("  parse <file>                       仅解析，输出 AST JSON");
     System.out.println("  core <file>                        降级到 Core IR 输出 JSON");
     System.out.println();
-    System.out.println("通用选项:");
-    System.out.println("  --json                             以 JSON 结构输出诊断/结果（若命令支持）");
+    System.out.println("选项:");
+    System.out.println("  -h, --help          显示帮助信息");
+    System.out.println("  -v, --version       显示版本信息");
+    System.out.println("      --json          以 JSON 格式输出结果");
+    System.out.println("      --output PATH   指定输出路径");
+    System.out.println("      --caps PATH     指定能力配置文件 (typecheck)");
     System.out.println();
     System.out.println("环境变量:");
     System.out.println("  ASTER_COMPILER=typescript          使用 TypeScript 编译器（默认）");

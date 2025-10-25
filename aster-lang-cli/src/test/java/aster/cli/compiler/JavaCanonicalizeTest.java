@@ -22,7 +22,7 @@ class JavaCanonicalizeTest {
     Path tempDir;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         backend = new JavaCompilerBackend();
     }
 

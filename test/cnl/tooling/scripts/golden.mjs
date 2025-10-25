@@ -55,10 +55,10 @@ async function runOneCore(inputPath, expectPath) {
 }
 
 async function main() {
-  runOneAst('test/cnl/examples/greet.aster', 'test/cnl/examples/expected_greet.ast.json');
-  runOneAst('test/cnl/examples/login.aster', 'test/cnl/examples/expected_login.ast.json');
-  await runOneCore('test/cnl/examples/greet.aster', 'test/cnl/examples/expected_greet_core.json');
-  await runOneCore('test/cnl/examples/login.aster', 'test/cnl/examples/expected_login_core.json');
+  runOneAst('test/cnl/programs/examples/greet.aster', 'test/cnl/programs/examples/expected_greet.ast.json');
+  runOneAst('test/cnl/programs/examples/login.aster', 'test/cnl/programs/examples/expected_login.ast.json');
+  await runOneCore('test/cnl/programs/examples/greet.aster', 'test/cnl/programs/examples/expected_greet_core.json');
+  await runOneCore('test/cnl/programs/examples/login.aster', 'test/cnl/programs/examples/expected_login_core.json');
 }
 
 main().catch(e => {

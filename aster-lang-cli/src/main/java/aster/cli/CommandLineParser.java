@@ -45,6 +45,12 @@ public final class CommandLineParser {
         endOfOptions = true;
         continue;
       }
+      if (token.matches("-[hv]")) {
+        char opt = token.charAt(1);
+        String key = (opt == 'h') ? "help" : "version";
+        options.put(key, "true");
+        continue;
+      }
       if (token.startsWith("--")) {
         final String withoutPrefix = token.substring(2);
         if (withoutPrefix.isEmpty()) {

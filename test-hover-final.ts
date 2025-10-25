@@ -47,7 +47,7 @@ function send(msg: any) {
 async function test() {
   console.log('[测试] 使用通用 locatePosition 函数计算的位置测试 hover...');
 
-  const greetText = readFileSync('test/cnl/examples/greet.aster', 'utf8');
+  const greetText = readFileSync('test/cnl/programs/examples/greet.aster', 'utf8');
 
   const allMessages: any[] = [];
   server.stdout.on('data', (chunk) => {

@@ -138,6 +138,8 @@ export function parseFuncDecl(
   // 记录函数名位置
   const nameTok = ctx.peek();
   const name = parseIdent();
+  // 立即记录函数名结束位置（修复 nameSpan Bug）
+  const nameEndTok = ctx.tokens[ctx.index - 1] || nameTok;
 
   // 解析可选的类型参数: 'of' TypeId ('and' TypeId)*
   let typeParams: string[] = [];
@@ -331,8 +333,7 @@ export function parseFuncDecl(
   const funcEndSource = body ?? endTok;
   assignSpan(fn, spanFromSources(toTok, funcEndSource, endTok));
   // 记录函数名 span 用于精确导航/高亮
-  const nameSpanEndTok = ctx.tokens[ctx.index - 1] || nameTok;
-  (fn as any).nameSpan = spanFromSources(nameTok, nameSpanEndTok);
+  (fn as any).nameSpan = spanFromSources(nameTok, nameEndTok);
 
   return fn;
 }

@@ -1,0 +1,7 @@
+This module is hello.
+
+To main, produce Int:
+  Return 42.
+
+To greet with name: Text, produce Text:
+  Return Text.concat("Hello, ", name, "!").

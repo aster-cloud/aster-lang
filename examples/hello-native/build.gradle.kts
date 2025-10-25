@@ -45,8 +45,8 @@ graalvmNative {
 val generateAsterJar by tasks.registering(Exec::class) {
   workingDir = rootProject.projectDir
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
-    listOf("cmd", "/c", "npm", "run", "emit:class", "test/cnl/examples/greet.aster", "&&", "npm", "run", "jar:jvm")
-  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/hello-native/build/aster-out npm run emit:class test/cnl/examples/greet.aster && ASTER_OUT_DIR=examples/hello-native/build/aster-out npm run jar:jvm")
+    listOf("cmd", "/c", "npm", "run", "emit:class", "test/cnl/programs/examples/greet.aster", "&&", "npm", "run", "jar:jvm")
+  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/hello-native/build/aster-out npm run emit:class test/cnl/programs/examples/greet.aster && ASTER_OUT_DIR=examples/hello-native/build/aster-out npm run jar:jvm")
   // 输出声明：生成合并 Jar
   outputs.file(moduleOut.map { it.file("aster.jar") })
   // 只有在产物缺失时才需要强制执行；缓存存在时 Gradle 可跳过

@@ -5,10 +5,12 @@
     {
       "kind": "Func",
       "name": "ping",
+      "typeParams": [],
       "params": [],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [
         "io"

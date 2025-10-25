@@ -26,14 +26,14 @@ val generateAsterJar by tasks.registering(Exec::class) {
     listOf(
       "cmd", "/c",
       "npm", "run", "emit:class",
-      "test/cnl/examples/login.aster",
+      "test/cnl/programs/examples/login.aster",
       "test/cnl/programs/business/policy/policy_engine.aster",
       "test/cnl/programs/business/policy/policy_demo.aster",
       "&&", "npm", "run", "jar:jvm"
     )
   else listOf(
     "sh", "-c",
-    "ASTER_OUT_DIR=examples/login-jvm/build/aster-out npm run emit:class test/cnl/examples/login.aster test/cnl/programs/business/policy/policy_engine.aster test/cnl/programs/business/policy/policy_demo.aster && ASTER_OUT_DIR=examples/login-jvm/build/aster-out npm run jar:jvm"
+    "ASTER_OUT_DIR=examples/login-jvm/build/aster-out npm run emit:class test/cnl/programs/examples/login.aster test/cnl/programs/business/policy/policy_engine.aster test/cnl/programs/business/policy/policy_demo.aster && ASTER_OUT_DIR=examples/login-jvm/build/aster-out npm run jar:jvm"
   )
   // 输出声明：生成合并 Jar
   outputs.file(moduleOut.map { it.file("aster.jar") })

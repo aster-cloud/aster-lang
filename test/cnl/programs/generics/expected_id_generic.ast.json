@@ -13,13 +13,15 @@
           "name": "x",
           "type": {
             "kind": "TypeName",
-            "name": "T"
+            "name": "T",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "T"
+        "name": "T",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],

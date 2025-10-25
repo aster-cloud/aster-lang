@@ -5,18 +5,21 @@
     {
       "kind": "Func",
       "name": "choose",
+      "typeParams": [],
       "params": [
         {
           "name": "flag",
           "type": {
             "kind": "TypeName",
-            "name": "Text"
+            "name": "Text",
+            "annotations": []
           }
         }
       ],
       "retType": {
         "kind": "TypeName",
-        "name": "Text"
+        "name": "Text",
+        "annotations": []
       },
       "effects": [],
       "effectCaps": [],
