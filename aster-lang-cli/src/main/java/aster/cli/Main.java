@@ -49,6 +49,7 @@ public final class Main {
       case "compile" -> handler.handleCompile(parsed);
       case "typecheck" -> handler.handleTypecheck(parsed);
       case "jar" -> handler.handleJar(parsed);
+      case "run" -> handler.handleRun(parsed);
       case "parse" -> handler.handlePassThrough(parsed, "native:cli:parse");
       case "core" -> handler.handlePassThrough(parsed, "native:cli:core");
       case "version" -> {

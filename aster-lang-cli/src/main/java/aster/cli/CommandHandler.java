@@ -7,6 +7,8 @@ import aster.cli.TypeScriptBridge.Result;
 import aster.cli.compiler.CompilerBackend;
 import aster.cli.compiler.JavaCompilerBackend;
 import aster.cli.compiler.TypeScriptCompilerBackend;
+import aster.cli.hotswap.JarFileWatcher;
+import aster.cli.hotswap.JarHotSwapRunner;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -187,6 +189,84 @@ public final class CommandHandler {
   }
 
   /**
+   * 处理 run 命令，支持热插拔运行 JAR 文件。
+   */
+  public int handleRun(ParsedCommand parsed) throws CommandLineException {
+    final List<String> args = parsed.arguments();
+    if (args.isEmpty()) {
+      throw new CommandLineException("run 需要指定 JAR 文件");
+    }
+
+    final Path jarPath = pathResolver.resolveExistingFile(args.getFirst(), "JAR 文件");
+    final String mainClass = parsed.options().get("main");
+    if (mainClass == null || mainClass.isBlank()) {
+      throw new CommandLineException("run 需要指定主类（使用 --main 参数）");
+    }
+
+    // 获取传递给应用的参数（跳过 JAR 路径）
+    final String[] appArgs = args.size() > 1
+        ? args.subList(1, args.size()).toArray(new String[0])
+        : new String[0];
+
+    final boolean watchMode = parsed.flag("watch");
+
+    try (JarHotSwapRunner runner = new JarHotSwapRunner(jarPath)) {
+      if (watchMode) {
+        // 监控模式：监控文件变化并自动重载
+        System.out.println("启动热插拔监控模式...");
+        System.out.println("主类: " + mainClass);
+        System.out.println("JAR: " + jarPath);
+        System.out.println();
+
+        try (JarFileWatcher watcher = new JarFileWatcher(jarPath, (path) -> {
+          try {
+            System.out.println();
+            System.out.println("=== 文件已修改，重新加载... ===");
+            runner.reload();
+            runner.run(mainClass, appArgs);
+          } catch (Exception e) {
+            System.err.println("重载失败: " + e.getMessage());
+            e.printStackTrace();
+          }
+        })) {
+          // 首次运行
+          runner.run(mainClass, appArgs);
+
+          // 启动监控
+          watcher.start();
+
+          // 等待用户中断（Ctrl+C）
+          System.out.println();
+          System.out.println("按 Ctrl+C 停止监控...");
+          runner.join();
+
+        }
+      } else {
+        // 普通模式：运行一次
+        System.out.println("运行 JAR: " + jarPath);
+        System.out.println("主类: " + mainClass);
+        System.out.println();
+        runner.run(mainClass, appArgs);
+        runner.join();
+      }
+
+      return 0;
+
+    } catch (JarHotSwapRunner.RunnerException e) {
+      System.err.println("运行失败: " + e.getMessage());
+      return EXIT_COMPILER_ERROR;
+    } catch (InterruptedException e) {
+      System.err.println("运行被中断: " + e.getMessage());
+      Thread.currentThread().interrupt();
+      return EXIT_COMPILER_ERROR;
+    } catch (Exception e) {
+      System.err.println("发生错误: " + e.getMessage());
+      e.printStackTrace();
+      return EXIT_COMPILER_ERROR;
+    }
+  }
+
+  /**
    * 打印 CLI 使用帮助。
    */
   public void printUsage() {
@@ -198,6 +278,7 @@ public final class CommandHandler {
     System.out.println("  compile <file> [--output <dir>]    编译 CNL 为 JVM 字节码");
     System.out.println("  typecheck <file> [--caps <json>]   执行类型检查，可指定能力配置");
     System.out.println("  jar <file?> [--output <file>]      生成 JAR（未提供文件时复用上次编译结果）");
+    System.out.println("  run <jar> [args...] --main <class> 运行 JAR 文件（支持热插拔）");
     System.out.println("  version                            查看当前版本");
     System.out.println("  help                               查看帮助");
     System.out.println();
@@ -211,6 +292,8 @@ public final class CommandHandler {
     System.out.println("      --json          以 JSON 格式输出结果");
     System.out.println("      --output PATH   指定输出路径");
     System.out.println("      --caps PATH     指定能力配置文件 (typecheck)");
+    System.out.println("      --main CLASS    指定主类（run 命令）");
+    System.out.println("      --watch         监控文件变化并自动重载（run 命令）");
     System.out.println();
     System.out.println("环境变量:");
     System.out.println("  ASTER_COMPILER=typescript          使用 TypeScript 编译器（默认）");
