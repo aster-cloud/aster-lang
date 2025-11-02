@@ -12,7 +12,8 @@ import com.oracle.truffle.api.nodes.UnexpectedResultException;
  * 所有表达式节点应继承此类并使用 @Specialization 注解提供类型特化实现。
  * Truffle DSL 会自动生成优化的执行路径。
  *
- * TODO: 迁移现有节点（LiteralNode, VarNode, CallNode 等）继承此基类
+ * 已完成迁移：LiteralNode, NameNode, CallNode, LetNode, SetNode, ConstructNode,
+ * LambdaNode, AwaitNode, IfNode, MatchNode, BlockNode 均已继承此基类。
  */
 @TypeSystemReference(AsterTypes.class)
 public abstract class AsterExpressionNode extends Node {

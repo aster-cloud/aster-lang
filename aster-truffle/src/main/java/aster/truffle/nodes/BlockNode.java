@@ -4,10 +4,11 @@ import aster.truffle.runtime.AsterConfig;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
-public final class BlockNode extends Node {
+public final class BlockNode extends AsterExpressionNode {
   @Children private final Node[] statements;
   public BlockNode(java.util.List<Node> statements) { this.statements = statements.toArray(new Node[0]); }
-  public Object execute(VirtualFrame frame) {
+  @Override
+  public Object executeGeneric(VirtualFrame frame) {
     if (AsterConfig.DEBUG) {
       System.err.println("DEBUG: block size=" + statements.length);
     }

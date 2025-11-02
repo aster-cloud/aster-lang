@@ -4,9 +4,15 @@
 
 ### 🚨 Breaking Changes
 
+- **Truffle Runner: Removed Legacy Loader Lambda support**: The legacy `Runner` class (deprecated since frame slot optimization) no longer supports Lambda expressions. This affects code using the old `Runner.main()` execution path. **Migration**: Switch to the Polyglot API (`Context.newBuilder("aster")`) which fully supports all language features including Lambda. See [Truffle Backend Documentation](docs/truffle-backend-limitations.md) for migration examples and feature comparison.
+
 - **Capability enforcement now enabled by default**: The `ASTER_CAP_EFFECTS_ENFORCE` environment variable now defaults to enabled. Set `ASTER_CAP_EFFECTS_ENFORCE=0` to explicitly disable. This ensures production security by default. (#阶段1.2)
 
 ### ✨ New Features
+
+- **Truffle Runner: Command-line argument support**: The Truffle `Runner` now supports passing function arguments via command line using the `--` separator (e.g., `Runner program.json --func=add -- 10 20`). Arguments are automatically parsed as integers, longs, doubles, booleans, or strings. This enables easy testing and execution of parameterized functions from the command line.
+
+- **Truffle Performance Benchmarks**: Established comprehensive performance benchmark suite for Truffle backend covering arithmetic operations, recursive functions (factorial, fibonacci), and future tests for lambda/closure/pattern matching. All benchmarks integrated into CI pipeline with automated performance regression detection. See `docs/truffle-performance-benchmarks.md` for details.
 
 - **Alias Import Effect Tracking**: Effect inference now correctly resolves import aliases (e.g., `use Http as H; H.get()` is recognized as IO effect). Implements `resolveAlias` function that maps alias prefixes to actual module names before prefix matching. Parser updated to support uppercase identifiers in `use` statements. Backward compatible with non-alias imports. (#阶段2.3)
 - **Configurable Effect Inference**: Effect inference prefixes (IO_PREFIXES, CPU_PREFIXES) are now configurable via `.aster/effects.json` file or `ASTER_EFFECT_CONFIG` environment variable. Supports fine-grained categorization (io.http, io.sql, io.files, io.secrets, io.time). Implements deep merge with default configuration for partial configs, type validation for array fields (filters non-string elements), and graceful fallback for missing/malformed config files. Includes comprehensive test suite covering 7 edge cases. (#阶段2.2)
@@ -36,6 +42,8 @@
 ### 🔧 Internal Improvements
 
 - **Logger optimization**: Simplified metadata spreading and extracted `parseLogLevel` function for better code clarity.
+
+- **Truffle Node Architecture**: Migrated IfNode, MatchNode, and BlockNode to extend AsterExpressionNode base class. All expression nodes now inherit from unified base class with type specialization support, improving code organization and enabling future Truffle DSL optimizations.
 
 ### ⚠️ Known Issues
 

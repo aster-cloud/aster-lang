@@ -4,7 +4,7 @@ import aster.truffle.runtime.AsterConfig;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
-public final class MatchNode extends Node {
+public final class MatchNode extends AsterExpressionNode {
   private final Env env;
   @Child private Node scrutinee;
   @Children private CaseNode[] cases;
@@ -15,7 +15,8 @@ public final class MatchNode extends Node {
     this.cases = cases.toArray(new CaseNode[0]);
   }
 
-  public Object execute(VirtualFrame frame) {
+  @Override
+  public Object executeGeneric(VirtualFrame frame) {
     Profiler.inc("match");
     Object s = Exec.exec(scrutinee, frame);
     if (AsterConfig.DEBUG) {

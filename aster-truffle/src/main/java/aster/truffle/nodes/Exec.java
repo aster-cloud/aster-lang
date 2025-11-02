@@ -12,9 +12,7 @@ public final class Exec {
     if (n instanceof ReturnNode rn) return rn.execute(f);
     if (n instanceof LetNodeEnv lne) return lne.execute(f);
     if (n instanceof SetNodeEnv sne) return sne.execute(f);
-    if (n instanceof IfNode in) return in.execute(f);
-    if (n instanceof MatchNode mn) return mn.execute(f);
-    if (n instanceof BlockNode bn) return bn.execute(f);
+    // IfNode, MatchNode, BlockNode 已迁移到 AsterExpressionNode，由第一个分支处理
     if (n instanceof StartNode sn) return sn.execute(f);
     if (n instanceof WaitNode wn) return wn.execute(f);
     return null;
