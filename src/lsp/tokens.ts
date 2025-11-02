@@ -91,10 +91,15 @@ export function registerTokensHandlers(
         const walk = (b: Block): void => {
           for (const s of b.statements as Statement[]) {
             if (s.kind === 'Let') {
-              const sp = (s as any).span as Span | undefined;
+              const sp = ((s as any).nameSpan as Span | undefined) ?? ((s as any).span as Span | undefined);
               const hint = exprTypeText((s as any).expr);
-              if (sp && hint && within(sp.start.line - 1, sp.start.col)) {
-                out.push({ position: { line: sp.start.line - 1, character: Math.max(0, sp.start.col - 1) }, label: `: ${hint}`, kind: InlayHintKind.Type });
+              if (!sp || !hint) continue;
+              const trimmed = hint.trim();
+              if (!trimmed || trimmed.toLowerCase() === 'unknown') continue;
+              if (within(sp.start.line - 1, sp.start.col)) {
+                const line = Math.max(0, sp.start.line - 1);
+                const char = Math.max(0, (sp.end?.col ?? sp.start.col) - 1);
+                out.push({ position: { line, character: char }, label: `: ${trimmed}`, kind: InlayHintKind.Type });
               }
             } else if (s.kind === 'If') {
               walk(s.thenBlock as Block);

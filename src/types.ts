@@ -185,6 +185,7 @@ export type Statement = Let | Set | Return | If | Match | Start | Wait | Express
 
 export interface Let extends Base.BaseLet<Span, Expression> {
   span: Span;
+  readonly nameSpan?: Span;
 }
 
 export interface Set extends Base.BaseSet<Span, Expression> {

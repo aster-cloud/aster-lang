@@ -19,6 +19,8 @@ import {
   ServerOptions,
   TransportKind,
 } from 'vscode-languageclient/node';
+import { resolveBundledResource } from './resource-resolver';
+import { showResourceError, StandardActions } from './error-handler';
 
 const execFileAsync = promisify(execFile);
 
@@ -27,28 +29,34 @@ let client: LanguageClient | null = null;
 /**
  * 解析 LSP 服务器路径
  *
- * 从配置中读取服务器路径（相对于工作区根目录），
- * 默认为 'dist/src/lsp/server.js'
+ * 使用统一的资源解析模块，优先级策略：
+ * 1. 扩展内置资源（最高优先级）
+ * 2. 用户配置路径
+ * 3. 工作区默认路径
  */
-function resolveServerPath(): string {
-  const cfg = vscode.workspace.getConfiguration('aster');
-  const rel = cfg.get<string>('langServer.path', 'dist/src/lsp/server.js');
-  const ws = vscode.workspace.workspaceFolders?.[0];
-  const root = ws ? ws.uri.fsPath : process.cwd();
-  return path.resolve(root, rel);
+function resolveServerPath(context: vscode.ExtensionContext): string {
+  return resolveBundledResource(
+    context,
+    'dist/src/lsp/server.js',
+    'langServer.path',
+    'dist/src/lsp/server.js'
+  );
 }
 
 /**
  * 启动 LSP 客户端
  */
-function startClient(): void {
-  const serverModule = resolveServerPath();
+function startClient(context: vscode.ExtensionContext): void {
+  const serverModule = resolveServerPath(context);
 
   // 检查服务器文件是否存在
   if (!fs.existsSync(serverModule)) {
-    vscode.window.showErrorMessage(
-      `Aster LSP 未找到: ${serverModule}。请先构建项目（npm run build）。`
-    );
+    // 使用增强的错误提示，提供可操作的修复按钮
+    void showResourceError('LSP', serverModule, [
+      StandardActions.autoBuild('cd .. && npm run build'),
+      StandardActions.configurePath('aster.langServer.path'),
+      StandardActions.showOutput(),
+    ]);
     return;
   }
 
@@ -101,14 +109,19 @@ function getConfig<T>(key: string, defaultValue: T): T {
 
 /**
  * 解析 CLI 路径
+ *
+ * 使用统一的资源解析模块，优先级策略：
+ * 1. 扩展内置 Node 版 CLI（最高优先级）
+ * 2. 用户配置路径
+ * 3. 工作区默认路径（Gradle 构建的 Java 版 CLI）
  */
-function resolveCLIPath(): string {
-  const root = getWorkspaceRoot();
-  if (!root) {
-    throw new Error('未找到工作区根目录');
-  }
-  const relPath = getConfig('cli.path', 'aster-lang-cli/build/install/aster-lang-cli/bin/aster-lang-cli');
-  return path.resolve(root, relPath);
+function resolveCLIPath(context: vscode.ExtensionContext): string {
+  return resolveBundledResource(
+    context,
+    'dist/scripts/aster.js',
+    'cli.path',
+    'aster-lang-cli/build/install/aster-lang-cli/bin/aster-lang-cli'
+  );
 }
 
 /**
@@ -130,15 +143,22 @@ function getActiveAsterFile(): string | null {
  * 执行 Aster CLI 命令
  */
 async function runAsterCommand(
+  context: vscode.ExtensionContext,
   command: string,
   args: string[],
   options: { showOutput?: boolean; cwd?: string } = {}
 ): Promise<{ stdout: string; stderr: string }> {
-  const cliPath = resolveCLIPath();
+  const cliPath = resolveCLIPath(context);
 
   // 检查 CLI 是否存在
   if (!fs.existsSync(cliPath)) {
-    throw new Error(`Aster CLI 未找到: ${cliPath}。请先构建项目（./gradlew :aster-lang-cli:installDist）。`);
+    // 使用增强的错误提示，提供可操作的修复按钮
+    await showResourceError('CLI', cliPath, [
+      StandardActions.autoBuild('cd .. && npm run build'),
+      StandardActions.configurePath('aster.cli.path'),
+      StandardActions.showOutput(),
+    ]);
+    throw new Error(`Aster CLI 未找到: ${cliPath}`);
   }
 
   // 设置环境变量
@@ -153,10 +173,14 @@ async function runAsterCommand(
 
   // 执行命令
   const cwd = options.cwd || getWorkspaceRoot() || process.cwd();
-  const fullArgs = [command, ...args];
+
+  // 如果 CLI 路径是 .js 文件，使用 node 执行
+  const isJsFile = cliPath.endsWith('.js');
+  const execCommand = isJsFile ? 'node' : cliPath;
+  const fullArgs = isJsFile ? [cliPath, command, ...args] : [command, ...args];
 
   try {
-    const result = await execFileAsync(cliPath, fullArgs, { env, cwd, maxBuffer: 10 * 1024 * 1024 });
+    const result = await execFileAsync(execCommand, fullArgs, { env, cwd, maxBuffer: 10 * 1024 * 1024 });
 
     if (options.showOutput !== false) {
       const output = result.stdout || result.stderr;
@@ -184,7 +208,7 @@ async function runAsterCommand(
 /**
  * Compile 命令：编译当前 Aster 文件
  */
-async function compileCommand(): Promise<void> {
+async function compileCommand(context: vscode.ExtensionContext): Promise<void> {
   const filePath = getActiveAsterFile();
   if (!filePath) {
     vscode.window.showWarningMessage('请打开一个 .aster 文件');
@@ -203,7 +227,7 @@ async function compileCommand(): Promise<void> {
         cancellable: false,
       },
       async () => {
-        await runAsterCommand('compile', [filePath, '--output', outputPath]);
+        await runAsterCommand(context, 'compile', [filePath, '--output', outputPath]);
       }
     );
     vscode.window.showInformationMessage(`编译成功: ${path.basename(filePath)}`);
@@ -215,7 +239,7 @@ async function compileCommand(): Promise<void> {
 /**
  * Debug 命令：启动调试配置
  */
-async function debugCommand(): Promise<void> {
+async function debugCommand(context: vscode.ExtensionContext): Promise<void> {
   const filePath = getActiveAsterFile();
   if (!filePath) {
     vscode.window.showWarningMessage('请打开一个 .aster 文件');
@@ -223,7 +247,7 @@ async function debugCommand(): Promise<void> {
   }
 
   // 首先编译文件
-  await compileCommand();
+  await compileCommand(context);
 
   // 创建调试配置
   const debugConfig: vscode.DebugConfiguration = {
@@ -244,7 +268,7 @@ async function debugCommand(): Promise<void> {
 /**
  * Build Native 命令：构建原生可执行文件
  */
-async function buildNativeCommand(): Promise<void> {
+async function buildNativeCommand(context: vscode.ExtensionContext): Promise<void> {
   const filePath = getActiveAsterFile();
   if (!filePath) {
     vscode.window.showWarningMessage('请打开一个 .aster 文件');
@@ -264,7 +288,7 @@ async function buildNativeCommand(): Promise<void> {
         const root = getWorkspaceRoot();
         const outputPath = root ? path.resolve(root, outputDir) : outputDir;
 
-        await runAsterCommand('compile', [filePath, '--output', outputPath]);
+        await runAsterCommand(context, 'compile', [filePath, '--output', outputPath]);
 
         vscode.window.showInformationMessage(
           '原生构建功能即将推出。当前已编译为 JVM 字节码。'
@@ -279,7 +303,7 @@ async function buildNativeCommand(): Promise<void> {
 /**
  * Package 命令：打包为 JAR
  */
-async function packageCommand(): Promise<void> {
+async function packageCommand(context: vscode.ExtensionContext): Promise<void> {
   const filePath = getActiveAsterFile();
   if (!filePath) {
     vscode.window.showWarningMessage('请打开一个 .aster 文件');
@@ -300,10 +324,10 @@ async function packageCommand(): Promise<void> {
       },
       async () => {
         // 首先编译
-        await runAsterCommand('compile', [filePath, '--output', outputPath], { showOutput: false });
+        await runAsterCommand(context, 'compile', [filePath, '--output', outputPath], { showOutput: false });
 
         // 然后生成 JAR
-        await runAsterCommand('jar', [filePath, '--output', jarPath]);
+        await runAsterCommand(context, 'jar', [filePath, '--output', jarPath]);
       }
     );
     vscode.window.showInformationMessage(`JAR 已生成: ${jarPath}`);
@@ -325,41 +349,41 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.window.showInformationMessage('Aster Language Server 已在运行中');
         return;
       }
-      startClient();
+      startClient(context);
     })
   );
 
   // 注册编译命令
   context.subscriptions.push(
     vscode.commands.registerCommand('aster.compile', () => {
-      void compileCommand();
+      void compileCommand(context);
     })
   );
 
   // 注册调试命令
   context.subscriptions.push(
     vscode.commands.registerCommand('aster.debug', () => {
-      void debugCommand();
+      void debugCommand(context);
     })
   );
 
   // 注册原生构建命令
   context.subscriptions.push(
     vscode.commands.registerCommand('aster.buildNative', () => {
-      void buildNativeCommand();
+      void buildNativeCommand(context);
     })
   );
 
   // 注册打包命令
   context.subscriptions.push(
     vscode.commands.registerCommand('aster.package', () => {
-      void packageCommand();
+      void packageCommand(context);
     })
   );
 
   // 自动启动：如果存在工作区，则在激活时自动启动服务器
   if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-    startClient();
+    startClient(context);
   } else {
     vscode.window.showInformationMessage(
       'Aster: 未检测到工作区。打开包含 .aster 文件的文件夹后，使用 "Aster: Start Language Server" 命令启动。'

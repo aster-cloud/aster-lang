@@ -5,21 +5,18 @@ import com.oracle.truffle.api.nodes.Node;
 
 public final class Exec {
   private Exec() {}
+
   public static Object exec(Node n, VirtualFrame f) {
     Profiler.inc("exec");
-    if (n instanceof LiteralNode lit) return lit.execute(f);
-    if (n instanceof NameNode nn) return nn.execute(f);
-    if (n instanceof CallNode cn) return cn.execute(f);
+    if (n instanceof AsterExpressionNode expr) return expr.executeGeneric(f);
     if (n instanceof ReturnNode rn) return rn.execute(f);
-    if (n instanceof LetNode ln) return ln.execute(f);
+    if (n instanceof LetNodeEnv lne) return lne.execute(f);
+    if (n instanceof SetNodeEnv sne) return sne.execute(f);
     if (n instanceof IfNode in) return in.execute(f);
-    if (n instanceof ConstructNode cn2) return cn2.execute(f);
     if (n instanceof MatchNode mn) return mn.execute(f);
     if (n instanceof BlockNode bn) return bn.execute(f);
-    if (n instanceof ResultNodes.OkNode ok) return ok.execute(f);
-    if (n instanceof ResultNodes.ErrNode er) return er.execute(f);
-    if (n instanceof ResultNodes.SomeNode sm) return sm.execute(f);
-    if (n instanceof ResultNodes.NoneNode nn2) return nn2.execute(f);
+    if (n instanceof StartNode sn) return sn.execute(f);
+    if (n instanceof WaitNode wn) return wn.execute(f);
     return null;
   }
 

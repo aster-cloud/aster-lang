@@ -24,6 +24,27 @@ import {
   spanFromTokens,
 } from './span-utils.js';
 
+function peekKeywordIgnoringLayout(ctx: ParserContext, startIndex: number = ctx.index): string | null {
+  let idx = startIndex;
+  while (idx < ctx.tokens.length) {
+    const tok = ctx.tokens[idx]!;
+    if (
+      tok.kind === TokenKind.NEWLINE ||
+      tok.kind === TokenKind.INDENT ||
+      tok.kind === TokenKind.DEDENT
+    ) {
+      idx++;
+      continue;
+    }
+    if (tok.kind === TokenKind.IDENT || tok.kind === TokenKind.TYPE_IDENT) {
+      const value = (tok.value as string) || '';
+      return value.toLowerCase();
+    }
+    return null;
+  }
+  return null;
+}
+
 function spanFromToken(token: Token): Span {
   return spanFromTokens(token, token);
 }
@@ -144,6 +165,7 @@ export function parseStatement(
   if (ctx.isKeyword(KW.LET)) {
     const letTok = ctx.peek();
     ctx.nextWord();
+    const nameTok = ctx.peek();
     const name = parseIdent(ctx, error);
     expectKeyword(ctx, error, KW.BE, "Use 'be' in bindings: 'Let x be ...'.");
     // Special-case lambda block form to avoid trailing '.'
@@ -163,6 +185,7 @@ export function parseStatement(
       assignSpan(lambda, spanFromTokens(functionTok, lambdaEnd));
       const nd = Node.Let(name, lambda);
       assignSpan(nd, spanFromTokens(letTok, lambdaEnd));
+      if (nameTok) (nd as any).nameSpan = spanFromToken(nameTok);
       return nd;
     }
     const expr = parseExpr(ctx, error);
@@ -170,6 +193,7 @@ export function parseStatement(
     const nd = Node.Let(name, expr);
     const endTok = lastConsumedToken(ctx);
     assignSpan(nd, spanFromTokens(letTok, endTok));
+    if (nameTok) (nd as any).nameSpan = spanFromToken(nameTok);
     return nd;
   }
   if (ctx.isKeyword(KW.SET)) {
@@ -979,8 +1003,8 @@ export function parseParamList(
         ctx.next();
         // 逗号后允许换行
         ctx.consumeNewlines();
-        // 检查当前 token 是否是 'produce'（不需要 INDENT，因为参数行保持同一缩进级别）
-        if (tokLowerAt(ctx, ctx.index) === KW.PRODUCE) {
+        const after = peekKeywordIgnoringLayout(ctx);
+        if (after === KW.PRODUCE) {
           hasMore = false;
         } else {
           // 不是 'produce'，继续解析参数（可能有 INDENT 表示增加了缩进）
@@ -1026,8 +1050,7 @@ export function parseParamList(
         ctx.next();
         // 逗号后允许换行
         ctx.consumeNewlines();
-        // 检查当前 token 是否是 'produce' 或 'with'
-        const after = tokLowerAt(ctx, ctx.index);
+        const after = peekKeywordIgnoringLayout(ctx);
         if (after === KW.PRODUCE || after === KW.WITH) {
           hasMore = false;
         } else {

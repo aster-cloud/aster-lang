@@ -25,10 +25,28 @@
       "include": "#keywords"
     },
     {
+      "include": "#effects"
+    },
+    {
+      "include": "#annotations"
+    },
+    {
       "include": "#strings"
     },
     {
       "include": "#numbers"
+    },
+    {
+      "include": "#function-calls"
+    },
+    {
+      "include": "#property-access"
+    },
+    {
+      "include": "#constructor-fields"
+    },
+    {
+      "include": "#operator-functions"
     },
     {
       "include": "#types"
@@ -38,9 +56,6 @@
     },
     {
       "include": "#punctuation"
-    },
-    {
-      "include": "#effects"
     }
   ],
   "repository": {
@@ -114,6 +129,46 @@
     "data-type-declaration": {
       "patterns": [
         {
+          "begin": "^(Define)\\s+([A-Z][A-Za-z0-9_]*)\\s+(with)\\s+",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.data.aster"
+            },
+            "2": {
+              "name": "entity.name.type.aster"
+            },
+            "3": {
+              "name": "keyword.control.data.aster"
+            }
+          },
+          "end": "\\.",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.terminator.statement.aster"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#annotations"
+            },
+            {
+              "name": "meta.field.definition.aster",
+              "match": "([a-z][A-Za-z0-9_]*)\\s*(:)\\s*([A-Z][A-Za-z0-9_]*)",
+              "captures": {
+                "1": {
+                  "name": "variable.other.field.aster"
+                },
+                "2": {
+                  "name": "punctuation.separator.colon.aster"
+                },
+                "3": {
+                  "name": "entity.name.type.aster"
+                }
+              }
+            }
+          ]
+        },
+        {
           "match": "^(A|An)\\s+([A-Z][A-Za-z0-9_]*)\\s+(is a record of)",
           "captures": {
             "1": {
@@ -146,6 +201,26 @@
     "enum-declaration": {
       "patterns": [
         {
+          "match": "^(Define)\\s+([A-Z][A-Za-z0-9_]*)\\s+(as)\\s+(enum)\\s+(with)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.enum.aster"
+            },
+            "2": {
+              "name": "entity.name.type.aster"
+            },
+            "3": {
+              "name": "keyword.control.enum.aster"
+            },
+            "4": {
+              "name": "storage.type.enum.aster"
+            },
+            "5": {
+              "name": "keyword.control.enum.aster"
+            }
+          }
+        },
+        {
           "match": "^(An?)\\s+([A-Z][A-Za-z0-9_]*)\\s+(is one of)",
           "captures": {
             "1": {
@@ -165,7 +240,7 @@
       "patterns": [
         {
           "name": "keyword.control.aster",
-          "match": "\\b(Return|Match|When|If|Otherwise|Let|Set|Start|Wait|Await)\\b"
+          "match": "\\b(Return|Match|When|If|Else|Otherwise|Let|Set|Start|Wait|Await|Define|To|be)\\b"
         },
         {
           "name": "constant.language.boolean.aster",
@@ -177,17 +252,16 @@
         }
       ]
     },
-    "effects": {
+    "annotations": {
       "patterns": [
         {
-          "match": "@(io|cpu|pure)\\b",
-          "name": "storage.modifier.effect.aster",
-          "captures": {
-            "1": {
-              "name": "entity.name.effect.aster"
-            }
-          }
-        },
+          "name": "storage.modifier.annotation.aster",
+          "match": "@[A-Za-z_][A-Za-z0-9_]*(?:\\([^\\)]*\\))?"
+        }
+      ]
+    },
+    "effects": {
+      "patterns": [
         {
           "match": "\\b(Http|Db|Sql|Time|Files|Secrets|AiModel)\\.",
           "captures": {
@@ -229,6 +303,38 @@
         }
       ]
     },
+    "function-calls": {
+      "patterns": [
+        {
+          "name": "entity.name.function.call.aster",
+          "match": "\\b[a-z][A-Za-z0-9_]*\\b(?=\\s*\\()"
+        }
+      ]
+    },
+    "property-access": {
+      "patterns": [
+        {
+          "name": "variable.other.property.aster",
+          "match": "(?<=\\.)[A-Za-z_][A-Za-z0-9_]*"
+        }
+      ]
+    },
+    "constructor-fields": {
+      "patterns": [
+        {
+          "name": "variable.other.field.aster",
+          "match": "\\b([a-z][A-Za-z0-9_]*)(?=\\s*=)"
+        }
+      ]
+    },
+    "operator-functions": {
+      "patterns": [
+        {
+          "name": "keyword.operator.function.aster",
+          "match": "(?<![<>=!+\\-*/%])[<>=!+\\-*/%]+(?=\\s*\\())"
+        }
+      ]
+    },
     "types": {
       "patterns": [
         {
@@ -240,8 +346,24 @@
     "operators": {
       "patterns": [
         {
+          "name": "keyword.operator.logical.aster",
+          "match": "&&|\\|\\|"
+        },
+        {
+          "name": "keyword.operator.comparison.aster",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.assignment.aster",
+          "match": "="
+        },
+        {
           "name": "keyword.operator.arithmetic.aster",
-          "match": "[+\\-*/<>=]"
+          "match": "[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.logical.not.aster",
+          "match": "!"
         },
         {
           "name": "keyword.operator.question.aster",

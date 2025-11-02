@@ -64,10 +64,16 @@ function typesEqual(a: Core.Type | undefined | null, b: Core.Type | undefined | 
   return TypeSystem.equals(normalizeType(a), normalizeType(b), strict);
 }
 
+interface FunctionSignature {
+  params: Core.Type[];
+  ret: Core.Type;
+}
+
 interface ModuleContext {
   datas: Map<string, Core.Data>;
   enums: Map<string, Core.Enum>;
   imports: Map<string, string>; // alias -> module name (or module name -> module name if no alias)
+  funcSignatures: Map<string, FunctionSignature>;
 }
 
 export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
@@ -76,7 +82,15 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
   typecheckLogger.info('开始类型检查模块', { moduleName });
   try {
     const diagnostics = new DiagnosticBuilder();
-    const ctx: ModuleContext = { datas: new Map(), enums: new Map(), imports: new Map() };
+    const ctx: ModuleContext = { datas: new Map(), enums: new Map(), imports: new Map(), funcSignatures: new Map() };
+    for (const d of m.decls) {
+      if (d.kind === 'Func') {
+        const params = d.params.map(param => normalizeType(param.type as Core.Type));
+        const ret = normalizeType(d.ret as Core.Type);
+        ctx.funcSignatures.set(d.name, { params, ret });
+      }
+    }
+
     for (const d of m.decls) {
       if (d.kind === 'Import') {
         const alias = d.asName ?? d.name;
@@ -796,6 +810,72 @@ class TypeOfExprVisitor extends DefaultCoreVisitor<TypecheckWalkerContext> {
     const { module, symbols, diagnostics } = context;
     switch (expression.kind) {
       case 'Name': {
+        // Check if this is a field access (e.g., "applicant.creditScore")
+        if (expression.name.includes('.')) {
+          const parts = expression.name.split('.');
+          const baseName = parts[0]!;
+          const fieldPath = parts.slice(1);
+
+          // Look up the base variable
+          const baseSymbol = symbols.lookup(baseName);
+          if (!baseSymbol) {
+            diagnostics.undefinedVariable(baseName, expression.span);
+            this.result = unknownType();
+            this.handled = true;
+            return;
+          }
+
+          // Resolve field access through the type chain
+          let currentType = baseSymbol.type;
+          for (const fieldName of fieldPath) {
+            // Expand type aliases
+            const expanded = TypeSystem.expand(currentType, symbols.getTypeAliases());
+
+            // Check if current type is a custom data type
+            if (expanded.kind === 'TypeName') {
+              const dataDecl = module.datas.get(expanded.name);
+              if (!dataDecl) {
+                diagnostics.error(ErrorCode.UNKNOWN_FIELD, expression.span, {
+                  field: fieldName,
+                  type: formatType(currentType),
+                });
+                this.result = unknownType();
+                this.handled = true;
+                return;
+              }
+
+              // Find the field in the data declaration
+              const field = dataDecl.fields.find(f => f.name === fieldName);
+              if (!field) {
+                diagnostics.error(ErrorCode.UNKNOWN_FIELD, expression.span, {
+                  field: fieldName,
+                  type: dataDecl.name,
+                });
+                this.result = unknownType();
+                this.handled = true;
+                return;
+              }
+
+              // Move to the field's type
+              currentType = field.type as Core.Type;
+            } else {
+              // Not a data type, can't access fields
+              diagnostics.error(ErrorCode.UNKNOWN_FIELD, expression.span, {
+                field: fieldName,
+                type: formatType(currentType),
+              });
+              this.result = unknownType();
+              this.handled = true;
+              return;
+            }
+          }
+
+          this.result = currentType;
+          this.handled = true;
+          return;
+        }
+
+        // Regular variable lookup
         const symbol = symbols.lookup(expression.name);
         if (symbol) {
           this.result = symbol.type;
@@ -994,6 +1074,15 @@ class TypeOfExprVisitor extends DefaultCoreVisitor<TypecheckWalkerContext> {
           }
           this.handled = true;
           return;
+        }
+
+        if (expression.target.kind === 'Name') {
+          const signature = module.funcSignatures.get(expression.target.name);
+          if (signature) {
+            this.result = signature.ret;
+            this.handled = true;
+            return;
+          }
         }
 
         this.result = unknownType();

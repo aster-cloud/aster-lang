@@ -36,6 +36,65 @@ public final class Builtins {
   private static final Map<String, BuiltinFunction> REGISTRY = new HashMap<>();
 
   static {
+    // === Arithmetic Operations ===
+    register("add", args -> {
+      checkArity("add", args, 2);
+      return toInt(args[0]) + toInt(args[1]);
+    });
+
+    register("sub", args -> {
+      checkArity("sub", args, 2);
+      return toInt(args[0]) - toInt(args[1]);
+    });
+
+    register("mul", args -> {
+      checkArity("mul", args, 2);
+      return toInt(args[0]) * toInt(args[1]);
+    });
+
+    register("div", args -> {
+      checkArity("div", args, 2);
+      int divisor = toInt(args[1]);
+      if (divisor == 0) throw new BuiltinException("div: division by zero");
+      return toInt(args[0]) / divisor;
+    });
+
+    register("mod", args -> {
+      checkArity("mod", args, 2);
+      return toInt(args[0]) % toInt(args[1]);
+    });
+
+    // === Comparison Operations ===
+    register("eq", args -> {
+      checkArity("eq", args, 2);
+      return Objects.equals(args[0], args[1]);
+    });
+
+    register("ne", args -> {
+      checkArity("ne", args, 2);
+      return !Objects.equals(args[0], args[1]);
+    });
+
+    register("lt", args -> {
+      checkArity("lt", args, 2);
+      return toInt(args[0]) < toInt(args[1]);
+    });
+
+    register("lte", args -> {
+      checkArity("lte", args, 2);
+      return toInt(args[0]) <= toInt(args[1]);
+    });
+
+    register("gt", args -> {
+      checkArity("gt", args, 2);
+      return toInt(args[0]) > toInt(args[1]);
+    });
+
+    register("gte", args -> {
+      checkArity("gte", args, 2);
+      return toInt(args[0]) >= toInt(args[1]);
+    });
+
     // === Boolean Operations ===
     register("not", args -> {
       checkArity("not", args, 1);

@@ -1,3 +1,28 @@
+# 2025-11-02 22:49 NZDT Aster Truffle 实施计划调研
+
+- 2025-11-02 22:39 NZDT | 工具：sequential-thinking__sequentialthinking → 梳理 Truffle 集成任务理解、资料缺口与执行步骤（共 5 条思考）
+- 2025-11-02 22:41 NZDT | 工具：code-index__set_project_path → path='.'，初始化索引以便检索 `.claude` 与源码
+- 2025-11-02 22:42 NZDT | 命令：zsh -lc "cat .claude/context-truffle-initial.json" → 读取既有扫描结果确认模块现状
+- 2025-11-02 22:45 NZDT | 工具：mcp__exa__get_code_context_exa / web_search_exa → 搜索 Truffle 语言实现与教程示例（SimpleLanguage、EasyScript、GraalPython）
+- 2025-11-02 22:46 NZDT | 命令：zsh -lc "curl -s https://raw.githubusercontent.com/graalvm/simplelanguage/master/..." → 收集 SLLanguage、Frame 节点示例；同期获取 EasyScript 与 GraalPython Asyncio 代码片段
+- 2025-11-02 22:48 NZDT | 命令：zsh -lc "TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'" → 获取文档时间戳
+- 2025-11-02 22:49 NZDT | 工具：apply_patch → 新增 `.claude/truffle-implementation-plan.md` 记录阶段计划、技术决策与风险管理
+
+# 2025-10-26 10:58 NZST 构造器字段高亮修复
+
+- 工具：sequential-thinking__sequentialthinking → 梳理构造器字段高亮缺失的修复范围、风险与执行步骤
+- 命令：zsh -lc "cat aster-vscode/syntaxes/aster.tmLanguage.json" → 获取现有 TextMate 语法模式查看插入位置
+- 工具：apply_patch → 在主 patterns 序列加入 #constructor-fields 并新增 variable.other.field.aster 匹配规则
+- 命令：zsh -lc "npm run build:all"（cwd=aster-vscode）→ 重建扩展及依赖产物
+- 命令：zsh -lc "npm run package"（cwd=aster-vscode）→ 重新打包生成最新 VSIX
+- 命令：zsh -lc "node -e \"const fs=require('fs');const text=fs.readFileSync('test/cnl/programs/library/finance/fraud.aster','utf8');const regex=/\\\\b([a-z][A-Za-z0-9_]*)(?=\\\\s*=)/g;const matches=[...text.matchAll(regex)].map(m=>m[1]);console.log(matches);\"" → 验证正则在 fraud.aster 上捕获所有字段名
+- 2025-11-02 22:32 NZDT | 工具：sequential-thinking__sequentialthinking → 梳理 aster-truffle 上下文收集的任务目标与执行步骤
+- 2025-11-02 22:33 NZDT | 命令：zsh -lc "rg --files"（cwd=aster-truffle）→ 获取模块全部源文件列表
+- 2025-11-02 22:34 NZDT | 命令：zsh -lc "cat build.gradle.kts"（cwd=aster-truffle）→ 记录 Truffle 模块依赖与编译器配置
+- 2025-11-02 22:36 NZDT | 命令：zsh -lc "sed -n '1,260p' scripts/aster.ts" → 提取 CLI 中 truffle 子命令实现细节
+- 2025-11-02 22:37 NZDT | 命令：zsh -lc "cat test/truffle/run-smoke-test.sh" → 确认现有 Truffle 冒烟脚本与预期输出
+- 2025-11-02 22:38 NZDT | 工具：apply_patch → 新增 .claude/context-truffle-initial.json 汇总结构化扫描结果
+
 # 2025-10-25 17:29 NZDT Phase D native 命令快速实现
 
 - 工具：sequential-thinking__sequentialthinking → 梳理 Phase D native 命令需求、执行步骤与风险
@@ -3427,3 +3452,341 @@ await runOneTypecheck(
 - 2025-10-25 18:03 NZDT | 命令：zsh -lc "nl -ba aster-lang-cli/src/main/java/aster/cli/CommandHandler.java | sed -n '120,220p'" → 获取辅助方法 extractOutputName 等实现
 - 2025-10-25 18:03 NZDT | 命令：zsh -lc "nl -ba aster-lang-cli/src/main/java/aster/cli/CommandHandler.java | sed -n '200,340p'" → 核查 handleNative 与 isGraalVMAvailable 细节
 - 2025-10-25 18:04 NZDT | 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'" → 获取审查报告时间戳
+- 2025-10-25 19:59 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=1,totalThoughts=4 → 梳理 VSCode 扩展审查任务范围
+- 2025-10-25 19:59 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=2,totalThoughts=4 → 规划读取 README、package.json、extension.ts 的分析步骤
+- 2025-10-25 19:59 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=3,totalThoughts=4 → 确认输出要求与报告结构
+- 2025-10-25 19:59 NZDT | 命令：bash -lc "cat aster-vscode/README.md" → 获取扩展安装与配置说明
+- 2025-10-25 19:59 NZDT | 命令：bash -lc "cat aster-vscode/package.json" → 查看扩展清单与配置项默认值
+- 2025-10-25 19:59 NZDT | 命令：bash -lc \"cat aster-vscode/src/extension.ts\" → 分析扩展实现与错误处理逻辑
+- 2025-10-25 20:11 NZST | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=1,totalThoughts=4 → 明确 VSCode 改进上下文收集范围与潜在风险
+- 2025-10-25 20:11 NZST | 命令：bash -lc "cat aster-vscode/.vscodeignore" → 核对 VSIX 打包忽略列表
+- 2025-10-25 20:11 NZST | 命令：bash -lc "cat aster-vscode/package.json" → 提取脚本、激活事件与配置项
+- 2025-10-25 20:12 NZST | 命令：bash -lc "ls -R aster-vscode | head -n 200" → 快速列出扩展核心文件结构
+- 2025-10-25 20:12 NZST | 命令：bash -lc "ls dist/src/lsp" → 确认 LSP 服务器打包位置
+- 2025-10-25 20:12 NZST | 命令：bash -lc "ls aster-vscode/out" → 验证扩展编译输出目录
+- 2025-10-25 20:12 NZST | 命令：bash -lc "cat -n aster-vscode/src/extension.ts" → 定位错误提示实现区段
+- 2025-10-25 20:12 NZST | 命令：bash -lc "rg -n \"runAsterCommand\" -n aster-vscode/src/extension.ts" → 搜索 CLI 执行入口
+- 2025-10-25 20:12 NZST | 命令：bash -lc "sed -n '110,210p' aster-vscode/src/extension.ts" → 提取 resolveCLIPath 与 runAsterCommand 细节
+- 2025-10-25 20:12 NZST | 命令：bash -lc "sed -n '210,320p' aster-vscode/src/extension.ts" → 提取命令层错误处理模式
+- 2025-10-25 20:13 NZST | 命令：bash -lc "ls" → 检查仓库根目录结构
+- 2025-10-25 20:13 NZST | 命令：bash -lc "cat aster-lang-cli/build.gradle.kts" → 分析 CLI 原生构建脚本
+- 2025-10-25 20:13 NZST | 命令：bash -lc "cat package.json" → 评估 npm CLI 暴露与二进制分发方案
+- 2025-10-25 20:13 NZST | 命令：bash -lc "TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'" → 获取上下文报告时间戳
+- 2025-10-25 20:13 NZST | 工具：apply_patch | 目标：.claude/context-vscode-improvements.json → 写入 VSCode 改进上下文摘要
+- 2025-10-26 02:13 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=1,totalThoughts=5 → 梳理语法文件更新范围与潜在风险
+- 2025-10-26 02:13 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=2,totalThoughts=5 → 制定读取语法文件与增量修改思路
+- 2025-10-26 02:13 NZDT | 命令：bash -lc "cat aster-vscode/syntaxes/aster.tmLanguage.json" → 查看现有语法定义结构
+- 2025-10-26 02:13 NZDT | 工具：apply_patch | 目标：aster-vscode/syntaxes/aster.tmLanguage.json → 新增 #annotations 引用
+- 2025-10-26 02:13 NZDT | 工具：apply_patch | 目标：aster-vscode/syntaxes/aster.tmLanguage.json → 扩展关键字与注解匹配
+- 2025-10-26 02:13 NZDT | 工具：apply_patch | 目标：aster-vscode/syntaxes/aster.tmLanguage.json → 添加 Define 记录体字段高亮
+- 2025-10-26 02:13 NZDT | 工具：apply_patch | 目标：aster-vscode/syntaxes/aster.tmLanguage.json → 支持 Define 枚举声明
+- 2025-10-26 02:13 NZDT | 工具：apply_patch | 目标：aster-vscode/syntaxes/aster.tmLanguage.json → 扩展运算符匹配集合
+- 2025-10-26 02:13 NZDT | 命令：bash -lc "python3 -m json.tool aster-vscode/syntaxes/aster.tmLanguage.json > /tmp/aster_tmp.json" → 验证语法文件 JSON 格式
+- 2025-10-26 02:14 NZDT | 命令：bash -lc "python3 - <<'PY' ..." → 用正则快速验证新语法匹配示例
+- 2025-10-26 09:12 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=1,totalThoughts=4 → 梳理任务分解与风险点
+- 2025-10-26 09:12 NZDT | 工具：sequential-thinking__sequentialthinking | 参数：thoughtNumber=2,totalThoughts=4 → 制定语法与类型检查排查步骤
+- 2025-10-26 09:12 NZDT | 工具：code-index__set_project_path | 参数：path='.' → 初始化代码索引以便检索
+- 2025-10-26 09:13 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-vscode/syntaxes/aster.tmLanguage.json" → 查看 TextMate 主模式顺序
+- 2025-10-26 09:13 NZDT | 命令：zsh -lc "rg '\"types\"' -n aster-vscode/syntaxes/aster.tmLanguage.json" → 定位类型模式定义位置
+- 2025-10-26 09:13 NZDT | 命令：zsh -lc "sed -n '260,360p' aster-vscode/syntaxes/aster.tmLanguage.json" → 检查类型与效果模式实现
+- 2025-10-26 09:14 NZDT | 命令：zsh -lc "sed -n '1,200p' src/typecheck.ts" → 理解类型检查入口逻辑
+- 2025-10-26 09:14 NZDT | 命令：zsh -lc "ls src/parser" → 确认解析子模块结构
+- 2025-10-26 09:14 NZDT | 命令：zsh -lc "sed -n '1,200p' src/parser/decl-parser.ts" → 分析函数声明解析流程
+- 2025-10-26 09:15 NZDT | 命令：zsh -lc "sed -n '1,200p' src/parser/context.ts" → 复核解析上下文对换行处理
+- 2025-10-26 09:15 NZDT | 命令：zsh -lc "sed -n '1,200p' src/lexer.ts" → 检查换行与缩进词法规则
+- 2025-10-26 09:15 NZDT | 命令：zsh -lc "sed -n '900,1040p' src/parser/expr-stmt-parser.ts" → 核查参数列表对多行的支持
+- 2025-10-26 09:16 NZDT | 命令：zsh -lc \"node - <<'NODE'\nconst { canonicalize, lex, parse, lowerModule, typecheckModule } = require('./dist/src/index.js');\nconst src = `This module is app.\\nTo calculateScore \\n  with applicant: ApplicantInfo, \\n  produce Int:\\n  Return 100.\\n`;\nconst can = canonicalize(src);\nconsole.log('CANONICALIZED:\\n' + can);\nconst tokens = lex(can);\nconsole.log(tokens.map(t => ({kind: t.kind, value: t.value, start: t.start, end: t.end})).slice(0,40));\ntry {\n  const ast = parse(tokens);\n  const core = lowerModule(ast);\n  const diags = typecheckModule(core);\n  console.log('Diagnostics:', diags);\n} catch (err) {\n  console.error('Error:', err.message);\n}\nNODE\" → 复现多行函数解析失败并观察词法输出
+# 2025-10-26 09:19 NZST 语法高亮与多行函数解析调整
+
+- 工具：sequential-thinking__sequentialthinking → 梳理语法高亮顺序调整与函数声明换行需求、风险与执行计划
+- 命令：zsh -lc "sed -n '1,200p' aster-vscode/syntaxes/aster.tmLanguage.json" → 查看当前模式顺序
+- 工具：apply_patch → 将 #effects 移至 #keywords 之后并调整 #types 至数字模式之后
+- 命令：zsh -lc "sed -n '1,200p' src/parser/decl-parser.ts" → 审阅函数声明解析逻辑
+- 命令：zsh -lc "sed -n '944,1080p' src/parser/expr-stmt-parser.ts" → 检查参数列表解析实现
+- 工具：apply_patch → 在 parseFuncDecl 新增跳过换行/缩进逻辑并应用于关键节点
+- 工具：apply_patch → 在 parseParamList 引入 peekKeywordIgnoringLayout 支持跨行 produce 识别
+- 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 记录执行时间
+- 命令：zsh -lc "npm run build" → 重建 TypeScript 构建产物
+- 工具：apply_patch → 新增 test-multiline-function.aster 演示多行函数定义
+- 命令：zsh -lc "npm run typecheck" → 运行 TypeScript 类型检查确认通过
+- 命令：zsh -lc "node dist/scripts/typecheck-cli.js test-multiline-function.aster" → 校验多行函数样例可解析
+- 命令：zsh -lc "npm run package"（cwd=aster-vscode）→ 打包 VSCode 扩展并生成 vsix
+- 工具：apply_patch → 让 Let 语句记录 nameSpan 并调整 inlay hints 的展示位置以避免冒头的「: UNKNOWN」
+- 工具：apply_patch → 更新 collectLetsWithSpan 与 inlay hints 过滤逻辑以复用 nameSpan 并忽略未知类型提示
+- 命令：zsh -lc "npm run build" → 编译通过确认最新改动可构建
+- 2025-10-26 10:25 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 creditcard.aster 高亮问题初步分析思路
+- 2025-10-26 10:25 NZST | 命令：zsh -lc "sed -n '1,160p' quarkus-policy-api/src/main/resources/policies/finance/creditcard.aster" → 阅读信用卡策略文件上半部分
+- 2025-10-26 10:25 NZST | 命令：zsh -lc "sed -n '160,320p' quarkus-policy-api/src/main/resources/policies/finance/creditcard.aster" → 阅读信用卡策略文件下半部分
+- 2025-10-26 10:25 NZST | 命令：zsh -lc "sed -n '1,200p' aster-vscode/syntaxes/aster.tmLanguage.json" → 检查现有 TextMate 语法模式
+- 2025-10-26 10:25 NZST | 命令：zsh -lc "sed -n '200,400p' aster-vscode/syntaxes/aster.tmLanguage.json" → 查看运算符与类型规则
+- 2025-10-26 10:25 NZST | 命令：zsh -lc "cat aster-vscode/language-configuration.json" → 确认语言配置中的单词边界设定
+- 2025-10-26 10:25 NZST | 命令：zsh -lc "nl -ba quarkus-policy-api/src/main/resources/policies/finance/creditcard.aster" → 获取文件行号供问题定位
+- 2025-10-26 10:30 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 creditcard.aster 高亮修复执行步骤与风险
+- 2025-10-26 10:30 NZST | 工具：apply_patch → 调整 syntaxes/aster.tmLanguage.json 引入函数调用、属性访问、前缀运算符高亮并补充 be 关键字
+- 2025-10-26 10:30 NZST | 工具：apply_patch → 更新 language-configuration.json 的 wordPattern 并修正转义
+- 2025-10-26 10:30 NZST | 命令：zsh -lc "npm run build" → 编译 TypeScript/PEG 构建产物通过
+- 2025-10-26 10:30 NZST | 命令：zsh -lc "npm run package"（cwd=aster-vscode）→ 完成扩展打包生成最新 VSIX
+- 2025-10-26 10:30 NZST | 命令：zsh -lc "node <<'NODE' ..." → 验证新增正则对函数调用、属性字段与前缀运算符的匹配效果
+- 2025-10-26 10:42 NZST | 工具：sequential-thinking → 分析 fraud.aster 语法高亮问题的调查步骤
+- 2025-10-26 10:43 NZST | 命令：zsh -lc "sed -n '1,200p' quarkus-policy-api/src/main/resources/policies/finance/fraud.aster" → 获取 fraud.aster 原始内容以检查构造器、布尔字面与字符串使用
+- 2025-10-26 10:44 NZST | 命令：zsh -lc "sed -n '1,400p' aster-vscode/syntaxes/aster.tmLanguage.json" → 复核现有语法高亮正则覆盖范围确认缺失模式
+# 2025-10-26 10:58 NZST 构造器字段高亮修复
+
+- 工具：sequential-thinking__sequentialthinking → 梳理构造器字段高亮缺失的修复范围、风险与执行步骤
+- 命令：zsh -lc "cat aster-vscode/syntaxes/aster.tmLanguage.json" → 获取现有 TextMate 语法模式查看插入位置
+- 工具：apply_patch → 在主 patterns 序列加入 #constructor-fields 并新增 variable.other.field.aster 匹配规则
+- 命令：zsh -lc "npm run build:all"（cwd=aster-vscode）→ 重建扩展及依赖产物
+- 命令：zsh -lc "npm run package"（cwd=aster-vscode）→ 重新打包生成最新 VSIX
+- 命令：zsh -lc "node -e \"const fs=require('fs');const text=fs.readFileSync('test/cnl/programs/library/finance/fraud.aster','utf8');const regex=/\\\\b([a-z][A-Za-z0-9_]*)(?=\\\\s*=)/g;const matches=[...text.matchAll(regex)].map(m=>m[1]);console.log(matches);\"" → 验证正则在 fraud.aster 上捕获所有字段名
+- 2025-11-02 23:10 NZST | 工具：sequential-thinking__sequentialthinking → 三次梳理基础测试框架任务目标、风险与执行顺序
+- 2025-11-02 23:10 NZST | 命令：zsh -lc "ls" → 确认仓库顶层结构
+- 2025-11-02 23:10 NZST | 命令：zsh -lc "sed -n '1,160p' build.gradle.kts" → 查看根构建脚本依赖配置
+- 2025-11-02 23:10 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/build.gradle.kts" → 检查子模块现有依赖
+- 2025-11-02 23:10 NZST | 工具：apply_patch → 为 aster-truffle/build.gradle.kts 增加 JUnit 依赖与 useJUnitPlatform 配置
+- 2025-11-02 23:10 NZST | 命令：zsh -lc "mkdir -p src/test/java/aster/truffle src/test/resources"（cwd=aster-truffle）→ 创建测试目录结构
+- 2025-11-02 23:10 NZST | 命令：zsh -lc "cat <<'EOF' > src/test/java/aster/truffle/AsterLanguageTest.java ..."（cwd=aster-truffle）→ 写入基础测试类
+- 2025-11-02 23:10 NZST | 工具：apply_patch → 调整 createSimpleProgram 输出以匹配 CoreModel JSON 结构
+- 2025-11-02 23:10 NZST | 命令：zsh -lc "cat <<'EOF' > src/test/resources/simple-literal.json ..."（cwd=aster-truffle）→ 添加字面量 Core JSON 资源
+- 2025-11-02 23:10 NZST | 命令：zsh -lc "cat <<'EOF' > src/test/resources/simple-function.json ..."（cwd=aster-truffle）→ 添加函数调用 Core JSON 资源
+- 2025-11-02 23:10 NZST | 工具：apply_patch → 构造 createFunctionProgram 返回包含 helper 调用的 Core JSON
+- 2025-11-02 23:10 NZST | 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 记录阶段时间戳
+- 2025-11-02 23:11 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test" → 执行子模块测试失败，提示缺失 JUnit Platform 运行时
+- 2025-11-02 23:11 NZST | 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 更新失败记录时间
+- 2025-11-02 23:11 NZST | 命令：zsh -lc "npm run truffle:smoke" → 脚本不存在，npm 返回 Missing script 错误
+- 2025-11-02 23:11 NZST | 命令：zsh -lc "./test/truffle/run-smoke-test.sh" → 冒烟测试通过，输出 42
+- 2025-11-02 23:11 NZST | 命令：zsh -lc "TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'" → 记录冒烟测试时间
+- 2025-11-02 23:13 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 JUnit 配置修复范围、步骤与潜在风险
+- 2025-11-02 23:13 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/build.gradle.kts" → 检查当前测试依赖配置
+- 2025-11-02 23:13 NZST | 命令：zsh -lc "ls -R aster-truffle/src/test" → 确认现有测试目录与资源
+- 2025-11-02 23:13 NZST | 工具：apply_patch → 更新 aster-truffle/build.gradle.kts 增加 JUnit Launcher 并扩展 testLogging
+- 2025-11-02 23:13 NZST | 工具：apply_patch → 新增 LoaderTest.java 覆盖 Loader 基础加载逻辑
+- 2025-11-02 23:20 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --info" → 首次执行失败，编译期报 Env 传参类型不符
+- 2025-11-02 23:20 NZST | 工具：mcp__code-index__search_code_advanced → 检索 Exec 类定义但因未设置项目路径失败
+- 2025-11-02 23:20 NZST | 工具：mcp__code-index__set_project_path → 设定项目路径 /Users/rpang/IdeaProjects/aster-lang
+- 2025-11-02 23:20 NZST | 工具：mcp__code-index__search_code_advanced → 检索 Exec.exec 调用位置定位虚拟帧参数要求
+- 2025-11-02 23:20 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/Exec.java" → 查看调度器签名
+- 2025-11-02 23:20 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/test/java/aster/truffle/AsterLanguageTest.java" → 参考现有 Polyglot 测试结构
+- 2025-11-02 23:21 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/Loader.java" → 分析 Program 构造与入口函数解析
+- 2025-11-02 23:21 NZST | 命令：zsh -lc "sed -n '1,160p' aster-truffle/src/main/java/aster/truffle/nodes/BlockNode.java" → 确认可接受 null VirtualFrame
+- 2025-11-02 23:21 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/NameNode.java" → 确认 Env 访问方式
+- 2025-11-02 23:21 NZST | 命令：zsh -lc "sed -n '1,160p' aster-truffle/src/main/java/aster/truffle/Runner.java" → 参考 Runner 使用 Exec.exec(program.root, null)
+- 2025-11-02 23:22 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/CallNode.java" → 核对调用节点执行流程
+- 2025-11-02 23:22 NZST | 命令：zsh -lc "sed -n '1,160p' aster-truffle/src/main/java/aster/truffle/nodes/ReturnNode.java" → 查看 Return 异常机制
+- 2025-11-02 23:22 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/LambdaValue.java" → 确认 apply 捕获与返回逻辑
+- 2025-11-02 23:23 NZST | 工具：apply_patch → 调整 LoaderTest 使用 program.env 并传递 null 虚拟帧
+- 2025-11-02 23:24 NZST | 命令：zsh -lc "cat aster-truffle/src/test/resources/simple-literal.json" → 获取基准 JSON 结构
+- 2025-11-02 23:24 NZST | 工具：apply_patch → 将 LoaderTest JSON 更新为完整模块结构并使用文本块
+- 2025-11-02 23:25 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --info" → 第二次执行失败，LoaderTest 报模块缺少函数
+- 2025-11-02 23:26 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --info" → 第三次执行通过，4 项测试成功
+- 2025-11-02 23:26 NZST | 命令：zsh -lc "./test/truffle/run-smoke-test.sh" → 冒烟测试通过输出 42
+- 2025-11-02 23:30 NZST | 工具：apply_patch → 更新 docs/testing.md 记录测试执行结果
+- 2025-11-02 23:31 NZST | 命令：zsh -lc "nl -ba aster-truffle/build.gradle.kts | sed -n '1,160p'" → 获取修改后依赖段落行号
+- 2025-11-02 23:31 NZST | 命令：zsh -lc "nl -ba aster-truffle/src/test/java/aster/truffle/LoaderTest.java" → 获取新单元测试行号
+- 2025-11-02 23:31 NZST | 命令：zsh -lc "nl -ba docs/testing.md | tail -n 80" → 获取测试记录新增段落行号
+- 2025-11-02 23:42 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 FrameSlot 分配策略与执行步骤
+- 2025-11-02 23:42 NZST | 工具：apply_patch → 新增 FrameSlotBuilder/FrameSlotInfo 类用于槽位管理
+- 2025-11-02 23:42 NZST | 工具：apply_patch → 添加 FrameSlotBuilderTest 覆盖参数与局部槽位分配
+- 2025-11-02 23:42 NZST | 工具：apply_patch → 更新 AsterRootNode 接入 FrameSlotBuilder 并暴露符号表
+- 2025-11-02 23:42 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --tests FrameSlotBuilderTest" → 编译失败，提示缺少 setFrameDescriptor 方法
+- 2025-11-02 23:42 NZST | 工具：apply_patch → 引入 FrameInit 记录类以先计算 FrameDescriptor 后再调用 super
+- 2025-11-02 23:42 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --tests FrameSlotBuilderTest" → 测试通过，4 项断言全部成功
+- 2025-11-02 23:52 NZST | 工具：sequential-thinking__sequentialthinking → 阶段2任务初步分析：梳理 NameNode 重写需求与风险
+- 2025-11-02 23:52 NZST | 工具：sequential-thinking__sequentialthinking → 细化阅读计划，确认需评估 Frame 访问及 Env 回退
+- 2025-11-02 23:52 NZST | 工具：sequential-thinking__sequentialthinking → 研判 Loader 构建流程对槽位映射的影响
+- 2025-11-02 23:52 NZST | 工具：sequential-thinking__sequentialthinking → 制定执行步骤清单，锁定实现顺序
+- 2025-11-02 23:53 NZST | 命令：zsh -lc "ls" → 确认仓库根目录文件结构
+- 2025-11-02 23:53 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/NameNode.java" → 查看旧版 NameNode 依赖 Env 的实现
+- 2025-11-02 23:53 NZST | 命令：zsh -lc "rg \"new NameNode\" -n" → 搜索 NameNode 构造使用点
+- 2025-11-02 23:53 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/Loader.java" → 分析 Loader 构建流程
+- 2025-11-02 23:53 NZST | 命令：zsh -lc "sed -n '200,400p' aster-truffle/src/main/java/aster/truffle/Loader.java" → 继续审阅 Loader 名称解析逻辑
+- 2025-11-02 23:54 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/Env.java" → 核对 Env 结构
+- 2025-11-02 23:54 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/LetNode.java" → 了解局部绑定流程
+- 2025-11-02 23:54 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/CallNode.java" → 审查调用节点执行细节
+- 2025-11-02 23:54 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/LambdaValue.java" → 检查函数应用如何传递 Env/Frame
+- 2025-11-02 23:54 NZST | 命令：zsh -lc "rg \"getObject\\(\" -n" → 搜索项目内 Frame 读取的先例
+- 2025-11-02 23:54 NZST | 命令：zsh -lc "rg \"FrameSlot\" -n aster-truffle/src/main/java/aster/truffle" → 定位 Frame 槽位工具类
+- 2025-11-02 23:54 NZST | 命令：zsh -lc "sed -n '1,160p' aster-truffle/src/main/java/aster/truffle/runtime/FrameSlotBuilder.java" → 复核槽位分配器细节
+- 2025-11-02 23:55 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/AsterRootNode.java" → 确认 RootNode 如何写入 Frame
+- 2025-11-02 23:55 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/Exec.java" → 分析执行分派逻辑
+- 2025-11-02 23:55 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/Profiler.java" → 查看计数器实现
+- 2025-11-02 23:55 NZST | 命令：zsh -lc "rg \"FrameSlotInfo\" -n" → 确认槽位信息类当前使用情况
+- 2025-11-02 23:55 NZST | 命令：zsh -lc "sed -n '1,160p' aster-truffle/src/main/java/aster/truffle/runtime/FrameSlotInfo.java" → 理解 FrameSlotInfo 结构
+- 2025-11-02 23:56 NZST | 工具：apply_patch → 重写 NameNode 为 Frame 优先读取并加入 Env 回退
+- 2025-11-02 23:56 NZST | 工具：apply_patch → 新增 NameNodeEnv 类保持 Env 访问版本
+- 2025-11-02 23:56 NZST | 工具：apply_patch → 更新 Exec 支持 NameNodeEnv 分派
+- 2025-11-02 23:56 NZST | 工具：apply_patch → Loader 引入 FrameSlotBuilder 依赖
+- 2025-11-02 23:56 NZST | 工具：apply_patch → Loader 增加 entryFunction/entryParamSlots 字段及栈
+- 2025-11-02 23:56 NZST | 工具：apply_patch → buildProgramInternal 初始化 entry 状态与槽位映射
+- 2025-11-02 23:56 NZST | 工具：apply_patch → Loader 使用 buildFunctionBody 生成函数体
+- 2025-11-02 23:57 NZST | 工具：apply_patch → Loader 主调节点改用 NameNodeEnv
+- 2025-11-02 23:57 NZST | 工具：apply_patch → 精简 Call 构建逻辑改为通用 buildExpr
+- 2025-11-02 23:57 NZST | 工具：apply_patch → buildName 支持槽位映射并新增 withParamSlots 辅助方法
+- 2025-11-02 23:57 NZST | 命令：zsh -lc "rg \"new NameNode\\(\" aster-truffle/src/main/java/aster/truffle/Loader.java" → 校验剩余构造调用
+- 2025-11-02 23:57 NZST | 命令：zsh -lc "rg \"NameNodeEnv\" -n" → 确认新类引用位置
+- 2025-11-02 23:57 NZST | 命令：zsh -lc "rg \"NameNode\\(\" -n" → 检查 NameNode 构造使用情况
+- 2025-11-02 23:57 NZST | 命令：zsh -lc "ls aster-truffle/src/test/java" → 确认测试目录结构
+- 2025-11-02 23:57 NZST | 命令：zsh -lc "find aster-truffle/src/test/java -maxdepth 2 -type d" → 列出测试子目录
+- 2025-11-02 23:57 NZST | 命令：zsh -lc "find aster-truffle/src/test/java/aster/truffle -maxdepth 2 -type f" → 枚举现有测试文件
+- 2025-11-02 23:58 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/test/java/aster/truffle/LoaderTest.java" → 阅读现有 Loader 测试
+- 2025-11-02 23:58 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/test/java/aster/truffle/AsterLanguageTest.java" → 了解语言集成测试
+- 2025-11-02 23:58 NZST | 工具：apply_patch → 在 LoaderTest 中新增 Frame 参数访问单元测试
+- 2025-11-02 23:58 NZST | 命令：zsh -lc "rg '\"params\": \\[' -n docs aster-truffle/src/test -g'*.json'" → 查找参数示例
+- 2025-11-02 23:58 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/core/CoreModel.java" → 校对 Core JSON 参数结构
+- 2025-11-02 23:59 NZST | 命令：zsh -lc "tail -n 20 operations-log.md" → 检查既有日志尾部
+- 2025-11-02 23:59 NZST | 命令：zsh -lc "TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'" → 获取当前新西兰时间戳
+- 2025-11-03 00:00 NZST | 命令：zsh -lc "./gradlew :aster-truffle:compileJava" → 编译通过，确认 NameNode/Loader 变更可编译
+- 2025-11-03 00:01 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test" → 测试编译失败，缺少 createCallTarget(AsterRootNode) 方法
+- 2025-11-03 00:02 NZST | 工具：apply_patch → LoaderTest 调整为使用 RootNode 接口创建 CallTarget
+- 2025-11-03 00:03 NZST | 工具：apply_patch → LoaderTest 改用 VirtualFrame+Exec.exec 验证 Frame 参数读取
+- 2025-11-03 00:03 NZST | 工具：apply_patch → 移除 LoaderTest 中未使用的 CallTarget 导入
+- 2025-11-03 00:04 NZST | 工具：apply_patch → LoaderTest 改为使用 FrameSlotBuilder 构造 FrameDescriptor 并去除 AsterRootNode 依赖
+- 2025-11-03 00:05 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test" → 单元测试全部通过（LoaderTest 新增用例生效）
+- 2025-11-03 00:06 NZST | 工具：apply_patch → 更新 docs/testing.md 记录编译与测试执行结果
+# 2025-11-03 07:53 NZDT Truffle 后端代码审查
+
+- 2025-11-03 07:45 NZDT | 工具：sequential-thinking__sequentialthinking → 记录审查任务理解与执行计划（6 条思考）
+- 2025-11-03 07:46 NZDT | 工具：code-index__set_project_path → path='.'，确认索引基准目录
+- 2025-11-03 07:46 NZDT | 工具：code-index__build_deep_index → 重建索引 1352 个文件，便于检索节点源码
+- 2025-11-03 07:47 NZDT | 工具：code-index__get_file_summary → 摘要 `LambdaNode.java` 了解结构与行数
+- 2025-11-03 07:47 NZDT | 命令：zsh -lc "sed -n '1,160p' aster-truffle/src/main/java/aster/truffle/nodes/LambdaNode.java" → 阅读闭包捕获节点实现
+- 2025-11-03 07:48 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/NameNode.java" → 查看类型特化逻辑
+- 2025-11-03 07:48 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/LambdaRootNode.java" → 核对参数/捕获绑定流程
+- 2025-11-03 07:49 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/CallNode.java" → 审查调用节点改动
+- 2025-11-03 07:49 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/Loader.java" → 关注 Lambda 构建与 FrameSlot 分配
+- 2025-11-03 07:50 NZDT | 命令：zsh -lc "sed -n '200,360p' aster-truffle/src/test/java/aster/truffle/AdvancedIntegrationTest.java" → 抽查闭包与高阶函数测试
+
+# 2025-11-03 09:18 NZDT Truffle 技术债务第三轮审查
+
+- 2025-11-03 09:14 NZDT | 工具：sequential-thinking__sequentialthinking → 第三轮审查任务思考 5 条记录
+- 2025-11-03 09:15 NZDT | 命令：zsh -lc "git status -sb" → 查看当前工作区状态，确认改动范围
+- 2025-11-03 09:16 NZDT | 命令：zsh -lc "rg 'NodeAdapter'" → 搜索项目中是否仍存在 NodeAdapter 引用
+- 2025-11-03 09:17 NZDT | 命令：zsh -lc "git diff HEAD~1 -- aster-truffle/src/main/java/aster/truffle/Loader.java" → 检查 Loader 关键改动
+- 2025-11-03 09:18 NZDT | 命令：zsh -lc "tail -n 20 operations-log.md" → 查看既有日志格式以保持一致
+- 2025-11-03 09:19 NZDT | 命令：zsh -lc "rg 'buildExpr' -n aster-truffle/src/main/java/aster/truffle/Loader.java" → 定位 Loader 中表达式构建逻辑
+- 2025-11-03 09:20 NZDT | 命令：zsh -lc "sed -n '220,400p' aster-truffle/src/main/java/aster/truffle/Loader.java" → 逐段审查 buildBlock/buildExpr/match 分支
+- 2025-11-03 09:21 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/{LiteralNode,CallNode,ConstructNode,AwaitNode,LambdaNode,ResultNodes,NameNodeEnv,Exec}.java" → 核对节点继承关系与执行路径
+- 2025-11-03 09:22 NZDT | 命令：zsh -lc "sed -n '1,240p' aster-truffle/src/test/java/aster/truffle/LoaderTest.java" → 核对新增测试覆盖点
+- 2025-11-03 09:22 NZDT | 命令：zsh -lc "sed -n '1,200p' .claude/CODE_REVIEW_GUIDE.md" → 对齐审查准则
+- 2025-11-03 09:23 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/AsterExpressionNode.java" → 确认基类能力
+- 2025-11-03 09:23 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/core/CoreModel.java" → 验证 Match case 数据结构
+- 2025-11-03 09:24 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/MatchNode.java" → 检查 Case 执行流程
+- 2025-11-03 09:24 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/LetNode.java" → 确认 Truffle DSL 生成器使用
+- 2025-11-03 09:25 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/BlockNode.java" → 追踪 Exec 调用链
+- 2025-11-03 09:25 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/StartNode.java" → 验证异步节点行为
+- 2025-11-03 09:25 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/WaitNode.java" → 验证 Wait 节点行为
+- 2025-11-03 09:26 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/LambdaValue.java" → 核对 CallTarget 模式
+- 2025-11-03 09:26 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/LambdaRootNode.java" → 检查参数/捕获绑定
+- 2025-11-03 09:26 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/AsterLanguage.java" → 确认入口解析逻辑
+- 2025-11-03 09:27 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/AsterRootNode.java" → 校验入口 Frame 绑定实现
+- 2025-11-03 09:27 NZDT | 命令：zsh -lc "sed -n '240,360p' aster-truffle/src/test/java/aster/truffle/AdvancedIntegrationTest.java" → 验证闭包调用场景
+- 2025-11-03 09:28 NZDT | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/runtime/FrameSlotBuilder.java" → 审查槽位分配策略
+- 2025-11-03 09:28 NZDT | 命令：zsh -lc "rg 'createCallTarget'" → 确认可复用 CallTarget 实例
+- 2025-11-03 09:29 NZDT | 命令：zsh -lc "rg 'getCallTarget'" → 跟踪 CallTarget 使用位置
+- 2025-11-03 09:30 NZDT | 命令：zsh -lc "cat >> .claude/review-report.md" → 追加第三轮深度审查记录
+
+## CI 集成 Aster Truffle 单元测试 (2025-11-03)
+
+### 目标
+将 Aster Truffle 的 27 个 JUnit 单元测试集成到 `npm run ci` 流程中,确保 CI 验证 Truffle 后端的核心功能。
+
+### 实施步骤
+
+1. **添加测试脚本** (package.json:162)
+   ```json
+   "truffle:test": "./gradlew :aster-truffle:test --console=plain"
+   ```
+
+2. **集成到 CI 流程** (package.json:108)
+   - 在现有 Truffle smoke/stdlib 测试之后添加
+   - 设置为**阻塞步骤**(测试失败则 CI 失败)
+   - 位置: `&& npm run truffle:test &&`
+   - 理由: 89/100 代码审查评分,27 个测试覆盖核心功能
+
+3. **集成到 CI:Fast** (package.json:109)
+   - 同样在 Truffle smoke/stdlib 测试之后添加
+   - 保持阻塞行为,确保快速 CI 也验证核心功能
+
+### 验证
+```bash
+npm run truffle:test
+# BUILD SUCCESSFUL in 605ms
+# 4 actionable tasks: 4 up-to-date
+```
+
+### 影响
+- ✅ CI 现在会自动验证 27 个 Truffle 单元测试
+- ✅ 测试失败会阻塞 CI(非 non-blocking)
+- ✅ 涵盖所有核心功能:
+  - 字面量、变量、Let 绑定
+  - If/Match 条件控制
+  - Function/Lambda 调用
+  - Record/List 数据结构
+  - Await 异步操作
+  - 内置函数集成
+
+### 决策记录
+**为何设置为阻塞?**
+- 代码审查评分 89/100(Pass)
+- 27 个测试覆盖所有核心语言特性
+- 回归修复已验证(第三次审查的 3 个阻塞问题全部解决)
+- 不同于 smoke 测试,这些是完整的单元测试套件
+
+**与现有测试的关系:**
+- Smoke 测试(verify:truffle:smoke): 快速端到端验证 → Non-blocking
+- Stdlib 测试(verify:truffle:stdlib): 标准库集成验证 → Non-blocking  
+- 单元测试(truffle:test): 全面的核心功能验证 → **Blocking**
+
+
+## 修复 VitePress 文档构建警告 (2025-11-03)
+
+### 问题
+运行 `npm run docs:build` 时出现 9 次警告:
+```
+The language 'aster' is not loaded, falling back to 'txt' for syntax highlighting.
+```
+
+### 根本原因
+- VitePress 2.0.0-alpha.12 使用 Shikiji (Shiki 的升级版)
+- 文档中的 Aster 代码块使用了 ```aster 标记
+- VitePress 不支持直接加载自定义 .tmLanguage.json 文件(API 尚未稳定)
+
+### 解决方案
+使用 VitePress 的 `languageAlias` 配置,将 `aster` 映射到 TypeScript 语法高亮:
+
+**修改文件**: `docs/.vitepress/config.ts`
+
+```typescript
+markdown: {
+  theme: {
+    light: 'github-light',
+    dark: 'github-dark',
+  },
+  // 临时方案：将 aster 映射到 typescript 语法高亮
+  languageAlias: {
+    'aster': 'typescript'
+  },
+}
+```
+
+### 验证
+```bash
+npm run docs:build
+# ✓ build complete in 5.34s.
+# 无警告输出
+```
+
+### 后续改进
+- TODO: 当 VitePress 2.x 正式版支持自定义 tmLanguage 加载时,切换到使用 `aster-vscode/syntaxes/aster.tmLanguage.json`
+- Aster 语法与 TypeScript 相近,所以临时使用 TypeScript 高亮是可接受的折中方案
+
+### 技术细节
+- 尝试过的方法:
+  1. ✗ `markdown.languages: [asterGrammar]` - API 不存在
+  2. ✗ `markdown.langs: [asterGrammar]` - 不被识别
+  3. ✗ `markdown.shikiSetup: async (shiki) => await shiki.loadLanguage()` - VitePress 2.x 未暴露此API
+  4. ✓ `markdown.languageAlias: { 'aster': 'typescript' }` - 成功
+
+- 参考资料:
+  - [VitePress Issue #3259](https://github.com/vuejs/vitepress/issues/3259) - 语言别名使用
+  - [VitePress Issue #1331](https://github.com/vuejs/vitepress/issues/1331) - 自定义语言注册讨论
+

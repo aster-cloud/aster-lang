@@ -338,7 +338,7 @@ export function collectLetsWithSpan(b: AstBlock | null): Map<string, Span> {
   const statements = getStatements(b);
   for (const s of statements) {
     if (s.kind === 'Let') {
-      const sp = getSpan(s);
+      const sp = ((s as any).nameSpan as Span | undefined) ?? getSpan(s);
       if (sp) out.set(s.name, sp);
     } else if (s.kind === 'If') {
       collectLetsWithSpan(s.thenBlock as AstBlock).forEach((v, k) => out.set(k, v));

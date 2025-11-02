@@ -1,18 +1,18 @@
 package aster.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public final class ConstructNode extends Node {
+public final class ConstructNode extends AsterExpressionNode {
   private final String typeName;
-  private final Map<String, Node> fields;
-  public ConstructNode(String typeName, Map<String, Node> fields) {
+  private final Map<String, AsterExpressionNode> fields;
+  public ConstructNode(String typeName, Map<String, AsterExpressionNode> fields) {
     this.typeName = typeName;
     this.fields = fields;
   }
-  public Object execute(VirtualFrame frame) {
+  @Override
+  public Object executeGeneric(VirtualFrame frame) {
     Profiler.inc("construct");
     Map<String, Object> out = new LinkedHashMap<>();
     out.put("_type", typeName);
@@ -20,4 +20,3 @@ public final class ConstructNode extends Node {
     return out;
   }
 }
-

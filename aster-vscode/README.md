@@ -30,37 +30,51 @@ Aster 语言的 Visual Studio Code 扩展，提供完整的语言支持。
 
 ## 安装要求
 
-- Visual Studio Code >= 1.85.0
-- Node.js >= 16
-- Aster 语言项目（需要构建 LSP 服务器）
+### 必需依赖
+- **Visual Studio Code** >= 1.85.0
+- **Node.js** >= 16（扩展内置 LSP 服务器和 CLI 需要 Node.js 运行时）
+
+### 可选依赖
+- **Java** >= 11（仅在需要使用 Java 版编译器或调试功能时）
+- **Java 调试扩展**（仅在需要调试功能时，如 "Debugger for Java"）
 
 ## 使用说明
 
-### 1. 构建 LSP 服务器
-在 Aster 项目根目录运行：
-```bash
-npm install
-npm run build
-```
+### 快速开始（开箱即用）
 
-这将在 `dist/src/lsp/server.js` 生成 LSP 服务器。
+**扩展已内置 LSP 服务器和 Node 版 CLI，无需手动构建即可使用！**
 
-### 2. 安装扩展
+1. **安装扩展**
+   ```bash
+   code --install-extension aster-vscode-0.3.0.vsix
+   ```
 
-**方式一：本地开发**
-- 在 VSCode 中打开 `aster-vscode` 目录
-- 按 `F5` 启动扩展开发主机
+2. **打开 Aster 项目**
+   使用 VSCode 打开包含 `.aster` 文件的文件夹，扩展会自动启动语言服务器。
 
-**方式二：VSIX 安装**
-```bash
-cd aster-vscode
-npm install
-npm run package
-code --install-extension aster-vscode-0.1.0.vsix
-```
+3. **开始编码**
+   - 创建 `.aster` 文件即可享受语法高亮、代码补全、错误检查等功能
+   - 使用命令面板（Cmd/Ctrl+Shift+P）执行编译、调试等命令
 
-### 3. 打开 Aster 项目
-使用 VSCode 打开包含 `.aster` 文件的文件夹，扩展会自动启动语言服务器。
+### 高级用法（开发环境）
+
+如果你需要从源码构建或贡献代码：
+
+1. **克隆仓库并构建主项目**（可选，扩展已内置）
+   ```bash
+   git clone https://github.com/wontlost-ltd/aster-lang.git
+   cd aster-lang
+   npm install
+   npm run build
+   ```
+
+2. **本地开发扩展**
+   ```bash
+   cd aster-vscode
+   npm install
+   npm run compile
+   code --extensionDevelopmentPath=$(pwd) ..
+   ```
 
 ## 配置选项
 
@@ -99,9 +113,9 @@ code --install-extension aster-vscode-0.1.0.vsix
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `aster.langServer.path` | `"dist/src/lsp/server.js"` | LSP 服务器路径（相对于工作区根目录） |
+| `aster.langServer.path` | `""` (空) | 自定义 LSP 服务器路径（相对于工作区根目录）。**留空使用内置 LSP 服务器**（推荐）|
 | `aster.compiler` | `"typescript"` | 编译器后端：`typescript` 或 `java` |
-| `aster.cli.path` | `"aster-lang-cli/build/install/aster-lang-cli/bin/aster-lang-cli"` | Aster CLI 可执行文件路径 |
+| `aster.cli.path` | `""` (空) | 自定义 CLI 路径（相对于工作区根目录）。**留空使用内置 Node.js CLI**（推荐）|
 | `aster.output.directory` | `"build/aster-out"` | 编译输出目录（相对于工作区根目录） |
 | `aster.debug.enabled` | `false` | 启用调试输出（设置 ASTER_DEBUG=true） |
 | `asterLanguageServer.index.persist` | `true` | 是否持久化工作区符号索引 |
@@ -110,6 +124,11 @@ code --install-extension aster-vscode-0.1.0.vsix
 | `asterLanguageServer.format.reflow` | `true` | 允许在无损模式下最小化行调整 |
 | `asterLanguageServer.rename.scope` | `"workspace"` | 重命名范围：`open`（仅打开文件）或 `workspace`（整个工作区） |
 | `asterLanguageServer.diagnostics.workspace` | `true` | 启用工作区级别诊断 |
+
+**注意**：扩展使用以下优先级策略解析资源路径：
+1. **扩展内置资源**（最高优先级，开箱即用）
+2. **用户配置路径**（允许自定义）
+3. **工作区默认路径**（开发环境降级）
 
 ## 能力验证
 
@@ -163,8 +182,8 @@ ASTER_CAPS=test/cnl/examples/capabilities.json code .
 编译当前打开的 Aster 文件为 JVM 字节码。
 
 **前置条件**:
-- 已构建 Aster CLI: `./gradlew :aster-lang-cli:installDist`
 - 打开一个 `.aster` 文件
+- Node.js >= 16（扩展已内置 CLI）
 
 **使用方式**:
 1. 打开 `.aster` 文件
@@ -181,8 +200,9 @@ ASTER_CAPS=test/cnl/examples/capabilities.json code .
 编译并启动调试会话。
 
 **前置条件**:
-- 已安装 Java 调试扩展（如 Debugger for Java）
-- 已构建 Aster CLI
+- Java >= 11
+- 已安装 Java 调试扩展（如 "Debugger for Java"）
+- Node.js >= 16（扩展已内置 CLI）
 
 **使用方式**:
 1. 打开 `.aster` 文件
@@ -235,31 +255,115 @@ A Status is one of:
 
 ## 故障排除
 
-### LSP 未找到错误
-**错误信息**: "Aster LSP 未找到: dist/src/lsp/server.js。请先构建项目（npm run build）。"
+### LSP 服务器未启动
 
-**解决方案**:
-1. 确认在项目根目录运行 `npm run build`
-2. 检查 `dist/src/lsp/server.js` 文件是否存在
-3. 确认 `aster.langServer.path` 配置正确
+**症状**：无代码补全、跳转定义等 LSP 功能
 
-### 语言服务器无响应
-**解决方案**:
-1. 重启 VSCode
-2. 查看输出面板：`View > Output` → 选择 "Aster Language Server"
-3. 确认工作区中有 `.aster` 文件
-4. 检查 Node.js 版本 >= 16
+**解决方案**：
+1. **检查 Node.js 版本**：确保 Node.js >= 16
+   ```bash
+   node --version
+   ```
+
+2. **查看错误日志**：
+   - 打开输出面板：`View > Output` → 选择 "Aster"
+   - 查看是否有错误提示
+
+3. **使用自动构建按钮**：
+   - 如果看到 "LSP 未找到" 错误，点击 **"自动构建"** 按钮
+   - 系统会在终端执行 `cd .. && npm run build` 构建 LSP 服务器
+
+4. **手动配置路径**：
+   - 如果使用自定义 LSP 路径，点击 **"配置路径"** 按钮
+   - 在设置中修改 `aster.langServer.path`
+
+5. **重启语言服务器**：
+   - 按 `Cmd/Ctrl+Shift+P` → 输入 "Aster: Start Language Server"
+
+### 编译命令失败
+
+**症状**：执行 "Aster: Compile File" 命令报错
+
+**解决方案**：
+1. **检查 CLI 可用性**：
+   - 扩展已内置 Node 版 CLI（需要 Node.js >= 16）
+   - 如果看到 "CLI 未找到" 错误，点击 **"自动构建"** 按钮
+
+2. **检查文件路径**：
+   - 确保当前打开的是 `.aster` 文件
+   - 文件路径中不含特殊字符
+
+3. **查看编译日志**：
+   - 编译失败时会自动显示输出面板
+   - 查看详细错误信息和堆栈跟踪
+
+4. **切换编译器后端**（可选）：
+   - 在设置中修改 `aster.compiler` 为 `"java"` 或 `"typescript"`
+   - Java 后端需要先构建 Java 版 CLI：`./gradlew :aster-lang-cli:installDist`
+
+### 调试功能无法使用
+
+**症状**：执行 "Aster: Debug File" 无反应或报错
+
+**解决方案**：
+1. **安装 Java 调试扩展**：
+   - 在扩展市场搜索 "Debugger for Java"
+   - 安装 Microsoft 提供的 Java 调试扩展
+
+2. **检查 Java 环境**：
+   ```bash
+   java -version  # 需要 >= 11
+   ```
+
+3. **确认编译成功**：
+   - 调试前会先执行编译，确保编译成功
+   - 检查输出目录（默认 `build/aster-out`）是否有 `.class` 文件
 
 ### 语法高亮不工作
-**解决方案**:
-1. 确认文件扩展名为 `.aster`
-2. 手动设置语言模式：右下角点击语言 → 选择 "Aster"
-3. 重新加载窗口：`Cmd/Ctrl+Shift+P` → "Developer: Reload Window"
+
+**解决方案**：
+1. **确认文件扩展名**：文件必须以 `.aster` 结尾
+2. **手动设置语言模式**：右下角点击语言 → 选择 "Aster"
+3. **重新加载窗口**：`Cmd/Ctrl+Shift+P` → "Developer: Reload Window"
 
 ### 代码片段无提示
-**解决方案**:
-1. 确认在 `.aster` 文件中输入
-2. 检查 VSCode 设置中 `editor.snippetSuggestions` 未设置为 `"none"`
+
+**解决方案**：
+1. **确认在 `.aster` 文件中输入**
+2. **检查 VSCode 设置**：确保 `editor.snippetSuggestions` 不是 `"none"`
+3. **手动触发**：按 `Ctrl+Space` 强制触发补全
+
+### 无工作区错误
+
+**症状**：显示 "未找到工作区根目录" 错误
+
+**解决方案**：
+1. **打开文件夹**：使用 `File > Open Folder` 打开包含 `.aster` 文件的文件夹
+2. **不要直接打开文件**：扩展需要工作区上下文才能正常工作
+
+### 性能问题
+
+**症状**：大型项目中 LSP 响应缓慢
+
+**解决方案**：
+1. **启用索引持久化**：
+   ```json
+   {
+     "asterLanguageServer.index.persist": true,
+     "asterLanguageServer.index.path": ".asteri/lsp-index.json"
+   }
+   ```
+
+2. **禁用工作区诊断**（可选）：
+   ```json
+   {
+     "asterLanguageServer.diagnostics.workspace": false
+   }
+   ```
+
+3. **重建索引**：
+   - 删除 `.asteri` 目录
+   - 重启 VSCode
 
 ## 开发指南
 

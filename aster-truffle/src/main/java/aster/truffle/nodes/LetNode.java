@@ -1,21 +1,85 @@
 package aster.truffle.nodes;
 
 import aster.truffle.runtime.AsterConfig;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
-public final class LetNode extends Node {
-  private final Env env;
-  private final String name;
-  @Child private Node init;
-  public LetNode(Env env, String name, Node init) { this.env = env; this.name = name; this.init = init; }
-  public Object execute(VirtualFrame frame) {
-    Profiler.inc("let");
-    Object v = Exec.exec(init, frame);
-    env.set(name, v);
-    if (AsterConfig.DEBUG) {
-      System.err.println("DEBUG: let " + name + "=" + v);
+/**
+ * Let 语句节点（Frame 版本），使用 Truffle DSL 类型特化。
+ *
+ * 通过 @Specialization 注解，Truffle DSL 自动生成类型特化代码：
+ * - 当 valueNode 返回 int 时，使用 frame.setInt() 写入
+ * - 当 valueNode 返回 long 时，使用 frame.setLong() 写入
+ * - 当 valueNode 返回 double 时，使用 frame.setDouble() 写入
+ * - 当 valueNode 返回其他类型时，使用 frame.setObject() 写入
+ *
+ * 这样可以充分利用 Truffle 的类型特化优化，在运行时根据实际值类型选择最优的存储路径。
+ */
+@NodeChild(value = "valueNode", type = AsterExpressionNode.class)
+public abstract class LetNode extends AsterExpressionNode {
+  protected final String name;
+  protected final int slotIndex;
+
+  protected LetNode(String name, int slotIndex) {
+    this.name = name;
+    this.slotIndex = slotIndex;
+  }
+
+  @Specialization
+  protected int writeInt(VirtualFrame frame, int value) {
+    Profiler.inc("let_int");
+    if (frame == null) {
+      throw new IllegalStateException("Frame 未初始化，无法写入变量：" + name);
     }
-    return v;
+    frame.setInt(slotIndex, value);
+    if (AsterConfig.DEBUG) {
+      System.err.println("DEBUG: let " + name + "=" + value + " @slot " + slotIndex + " (int)");
+    }
+    return value;
+  }
+
+  @Specialization
+  protected long writeLong(VirtualFrame frame, long value) {
+    Profiler.inc("let_long");
+    if (frame == null) {
+      throw new IllegalStateException("Frame 未初始化，无法写入变量：" + name);
+    }
+    frame.setLong(slotIndex, value);
+    if (AsterConfig.DEBUG) {
+      System.err.println("DEBUG: let " + name + "=" + value + " @slot " + slotIndex + " (long)");
+    }
+    return value;
+  }
+
+  @Specialization
+  protected double writeDouble(VirtualFrame frame, double value) {
+    Profiler.inc("let_double");
+    if (frame == null) {
+      throw new IllegalStateException("Frame 未初始化，无法写入变量：" + name);
+    }
+    frame.setDouble(slotIndex, value);
+    if (AsterConfig.DEBUG) {
+      System.err.println("DEBUG: let " + name + "=" + value + " @slot " + slotIndex + " (double)");
+    }
+    return value;
+  }
+
+  @Specialization(replaces = {"writeInt", "writeLong", "writeDouble"})
+  protected Object writeObject(VirtualFrame frame, Object value) {
+    Profiler.inc("let_object");
+    if (frame == null) {
+      throw new IllegalStateException("Frame 未初始化，无法写入变量：" + name);
+    }
+    frame.setObject(slotIndex, value);
+    if (AsterConfig.DEBUG) {
+      System.err.println("DEBUG: let " + name + "=" + value + " @slot " + slotIndex + " (Object)");
+    }
+    return value;
+  }
+
+  public String getName() {
+    return name;
   }
 }

@@ -14,6 +14,11 @@ export default defineConfig({
       light: 'github-light',
       dark: 'github-dark',
     },
+    // 临时方案：将 aster 映射到 typescript 语法高亮
+    // TODO: 等待 VitePress 2.x 支持自定义 tmLanguage 加载后改用 Aster 自定义语法
+    languageAlias: {
+      'aster': 'typescript'
+    },
   },
   vite: {
     build: {

@@ -141,12 +141,30 @@ export function parseFuncDecl(
   // 立即记录函数名结束位置（修复 nameSpan Bug）
   const nameEndTok = ctx.tokens[ctx.index - 1] || nameTok;
 
+  const skipLayoutTrivia = (): void => {
+    let prevIndex = -1;
+    while (prevIndex !== ctx.index) {
+      prevIndex = ctx.index;
+      ctx.consumeNewlines();
+      while (ctx.at(TokenKind.INDENT) || ctx.at(TokenKind.DEDENT)) {
+        ctx.next();
+        ctx.consumeNewlines();
+      }
+    }
+  };
+
+  // 允许函数名后换行或缩进
+  skipLayoutTrivia();
+
   // 解析可选的类型参数: 'of' TypeId ('and' TypeId)*
   let typeParams: string[] = [];
+  skipLayoutTrivia();
   if (ctx.isKeyword('of')) {
     ctx.nextWord();
+    skipLayoutTrivia();
     let more = true;
     while (more) {
+      skipLayoutTrivia();
       // 如果遇到参数列表或 produce 子句，停止
       if (ctx.isKeyword(KW.WITH) || ctx.isKeyword(KW.PRODUCE) || ctx.at(TokenKind.COLON)) {
         break;
@@ -157,12 +175,15 @@ export function parseFuncDecl(
         : parseIdent();
       typeParams.push(tv);
 
+      skipLayoutTrivia();
       if (ctx.isKeyword(KW.AND)) {
         ctx.nextWord();
+        skipLayoutTrivia();
         continue;
       }
       if (ctx.at(TokenKind.COMMA)) {
         ctx.next();
+        skipLayoutTrivia();
         // 如果逗号后面跟 'with' 或 produce，停止
         if (ctx.isKeyword(KW.WITH) || ctx.isKeyword(KW.PRODUCE)) {
           more = false;
@@ -174,17 +195,23 @@ export function parseFuncDecl(
     }
   }
 
+  skipLayoutTrivia();
+
   // 保存当前类型变量作用域，设置新的作用域
   const savedTypeVars = new Set(ctx.currentTypeVars);
   ctx.currentTypeVars = new Set(typeParams);
 
   // 解析参数列表
+  skipLayoutTrivia();
   const params = parseParamList(ctx, error);
+  skipLayoutTrivia();
   if (params.length > 0) expectCommaOr();
   else if (ctx.at(TokenKind.COMMA)) ctx.next();
 
   // 期望 'produce' 和返回类型
+  skipLayoutTrivia();
   expectKeyword(KW.PRODUCE, "Expected 'produce' and return type");
+  skipLayoutTrivia();
   const retType = parseType(ctx, error);
 
   let effects: string[] = [];
