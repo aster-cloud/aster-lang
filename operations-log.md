@@ -1,3 +1,79 @@
+# 2025-11-03 17:12 NZST Pure Java QuickSort 编译排查
+
+- 2025-11-03 16:58 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 QuickSort Core IR 签名问题与修复策略（3 条思考）
+- 2025-11-03 16:59 NZST | 命令：zsh -lc "sed -n '1,160p' benchmarks/core/quicksort_core.json" → 审查新 QuickSort Core IR 结构，确认 buildList/partition 签名
+- 2025-11-03 17:01 NZST | 工具：apply_patch → 更新 `aster-asm-emitter/src/main/java/aster/emitter/CallEmitter.java`，为 List/Map/Result 参数返回建立 JVM 描述符映射，并在 `List.get` 根据期望类型执行拆箱
+- 2025-11-03 17:02 NZST | 工具：apply_patch → 修改 `aster-asm-emitter/src/main/java/aster/emitter/TypeResolver.java`，新增 `List.length` 返回 `Int` 的类型推断
+- 2025-11-03 17:03 NZST | 工具：apply_patch → 调整 `aster-asm-emitter/src/test/java/aster/emitter/PureJavaBenchmark.java`，为 `bench.quicksort` 构建 funcHints 以标注 `length`/`pivot`/`size` 等局部变量类型
+- 2025-11-03 17:04 NZST | 命令：zsh -lc `./gradlew :aster-asm-emitter:test --tests "PureJavaBenchmark.runPureJavaBenchmarks"` → 仍报 `VerifyError`（`quicksort_fn` 中 `List.get` 拆箱失败）
+- 2025-11-03 17:06 NZST | 命令：zsh -lc `./gradlew :aster-asm-emitter:compileJava --rerun-tasks` → 强制重编译 ASM emitter 以验证补丁生效
+- 2025-11-03 17:07 NZST | 命令：zsh -lc `./gradlew :aster-asm-emitter:test --tests "PureJavaBenchmark.runPureJavaBenchmarks"` → 复现 `VerifyError`，定位 pivot `List.get` 在条件分支中仍走旧路径，后续待确认结构性修复方案
+
+# 2025-11-03 14:16 NZST GraalVM JIT 基准扩展
+
+- 2025-11-03 14:01 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 GraalVM JIT 基准、纯 Java 扩展与 CI 集成三阶段任务（共 7 条思考）
+- 2025-11-03 14:04 NZST | 工具：apply_patch → 新增 `aster-truffle/src/test/java/aster/truffle/GraalVMJitBenchmark.java`，实现三阶段预热（100 冷启动 + 2K/5K 稳定）并重用 4 个算法 JSON
+- 2025-11-03 14:05 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --tests \"aster.truffle.GraalVMJitBenchmark\"" → 失败（`engine.Compilation` 选项不存在），确认需移除旧版 JIT 选项
+- 2025-11-03 14:06 NZST | 工具：apply_patch → 清理 `createJitContext` 中的已弃用选项，仅保留 `engine.WarnInterpreterOnly`
+- 2025-11-03 14:07 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --tests \"aster.truffle.GraalVMJitBenchmark\"" → 成功但出现 fallback 警告，确认缺失 `truffle-runtime`/compiler 依赖
+- 2025-11-03 14:08 NZST | 工具：apply_patch → 更新 `aster-truffle/build.gradle.kts`，为测试运行时引入 `truffle-runtime`, `truffle-compiler`, `org.graalvm.compiler:compiler` 25.0.0
+- 2025-11-03 14:10 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --tests \"aster.truffle.GraalVMJitBenchmark\"" → JIT 基准通过，得到 Factorial 0.020ms / List.map 0.0047ms / Fibonacci 27.48ms / Arithmetic 0.0019ms
+- 2025-11-03 14:12 NZST | 工具：apply_patch → 更新 `.claude/cross-backend-benchmark-results.md`，写入 JIT 实测数据、增补三方比较与方法论
+- 2025-11-03 14:15 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --tests \"aster.truffle.GraalVMJitBenchmark\"" → 再次验证数值稳定性（差异<5%），准备作为报告依据
+
+# 2025-11-03 13:35 NZST Pure Java Backend 基准实现
+
+- 2025-11-03 13:08 NZST | 工具：sequential-thinking__sequentialthinking → 明确 Pure Java 基准实现任务范围、依赖和风险（4 条思考）
+- 2025-11-03 13:09 NZST | 工具：code-index__set_project_path → path='.'，重建索引以便检索 Truffle 基准与 ASM 发射器源码
+- 2025-11-03 13:10 NZST | 命令：zsh -lc "sed -n '1,320p' aster-truffle/src/test/java/aster/truffle/CrossBackendBenchmark.java" → 复用 Core IR JSON 结构
+- 2025-11-03 13:12 NZST | 命令：zsh -lc "sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/Main.java" → 确认 `Main.compile` 接口及函数命名规则
+- 2025-11-03 13:17 NZST | 工具：apply_patch → 新增 `aster-asm-emitter/src/test/java/aster/emitter/PureJavaBenchmark.java` 基准测试（编译 Core IR → 加载 → 计时）
+- 2025-11-03 13:20 NZST | 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests \"PureJavaBenchmark\"" → 首次运行失败，定位 NameEmitter 缺失算术内建映射
+- 2025-11-03 13:22 NZST | 工具：apply_patch → 更新 `Main.getBuiltinField` 支持 add/sub/mul/div 及比较运算别名
+- 2025-11-03 13:23 NZST | 工具：apply_patch → 新增 `aster/runtime/StdList.java` 并在 `CallEmitter` 内联处理 `List.empty/append/map`
+- 2025-11-03 13:27 NZST | 命令：zsh -lc "./gradlew :aster-asm-emitter:test --tests \"PureJavaBenchmark\"" → Pure Java 基准测试通过，获得 0.002369/0.051874/0.000550/0.000399 ms 结果
+- 2025-11-03 13:33 NZST | 工具：apply_patch → 更新 `.claude/cross-backend-benchmark-results.md`，记录 Pure Java 数据与 Truffle 对比
+
+# 2025-11-03 Cross-Backend Performance Benchmarks
+
+**Objective**: Implement cross-backend performance comparison benchmarks for Truffle, TypeScript, and Pure Java execution backends.
+
+**Key Actions**:
+- Created `CrossBackendBenchmark.java` with 4 standard benchmarks (Factorial, Fibonacci, List.map, Arithmetic)
+- Fixed List.map benchmark (changed from non-existent List.of to List.empty + List.append pattern)
+- Ran complete benchmark suite - all 5 tests passing (4 benchmarks + 1 summary report)
+- Discovered TypeScript is a compiler frontend only, not an execution backend
+- Updated architecture documentation to clarify: TypeScript compiles CNL → Core IR, Java backends execute Core IR
+- Created comprehensive `.claude/cross-backend-benchmark-results.md` with actual Truffle measurements
+- Updated `CHANGELOG.md` with cross-backend benchmark entry
+
+**Results**:
+- Factorial(10): 0.018ms (833x better than estimated)
+- Fibonacci(20): 23.803ms (4.2x better than estimated)
+- List.map(2): 0.006ms (8.3x better than estimated)
+- Arithmetic: 0.002ms (250x better than estimated)
+
+**Key Finding**: Truffle interpreter mode is performing significantly better than predicted, demonstrating production-ready performance even without GraalVM JIT compilation.
+
+**Next Steps**:
+1. Investigate Pure Java bytecode backend status (aster-asm-emitter / aster-runtime)
+2. Optional: Install GraalVM and measure JIT performance (expected 10-30x additional speedup)
+3. Update comparison document with final results
+
+**Files Modified**:
+- `/aster-truffle/src/test/java/aster/truffle/CrossBackendBenchmark.java` (created, 587 lines)
+- `/.claude/cross-backend-benchmark-results.md` (created, 247 lines)
+- `/CHANGELOG.md` (updated with cross-backend benchmark entry)
+- `/operations-log.md` (this file)
+
+**Verification**:
+```bash
+./gradlew :aster-truffle:test --tests "CrossBackendBenchmark"
+# Result: BUILD SUCCESSFUL, 5 tests completed, 5 passed
+```
+
+---
+
 # 2025-11-02 22:49 NZDT Aster Truffle 实施计划调研
 
 - 2025-11-02 22:39 NZDT | 工具：sequential-thinking__sequentialthinking → 梳理 Truffle 集成任务理解、资料缺口与执行步骤（共 5 条思考）
@@ -3789,4 +3865,3 @@ npm run docs:build
 - 参考资料:
   - [VitePress Issue #3259](https://github.com/vuejs/vitepress/issues/3259) - 语言别名使用
   - [VitePress Issue #1331](https://github.com/vuejs/vitepress/issues/1331) - 自定义语言注册讨论
-

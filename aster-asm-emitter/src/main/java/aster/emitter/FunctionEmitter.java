@@ -184,7 +184,7 @@ public class FunctionEmitter {
                     // 类型推断
                     Character inferred = typeResolver.inferType(let.expr);
                     if (inferred == null && Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
-                        inferred = 'Z';
+                    inferred = 'Z';
                     }
                     if (inferred == null) {
                         Character hint = fnHints.get(let.name);

@@ -201,6 +201,9 @@ final class TypeResolver {
     if (("negate".equals(op) || "minus".equals(op)) && args.size() == 1) {
       return inferType(args.get(0));
     }
+    if ("List.length".equals(op) && args.size() == 1) {
+      return 'I';
+    }
     return null;
   }
 

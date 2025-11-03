@@ -342,11 +342,23 @@ final class StdlibInliner {
         SimpleExprEmitter exprEmitter,
         String functionName
     ) {
-        // 生成两个参数（unbox 为 int）
-        for (var arg : args) {
-            exprEmitter.emitSimpleExpr(mv, arg, env, primTypes);
+        int argCount = args.size();
+        int nextSlot = 0;
+        if (env != null && !env.isEmpty()) {
+            nextSlot = Collections.max(env.values()) + 1;
+        }
+
+        // 拆箱后立即存入局部变量，避免在 CHECKCAST 时栈上残留原始值
+        for (int i = 0; i < argCount; i++) {
+            exprEmitter.emitSimpleExpr(mv, args.get(i), env, primTypes);
             mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+            mv.visitVarInsn(ISTORE, nextSlot + i);
+        }
+
+        // 重新按顺序压回操作数栈
+        for (int i = 0; i < argCount; i++) {
+            mv.visitVarInsn(ILOAD, nextSlot + i);
         }
 
         if ("+".equals(functionName)) {

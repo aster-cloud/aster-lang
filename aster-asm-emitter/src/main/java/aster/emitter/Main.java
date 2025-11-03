@@ -1047,14 +1047,30 @@ public final class Main {
       if (slot != null) {
         if (primTypes != null && primTypes.containsKey(n.name)) {
           char k = primTypes.get(n.name);
-          if (k == 'I') { mv.visitVarInsn(ILOAD, slot); mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false); return; }
-          if (k == 'Z') { mv.visitVarInsn(ILOAD, slot); mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false); return; }
+          if (k == 'I') {
+            mv.visitVarInsn(ALOAD, slot);
+            mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+            return;
+          }
+          if (k == 'Z') {
+            mv.visitVarInsn(ALOAD, slot);
+            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+            return;
+          }
         }
         mv.visitVarInsn(ALOAD, slot); return;
       }
       mv.visitInsn(ACONST_NULL); return;
     }
-    if (e instanceof CoreModel.IntE i) { mv.visitLdcInsn(Integer.valueOf(i.value)); return; }
+    if (e instanceof CoreModel.IntE i) {
+      AsmUtilities.emitConstInt(mv, i.value);
+      mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+      return;
+    }
     if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn) {
       var name = nn.name;
       // 尝试使用 StdlibInliner 内联 stdlib 函数
@@ -1221,17 +1237,17 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
   /** Map built-in operator names to Builtins field names */
   static String getBuiltinField(String operatorName) {
     return switch (operatorName) {
-      case "=" -> "EQUALS";
-      case "!=" -> "NOT_EQUALS";
-      case "<" -> "LESS_THAN";
-      case "<=" -> "LESS_THAN_OR_EQUAL";
-      case ">" -> "GREATER_THAN";
-      case ">=" -> "GREATER_THAN_OR_EQUAL";
-      case "+" -> "ADD";
-      case "-" -> "SUBTRACT";
-      case "*" -> "MULTIPLY";
-      case "/" -> "DIVIDE";
-      case "%" -> "MODULO";
+      case "=", "eq" -> "EQUALS";
+      case "!=", "neq" -> "NOT_EQUALS";
+      case "<", "lt" -> "LESS_THAN";
+      case "<=", "lte" -> "LESS_THAN_OR_EQUAL";
+      case ">", "gt" -> "GREATER_THAN";
+      case ">=", "gte" -> "GREATER_THAN_OR_EQUAL";
+      case "+", "add" -> "ADD";
+      case "-", "sub" -> "SUBTRACT";
+      case "*", "mul" -> "MULTIPLY";
+      case "/", "div" -> "DIVIDE";
+      case "%", "mod" -> "MODULO";
       case "and" -> "AND";
       case "or" -> "OR";
       case "not" -> "NOT";

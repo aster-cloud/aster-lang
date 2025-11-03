@@ -255,6 +255,54 @@ public class CallEmitter {
       }
 
       // List/Map interop
+      if (Objects.equals(name, "List.empty") && argsSize(call, 0)) {
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdList", "empty", "()Ljava/util/List;", false);
+        return true;
+      }
+      if (Objects.equals(name, "List.append") && argsSize(call, 2)) {
+        warnNullability("List.append", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdList", "append", "(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;", false);
+        return true;
+      }
+      if (Objects.equals(name, "List.map") && argsSize(call, 2)) {
+        warnNullability("List.map", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdList", "map", "(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;", false);
+        return true;
+      }
+      if (Objects.equals(name, "List.filter") && argsSize(call, 2)) {
+        warnNullability("List.filter", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdList", "filter", "(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;", false);
+        return true;
+      }
+      if (Objects.equals(name, "List.reduce") && argsSize(call, 3)) {
+        warnNullability("List.reduce", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(2), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdList", "reduce", "(Ljava/util/List;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+        if ("Ljava/lang/String;".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+        } else if ("I".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false);
+        } else if ("Z".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+        } else if ("J".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "longValue", "()J", false);
+        } else if ("D".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+        }
+        return true;
+      }
       if (Objects.equals(name, "List.length") && argsSize(call, 1)) {
         warnNullability("List.length", call.args);
         exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack);
@@ -274,6 +322,25 @@ public class CallEmitter {
         exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, scopeStack);
         exprEmitter.emitExpr(mv, call.args.get(1), "I", currentPkg, paramBase, env, scopeStack);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "get", "(I)Ljava/lang/Object;", true);
+        if ("I".equals(expectedDesc) || "Z".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false);
+          if ("Z".equals(expectedDesc)) {
+            AsmUtilities.boxPrimitiveResult(mv, 'I', expectedDesc);
+          }
+          return true;
+        }
+        if ("J".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "longValue", "()J", false);
+          return true;
+        }
+        if ("D".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+          AsmUtilities.boxPrimitiveResult(mv, 'D', expectedDesc);
+          return true;
+        }
         if ("Ljava/lang/String;".equals(expectedDesc)) {
           mv.visitTypeInsn(CHECKCAST, "java/lang/String");
         }
@@ -286,6 +353,104 @@ public class CallEmitter {
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
         if ("Ljava/lang/String;".equals(expectedDesc)) {
           mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+        }
+        return true;
+      }
+      if (Objects.equals(name, "Map.empty") && argsSize(call, 0)) {
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdMap", "empty", "()Ljava/util/Map;", false);
+        return true;
+      }
+      if (Objects.equals(name, "Map.put") && argsSize(call, 3)) {
+        warnNullability("Map.put", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(2), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdMap", "put", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/util/Map;", false);
+        return true;
+      }
+      if (Objects.equals(name, "Result.mapOk") && argsSize(call, 2)) {
+        warnNullability("Result.mapOk", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdResult", "mapOk", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+        if ("Ljava/lang/String;".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+        } else if ("I".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false);
+        } else if ("Z".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+        } else if ("J".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "longValue", "()J", false);
+        } else if ("D".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+        }
+        return true;
+      }
+      if (Objects.equals(name, "Result.mapErr") && argsSize(call, 2)) {
+        warnNullability("Result.mapErr", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        exprEmitter.emitExpr(mv, call.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdResult", "mapErr", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+        if ("Ljava/lang/String;".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+        } else if ("I".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false);
+        } else if ("Z".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+        } else if ("J".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "longValue", "()J", false);
+        } else if ("D".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+        }
+        return true;
+      }
+      if (Objects.equals(name, "Result.unwrap") && argsSize(call, 1)) {
+        warnNullability("Result.unwrap", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdResult", "unwrap", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+        if ("Ljava/lang/String;".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+        } else if ("I".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false);
+        } else if ("Z".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+        } else if ("J".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "longValue", "()J", false);
+        } else if ("D".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
+        }
+        return true;
+      }
+      if (Objects.equals(name, "Result.unwrapErr") && argsSize(call, 1)) {
+        warnNullability("Result.unwrapErr", call.args);
+        exprEmitter.emitExpr(mv, call.args.get(0), "Ljava/lang/Object;", currentPkg, paramBase, env, scopeStack);
+        mv.visitMethodInsn(INVOKESTATIC, "aster/runtime/StdResult", "unwrapErr", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+        if ("Ljava/lang/String;".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+        } else if ("I".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false);
+        } else if ("Z".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+        } else if ("J".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "longValue", "()J", false);
+        } else if ("D".equals(expectedDesc)) {
+          mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+          mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "doubleValue", "()D", false);
         }
         return true;
       }
@@ -424,6 +589,12 @@ public class CallEmitter {
               String internal = tn.name.contains(".") ? tn.name.replace('.', '/') : toInternal(currentPkg, tn.name);
               paramDesc = internalDesc(internal);
             }
+          } else if (param.type instanceof CoreModel.ListT) {
+            paramDesc = "Ljava/util/List;";
+          } else if (param.type instanceof CoreModel.MapT) {
+            paramDesc = "Ljava/util/Map;";
+          } else if (param.type instanceof CoreModel.Result) {
+            paramDesc = "Laster/runtime/Result;";
           }
           exprEmitter.emitExpr(mv, cgen.args.get(i), paramDesc, currentPkg, paramBase, env, scopeStack);
           descriptorBuilder.append(paramDesc);
@@ -445,6 +616,12 @@ public class CallEmitter {
             String internal = rtn.name.contains(".") ? rtn.name.replace('.', '/') : toInternal(currentPkg, rtn.name);
             retDesc = internalDesc(internal);
           }
+        } else if (funcSchema.ret instanceof CoreModel.ListT) {
+          retDesc = "Ljava/util/List;";
+        } else if (funcSchema.ret instanceof CoreModel.MapT) {
+          retDesc = "Ljava/util/Map;";
+        } else if (funcSchema.ret instanceof CoreModel.Result) {
+          retDesc = "Laster/runtime/Result;";
         }
         descriptorBuilder.append(")").append(retDesc);
         mv.visitMethodInsn(INVOKESTATIC, ownerInternal, funcName, descriptorBuilder.toString(), false);

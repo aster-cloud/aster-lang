@@ -6,4 +6,4 @@
 
 > **ErrorSeverity** = `"error"` \| `"warning"` \| `"info"`
 
-Defined in: [error\_codes.ts:6](https://github.com/wontlost-ltd/aster-lang/blob/06d5b68ae3e15dae97e142479397c69ed809146a/src/error_codes.ts#L6)
+Defined in: [error\_codes.ts:6](https://github.com/wontlost-ltd/aster-lang/blob/1691bae3248f4feb819a0747e3c0cb15f3704f67/src/error_codes.ts#L6)

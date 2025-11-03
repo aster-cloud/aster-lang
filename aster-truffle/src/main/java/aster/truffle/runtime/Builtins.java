@@ -1,5 +1,7 @@
 package aster.truffle.runtime;
 
+import aster.truffle.nodes.LambdaValue;
+import com.oracle.truffle.api.CallTarget;
 import java.util.*;
 
 /**
@@ -163,6 +165,13 @@ public final class Builtins {
       return s.replace(target, replacement);
     });
 
+    register("Text.contains", args -> {
+      checkArity("Text.contains", args, 2);
+      String haystack = String.valueOf(args[0]);
+      String needle = String.valueOf(args[1]);
+      return haystack.contains(needle);
+    });
+
     // === List Operations ===
     register("List.empty", args -> {
       checkArity("List.empty", args, 0);
@@ -227,6 +236,92 @@ public final class Builtins {
         return new ArrayList<>(lCast.subList(start, end));
       }
       throw new BuiltinException("List.slice: expected List, got " + typeName(args[0]));
+    });
+
+    register("List.map", args -> {
+      checkArity("List.map", args, 2);
+      if (!(args[0] instanceof List<?> l)) {
+        throw new BuiltinException("List.map: expected List, got " + typeName(args[0]));
+      }
+      if (!(args[1] instanceof LambdaValue lambda)) {
+        throw new BuiltinException("List.map: expected Lambda function, got " + typeName(args[1]));
+      }
+
+      CallTarget callTarget = lambda.getCallTarget();
+      if (callTarget == null) {
+        throw new BuiltinException("List.map: Lambda must have CallTarget (legacy mode not supported)");
+      }
+
+      List<Object> result = new ArrayList<>();
+      for (Object item : l) {
+        // Prepare arguments: [item, ...captures]
+        Object[] capturedValues = lambda.getCapturedValues();
+        Object[] callArgs = new Object[1 + capturedValues.length];
+        callArgs[0] = item;
+        System.arraycopy(capturedValues, 0, callArgs, 1, capturedValues.length);
+
+        Object mapped = callTarget.call(callArgs);
+        result.add(mapped);
+      }
+      return result;
+    });
+
+    register("List.filter", args -> {
+      checkArity("List.filter", args, 2);
+      if (!(args[0] instanceof List<?> l)) {
+        throw new BuiltinException("List.filter: expected List, got " + typeName(args[0]));
+      }
+      if (!(args[1] instanceof LambdaValue lambda)) {
+        throw new BuiltinException("List.filter: expected Lambda function, got " + typeName(args[1]));
+      }
+
+      CallTarget callTarget = lambda.getCallTarget();
+      if (callTarget == null) {
+        throw new BuiltinException("List.filter: Lambda must have CallTarget (legacy mode not supported)");
+      }
+
+      List<Object> result = new ArrayList<>();
+      for (Object item : l) {
+        // Prepare arguments: [item, ...captures]
+        Object[] capturedValues = lambda.getCapturedValues();
+        Object[] callArgs = new Object[1 + capturedValues.length];
+        callArgs[0] = item;
+        System.arraycopy(capturedValues, 0, callArgs, 1, capturedValues.length);
+
+        Object predicate = callTarget.call(callArgs);
+        if (Boolean.TRUE.equals(predicate)) {
+          result.add(item);
+        }
+      }
+      return result;
+    });
+
+    register("List.reduce", args -> {
+      checkArity("List.reduce", args, 3);
+      if (!(args[0] instanceof List<?> l)) {
+        throw new BuiltinException("List.reduce: expected List, got " + typeName(args[0]));
+      }
+      Object accumulator = args[1]; // initial value
+      if (!(args[2] instanceof LambdaValue lambda)) {
+        throw new BuiltinException("List.reduce: expected Lambda function, got " + typeName(args[2]));
+      }
+
+      CallTarget callTarget = lambda.getCallTarget();
+      if (callTarget == null) {
+        throw new BuiltinException("List.reduce: Lambda must have CallTarget (legacy mode not supported)");
+      }
+
+      for (Object item : l) {
+        // Prepare arguments: [accumulator, item, ...captures]
+        Object[] capturedValues = lambda.getCapturedValues();
+        Object[] callArgs = new Object[2 + capturedValues.length];
+        callArgs[0] = accumulator;
+        callArgs[1] = item;
+        System.arraycopy(capturedValues, 0, callArgs, 2, capturedValues.length);
+
+        accumulator = callTarget.call(callArgs);
+      }
+      return accumulator;
     });
 
     // === Map Operations ===
@@ -300,6 +395,11 @@ public final class Builtins {
     // === Result Operations ===
     register("Result.isOk", args -> {
       checkArity("Result.isOk", args, 1);
+      // Check for Java Result.Ok class
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
+        return true;
+      }
+      // Check for Map-based Ok
       if (args[0] instanceof Map<?,?> m) {
         return "Ok".equals(m.get("_type"));
       }
@@ -308,6 +408,11 @@ public final class Builtins {
 
     register("Result.isErr", args -> {
       checkArity("Result.isErr", args, 1);
+      // Check for Java Result.Err class
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
+        return true;
+      }
+      // Check for Map-based Err
       if (args[0] instanceof Map<?,?> m) {
         return "Err".equals(m.get("_type"));
       }
@@ -316,6 +421,16 @@ public final class Builtins {
 
     register("Result.unwrap", args -> {
       checkArity("Result.unwrap", args, 1);
+      // Check for Java Result.Ok class (has public 'value' field)
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
+        try {
+          var field = args[0].getClass().getField("value");
+          return field.get(args[0]);
+        } catch (Exception e) {
+          throw new BuiltinException("Result.unwrap: failed to access value field");
+        }
+      }
+      // Check for Map-based Ok
       if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
         return m.get("value");
       }
@@ -324,6 +439,16 @@ public final class Builtins {
 
     register("Result.unwrapErr", args -> {
       checkArity("Result.unwrapErr", args, 1);
+      // Check for Java Result.Err class (has public 'value' field)
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
+        try {
+          var field = args[0].getClass().getField("value");
+          return field.get(args[0]);
+        } catch (Exception e) {
+          throw new BuiltinException("Result.unwrapErr: failed to access value field");
+        }
+      }
+      // Check for Map-based Err
       if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
         return m.get("value");
       }
@@ -361,6 +486,227 @@ public final class Builtins {
         return m.get("value");
       }
       return args[1]; // default value
+    });
+
+    // Alias for unwrapOr
+    register("Maybe.withDefault", args -> {
+      checkArity("Maybe.withDefault", args, 2);
+      if (args[0] instanceof Map<?,?> m && "Some".equals(m.get("_type"))) {
+        return m.get("value");
+      }
+      if (args[0] == null) return args[1];
+      return args[1]; // default value
+    });
+
+    register("Maybe.map", args -> {
+      checkArity("Maybe.map", args, 2);
+
+      // If None, return None
+      if (args[0] == null || (args[0] instanceof Map<?,?> m && "None".equals(m.get("_type")))) {
+        return null; // None
+      }
+
+      // If Some, apply function
+      if (args[0] instanceof Map<?,?> m && "Some".equals(m.get("_type"))) {
+        if (!(args[1] instanceof LambdaValue lambda)) {
+          throw new BuiltinException("Maybe.map: expected Lambda function, got " + typeName(args[1]));
+        }
+
+        CallTarget callTarget = lambda.getCallTarget();
+        if (callTarget == null) {
+          throw new BuiltinException("Maybe.map: Lambda must have CallTarget (legacy mode not supported)");
+        }
+
+        Object value = m.get("value");
+        Object[] capturedValues = lambda.getCapturedValues();
+        Object[] callArgs = new Object[1 + capturedValues.length];
+        callArgs[0] = value;
+        System.arraycopy(capturedValues, 0, callArgs, 1, capturedValues.length);
+
+        Object mapped = callTarget.call(callArgs);
+
+        // Return Some(mapped)
+        Map<String, Object> result = new HashMap<>();
+        result.put("_type", "Some");
+        result.put("value", mapped);
+        return result;
+      }
+
+      throw new BuiltinException("Maybe.map: expected Maybe (Some or None), got " + typeName(args[0]));
+    });
+
+    register("Result.mapOk", args -> {
+      checkArity("Result.mapOk", args, 2);
+
+      // Check for Java Result.Ok/Err class
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
+        return args[0]; // Return Err unchanged
+      }
+
+      // Check for Map-based Err
+      if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
+        return args[0]; // Return Err unchanged
+      }
+
+      // Apply function to Ok value
+      if (!(args[1] instanceof LambdaValue lambda)) {
+        throw new BuiltinException("Result.mapOk: expected Lambda function, got " + typeName(args[1]));
+      }
+
+      CallTarget callTarget = lambda.getCallTarget();
+      if (callTarget == null) {
+        throw new BuiltinException("Result.mapOk: Lambda must have CallTarget (legacy mode not supported)");
+      }
+
+      Object value;
+      // Check for Java Result.Ok class
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
+        try {
+          var field = args[0].getClass().getField("value");
+          value = field.get(args[0]);
+        } catch (Exception e) {
+          throw new BuiltinException("Result.mapOk: failed to access value field");
+        }
+      } else if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
+        value = m.get("value");
+      } else {
+        throw new BuiltinException("Result.mapOk: expected Result (Ok or Err), got " + typeName(args[0]));
+      }
+
+      Object[] capturedValues = lambda.getCapturedValues();
+      Object[] callArgs = new Object[1 + capturedValues.length];
+      callArgs[0] = value;
+      System.arraycopy(capturedValues, 0, callArgs, 1, capturedValues.length);
+
+      Object mapped = callTarget.call(callArgs);
+
+      // Return Ok(mapped)
+      Map<String, Object> result = new HashMap<>();
+      result.put("_type", "Ok");
+      result.put("value", mapped);
+      return result;
+    });
+
+    register("Result.mapErr", args -> {
+      checkArity("Result.mapErr", args, 2);
+
+      // Check for Java Result.Ok class
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
+        return args[0]; // Return Ok unchanged
+      }
+
+      // Check for Map-based Ok
+      if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
+        return args[0]; // Return Ok unchanged
+      }
+
+      // Apply function to Err value
+      if (!(args[1] instanceof LambdaValue lambda)) {
+        throw new BuiltinException("Result.mapErr: expected Lambda function, got " + typeName(args[1]));
+      }
+
+      CallTarget callTarget = lambda.getCallTarget();
+      if (callTarget == null) {
+        throw new BuiltinException("Result.mapErr: Lambda must have CallTarget (legacy mode not supported)");
+      }
+
+      Object value;
+      // Check for Java Result.Err class
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
+        try {
+          var field = args[0].getClass().getField("value");
+          value = field.get(args[0]);
+        } catch (Exception e) {
+          throw new BuiltinException("Result.mapErr: failed to access value field");
+        }
+      } else if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
+        value = m.get("value");
+      } else {
+        throw new BuiltinException("Result.mapErr: expected Result (Ok or Err), got " + typeName(args[0]));
+      }
+
+      Object[] capturedValues = lambda.getCapturedValues();
+      Object[] callArgs = new Object[1 + capturedValues.length];
+      callArgs[0] = value;
+      System.arraycopy(capturedValues, 0, callArgs, 1, capturedValues.length);
+
+      Object mapped = callTarget.call(callArgs);
+
+      // Return Err(mapped)
+      Map<String, Object> result = new HashMap<>();
+      result.put("_type", "Err");
+      result.put("value", mapped);
+      return result;
+    });
+
+    register("Result.tapError", args -> {
+      checkArity("Result.tapError", args, 2);
+
+      // Check for Java Result.Ok class - return unchanged
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
+        return args[0];
+      }
+
+      // Check for Map-based Ok - return unchanged
+      if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
+        return args[0];
+      }
+
+      // Apply function to Err value for side effects, then return original Err
+      if (!(args[1] instanceof LambdaValue lambda)) {
+        throw new BuiltinException("Result.tapError: expected Lambda function, got " + typeName(args[1]));
+      }
+
+      CallTarget callTarget = lambda.getCallTarget();
+      if (callTarget == null) {
+        throw new BuiltinException("Result.tapError: Lambda must have CallTarget (legacy mode not supported)");
+      }
+
+      Object value;
+      // Check for Java Result.Err class
+      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
+        try {
+          var field = args[0].getClass().getField("value");
+          value = field.get(args[0]);
+        } catch (Exception e) {
+          throw new BuiltinException("Result.tapError: failed to access value field");
+        }
+      } else if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
+        value = m.get("value");
+      } else {
+        throw new BuiltinException("Result.tapError: expected Result (Ok or Err), got " + typeName(args[0]));
+      }
+
+      // Call lambda for side effects (discard return value)
+      Object[] capturedValues = lambda.getCapturedValues();
+      Object[] callArgs = new Object[1 + capturedValues.length];
+      callArgs[0] = value;
+      System.arraycopy(capturedValues, 0, callArgs, 1, capturedValues.length);
+      callTarget.call(callArgs);
+
+      // Return original Err unchanged
+      return args[0];
+    });
+
+    // === IO Operations ===
+    register("IO.print", args -> {
+      checkArity("IO.print", args, 1);
+      throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
+    });
+
+    register("IO.readLine", args -> {
+      checkArity("IO.readLine", args, 0);
+      throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
+    });
+
+    register("IO.readFile", args -> {
+      checkArity("IO.readFile", args, 1);
+      throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
+    });
+
+    register("IO.writeFile", args -> {
+      checkArity("IO.writeFile", args, 2);
+      throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
     });
 
     // === Async Operations ===
