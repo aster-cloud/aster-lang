@@ -1,0 +1,88 @@
+# Aster Truffle Runtime - Production Docker Image
+#
+# 基于 GraalVM Native-Image 构建的 Truffle 解释器容器
+# 用途：执行 Aster Core IR JSON 文件
+#
+# 构建：docker build -f Dockerfile.truffle -t aster/truffle:latest .
+# 运行：docker run -v $(pwd)/benchmarks:/benchmarks aster/truffle:latest /benchmarks/core/fibonacci_20_core.json --func=fibonacci -- 20
+
+# ============================================
+# Stage 1: Build Native Image with GraalVM
+# ============================================
+FROM ghcr.io/graalvm/native-image-community:25 AS builder
+
+# 安装构建依赖
+RUN microdnf install -y \
+    git \
+    tar \
+    gzip \
+    findutils \
+    && microdnf clean all
+
+WORKDIR /build
+
+# 复制 Gradle 构建文件
+COPY build.gradle.kts gradlew ./
+COPY gradle ./gradle
+
+# 创建简化的 settings.gradle.kts (仅包含 Truffle 相关项目)
+RUN printf '%s\n' \
+    'rootProject.name = "aster-lang"' \
+    'include(":aster-core")' \
+    'project(":aster-core").projectDir = file("aster-core")' \
+    'include(":aster-runtime")' \
+    'project(":aster-runtime").projectDir = file("aster-runtime")' \
+    'include(":aster-asm-emitter")' \
+    'project(":aster-asm-emitter").projectDir = file("aster-asm-emitter")' \
+    'include(":aster-truffle")' \
+    'project(":aster-truffle").projectDir = file("aster-truffle")' \
+    > settings.gradle.kts
+
+# 复制项目源代码
+COPY aster-core ./aster-core
+COPY aster-runtime ./aster-runtime
+COPY aster-asm-emitter ./aster-asm-emitter
+COPY aster-truffle ./aster-truffle
+
+# 构建 Truffle Native Image
+RUN ./gradlew :aster-truffle:nativeCompile --no-daemon --no-configuration-cache
+
+# 验证二进制文件存在并显示大小
+RUN ls -lh /build/aster-truffle/build/native/nativeCompile/aster
+
+# ============================================
+# Stage 2: Minimal Runtime Image
+# ============================================
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+
+# 安装运行时依赖（仅需 glibc 和基础库）
+RUN microdnf install -y \
+    glibc \
+    libstdc++ \
+    zlib \
+    && microdnf clean all
+
+# 复制 Truffle Native Image 二进制文件
+COPY --from=builder \
+    /build/aster-truffle/build/native/nativeCompile/aster \
+    /usr/local/bin/aster-truffle
+
+# 设置工作目录
+WORKDIR /workspace
+
+# 健康检查（运行简单的 fibonacci 测试）
+# 注意：需要挂载测试文件才能使用
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+#   CMD aster-truffle /benchmarks/core/fibonacci_20_core.json --func=fibonacci -- 5 || exit 1
+
+# 默认入口点：执行传入的 Core IR 文件
+ENTRYPOINT ["/usr/local/bin/aster-truffle"]
+
+# 元数据
+LABEL maintainer="Aster Lang Team" \
+      version="0.2.0" \
+      description="Aster Truffle Native Runtime - GraalVM Optimized Interpreter" \
+      org.opencontainers.image.source="https://github.com/wontlost-ltd/aster-lang" \
+      binary.size="36.26MB" \
+      startup.time="44ms" \
+      metadata.repository="enabled"

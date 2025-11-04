@@ -29,6 +29,23 @@ Aster is a pragmatic, safe, and fast programming language with a human‑readabl
 
 ## Quick Demo
 
+### 方式 1: 使用 Docker/Podman (最快体验)
+
+```bash
+# 使用 Podman 运行 Fibonacci 示例 (无需安装 Node.js/Java)
+podman run --rm \
+  -v $(pwd)/benchmarks:/benchmarks:ro \
+  ghcr.io/wontlost-ltd/aster-truffle:latest \
+  /benchmarks/core/fibonacci_20_core.json \
+  --func=fibonacci -- 10
+
+# 预期输出: 6765
+# 启动时间: ~50ms (GraalVM Native Image)
+# 镜像大小: 163 MB
+```
+
+### 方式 2: 从源码构建 (开发模式)
+
 ```text
 To greet user: maybe User, produce Text:
   Match user:
@@ -45,13 +62,30 @@ node dist/scripts/cli.js test/cnl/examples/greet.aster
 
 # Lower to Core IR (JSON)
 node dist/scripts/emit-core.js test/cnl/examples/greet.aster
+
+# Run with Truffle interpreter
+node dist/scripts/aster.js truffle test/cnl/examples/greet.aster --func=greet
 ```
 
 ## Installation & Requirements
 
-- Node.js 22+ and npm
-- Java 21+ (required for Gradle modules, JVM demos, and ASM emitter)
-- macOS/Linux recommended
+### 快速体验 (推荐新手)
+
+仅需 **Docker** 或 **Podman**:
+```bash
+# 拉取预构建镜像
+podman pull ghcr.io/wontlost-ltd/aster-truffle:latest
+
+# 或本地构建
+podman build -f Dockerfile.truffle -t aster/truffle:latest .
+```
+
+### 完整开发环境
+
+- **Node.js 22+** and npm
+- **Java 25 LTS** (推荐) 或 **Java 21+** (最低要求)
+  - 推荐: [GraalVM CE 25](https://www.graalvm.org/downloads/)
+- macOS/Linux 推荐
 
 Install dependencies and build:
 

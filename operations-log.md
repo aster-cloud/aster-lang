@@ -1,3 +1,78 @@
+# 2025-11-04: Phase 0 Docker 支持实现
+
+### 任务: 创建 Truffle Native Image Docker 支持
+
+**发现问题**:
+1. 现有 `Dockerfile` 仅构建 `aster-lang-cli` (TypeScript frontend)
+2. 没有 Truffle backend 的 Docker 支持
+3. Phase 0 验收标准要求完整的生产构建流水线
+
+**解决方案**:
+1. 创建 `Dockerfile.truffle` 专门用于 Truffle native-image
+2. 使用 multi-stage build:
+   - Stage 1: GraalVM JDK Community 25 构建 native-image
+   - Stage 2: UBI9 minimal runtime (glibc + libstdc++ + zlib)
+3. GraalVM image 选择:
+   - 原计划: `ghcr.io/graalvm/graalvm-ce:java25-25.0.0` (旧仓库名,已废弃)
+   - 实际使用: `ghcr.io/graalvm/jdk-community:25` (Java 25 LTS)
+   - 理由: 使用官方新仓库结构,Java 25 已发布为 LTS 版本
+
+**构建命令** (Podman/Docker 兼容):
+```bash
+# 使用 podman (推荐,与 docker 命令兼容)
+podman build -f Dockerfile.truffle -t aster/truffle:latest .
+
+# 或使用 docker
+docker build -f Dockerfile.truffle -t aster/truffle:latest .
+```
+
+**运行示例**:
+```bash
+docker run -v $(pwd)/benchmarks:/benchmarks aster/truffle:latest \
+  /benchmarks/core/fibonacci_20_core.json --func=fibonacci -- 20
+```
+
+**第一次构建失败**:
+- 错误: `COPY buildSrc ./buildSrc` 失败 - `buildSrc` 目录不存在
+- 原因: 参考了不准确的 Dockerfile 模板,`buildSrc` 在当前项目中不存在
+- 解决: 删除 `COPY buildSrc ./buildSrc` 行,参考现有 `Dockerfile` (也没有 buildSrc)
+
+**第二次构建失败**:
+- 错误: Gradle 配置失败 - `examples/rest-jvm` 目录不存在
+- 原因: `settings.gradle.kts` 包含所有子项目,但 Dockerfile 只复制了必要的源代码
+- 解决: 在 Dockerfile 中创建简化的 `settings.gradle.kts`,仅包含 Truffle 相关项目
+
+**第四次构建失败**:
+- 错误: Gradle Kotlin 文件解析失败 - `Expecting an element` at line 1
+- 原因: 使用 `echo '\n'` 创建多行文件,`\n` 没有被解释为换行符,而是作为字符串保存
+- 实际生成的文件是单行: `rootProject.name = "aster-lang"\ninclude...`
+- Gradle 解析 Kotlin 时遇到字符串中的 `\n` 导致语法错误
+
+**第五次构建失败**:
+- 错误: Dockerfile heredoc 语法无法正常工作
+- 原因: Docker/Podman 解析器将 heredoc 内容行误认为 Dockerfile 指令
+- `cat > file << 'EOF'` 在 Dockerfile RUN 指令中不适用
+
+**第六次构建失败**:
+- 错误: `Project with path ':aster-core' could not be found in project ':aster-asm-emitter'`
+- 原因: `aster-asm-emitter/build.gradle.kts:18` 依赖 `:aster-core` 项目
+- 分析: 仅复制了 aster-runtime, aster-asm-emitter, aster-truffle 三个模块
+- 解决: 添加 aster-core 到 settings.gradle.kts 和 COPY 列表
+
+**第七次构建失败**:
+- 错误: `/usr/lib64/graalvm/graalvm-community-java25/bin/native-image wasn't found`
+- 原因: GraalVM JDK Community 镜像默认不包含 `native-image` 工具
+- 分析: Gradle Native Image 插件需要 `native-image` 可执行文件
+- 解决: 使用 `gu install native-image` 安装 GraalVM 的 native-image 组件
+
+**第八次构建**: 安装 native-image 工具 (后台任务 ID: bd2842)
+- 使用 `printf '%s\n'` 正确生成多行文件
+- 包含完整依赖: aster-core, aster-runtime, aster-asm-emitter, aster-truffle
+- 更新为 Java 25 LTS (ghcr.io/graalvm/jdk-community:25)
+- 添加 `gu install native-image` 安装 Native Image 工具
+
+---
+
 # 2025-11-03 17:12 NZST Pure Java QuickSort 编译排查
 
 - 2025-11-03 16:58 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 QuickSort Core IR 签名问题与修复策略（3 条思考）
@@ -3990,3 +4065,60 @@ was found in the image heap...
 | Configuration complexity | Low | Low | ✅ Minimal |
 
 **结论**: 当前实现已达生产就绪标准,无需进一步优化。
+
+---
+
+# 2025-11-04: Phase 0 Docker 支持实现 - 第10次构建
+
+### 任务: 修复 GraalVM Native Image 工具安装问题
+
+**问题诊断** (第9次构建失败):
+- 错误: `/usr/lib64/graalvm/graalvm-community-java25/bin/gu: No such file or directory`
+- 根本原因: `ghcr.io/graalvm/jdk-community:25` 镜像不包含 `gu` (GraalVM Updater) 工具
+- 验证方法: `podman run --rm ghcr.io/graalvm/jdk-community:25 find / -name "gu"` 仅返回locale目录
+
+**官方文档查询**:
+- 使用 exa MCP 搜索 "GraalVM Native Image Docker image official 2025"
+- 发现官方提供专门的 `native-image-community` 镜像
+- 文档地址: https://www.graalvm.org/latest/docs/getting-started/container-images/
+
+**镜像选型对比**:
+
+| 镜像类型 | 镜像名 | 包含工具 | 用途 |
+|---------|--------|---------|------|
+| JDK | `ghcr.io/graalvm/jdk-community:25` | java, javac | 运行Java应用 |
+| Native Image | `ghcr.io/graalvm/native-image-community:25` | java, javac, native-image | 构建native executable |
+
+**解决方案** (Dockerfile.truffle 第10次修订):
+```dockerfile
+# 修改前
+FROM ghcr.io/graalvm/jdk-community:25 AS builder
+RUN microdnf install -y ... && $JAVA_HOME/bin/gu install native-image
+
+# 修改后  
+FROM ghcr.io/graalvm/native-image-community:25 AS builder
+RUN microdnf install -y ...  # 移除 gu install 步骤
+```
+
+**技术要点**:
+- GraalVM 25 (Java 25 LTS) 提供两类镜像:
+  - jdk-community: 仅JDK运行时
+  - native-image-community: 包含native-image工具的完整构建环境
+- 所有二进制文件通过 `alternatives` 全局可用
+- 安装路径: `/usr/lib64/graalvm/graalvm-community-java25/`
+
+**构建命令**:
+```bash
+podman build -f Dockerfile.truffle -t aster/truffle:latest .
+```
+
+**预期结果**: native-image 工具已预装，可直接编译 Truffle 解释器
+
+# 2025-11-04 20:50 NZST Phase 1 基线评估启动
+
+- 2025-11-04 20:45 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 Phase 1 基线评估任务范围、风险与执行步骤（8 条思考）
+- 2025-11-04 20:48 NZST | 工具：code-index__set_project_path → 初始化项目索引至 `/Users/rpang/IdeaProjects/aster-lang`
+- 2025-11-04 20:49 NZST | 命令：zsh -lc "ls" → 快速确认仓库根目录结构，定位关键模块与文档
+- 2025-11-04 20:51 NZST | 工具：code-index__build_deep_index → 重建项目深度索引，确保检索源码与文档能力
+- 2025-11-04 21:03 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test" → 获取 Truffle 运行时测试现状，全部用例通过，输出包含性能基准警告需纳入报告
+- 2025-11-04 21:03 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --console=plain > .claude/phase1-truffle-test.log 2>&1" → 生成完整测试日志供附录引用

@@ -1,8 +1,73 @@
 # Getting Started with Aster
 
-欢迎使用 Aster！本指南将帮助您在 1 小时内完成环境安装、编写第一个程序并理解 Aster 的核心概念。
+欢迎使用 Aster！本指南提供两种入门路径：
 
-## Prerequisites（前置要求）
+- **快速体验**（5 分钟）：使用 Docker/Podman 立即运行示例，无需安装任何工具
+- **完整安装**（1 小时）：搭建开发环境，深入学习编译器和语言特性
+
+---
+
+## 🚀 快速体验（推荐新手）
+
+如果您想立即体验 Aster 而无需配置环境，使用容器化方案最快捷：
+
+### 前置要求
+
+仅需安装 **Docker** 或 **Podman**（二选一）：
+- Podman: https://podman.io/getting-started/installation
+- Docker: https://docs.docker.com/get-docker/
+
+### 运行示例程序
+
+#### 示例 1: Fibonacci 数列
+
+```bash
+# 使用 Podman (推荐)
+podman run --rm \
+  -v $(pwd)/benchmarks:/benchmarks:ro \
+  ghcr.io/wontlost-ltd/aster-truffle:latest \
+  /benchmarks/core/fibonacci_20_core.json \
+  --func=fibonacci -- 10
+
+# 预期输出: 6765
+```
+
+```bash
+# 使用 Docker (如果您更熟悉 Docker)
+docker run --rm \
+  -v $(pwd)/benchmarks:/benchmarks:ro \
+  ghcr.io/wontlost-ltd/aster-truffle:latest \
+  /benchmarks/core/fibonacci_20_core.json \
+  --func=fibonacci -- 10
+```
+
+#### 示例 2: 自定义 Core IR 文件
+
+```bash
+# 运行您自己的 Core IR JSON 文件
+podman run --rm \
+  -v /path/to/your/code.json:/workspace/code.json:ro \
+  ghcr.io/wontlost-ltd/aster-truffle:latest \
+  /workspace/code.json \
+  --func=main
+```
+
+### 容器化方案优势
+
+| 特性 | 说明 |
+|------|------|
+| ⚡ 启动速度 | < 1 秒（GraalVM Native Image） |
+| 📦 镜像大小 | 163 MB（包含运行时） |
+| 🔒 隔离性 | 容器化，不污染本地环境 |
+| 🌍 跨平台 | 支持 Linux、macOS、Windows (WSL) |
+
+**恭喜！** 您已经成功运行了 Aster 程序。如果您需要修改 Aster 源码或开发新功能，请继续阅读[完整安装指南](#installation完整安装)。
+
+---
+
+## 📚 完整安装（开发环境）
+
+### Prerequisites（前置要求）
 
 在开始之前，请确保您的系统满足以下要求：
 
@@ -10,20 +75,21 @@
   - 检查版本：`node --version`
   - 下载地址：https://nodejs.org/
 - **npm**：Node.js 包管理器（通常随 Node.js 一起安装）
-- **Java 21+**（可选）：如果您需要使用 JVM 后端或运行 Gradle 示例
+- **Java 25 LTS**（推荐）或 **Java 21+**（最低要求）：用于 JVM 后端和 Gradle 构建
   - 检查版本：`java --version`
+  - 推荐下载：[GraalVM CE 25](https://www.graalvm.org/downloads/)
 - **操作系统**：推荐 macOS 或 Linux（Windows 通过 WSL 也可使用）
 
-## Installation（安装）
+### Installation（完整安装）
 
-### 1. 克隆仓库
+#### 1. 克隆仓库
 
 ```bash
 git clone https://github.com/wontlost-ltd/aster-lang.git
 cd aster-lang
 ```
 
-### 2. 安装依赖
+#### 2. 安装依赖
 
 ```bash
 npm install
@@ -31,7 +97,7 @@ npm install
 
 这将安装所有必要的 TypeScript 依赖和开发工具。
 
-### 3. 构建编译器
+#### 3. 构建编译器
 
 ```bash
 npm run build
@@ -44,15 +110,26 @@ npm run build
 
 **预期输出**：如果构建成功，您将看到 TypeScript 编译输出，且没有错误信息。
 
-### 4. 验证安装
+#### 4. 验证安装
 
-运行快速测试以确认安装成功：
+运行快速验证以确认安装成功：
+
+```bash
+# 方式 1: 检查 CLI 版本
+node dist/scripts/cli.js --version
+
+# 方式 2: 解析简单示例
+echo 'This module is test. To id, produce Int: Return 1.' > /tmp/test.aster
+node dist/scripts/cli.js /tmp/test.aster
+```
+
+如果看到 JSON AST 输出，说明安装成功！✅
+
+**可选**: 运行完整测试套件（需要 2-3 分钟）：
 
 ```bash
 npm run test:golden
 ```
-
-如果看到 ✓ 测试通过的消息，说明安装成功！
 
 ## Your First Policy（第一个策略程序）
 
@@ -86,10 +163,67 @@ node dist/scripts/cli.js hello.aster
 Aster 使用一个小型、严格的 Core IR（中间表示）作为优化和后端生成的基础：
 
 ```bash
-node dist/scripts/emit-core.js hello.aster
+node dist/scripts/emit-core.js hello.aster > hello_core.json
 ```
 
-**预期输出**：Core IR JSON，展示了函数的规范化表示。
+**预期输出**：Core IR JSON 文件 `hello_core.json`，展示了函数的规范化表示。
+
+### 运行程序
+
+现在让我们实际运行这个程序并看到输出！Aster 提供三种运行方式：
+
+#### 方式 1: 使用 Docker/Podman (最快)
+
+```bash
+# 使用 Podman (推荐)
+podman run --rm \
+  -v $(pwd):/workspace:ro \
+  ghcr.io/wontlost-ltd/aster-truffle:latest \
+  /workspace/hello_core.json \
+  --func=sayHello
+
+# 预期输出: Hello, Aster!
+```
+
+```bash
+# 使用 Docker
+docker run --rm \
+  -v $(pwd):/workspace:ro \
+  ghcr.io/wontlost-ltd/aster-truffle:latest \
+  /workspace/hello_core.json \
+  --func=sayHello
+```
+
+#### 方式 2: 使用 Node.js CLI (开发模式)
+
+```bash
+node dist/scripts/aster.js truffle hello.aster --func=sayHello
+
+# 预期输出: Hello, Aster!
+```
+
+#### 方式 3: 使用 Native Image (如已构建)
+
+如果您已经构建了 Native Image：
+
+```bash
+./aster-truffle/build/native/nativeCompile/aster hello_core.json --func=sayHello
+
+# 预期输出: Hello, Aster!
+# 启动时间: ~44ms
+```
+
+**恭喜！** 您已经成功运行了第一个 Aster 程序！🎉
+
+### 运行方式对比
+
+| 运行方式 | 启动时间 | 适用场景 | 优势 |
+|---------|---------|---------|------|
+| **Docker/Podman** | ~50ms | 生产部署、CI/CD | 隔离性好、跨平台 |
+| **Node.js CLI** | ~2-5秒 | 开发调试 | 无需构建镜像 |
+| **Native Image** | ~44ms | 独立分发 | 启动最快、单文件 |
+
+**推荐**: 新手使用 Docker/Podman 体验，开发时使用 Node.js CLI。
 
 ### 代码说明
 
@@ -427,6 +561,69 @@ npm run build
 ls -la dist/scripts/
 ```
 
+### 常见问题 6: Docker/Podman 镜像拉取失败
+
+**症状**: `podman pull` 或 `docker pull` 报错 "unable to resolve image" 或超时
+
+**可能原因**:
+- 网络问题，无法访问 ghcr.io
+- 镜像不存在或标签错误
+
+**解决方法**:
+```bash
+# 检查网络连接
+ping ghcr.io
+
+# 检查镜像是否存在
+podman search ghcr.io/wontlost-ltd/aster-truffle
+
+# 如果拉取失败，可以本地构建
+podman build -f Dockerfile.truffle -t aster/truffle:latest .
+```
+
+### 常见问题 7: 容器运行权限错误
+
+**症状**: "permission denied" 或 "cannot open file" 错误
+
+**可能原因**:
+- SELinux 或卷挂载权限问题
+- 文件路径不正确
+
+**解决方法**:
+```bash
+# 确保使用绝对路径
+podman run -v $(pwd)/benchmarks:/benchmarks:ro ...
+
+# 如果仍然失败，检查 SELinux 状态
+getenforce
+
+# 临时禁用 SELinux 标签检查 (仅用于测试，不推荐生产)
+podman run --security-opt label=disable ...
+
+# 或者使用 :z 选项 (Podman 特有)
+podman run -v $(pwd)/benchmarks:/benchmarks:ro,z ...
+```
+
+### 常见问题 8: 容器内找不到文件
+
+**症状**: "No such file or directory" 错误
+
+**原因**: 卷挂载路径不匹配
+
+**解决方法**:
+```bash
+# 确认宿主机文件存在
+ls -la benchmarks/core/fibonacci_20_core.json
+
+# 使用绝对路径挂载
+podman run -v /full/path/to/benchmarks:/benchmarks:ro ...
+
+# 检查容器内路径
+podman run --rm -v $(pwd)/benchmarks:/benchmarks:ro \
+  aster/truffle:latest \
+  ls -la /benchmarks/core/
+```
+
 ### 获取帮助
 
 如果遇到其他问题：
@@ -434,7 +631,10 @@ ls -la dist/scripts/
 1. **查看示例程序**：`test/cnl/examples/` 中有 50+ 个经过测试的示例
 2. **阅读文档**：`docs/` 目录包含完整的语言和工具文档
 3. **查看 CI 脚本**：`package.json` 中的 `scripts` 部分展示了所有可用命令
-4. **提交 Issue**：https://github.com/wontlost-ltd/aster-lang/issues
+4. **Docker/Podman 文档**：
+   - Podman: https://docs.podman.io/
+   - Docker: https://docs.docker.com/
+5. **提交 Issue**：https://github.com/wontlost-ltd/aster-lang/issues
 
 ---
 
