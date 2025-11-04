@@ -12,15 +12,18 @@ public class PolicyMetadata {
     private final Class<?> policyClass;
     private final Method method;
     private final MethodHandle methodHandle;
+    private final MethodHandle spreadInvoker;
     private final Parameter[] parameters;
 
     public PolicyMetadata(Class<?> policyClass,
                           Method method,
                           MethodHandle methodHandle,
+                          MethodHandle spreadInvoker,
                           Parameter[] parameters) {
         this.policyClass = policyClass;
         this.method = method;
         this.methodHandle = methodHandle;
+        this.spreadInvoker = spreadInvoker;
         this.parameters = parameters;
     }
 
@@ -36,7 +39,18 @@ public class PolicyMetadata {
         return methodHandle;
     }
 
+    public MethodHandle getSpreadInvoker() {
+        return spreadInvoker;
+    }
+
     public Parameter[] getParameters() {
         return parameters;
+    }
+
+    public Object invoke(Object[] arguments) throws Throwable {
+        if (spreadInvoker != null) {
+            return spreadInvoker.invoke(arguments);
+        }
+        return methodHandle.invokeWithArguments(arguments);
     }
 }

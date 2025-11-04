@@ -89,7 +89,7 @@ public class PolicyQueryService {
                 tenantId,
                 "aster.insurance.life",
                 "generateLifeQuote",
-                buildContext(tenantId, lifeContext.get("applicant"), lifeContext.get("request"))
+                buildContext(lifeContext.get("applicant"), lifeContext.get("request"))
             )
             .onItem().transform(result -> lifeInsuranceConverter.toGraphQLResponse(result.getResult()));
     }
@@ -103,7 +103,7 @@ public class PolicyQueryService {
                 tenantId,
                 "aster.insurance.life",
                 "calculateRiskScore",
-                buildContext(tenantId, applicantContext)
+                buildContext(applicantContext)
             )
             .onItem().transform(result -> (Integer) result.getResult());
     }
@@ -124,7 +124,6 @@ public class PolicyQueryService {
                 "aster.insurance.auto",
                 "generateAutoQuote",
                 buildContext(
-                    tenantId,
                     autoContext.get("driver"),
                     autoContext.get("vehicle"),
                     coverageType
@@ -149,7 +148,6 @@ public class PolicyQueryService {
                 "aster.healthcare.eligibility",
                 "checkServiceEligibility",
                 buildContext(
-                    tenantId,
                     healthcareContext.get("patient"),
                     healthcareContext.get("service")
                 )
@@ -175,7 +173,6 @@ public class PolicyQueryService {
                 "aster.healthcare.claims",
                 "processClaim",
                 buildContext(
-                    tenantId,
                     claimContext.get("claim"),
                     claimContext.get("provider"),
                     claimContext.get("patientCoverage")
@@ -200,7 +197,6 @@ public class PolicyQueryService {
                 "aster.finance.loan",
                 "evaluateLoanEligibility",
                 buildContext(
-                    tenantId,
                     loanContext.get("application"),
                     loanContext.get("applicant")
                 )
@@ -225,7 +221,6 @@ public class PolicyQueryService {
                 "aster.finance.creditcard",
                 "evaluateCreditCardApplication",
                 buildContext(
-                    tenantId,
                     creditContext.get("applicant"),
                     creditContext.get("history"),
                     creditContext.get("offer")
@@ -256,7 +251,6 @@ public class PolicyQueryService {
                 "aster.finance.enterprise_lending",
                 "evaluateEnterpriseLoan",
                 buildContext(
-                    tenantId,
                     enterpriseContext.get("enterprise"),
                     enterpriseContext.get("position"),
                     enterpriseContext.get("history"),
@@ -290,7 +284,6 @@ public class PolicyQueryService {
                 "aster.finance.personal_lending",
                 "evaluatePersonalLoan",
                 buildContext(
-                    tenantId,
                     personalContext.get("personal"),
                     personalContext.get("income"),
                     personalContext.get("credit"),
@@ -301,12 +294,7 @@ public class PolicyQueryService {
             .onItem().transform(result -> personalLendingConverter.toGraphQLResponse(result.getResult()));
     }
 
-    private Object[] buildContext(String tenant, Object... args) {
-        String normalizedTenant = tenant == null || tenant.isBlank() ? "default" : tenant.trim();
-        Object[] context = new Object[args.length + 1];
-        context[0] = normalizedTenant;
-        System.arraycopy(args, 0, context, 1, args.length);
-        return context;
+    private Object[] buildContext(Object... args) {
+        return args == null ? new Object[0] : args;
     }
 }
-

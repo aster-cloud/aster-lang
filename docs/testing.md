@@ -2,6 +2,13 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-05 Quarkus Policy 性能基线与回归
+- 日期：2025-11-05 06:27 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:test --tests "io.aster.policy.performance.PolicyEvaluationPerformanceTest"` → 通过；冷启动耗时 10.655ms，缓存命中平均耗时 0.054ms（200 次迭代）
+  - `./gradlew :quarkus-policy-api:test --tests "io.aster.policy.performance.PolicyEvaluationPerformanceTest"` → 优化后复测通过；冷启动耗时 9.179ms，缓存命中平均耗时 0.044ms（200 次迭代）
+
 ## 2025-10-08 结构化日志系统联调
 - 日期：2025-10-08 14:50 NZST
 - 执行者：Codex
@@ -343,4 +350,3 @@ protected int readInt(VirtualFrame frame) throws FrameSlotTypeException {
 - 提升内联和寄存器分配效率
 
 实际效果需通过 benchmark 测试验证。
-

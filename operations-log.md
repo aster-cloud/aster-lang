@@ -1,3 +1,29 @@
+# 2025-11-05 06:21 NZST Phase 1.3 Quarkus Policy 性能调研启动
+
+- 2025-11-05 06:13 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 Quarkus Policy API 性能优化任务范围与风险（6 条思考）
+- 2025-11-05 06:15 NZST | 命令：zsh -lc "ls" (cwd=quarkus-policy-api) → 确认模块结构与可用资源
+- 2025-11-05 06:16 NZST | 命令：zsh -lc "sed -n '1,200p' src/main/java/io/aster/policy/api/PolicyEvaluationService.java" → 解析评估服务缓存与 MethodHandle 调用路径
+- 2025-11-05 06:17 NZST | 命令：zsh -lc "sed -n '1,200p' src/main/java/io/aster/policy/api/cache/PolicyCacheManager.java" → 评估 Caffeine 配置获取与租户索引机制
+- 2025-11-05 06:18 NZST | 命令：zsh -lc "cat src/main/resources/application.properties" → 收集缓存容量/过期配置及指标上报设置
+- 2025-11-05 06:19 NZST | 命令：zsh -lc "find src/main/resources/policies -name '*.aster'" → 盘点可用于基线测试的策略资产
+- 2025-11-05 06:20 NZST | 工具：code-index__set_project_path → 建立代码索引上下文，便于后续检索性能热点
+- 2025-11-05 06:33 NZST | 工具：apply_patch → 新增 `quarkus-policy-api/src/test/java/io/aster/policy/performance/PolicyEvaluationPerformanceTest.java` 建立贷款策略性能基线用例
+- 2025-11-05 06:36 NZST | 工具：apply_patch → 修正性能测试导入 `PolicyEvaluationResult` 的包路径
+- 2025-11-05 06:38 NZST | 工具：apply_patch → 新增 `io/aster/policy/api/validation/constraints/Range` 测试桩以消除生成类缺失注解的 Werror 警告
+- 2025-11-05 06:42 NZST | 命令：zsh -lc "./gradlew :quarkus-policy-api:test --tests \"io.aster.policy.performance.PolicyEvaluationPerformanceTest\"" → 获得贷款策略性能基线（冷启动 10.655ms，缓存命中均值 0.054ms）
+- 2025-11-05 06:44 NZST | 工具：apply_patch → 更新 `docs/testing.md` 记录 Quarkus Policy 性能基线测试结果
+- 2025-11-05 06:47 NZST | 工具：apply_patch → 扩展 `PolicyMetadata` 支持 MethodHandle spread 调用并提供 invoke 封装
+- 2025-11-05 06:51 NZST | 工具：apply_patch → 增强 `PolicyMetadataLoader`：缓存预热、策略 JAR 扫描与 MethodHandle spread 生成
+- 2025-11-05 06:55 NZST | 工具：apply_patch → 更新 `PolicyEvaluationService`：启动期预热策略元数据并改用 MethodHandle spread 调用
+- 2025-11-05 06:58 NZST | 工具：apply_patch → 精简 `PolicyQueryService.buildContext`，移除租户冗余参数构造以避免额外数组拷贝
+- 2025-11-05 07:02 NZST | 工具：apply_patch → 调整 `PolicyMetadataLoader` 预热失败日志为简化消息
+- 2025-11-05 07:04 NZST | 工具：apply_patch → 将策略元数据预热范围收敛至九个核心入口函数，避免不稳定字节码触发验证异常
+- 2025-11-05 07:07 NZST | 命令：zsh -lc "./gradlew :quarkus-policy-api:test --tests \"io.aster.policy.performance.PolicyEvaluationPerformanceTest\"" → 优化后指标：冷启动 9.179ms，缓存均值 0.044ms
+- 2025-11-05 07:08 NZST | 工具：apply_patch → 更新 `docs/testing.md` 追加优化前后性能对比记录
+- 2025-11-05 07:10 NZST | 工具：apply_patch → 调整 `application.properties` 中 policy-results 缓存容量与过期策略（512 初始、4096 上限、写入 30 分钟、访问 10 分钟）
+- 2025-11-05 07:13 NZST | 命令：zsh -lc "./gradlew :quarkus-policy-api:test" → 全量测试通过，性能日志含冷/热指标与异常场景回归
+- 2025-11-05 07:15 NZST | 工具：apply_patch → 在 `quarkus-policy-api/README.md` 新增性能最佳实践章节，记录基线与调优策略
+
 # 2025-11-04: Phase 0 Docker 支持实现
 
 ### 任务: 创建 Truffle Native Image Docker 支持

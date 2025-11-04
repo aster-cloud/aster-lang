@@ -18,6 +18,7 @@ import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheInvalidateAll;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -51,6 +52,28 @@ public class PolicyEvaluationService {
     ConstructorMetadataCache constructorMetadataCache;
 
     private static final Logger LOG = Logger.getLogger(PolicyEvaluationService.class);
+
+    private static final java.util.List<String> HOT_POLICIES = java.util.List.of(
+        "aster.insurance.life.generateLifeQuote",
+        "aster.insurance.life.calculateRiskScore",
+        "aster.insurance.auto.generateAutoQuote",
+        "aster.healthcare.eligibility.checkServiceEligibility",
+        "aster.healthcare.claims.processClaim",
+        "aster.finance.loan.evaluateLoanEligibility",
+        "aster.finance.creditcard.evaluateCreditCardApplication",
+        "aster.finance.enterprise_lending.evaluateEnterpriseLoan",
+        "aster.finance.personal_lending.evaluatePersonalLoan"
+    );
+
+    @PostConstruct
+    void preloadPolicyMetadata() {
+        try {
+            policyMetadataLoader.preloadPolicies(HOT_POLICIES);
+            LOG.infof("预加载策略元数据完成，共 %d 个函数", HOT_POLICIES.size());
+        } catch (Exception ex) {
+            LOG.warn("策略元数据预热失败，将在首次调用时按需加载", ex);
+        }
+    }
 
     /**
      * 评估策略（带缓存，reactive版本，优化了反射性能）
@@ -100,7 +123,7 @@ public class PolicyEvaluationService {
                 Object[] args = policyTypeConverter.prepareArguments(metadata.getParameters(), cacheKey.getContext());
 
                 // 使用MethodHandle调用策略 (比reflection快2-3倍)
-                Object result = metadata.getMethodHandle().invokeWithArguments(args);
+                Object result = metadata.invoke(args);
                 long durationNanos = System.nanoTime() - startTime;
 
                 // 构建结果

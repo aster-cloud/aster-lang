@@ -1,14 +1,26 @@
 package io.aster.validation.metadata;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
 
 /**
  * 策略元数据加载器，负责动态加载策略类并缓存反射信息。
  */
 public class PolicyMetadataLoader {
+
+    private static final Logger logger = LoggerFactory.getLogger(PolicyMetadataLoader.class);
 
     private final ConcurrentHashMap<String, PolicyMetadata> metadataCache = new ConcurrentHashMap<>();
 
@@ -44,11 +56,13 @@ public class PolicyMetadataLoader {
 
             Method functionMethod = findPolicyMethod(policyClass, policyFunction);
             MethodHandle handle = MethodHandles.publicLookup().unreflect(functionMethod);
+            MethodHandle spreadInvoker = handle.asSpreader(Object[].class, functionMethod.getParameterCount());
 
             return new PolicyMetadata(
                 policyClass,
                 functionMethod,
                 handle,
+                spreadInvoker,
                 functionMethod.getParameters()
             );
         } catch (Throwable e) {
@@ -64,5 +78,66 @@ public class PolicyMetadataLoader {
             }
         }
         throw new IllegalArgumentException("未找到策略方法: " + functionName);
+    }
+
+    public void preloadPolicies(Collection<String> qualifiedNames) {
+        if (qualifiedNames == null || qualifiedNames.isEmpty()) {
+            return;
+        }
+        for (String qualifiedName : qualifiedNames) {
+            if (qualifiedName == null || qualifiedName.isBlank()) {
+                continue;
+            }
+            try {
+                loadPolicyMetadata(qualifiedName);
+            } catch (RuntimeException ex) {
+                logger.warn("预加载策略元数据失败: {} - {}", qualifiedName, ex.getMessage());
+            }
+        }
+    }
+
+    public List<String> discoverPolicyFunctionsFromJar(String resourceName) {
+        if (resourceName == null || resourceName.isBlank()) {
+            return List.of();
+        }
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        if (cl == null) {
+            cl = PolicyMetadataLoader.class.getClassLoader();
+        }
+        try (InputStream inputStream = cl.getResourceAsStream(resourceName)) {
+            if (inputStream == null) {
+                logger.warn("未找到策略资源 JAR: {}", resourceName);
+                return List.of();
+            }
+            List<String> qualifiedNames = new ArrayList<>();
+            try (JarInputStream jarStream = new JarInputStream(inputStream)) {
+                JarEntry entry;
+                while ((entry = jarStream.getNextJarEntry()) != null) {
+                    if (entry.isDirectory()) {
+                        continue;
+                    }
+                    String name = entry.getName();
+                    if (name == null || !name.endsWith("_fn.class")) {
+                        continue;
+                    }
+                    String className = name.replace('/', '.').replace(".class", "");
+                    if (!className.endsWith("_fn")) {
+                        continue;
+                    }
+                    int lastDot = className.lastIndexOf('.');
+                    if (lastDot <= 0) {
+                        continue;
+                    }
+                    String module = className.substring(0, lastDot);
+                    String functionWithSuffix = className.substring(lastDot + 1);
+                    String functionName = functionWithSuffix.substring(0, functionWithSuffix.length() - 3);
+                    qualifiedNames.add(module + "." + functionName);
+                }
+            }
+            return qualifiedNames;
+        } catch (IOException e) {
+            logger.warn("扫描策略资源 JAR 失败: {}", resourceName, e);
+            return List.of();
+        }
     }
 }
