@@ -6,6 +6,7 @@ apply(from = "gradle/reproducible-builds.gradle.kts")
 // 应用 JaCoCo 插件以支持聚合覆盖率报告
 plugins {
     jacoco
+    id("org.graalvm.buildtools.native") version "0.11.2" apply false
 }
 
 // 根项目需要配置仓库以下载 JaCoCo 依赖

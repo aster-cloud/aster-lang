@@ -166,6 +166,8 @@
     "bench:all": "npm run bench:truffle && npm run bench:java && npm run bench:jit",
     "ci:bench": "npm run bench:all || echo 'Performance benchmarks completed (non-blocking)'",
     "bench:validate": "node dist/scripts/validate-benchmarks.js",
+    "native:build:truffle": "./gradlew :aster-truffle:nativeCompile --no-configuration-cache",
+    "native:run:truffle": "./aster-truffle/build/native/nativeCompile/aster",
     "truffle:run": "./gradlew :aster-truffle:run",
     "truffle:run:core": "npm run build && node dist/scripts/emit-core.js test/cnl/programs/examples/greet.aster > build/greet_core.json && ./gradlew :aster-truffle:run --args=build/greet_core.json",
     "truffle:run:ifparam": "npm run build && node dist/scripts/emit-core.js test/cnl/programs/control-flow/if_param.aster > build/if_param_core.json && ./gradlew :aster-truffle:run --args=\"build/if_param_core.json true\"",

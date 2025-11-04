@@ -1,4 +1,8 @@
-plugins { application; java }
+plugins {
+  application
+  java
+  id("org.graalvm.buildtools.native")
+}
 repositories { mavenCentral() }
 
 dependencies {
@@ -31,5 +35,35 @@ tasks.test {
     events("passed", "skipped", "failed")
     exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     showStandardStreams = true
+  }
+}
+
+// GraalVM Native Image 配置
+graalvmNative {
+  metadataRepository {
+    enabled.set(true) // 重新启用以使用官方 Jackson/NIO 元数据
+  }
+  binaries {
+    named("main") {
+      imageName.set("aster")
+      mainClass.set("aster.truffle.Runner")
+      buildArgs.add("--no-fallback")
+      buildArgs.add("-H:+ReportExceptionStackTraces")
+      buildArgs.add("--initialize-at-build-time=")
+      buildArgs.add("-H:+UnlockExperimentalVMOptions")
+      // 配置文件会从 META-INF/native-image/ 自动发现
+      resources.autodetect()
+    }
+  }
+  agent {
+    defaultMode.set("standard")
+    builtinCallerFilter = true
+    builtinHeuristicFilter = true
+    enableExperimentalPredefinedClasses = false
+    enableExperimentalUnsafeAllocationTracing = false
+    trackReflectionMetadata = true
+    modes {
+      standard {}
+    }
   }
 }

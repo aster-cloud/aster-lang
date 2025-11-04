@@ -3865,3 +3865,76 @@ npm run docs:build
 - 参考资料:
   - [VitePress Issue #3259](https://github.com/vuejs/vitepress/issues/3259) - 语言别名使用
   - [VitePress Issue #1331](https://github.com/vuejs/vitepress/issues/1331) - 自定义语言注册讨论
+
+## 2025-11-04: Metadata Repository 重新启用
+
+### 发现
+- org.graalvm.buildtools.native 0.11.2 (2025-10-27) 是最新版本
+- 当前环境: Gradle 9.0 + plugin 0.11.2 + GraalVM 25
+- metadata repository 可以成功启用,之前禁用是过度谨慎
+
+### 问题
+启用 metadata repository 后暴露配置冲突:
+```
+Fatal error: com.oracle.graal.pointsto.constraints.UnsupportedFeatureException: 
+An object of type 'com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl' 
+was found in the image heap...
+```
+
+### 根本原因
+1. Jackson metadata 包含 DOM deserializer 支持
+2. DOM deserializer 依赖 Xerces XML parser
+3. 但 build.gradle.kts:53 配置 Xerces 为运行时初始化
+4. 冲突: Jackson 需要 Xerces 在构建时初始化,但配置要求运行时初始化
+
+### 解决方案
+删除 `--initialize-at-run-time=com.sun.org.apache.xerces,com.sun.org.apache.xalan`
+- 原因: Core IR 只使用 JSON,不需要 XML/DOM 功能
+- 让 Xerces 在构建时初始化不会影响功能
+- 简化配置,减少特殊情况
+
+### 收益
+1. ✅ 重新启用 metadata repository
+2. ✅ 获得官方 Jackson/NIO 元数据支持
+3. ✅ 降低未来升级风险
+4. ✅ 简化初始化配置(删除不必要的运行时初始化)
+
+
+### 优化尝试 - 排除 Jackson DOM
+
+**目标**: 减少 binary size (从 36MB 降到 ~28MB)
+
+**方法**: 添加 `--initialize-at-run-time=com.fasterxml.jackson.databind.ext.DOMDeserializer`
+- 让 Jackson DOM deserializer 在运行时初始化
+- 这应该阻止 java.xml 模块被包含
+- Core IR 不需要 XML/DOM 功能
+
+**预期结果**: 
+- Binary size 减少 5-8MB
+- 功能保持完整 (只使用 JSON)
+- 启动时间可能略微增加 (DOM 类延迟初始化)
+
+
+**实际结果** (构建成功,但优化失败):
+- Binary size **保持 36.26MB** (无变化)
+- java.xml 模块 (3.62MB) 仍然被包含
+- 功能完整,启动时间 44ms
+- Fibonacci(20) = 6765 ✓
+
+**失败原因分析**:
+- `--initialize-at-run-time` 只延迟初始化,不排除类
+- GraalVM 的可达性分析仍然包含 DOMDeserializer
+- metadata repository 声明了类为可达 (reachable)
+- 初始化时机不影响二进制包含关系
+
+**结论**:
+- 使用 `--initialize-at-run-time` **无法排除 Jackson DOM**
+- 需要使用 `--exclude-config` 或手工编写 reachability-metadata.json
+- 或接受 36MB 体积作为 metadata repository 的代价
+- **已回退更改,保持配置简洁**
+
+**替代优化路径** (备选方案,暂不实施):
+1. 使用 `--exclude-config` 排除 Jackson DOM 元数据
+2. 手工编写精简的 reachability-metadata.json
+3. 等待 GraalVM 或 Jackson 提供细粒度控制
+4. 接受现状 (36MB 仍在 50MB 目标以内)
