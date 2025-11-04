@@ -60,33 +60,22 @@ tasks.withType<Test> {
 }
 
 // 确保在编译前生成Aster JAR（包含loan policy + creditcard + healthcare + insurance + lending）
+// 使用 shell find 自动发现所有策略文件，在执行时动态查找
+// 重要：必须一次性传递所有 .aster 文件给 emit:class，因为 emit:class 会清空 build/jvm-classes 目录
 val generateAsterJar by tasks.registering(Exec::class) {
     workingDir = rootProject.projectDir
+
     commandLine = if (System.getProperty("os.name").lowercase().contains("win")) {
-        listOf("cmd", "/c",
-            "npm", "run", "emit:class",
-            "test/cnl/stdlib/finance/loan.aster",
-            "test/cnl/stdlib/finance/creditcard.aster",
-            "test/cnl/stdlib/finance/lending/enterprise.aster",
-            "test/cnl/stdlib/finance/lending/personal.aster",
-            "test/cnl/stdlib/healthcare/eligibility.aster",
-            "test/cnl/stdlib/healthcare/claims.aster",
-            "test/cnl/stdlib/insurance/auto.aster",
-            "test/cnl/stdlib/insurance/life.aster",
-            "&&",
-            "npm", "run", "jar:jvm")
+        listOf("cmd", "/c", """
+            set FILES=
+            for /r quarkus-policy-api\src\main\resources\policies %%f in (*.aster) do set FILES=!FILES! %%f
+            npm run emit:class !FILES! && npm run jar:jvm
+        """.trimIndent())
     } else {
-        listOf("sh", "-c",
-            "npm run emit:class " +
-            "test/cnl/stdlib/finance/loan.aster " +
-            "test/cnl/stdlib/finance/creditcard.aster " +
-            "test/cnl/stdlib/finance/lending/enterprise.aster " +
-            "test/cnl/stdlib/finance/lending/personal.aster " +
-            "test/cnl/stdlib/healthcare/eligibility.aster " +
-            "test/cnl/stdlib/healthcare/claims.aster " +
-            "test/cnl/stdlib/insurance/auto.aster " +
-            "test/cnl/stdlib/insurance/life.aster " +
-            "&& npm run jar:jvm")
+        listOf("sh", "-c", """
+            FILES=$(find quarkus-policy-api/src/main/resources/policies -name '*.aster' -type f | sort | tr '\n' ' ')
+            npm run emit:class ${'$'}FILES && npm run jar:jvm
+        """.trimIndent())
     }
 }
 

@@ -5,14 +5,18 @@ import io.aster.policy.api.PolicyCacheKey;
 import io.aster.policy.api.PolicyEvaluationService;
 import io.aster.policy.api.model.BatchEvaluationResult;
 import io.aster.policy.api.model.BatchRequest;
+import io.aster.policy.api.PolicyQueryService;
 import io.aster.policy.api.model.CompositionStep;
 import io.aster.policy.api.model.PolicyCompositionResult;
 import io.aster.policy.api.model.PolicyEvaluationResult;
 import io.aster.policy.api.model.StepResult;
 import io.aster.policy.api.cache.PolicyCacheManager;
+import io.aster.policy.graphql.types.EnterpriseLendingTypes;
+import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +39,10 @@ import java.util.function.BooleanSupplier;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * GraphQL API 测试 - 策略评估查询和变更
@@ -52,6 +60,9 @@ public class PolicyGraphQLResourceTest {
 
     @Inject
     PolicyCacheManager policyCacheManager;
+
+    @Inject
+    PolicyQueryService policyQueryService;
 
     @BeforeEach
     public void resetCache() {
@@ -560,6 +571,24 @@ public class PolicyGraphQLResourceTest {
 
     @Test
     public void testEvaluateEnterpriseLoan() {
+        EnterpriseLendingTypes.LendingDecision mockDecision = new EnterpriseLendingTypes.LendingDecision(
+            true,
+            2_500_000,
+            650,
+            60,
+            1_800_000,
+            "标准审批条件",
+            "MODERATE_RISK",
+            78,
+            "APPROVED_STANDARD",
+            "自动化测试模拟结果"
+        );
+
+        PolicyQueryService mockQueryService = mock(PolicyQueryService.class);
+        when(mockQueryService.evaluateEnterpriseLoan(anyString(), any(), any(), any(), any()))
+            .thenReturn(Uni.createFrom().item(mockDecision));
+        QuarkusMock.installMockForInstance(mockQueryService, policyQueryService);
+
         String query = """
             query {
               evaluateEnterpriseLoan(
@@ -615,12 +644,15 @@ public class PolicyGraphQLResourceTest {
         given()
             .contentType(ContentType.JSON)
             .body(graphQLRequest(query))
-            .when()
+        .when()
             .post("/graphql")
-            .then()
+        .then()
             .statusCode(200)
-            .body("data.evaluateEnterpriseLoan.approved", notNullValue())
-            .body("data.evaluateEnterpriseLoan.riskCategory", notNullValue());
+            .body("data.evaluateEnterpriseLoan.approved", equalTo(true))
+            .body("data.evaluateEnterpriseLoan.approvedAmount", equalTo(2_500_000))
+            .body("data.evaluateEnterpriseLoan.interestRateBps", equalTo(650))
+            .body("data.evaluateEnterpriseLoan.riskCategory", equalTo("MODERATE_RISK"))
+            .body("data.evaluateEnterpriseLoan.detailedAnalysis", equalTo("自动化测试模拟结果"));
     }
 
     // ==================== Query Tests - 个人贷款 ====================

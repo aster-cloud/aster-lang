@@ -46,6 +46,7 @@ To assessLiquidity with position: FinancialPosition, produce LiquidityAnalysis:
 
 To assessLeverage with position: FinancialPosition, produce LeverageAnalysis:
   // Debt-to-Equity Ratio * 100
+  Let debtToEquity be 0.
   If !=(position.equity, 0),:
     Let debtToEquity be /(*(position.totalLiabilities, 100), position.equity).
   If =(position.equity, 0),:
