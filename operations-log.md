@@ -4181,3 +4181,16 @@ podman build -f Dockerfile.truffle -t aster/truffle:latest .
 - 2025-11-04 23:54 NZDT | 命令：zsh -lc "./gradlew :quarkus-policy-api:test --tests \"io.aster.policy.graphql.PolicyGraphQLResourceTest.testEvaluateEnterpriseLoan\"" → 验证 GraphQL 单测通过
 - 2025-11-04 23:56 NZDT | 工具：apply_patch → 放宽贷款 REST 测试 executionTimeMs 断言 &gt;= 0 以兼容缓存命中场景
 - 2025-11-04 23:57 NZDT | 命令：zsh -lc "./gradlew :quarkus-policy-api:test" → 全量回归 quarkus-policy-api 测试均通过
+
+# 2025-11-05 06:44 NZST Phase 2 任务调研 (Codex)
+
+- 2025-11-05 06:43 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 Phase 2 调研目标与执行策略（2 条思考）
+- 2025-11-05 06:44 NZST | 命令：zsh -lc "rg 'Phase 2'" → 快速定位仓库内 Phase 2 相关文档与源文件引用
+- 2025-11-05 06:45 NZST | 命令：zsh -lc "ls .claude" → 明确 .claude 目录结构及可复用规划文档
+- 2025-11-05 06:46 NZST | 命令：zsh -lc "sed -n '1,200p' ROADMAP_SUMMARY.md" → 获取官方路线图中 Phase 2 战略目标与交付物
+- 2025-11-05 06:48 NZST | 命令：zsh -lc "sed -n '1,600p' NEW_ANALYSE.md" → 提取技术债务改进路线图里 Phase 2 核心重构任务
+- 2025-11-05 06:53 NZST | 命令：zsh -lc "sed -n '1,320p' .claude/archive/tech-debt-cleanup-progress.md" → 核对 Phase 2 现有进展、任务拆分与优先级
+- 2025-11-05 06:56 NZST | 命令：zsh -lc "sed -n '1,160p' docs/workstreams/P2-5/operations-log.md" → 收集 Phase 2 ScopeStack 迁移相关执行记录
+- 2025-11-05 06:58 NZST | 命令：zsh -lc "sed -n '1,200p' docs/workstreams/P2-4/operations-log.md" → 汇总 parser 重构相关调研与上下文
+- 2025-11-05 07:00 NZST | 命令：zsh -lc "sed -n '1,160p' docs/workstreams/P2-4/implementation/structured-logging-usage.md" → 引用 Phase 2 已产出文档，识别结构化日志使用指南
+- 2025-11-05 07:02 NZST | 命令：zsh -lc "sed -n '1,200p' .claude/archive/phase2-analysis-completion-report.md" → 了解 Phase 2 现有测试提升成果，为整体规划提供基线

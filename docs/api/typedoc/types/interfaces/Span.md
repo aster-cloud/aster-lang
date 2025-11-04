@@ -4,7 +4,7 @@
 
 # Interface: Span
 
-Defined in: [types.ts:12](https://github.com/wontlost-ltd/aster-lang/blob/7f1579c9ec9a5dcc01ae1bc900fe3bdcbd01dce9/src/types.ts#L12)
+Defined in: [types.ts:12](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types.ts#L12)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:12](https://github.com/wontlost-ltd/aster-lang/blob/7f1579
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/7f1579c9ec9a5dcc01ae1bc900fe3bdcbd01dce9/src/types.ts#L13)
+Defined in: [types.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types.ts#L13)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/7f1579
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/7f1579c9ec9a5dcc01ae1bc900fe3bdcbd01dce9/src/types.ts#L14)
+Defined in: [types.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types.ts#L14)

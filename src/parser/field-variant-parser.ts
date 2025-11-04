@@ -85,15 +85,12 @@ export function parseFieldList(
  *
  * @param ctx 解析器上下文
  * @param error 错误报告函数
- * @returns 变体名称数组
- *
- * 注意：变体的 Span 信息通过副作用存储在函数对象上
- * 调用者需要通过 (parseVariantList as any)._lastSpans 获取
+ * @returns 包含变体名称数组和对应 Span 信息的对象
  */
 export function parseVariantList(
   ctx: ParserContext,
   error: (msg: string, tok?: Token) => never
-): string[] {
+): { variants: string[]; variantSpans: Span[] } {
   const vars: string[] = [];
   const spans: Span[] = [];
   let hasMore = true;
@@ -124,7 +121,5 @@ export function parseVariantList(
     hasMore = false;
   }
 
-  // 使用副作用存储 spans（这是一个技术债务，但保持与现有代码兼容）
-  (parseVariantList as any)._lastSpans = spans;
-  return vars;
+  return { variants: vars, variantSpans: spans };
 }

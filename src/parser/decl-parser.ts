@@ -8,10 +8,12 @@ import { Node } from '../ast.js';
 import type { Block, Declaration, Token, Type } from '../types.js';
 import type { ParserContext } from './context.js';
 import { kwParts, tokLowerAt } from './context.js';
+import type { ParserTools } from './parser-tools.js';
+import { parseModuleHeader, parseImport } from './import-parser.js';
 import { parseType, parseEffectList, separateEffectsAndCaps } from './type-parser.js';
 import { parseBlock, parseParamList } from './expr-stmt-parser.js';
 import { parseFieldList, parseVariantList } from './field-variant-parser.js';
-import { assignSpan, spanFromSources } from './span-utils.js';
+import { assignSpan, spanFromSources, lastConsumedToken, spanFromTokens } from './span-utils.js';
 
 /**
  * 解析数据类型定义
@@ -88,7 +90,7 @@ export function parseEnumDecl(
   ctx.nextWords(kwParts(KW.ONE_OF));
 
   // 解析变体列表
-  const variants = parseVariantList(ctx, error);
+  const { variants, variantSpans } = parseVariantList(ctx, error);
 
   // 期望句点结束
   expectDot();
@@ -96,15 +98,14 @@ export function parseEnumDecl(
 
   // 创建 Enum 节点并附加变体 spans
   const en = Node.Enum(typeName, variants);
-  const spans = (parseVariantList as any)._lastSpans as import('../types.js').Span[] | undefined;
-  if (spans && spans.length > 0) {
-    const lastVariantSpan = spans[spans.length - 1]!;
+  if (variantSpans && variantSpans.length > 0) {
+    const lastVariantSpan = variantSpans[variantSpans.length - 1]!;
     assignSpan(en, spanFromSources(defineTok, { span: lastVariantSpan }, endTok));
   } else {
     assignSpan(en, spanFromSources(defineTok, endTok));
   }
-  if (spans && Array.isArray(spans)) {
-    (en as any).variantSpans = spans;
+  if (variantSpans && Array.isArray(variantSpans)) {
+    (en as any).variantSpans = variantSpans;
   }
   ctx.declaredTypes.add(typeName);
 
@@ -363,4 +364,96 @@ export function parseFuncDecl(
   (fn as any).nameSpan = spanFromSources(nameTok, nameEndTok);
 
   return fn;
+}
+
+/**
+ * 收集模块顶层声明
+ * 遍历 token 流，解析模块头、导入、类型定义和函数声明
+ *
+ * @param ctx 解析器上下文
+ * @param tools 解析器工具函数集合
+ * @returns 声明数组
+ */
+export function collectTopLevelDecls(
+  ctx: ParserContext,
+  tools: ParserTools
+): Declaration[] {
+  const decls: Declaration[] = [];
+  ctx.skipTrivia(); // 跳过开头的注释
+  ctx.consumeNewlines();
+
+  while (!ctx.at(TokenKind.EOF)) {
+    ctx.consumeNewlines();
+    while (ctx.at(TokenKind.DEDENT)) ctx.next();
+    while (ctx.at(TokenKind.INDENT)) ctx.next();
+    ctx.consumeNewlines();
+    if (ctx.at(TokenKind.EOF)) break;
+
+    // 解析模块头: This module is foo.bar.
+    if (ctx.isKeywordSeq(KW.MODULE_IS)) {
+      parseModuleHeader(ctx, tools.error, tools.expectDot);
+    }
+    // 解析导入: use foo.bar. 或 use foo.bar as Baz.
+    else if (ctx.isKeyword(KW.USE)) {
+      const startTok = ctx.peek();
+      const { name, asName } = parseImport(ctx, tools.error, tools.expectDot, tools.parseIdent);
+      const endTok = lastConsumedToken(ctx);
+      const importNode = Node.Import(name, asName);
+      assignSpan(importNode, spanFromTokens(startTok, endTok));
+      decls.push(importNode);
+    }
+    // 解析类型定义: Define ...
+    else if (ctx.isKeyword(KW.DEFINE)) {
+      // 记录起始 token 并消费 'Define' 关键字
+      const defineTok = ctx.nextWord();
+      // 解析类型名
+      const typeName = tools.parseTypeIdent();
+
+      // 判断是 Data 还是 Enum
+      if (ctx.isKeywordSeq(KW.WITH)) {
+        const startTok = defineTok;
+        // Data: Define User with ...
+        ctx.nextWord();
+        const fields = parseFieldList(ctx, tools.error);
+        tools.expectDot();
+        const dataDecl = Node.Data(typeName, fields);
+        const endTok = lastConsumedToken(ctx);
+        assignSpan(dataDecl, spanFromTokens(startTok, endTok));
+        ctx.declaredTypes.add(typeName);
+        decls.push(dataDecl);
+      } else if (ctx.isKeywordSeq(KW.ONE_OF)) {
+        const startTok = defineTok;
+        // Enum: Define Status as one of ...
+        ctx.nextWords(kwParts(KW.ONE_OF));
+        const { variants, variantSpans } = parseVariantList(ctx, tools.error);
+        tools.expectDot();
+        const en = Node.Enum(typeName, variants);
+        const endTok = lastConsumedToken(ctx);
+        assignSpan(en, spanFromTokens(startTok, endTok));
+        if (variantSpans && Array.isArray(variantSpans)) {
+          (en as any).variantSpans = variantSpans;
+        }
+        ctx.declaredTypes.add(typeName);
+        decls.push(en);
+      } else {
+        tools.error("Expected 'with' or 'as one of' after type name");
+      }
+    }
+    // 解析函数: To ...
+    else if (ctx.isKeyword(KW.TO)) {
+      decls.push(parseFuncDecl(ctx, tools.error, tools.expectCommaOr, tools.expectKeyword, tools.expectNewline, tools.parseIdent));
+    }
+    // 容忍顶层的空白/缩进/反缩进
+    else if (ctx.at(TokenKind.NEWLINE) || ctx.at(TokenKind.DEDENT) || ctx.at(TokenKind.INDENT)) {
+      ctx.next();
+    }
+    // 其他情况报错
+    else {
+      tools.error('Unexpected token at top level');
+    }
+
+    ctx.consumeNewlines();
+  }
+
+  return decls;
 }

@@ -2,6 +2,14 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-05 ParserContext 工厂化回归
+- 日期：2025-11-05 07:17 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（tsc 编译并生成 PEG 解析器）。
+  - `npm run test:golden` → 首次失败（TYPECHECK eff_infer_transitive: Expected keyword/identifier）；修正 `nextWord`/`tokLowerAt` 后复跑通过。
+  - `npm run test:golden > /tmp/golden.log && tail -n 20 /tmp/golden.log` → 通过，确认尾部无错误输出。
+
 ## 2025-11-05 Quarkus Policy 性能基线与回归
 - 日期：2025-11-05 06:27 NZST
 - 执行者：Codex
