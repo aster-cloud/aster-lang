@@ -6,7 +6,7 @@
 
 > **isCommentToken**(`token`): `token is Token & { kind: COMMENT; value: CommentValue }`
 
-Defined in: [types.ts:116](https://github.com/wontlost-ltd/aster-lang/blob/0b0406c33523b608f58b6400b072157cb0880387/src/types.ts#L116)
+Defined in: [types.ts:116](https://github.com/wontlost-ltd/aster-lang/blob/5c134b7830ecb54926b0e82a270cbd2b8e3b9761/src/types.ts#L116)
 
 判断指定 Token 是否为注释 Token，便于在遍历过程中筛选注释。
 
