@@ -149,7 +149,7 @@ public final class Loader {
     Node target = new NameNodeEnv(env, entry.name);
     java.util.ArrayList<Node> argNodes = new java.util.ArrayList<>();
     if (entry.params != null) for (var p : entry.params) argNodes.add(new NameNodeEnv(env, p.name));
-    Node root = new CallNode(target, argNodes);
+    Node root = CallNode.create(target, argNodes);
     return new Program(root, env, entry.params, entry.name, entry.effects);
   }
 
@@ -340,7 +340,7 @@ public final class Loader {
       Node target = buildExpr(c.target);
       var args = new java.util.ArrayList<Node>();
       if (c.args != null) for (var a : c.args) args.add(buildExpr(a));
-      return new CallNode(target, args);
+      return CallNode.create(target, args);
     }
     if (e instanceof CoreModel.Ok ok) return new aster.truffle.nodes.ResultNodes.OkNode(buildExpr(ok.expr));
     if (e instanceof CoreModel.Err er) return new aster.truffle.nodes.ResultNodes.ErrNode(buildExpr(er.expr));
