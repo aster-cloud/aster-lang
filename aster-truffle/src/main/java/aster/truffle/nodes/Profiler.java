@@ -5,8 +5,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class Profiler {
   private static final Map<String, Long> COUNTERS = new ConcurrentHashMap<>();
+  private static final boolean ENABLED = Boolean.getBoolean("aster.profiler.enabled");
   private Profiler() {}
   public static void inc(String key) {
+    if (!ENABLED) {
+      return;
+    }
     COUNTERS.merge(key, 1L, Long::sum);
     COUNTERS.merge("total", 1L, Long::sum);
   }
@@ -17,4 +21,3 @@ public final class Profiler {
     return sb.toString();
   }
 }
-

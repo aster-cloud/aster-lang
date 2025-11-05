@@ -1,6 +1,7 @@
 package aster.truffle.nodes;
 
 import aster.truffle.runtime.AsterConfig;
+import aster.truffle.runtime.ErrorMessages;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -31,7 +32,7 @@ public abstract class SetNode extends AsterExpressionNode {
   protected int writeInt(VirtualFrame frame, int value) {
     Profiler.inc("set_int");
     if (frame == null) {
-      throw new IllegalStateException("Frame 未初始化，无法写入变量：" + name);
+      throw new RuntimeException(ErrorMessages.variableNotInitialized(name));
     }
     frame.setInt(slotIndex, value);
     if (AsterConfig.DEBUG) {
@@ -44,7 +45,7 @@ public abstract class SetNode extends AsterExpressionNode {
   protected long writeLong(VirtualFrame frame, long value) {
     Profiler.inc("set_long");
     if (frame == null) {
-      throw new IllegalStateException("Frame 未初始化，无法写入变量：" + name);
+      throw new RuntimeException(ErrorMessages.variableNotInitialized(name));
     }
     frame.setLong(slotIndex, value);
     if (AsterConfig.DEBUG) {
@@ -57,7 +58,7 @@ public abstract class SetNode extends AsterExpressionNode {
   protected double writeDouble(VirtualFrame frame, double value) {
     Profiler.inc("set_double");
     if (frame == null) {
-      throw new IllegalStateException("Frame 未初始化，无法写入变量：" + name);
+      throw new RuntimeException(ErrorMessages.variableNotInitialized(name));
     }
     frame.setDouble(slotIndex, value);
     if (AsterConfig.DEBUG) {
@@ -66,11 +67,37 @@ public abstract class SetNode extends AsterExpressionNode {
     return value;
   }
 
-  @Specialization(replaces = {"writeInt", "writeLong", "writeDouble"})
+  @Specialization
+  protected boolean writeBoolean(VirtualFrame frame, boolean value) {
+    Profiler.inc("set_boolean");
+    if (frame == null) {
+      throw new RuntimeException(ErrorMessages.variableNotInitialized(name));
+    }
+    frame.setBoolean(slotIndex, value);
+    if (AsterConfig.DEBUG) {
+      System.err.println("DEBUG: set " + name + "=" + value + " @slot " + slotIndex + " (boolean)");
+    }
+    return value;
+  }
+
+  @Specialization
+  protected String writeString(VirtualFrame frame, String value) {
+    Profiler.inc("set_string");
+    if (frame == null) {
+      throw new RuntimeException(ErrorMessages.variableNotInitialized(name));
+    }
+    frame.setObject(slotIndex, value);
+    if (AsterConfig.DEBUG) {
+      System.err.println("DEBUG: set " + name + "=" + value + " @slot " + slotIndex + " (String)");
+    }
+    return value;
+  }
+
+  @Specialization(replaces = {"writeInt", "writeLong", "writeDouble", "writeBoolean", "writeString"})
   protected Object writeObject(VirtualFrame frame, Object value) {
     Profiler.inc("set_object");
     if (frame == null) {
-      throw new IllegalStateException("Frame 未初始化，无法写入变量：" + name);
+      throw new RuntimeException(ErrorMessages.variableNotInitialized(name));
     }
     frame.setObject(slotIndex, value);
     if (AsterConfig.DEBUG) {
@@ -83,4 +110,3 @@ public abstract class SetNode extends AsterExpressionNode {
     return name;
   }
 }
-

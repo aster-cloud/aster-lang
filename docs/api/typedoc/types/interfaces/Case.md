@@ -4,7 +4,7 @@
 
 # Interface: Case
 
-Defined in: [types.ts:207](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types.ts#L207)
+Defined in: [types.ts:207](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types.ts#L207)
 
 Case 分支基础接口。
 
@@ -18,7 +18,7 @@ Case 分支基础接口。
 
 > **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:208](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types.ts#L208)
+Defined in: [types.ts:208](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types.ts#L208)
 
 #### Overrides
 
@@ -30,7 +30,7 @@ Defined in: [types.ts:208](https://github.com/wontlost-ltd/aster-lang/blob/ad771
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -42,7 +42,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L43)
 
 #### Inherited from
 
@@ -54,7 +54,7 @@ Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` **kind**: `"Case"`
 
-Defined in: [types/base.ts:190](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L190)
+Defined in: [types/base.ts:190](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L190)
 
 #### Inherited from
 
@@ -66,7 +66,7 @@ Defined in: [types/base.ts:190](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **pattern**: [`Pattern`](../type-aliases/Pattern.md)
 
-Defined in: [types/base.ts:191](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L191)
+Defined in: [types/base.ts:191](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L191)
 
 #### Inherited from
 
@@ -78,7 +78,7 @@ Defined in: [types/base.ts:191](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **body**: [`Block`](Block.md) \| [`Return`](Return.md)
 
-Defined in: [types/base.ts:192](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L192)
+Defined in: [types/base.ts:192](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L192)
 
 #### Inherited from
 

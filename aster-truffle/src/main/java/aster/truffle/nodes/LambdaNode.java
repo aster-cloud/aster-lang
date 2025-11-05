@@ -43,8 +43,8 @@ public final class LambdaNode extends AsterExpressionNode {
       capturedValues[i] = captureExprs[i].executeGeneric(frame);
     }
 
-    // Create and return LambdaValue with captured values
-    return new LambdaValue(env, params, captureNames, capturedValues, callTarget);
+    // Create and return LambdaValue with captured values (without effects, for runtime lambda creation)
+    return new LambdaValue(env, params, captureNames, capturedValues, callTarget, java.util.Set.of());
   }
 
   @Override

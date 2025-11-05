@@ -665,4 +665,571 @@ public class ExecutionTestSuite {
       assertEquals(42, result.asInt(), "Ok value should unwrap to 42");
     }
   }
+
+  // ==================== Result Operations ====================
+
+  @Test
+  public void testResultIsOk() throws Exception {
+    String json = """
+        {
+          "name": "test.result.isok",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Bool" },
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Let",
+                    "name": "result",
+                    "expr": {
+                      "kind": "Ok",
+                      "expr": { "kind": "Int", "value": 100 }
+                    }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": { "kind": "Name", "name": "Result.isOk" },
+                      "args": [{ "kind": "Name", "name": "result" }]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertTrue(result.asBoolean(), "Result.isOk should return true for Ok variant");
+    }
+  }
+
+  @Test
+  public void testResultIsErr() throws Exception {
+    String json = """
+        {
+          "name": "test.result.iserr",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Bool" },
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Let",
+                    "name": "result",
+                    "expr": {
+                      "kind": "Err",
+                      "expr": { "kind": "String", "value": "error" }
+                    }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": { "kind": "Name", "name": "Result.isErr" },
+                      "args": [{ "kind": "Name", "name": "result" }]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertTrue(result.asBoolean(), "Result.isErr should return true for Err variant");
+    }
+  }
+
+  // ==================== Option Operations ====================
+
+  @Test
+  public void testOptionIsSome() throws Exception {
+    String json = """
+        {
+          "name": "test.option.issome",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Bool" },
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Let",
+                    "name": "option",
+                    "expr": {
+                      "kind": "Some",
+                      "expr": { "kind": "Int", "value": 42 }
+                    }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": { "kind": "Name", "name": "Option.isSome" },
+                      "args": [{ "kind": "Name", "name": "option" }]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertTrue(result.asBoolean(), "Option.isSome should return true for Some variant");
+    }
+  }
+
+  @Test
+  public void testOptionIsNone() throws Exception {
+    String json = """
+        {
+          "name": "test.option.isnone",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Bool" },
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Let",
+                    "name": "option",
+                    "expr": { "kind": "None" }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": { "kind": "Name", "name": "Option.isNone" },
+                      "args": [{ "kind": "Name", "name": "option" }]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertTrue(result.asBoolean(), "Option.isNone should return true for None variant");
+    }
+  }
+
+  // ==================== Async Basic Operations ====================
+
+  // Note: Effect context propagation through async boundaries has been implemented
+  // in StartNode to capture and restore parent effect permissions
+
+  @Test
+  public void testAsyncBasic() throws Exception {
+    String json = """
+        {
+          "name": "test.async.basic",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task1",
+                    "expr": { "kind": "Int", "value": 42 }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Await",
+                      "expr": { "kind": "Name", "name": "task1" }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(42, result.asInt(), "Async task should return 42");
+    }
+  }
+
+  @Test
+  public void testAsyncMultipleTasks() throws Exception {
+    String json = """
+        {
+          "name": "test.async.multiple",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task1",
+                    "expr": { "kind": "Int", "value": 10 }
+                  },
+                  {
+                    "kind": "Start",
+                    "name": "task2",
+                    "expr": { "kind": "Int", "value": 20 }
+                  },
+                  {
+                    "kind": "Let",
+                    "name": "result1",
+                    "expr": {
+                      "kind": "Await",
+                      "expr": { "kind": "Name", "name": "task1" }
+                    }
+                  },
+                  {
+                    "kind": "Let",
+                    "name": "result2",
+                    "expr": {
+                      "kind": "Await",
+                      "expr": { "kind": "Name", "name": "task2" }
+                    }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": { "kind": "Name", "name": "result1" }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(10, result.asInt(), "Multiple async tasks should return first result 10");
+    }
+  }
+
+  @Test
+  public void testAsyncWaitMultipleTasks() throws Exception {
+    String json = """
+        {
+          "name": "test.async.wait",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task1",
+                    "expr": { "kind": "Int", "value": 5 }
+                  },
+                  {
+                    "kind": "Start",
+                    "name": "task2",
+                    "expr": { "kind": "Int", "value": 10 }
+                  },
+                  {
+                    "kind": "Wait",
+                    "names": ["task1", "task2"]
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": { "kind": "Int", "value": 42 }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(42, result.asInt(), "Wait should complete all tasks and return 42");
+    }
+  }
+
+  // ==================== Effect Violations ====================
+
+  @Test
+  public void testEffectViolation_Async() throws Exception {
+    String json = """
+        {
+          "name": "test.effect.async.violation",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task1",
+                    "expr": { "kind": "Int", "value": 42 }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": { "kind": "Int", "value": 0 }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Exception exception = assertThrows(Exception.class, () -> context.eval(source));
+      assertTrue(exception.getMessage().contains("Async effect") ||
+                 exception.getMessage().contains("start requires Async effect"),
+                 "Should throw exception for missing Async effect");
+    }
+  }
+
+  @Test
+  public void testEffectViolation_IO() throws Exception {
+    String json = """
+        {
+          "name": "test.effect.io.violation",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Expr",
+                    "expr": {
+                      "kind": "Call",
+                      "target": { "kind": "Name", "name": "print" },
+                      "args": [{ "kind": "String", "value": "Hello" }]
+                    }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": { "kind": "Int", "value": 0 }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Exception exception = assertThrows(Exception.class, () -> context.eval(source));
+      assertTrue(exception.getMessage().contains("IO") ||
+                 exception.getMessage().contains("effect"),
+                 "Should throw exception for missing IO effect");
+    }
+  }
+
+  // ==================== Advanced Async Scenarios ====================
+
+  @Test
+  public void testAsyncLiterals() throws Exception {
+    String json = """
+        {
+          "name": "test.async.literals",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task",
+                    "expr": { "kind": "Int", "value": 99 }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Await",
+                      "expr": { "kind": "Name", "name": "task" }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(99, result.asInt(), "Async literal should return 99");
+    }
+  }
+
+  @Test
+  public void testResultInAsync() throws Exception {
+    String json = """
+        {
+          "name": "test.result.in.async",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task",
+                    "expr": {
+                      "kind": "Ok",
+                      "expr": { "kind": "Int", "value": 99 }
+                    }
+                  },
+                  {
+                    "kind": "Let",
+                    "name": "result",
+                    "expr": {
+                      "kind": "Await",
+                      "expr": { "kind": "Name", "name": "task" }
+                    }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": { "kind": "Name", "name": "Result.unwrap" },
+                      "args": [{ "kind": "Name", "name": "result" }]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(99, result.asInt(), "Result in async should unwrap Ok value 99");
+    }
+  }
+
+  @Test
+  public void testOptionInAsync() throws Exception {
+    String json = """
+        {
+          "name": "test.option.in.async",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task",
+                    "expr": {
+                      "kind": "Some",
+                      "expr": { "kind": "Int", "value": 77 }
+                    }
+                  },
+                  {
+                    "kind": "Let",
+                    "name": "option",
+                    "expr": {
+                      "kind": "Await",
+                      "expr": { "kind": "Name", "name": "task" }
+                    }
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": { "kind": "Name", "name": "Option.unwrap" },
+                      "args": [{ "kind": "Name", "name": "option" }]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(77, result.asInt(), "Option in async should unwrap Some value 77");
+    }
+  }
 }

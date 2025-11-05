@@ -26,15 +26,15 @@ public class FrameIntegrationTest {
         .build();
 
     // 注册常用 builtin 函数
-    aster.truffle.runtime.Builtins.register("add", args -> {
+    aster.truffle.runtime.Builtins.register("add", new aster.truffle.runtime.Builtins.BuiltinDef(args -> {
       int a = (Integer) args[0];
       int b = (Integer) args[1];
       return a + b;
-    });
-    aster.truffle.runtime.Builtins.register("double", args -> {
+    }));
+    aster.truffle.runtime.Builtins.register("double", new aster.truffle.runtime.Builtins.BuiltinDef(args -> {
       int n = (Integer) args[0];
       return n * 2;
-    });
+    }));
   }
 
   @AfterEach

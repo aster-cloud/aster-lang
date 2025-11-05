@@ -51,8 +51,8 @@ graalvmNative {
       buildArgs.add("-H:+ReportExceptionStackTraces")
       buildArgs.add("--initialize-at-build-time=")
       buildArgs.add("-H:+UnlockExperimentalVMOptions")
-      // 配置文件会从 META-INF/native-image/ 自动发现
-      resources.autodetect()
+      // 配置文件会从 META-INF/native-image/ 自动发现（不需要 resources.autodetect()）
+      // 移除 resources.autodetect() 避免生成错误的 -H:*ConfigurationFiles= 路径
     }
   }
   agent {

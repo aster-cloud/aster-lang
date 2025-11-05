@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/ast.ts#L11)
+Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/ast.ts#L11)
 
 ## Type Declaration
 

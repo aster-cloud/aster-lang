@@ -4,7 +4,7 @@
 
 # Interface: BaseStart\<S, Expr\>
 
-Defined in: [types/base.ts:198](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L198)
+Defined in: [types/base.ts:198](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L198)
 
 Start 异步任务基础接口。
 
@@ -33,7 +33,7 @@ Start 异步任务基础接口。
 
 > `readonly` `optional` **span**: [`HasFileProp`](../type-aliases/HasFileProp.md)\<`S`\> *extends* `true` ? `never` : [`Span`](../../interfaces/Span.md)
 
-Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L41)
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L41)
 
 #### Inherited from
 
@@ -45,7 +45,7 @@ Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` `optional` **origin**: [`HasFileProp`](../type-aliases/HasFileProp.md)\<`S`\> *extends* `true` ? [`Origin`](../../interfaces/Origin.md) : `never`
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -57,7 +57,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L43)
 
 #### Inherited from
 
@@ -69,7 +69,7 @@ Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` **kind**: `"Start"`
 
-Defined in: [types/base.ts:199](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L199)
+Defined in: [types/base.ts:199](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L199)
 
 #### Overrides
 
@@ -81,7 +81,7 @@ Defined in: [types/base.ts:199](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:200](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L200)
+Defined in: [types/base.ts:200](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L200)
 
 ***
 
@@ -89,4 +89,4 @@ Defined in: [types/base.ts:200](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **expr**: `Expr`
 
-Defined in: [types/base.ts:201](https://github.com/wontlost-ltd/aster-lang/blob/ad77187a40dbdabfdba115d97c226df60c173499/src/types/base.ts#L201)
+Defined in: [types/base.ts:201](https://github.com/wontlost-ltd/aster-lang/blob/58bfaa371c511ea13bda82442d3d29ba7681c072/src/types/base.ts#L201)

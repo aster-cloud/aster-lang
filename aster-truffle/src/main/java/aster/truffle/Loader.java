@@ -10,8 +10,8 @@ import java.util.List;
 
 public final class Loader {
   public static final class Program {
-    public final Node root; public final Env env; public final List<CoreModel.Param> params; public final String entry;
-    public Program(Node root, Env env, List<CoreModel.Param> params, String entry) { this.root = root; this.env = env; this.params = params; this.entry = entry; }
+    public final Node root; public final Env env; public final List<CoreModel.Param> params; public final String entry; public final java.util.List<String> effects;
+    public Program(Node root, Env env, List<CoreModel.Param> params, String entry, java.util.List<String> effects) { this.root = root; this.env = env; this.params = params; this.entry = entry; this.effects = effects; }
   }
 
   private final ObjectMapper mapper = new ObjectMapper().configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -131,8 +131,11 @@ public final class Loader {
         // Get CallTarget
         com.oracle.truffle.api.CallTarget callTarget = rootNode.getCallTarget();
 
-        // Set LambdaValue with CallTarget into env
-        env.set(e.getKey(), new aster.truffle.nodes.LambdaValue(env, params, captured, callTarget));
+        // 从 Core IR 函数声明中提取 effects（如 ["IO", "Async"]）
+        java.util.Set<String> requiredEffects = fn.effects != null ? new java.util.HashSet<>(fn.effects) : java.util.Set.of();
+
+        // Set LambdaValue with CallTarget and effects into env
+        env.set(e.getKey(), new aster.truffle.nodes.LambdaValue(env, params, List.of(), new Object[0], callTarget, requiredEffects));
       } else {
         // Legacy approach for direct Loader usage (non-Polyglot tests, deprecated)
         // Use old LambdaValue without CallTarget (for backward compatibility)
@@ -147,7 +150,7 @@ public final class Loader {
     java.util.ArrayList<Node> argNodes = new java.util.ArrayList<>();
     if (entry.params != null) for (var p : entry.params) argNodes.add(new NameNodeEnv(env, p.name));
     Node root = new CallNode(target, argNodes);
-    return new Program(root, env, entry.params, entry.name);
+    return new Program(root, env, entry.params, entry.name, entry.effects);
   }
 
   private CoreModel.Func selectOverload(java.util.List<CoreModel.Func> funcs, java.util.List<String> rawArgs) {
@@ -247,7 +250,7 @@ public final class Loader {
       } else if (s instanceof CoreModel.Start st) {
         list.add(new StartNode(env, st.name, buildExpr(st.expr)));
       } else if (s instanceof CoreModel.Wait wt) {
-        list.add(new WaitNode(((wt.names != null) ? wt.names : java.util.List.<String>of()).toArray(new String[0])));
+        list.add(new WaitNode(env, ((wt.names != null) ? wt.names : java.util.List.<String>of()).toArray(new String[0])));
       }
     }
     return new BlockNode(list);

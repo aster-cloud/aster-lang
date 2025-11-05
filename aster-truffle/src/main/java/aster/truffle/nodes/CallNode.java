@@ -2,25 +2,29 @@ package aster.truffle.nodes;
 
 import aster.truffle.runtime.AsterConfig;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
 
 /**
  * 函数调用节点
  * 支持：
- * 1. Lambda/closure调用 (通过 CallTarget + IndirectCallNode)
+ * 1. Lambda/closure调用 (通过 CallTarget + InvokeNode DSL 优化)
  * 2. Builtin函数调用（通过Builtins注册表）
+ *
+ * 性能优化：
+ * - 使用 InvokeNode (Truffle DSL) 替代 IndirectCallNode
+ * - 支持 Monomorphic/Polymorphic/Megamorphic 调用优化
+ * - DirectCallNode 缓存实现内联和激进优化
  */
 public final class CallNode extends AsterExpressionNode {
   @Child private Node target;
   @Children private final Node[] args;
-  @Child private IndirectCallNode indirectCallNode;
+  @Child private InvokeNode invokeNode;
 
   public CallNode(Node target, List<Node> args) {
     this.target = target;
     this.args = args.toArray(new Node[0]);
-    this.indirectCallNode = IndirectCallNode.create();
+    this.invokeNode = InvokeNodeGen.create();
   }
 
   @Override
@@ -39,7 +43,8 @@ public final class CallNode extends AsterExpressionNode {
         System.err.println("DEBUG: call args=" + java.util.Arrays.toString(av));
       }
 
-      // Use IndirectCallNode for JIT inline caching and optimization
+      // Use InvokeNode (Truffle DSL) for optimized CallTarget invocation
+      // Supports DirectCallNode caching with monomorphic/polymorphic optimization
       com.oracle.truffle.api.CallTarget callTarget = lv.getCallTarget();
       if (callTarget != null) {
         // Pack arguments: [callArgs..., captureValues...]
@@ -50,7 +55,7 @@ public final class CallNode extends AsterExpressionNode {
         System.arraycopy(capturedValues, 0, packedArgs, av.length, capturedValues.length);
 
         try {
-          Object result = indirectCallNode.call(callTarget, packedArgs);
+          Object result = invokeNode.execute(callTarget, packedArgs);
           if (AsterConfig.DEBUG) {
             System.err.println("DEBUG: CallTarget result=" + result);
           }

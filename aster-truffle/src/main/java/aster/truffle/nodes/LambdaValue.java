@@ -13,6 +13,7 @@ public final class LambdaValue {
   private final Object[] capturedValues;
   private final CallTarget callTarget;
   private final Node legacyBody;  // For backward compatibility with non-CallTarget mode
+  private final java.util.Set<String> requiredEffects;  // Effect 元数据（如 ["IO", "Async"]）
 
   /**
    * 创建 LambdaValue (新版本，使用 CallTarget + 闭包捕获)
@@ -22,14 +23,16 @@ public final class LambdaValue {
    * @param captureNames 闭包变量名列表
    * @param capturedValues 闭包变量值数组
    * @param callTarget Lambda 的 CallTarget
+   * @param requiredEffects 函数所需 effects（如 ["IO", "Async"]）
    */
-  public LambdaValue(Env env, List<String> params, List<String> captureNames, Object[] capturedValues, CallTarget callTarget) {
+  public LambdaValue(Env env, List<String> params, List<String> captureNames, Object[] capturedValues, CallTarget callTarget, java.util.Set<String> requiredEffects) {
     this.env = env;
     this.params = params == null ? List.of() : params;
     this.captureNames = captureNames == null ? List.of() : captureNames;
     this.capturedValues = capturedValues != null ? capturedValues : new Object[0];
     this.callTarget = callTarget;
     this.legacyBody = null;
+    this.requiredEffects = requiredEffects != null ? java.util.Set.copyOf(requiredEffects) : java.util.Set.of();
   }
 
   /**
@@ -42,6 +45,7 @@ public final class LambdaValue {
     this.capturedValues = captures != null ? captures.values().toArray() : new Object[0];
     this.callTarget = callTarget;
     this.legacyBody = null;
+    this.requiredEffects = java.util.Set.of();  // 向后兼容，默认无 effect 要求
   }
 
   /**
@@ -59,6 +63,7 @@ public final class LambdaValue {
     this.capturedValues = captures != null ? captures.values().toArray() : new Object[0];
     this.callTarget = null;
     this.legacyBody = body;
+    this.requiredEffects = java.util.Set.of();  // 遗留模式，默认无 effect 要求
   }
 
   public CallTarget getCallTarget() {
@@ -67,6 +72,13 @@ public final class LambdaValue {
 
   public Object[] getCapturedValues() {
     return capturedValues;
+  }
+
+  /**
+   * 获取函数所需的 effects 列表（不可变副本）
+   */
+  public java.util.Set<String> getRequiredEffects() {
+    return requiredEffects;
   }
 
   public Object apply(Object[] args, VirtualFrame frame) {

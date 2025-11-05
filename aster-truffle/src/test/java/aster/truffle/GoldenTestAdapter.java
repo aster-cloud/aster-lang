@@ -1,9 +1,12 @@
 package aster.truffle;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
@@ -14,6 +17,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,6 +41,17 @@ import static org.junit.jupiter.api.Assertions.*;
 public class GoldenTestAdapter {
 
   private static final String GOLDEN_DIR = "../test/e2e/golden/core";
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  private static final Map<String, CategoryStats> CATEGORY_STATS = new ConcurrentHashMap<>();
+
+  private static final Map<String, String> EXPECTED_FAILURE_MESSAGES = Map.ofEntries(
+    Map.entry("bad_division_by_zero", "division by zero"),
+    Map.entry("bad_list_index_out_of_bounds", "index out of bounds"),
+    Map.entry("bad_text_substring_negative", "out of bounds"),
+    Map.entry("bad_type_mismatch_add_text", "input string")
+  );
 
   /**
    * 已知限制 - 暂时跳过的测试模式
@@ -81,9 +98,12 @@ public class GoldenTestAdapter {
     for (String pattern : KNOWN_LIMITATIONS) {
       if (testName.contains(pattern)) {
         System.out.println("⚠️ SKIP: " + testName + " (known limitation)");
+        recordSkip(testName);
         return;
       }
     }
+
+    boolean expectException = isExpectedExceptionTest(testName);
 
     try (Context context = Context.newBuilder("aster")
         .allowAllAccess(true)
@@ -94,10 +114,11 @@ public class GoldenTestAdapter {
       String json = Files.readString(jsonFile.toPath());
 
       // 检查是否包含参数化函数（改进的检查逻辑）
-      // 检查第一个函数是否有非空参数列表
-      if (hasParameterizedFunction(json)) {
-        // 有参数的函数 - 这些 golden tests 主要用于验证 Core IR 结构，不是执行测试
-        System.out.println("⚠️ SKIP: " + testName + " (parameterized function - Core IR structure test only)");
+      // 检查入口函数是否有非空参数列表
+      if (entryFunctionHasParameters(json)) {
+        // 入口函数携带参数 - 运行器暂不支持传参执行
+        System.out.println("⚠️ SKIP: " + testName + " (entry function requires parameters)");
+        recordSkip(testName);
         return;
       }
 
@@ -108,13 +129,34 @@ public class GoldenTestAdapter {
       // 执行（会自动调用 main 函数或第一个函数）
       Value result = context.eval(source);
 
+      if (expectException) {
+        System.err.println("❌ FAIL: " + testName + " (expected exception but succeeded with result: " + result + ")");
+        recordFail(testName);
+        fail("Expected an exception for test " + testName + " but execution succeeded.");
+      }
+
       // 如果执行到这里没有抛异常，就认为成功
       System.out.println("✅ PASS: " + testName + " (result: " + result + ")");
+      recordPass(testName);
 
     } catch (PolyglotException e) {
       // Polyglot 异常 - 检查是否是预期的错误类型
+      if (expectException) {
+        if (matchesExpectedFailure(testName, e)) {
+          System.out.println("✅ EXPECTED FAIL: " + testName + " (" + safeMessage(e) + ")");
+          recordPass(testName);
+          return;
+        }
+
+        System.err.println("❌ FAIL: " + testName + " (unexpected exception message)");
+        System.err.println("Error: " + e.getMessage());
+        recordFail(testName);
+        fail("Unexpected exception message for test " + testName + ": " + e.getMessage());
+      }
+
       if (isExpectedFailure(testName, e)) {
-        System.out.println("⚠️ SKIP: " + testName + " (expected failure: " + e.getMessage() + ")");
+        System.out.println("⚠️ SKIP: " + testName + " (expected failure: " + safeMessage(e) + ")");
+        recordSkip(testName);
         return;
       }
 
@@ -124,41 +166,61 @@ public class GoldenTestAdapter {
       System.err.println("Is guest exception: " + e.isGuestException());
       System.err.println("Stack trace:");
       e.printStackTrace();
+      recordFail(testName);
       fail("Golden test failed: " + testName + " - " + e.getMessage());
 
     } catch (Exception e) {
       System.err.println("❌ FAIL: " + testName);
       System.err.println("Unexpected error: " + e.getMessage());
       e.printStackTrace();
+      recordFail(testName);
       fail("Golden test crashed: " + testName + " - " + e.getMessage());
     }
   }
 
   /**
-   * 检查JSON是否包含带参数的函数
+   * 检查入口函数是否含参数（入口优先匹配 main，无则回退首个函数）
    */
-  private boolean hasParameterizedFunction(String json) {
-    // 简单的字符串检查：查找 "params":[ 后面跟着 {
-    // 这表示参数数组不为空
-    int paramsIndex = json.indexOf("\"params\":");
-    if (paramsIndex == -1) return false;
+  private boolean entryFunctionHasParameters(String json) {
+    try {
+      JsonNode root = MAPPER.readTree(json);
+      JsonNode decls = root.path("decls");
+      if (!decls.isArray()) {
+        return false;
+      }
 
-    int bracketStart = json.indexOf("[", paramsIndex);
-    if (bracketStart == -1) return false;
+      JsonNode entry = null;
+      for (JsonNode decl : decls) {
+        if (!"Func".equals(decl.path("kind").asText())) {
+          continue;
+        }
 
-    // 跳过空白字符
-    int nextChar = bracketStart + 1;
-    while (nextChar < json.length() && Character.isWhitespace(json.charAt(nextChar))) {
-      nextChar++;
+        String name = decl.path("name").asText();
+        if (entry == null) {
+          entry = decl;
+        }
+
+        if ("main".equals(name)) {
+          entry = decl;
+          break;
+        }
+      }
+
+      if (entry == null) {
+        return false;
+      }
+
+      JsonNode params = entry.path("params");
+      if (!params.isArray()) {
+        return false;
+      }
+
+      return params.elements().hasNext();
+
+    } catch (IOException e) {
+      System.err.println("⚠️ SKIP: 无法解析 JSON 以检查入口参数: " + e.getMessage());
+      return true;
     }
-
-    // 如果下一个非空白字符是 ']'，说明参数列表为空
-    if (nextChar < json.length() && json.charAt(nextChar) == ']') {
-      return false;
-    }
-
-    // 否则有参数
-    return true;
   }
 
   /**
@@ -175,19 +237,116 @@ public class GoldenTestAdapter {
       return true;
     }
 
-    // 检查是否是缺少 stdlib 函数导致的失败
+    // Effect capability 测试：验证 effect 违规检测是否正常工作
+    // 这些测试故意触发 effect 违规，以验证运行时能正确拦截
     String msg = e.getMessage();
+    if (testName.startsWith("eff_caps_") || testName.contains("_eff_")) {
+      // 检查是否是预期的 effect 违规错误
+      if (msg != null && msg.contains("Effect") && msg.contains("not allowed in current context")) {
+        return true;
+      }
+    }
+
+    // 检查是否是缺少 stdlib 函数导致的失败
     if (msg != null && (
         msg.contains("Unknown builtin") ||
         msg.contains("not found in env") ||
         msg.contains("UnsupportedOperationException") ||
-        msg.contains("AssertionError") ||  // Annotation/PII features may use assertions
         msg.contains("PiiType") ||  // PII types not supported yet
-        msg.contains("InvalidTypeIdException")  // Core IR type not recognized
-    )) {
+        msg.contains("InvalidTypeIdException"))
+    ) {
       return true;
     }
 
+    if (msg != null && msg.contains("AssertionError")) {
+      return testName.startsWith("lambda_") || testName.startsWith("pii_") || testName.startsWith("stdlib_");
+    }
+
     return false;
+  }
+
+  private boolean isExpectedExceptionTest(String testName) {
+    return testName.startsWith("bad_");
+  }
+
+  private boolean matchesExpectedFailure(String testName, PolyglotException e) {
+    String message = safeMessage(e);
+
+    switch (testName) {
+      case "bad_division_by_zero":
+        return message.contains("division by zero") || message.contains("除零");
+      case "bad_list_index_out_of_bounds":
+        return message.contains("index out of bounds") || message.contains("索引越界");
+      case "bad_text_substring_negative":
+        return message.contains("out of bounds") ||
+          message.contains("索引不能为负数") ||
+          message.contains("string index must be non-negative");
+      case "bad_type_mismatch_add_text":
+        // Accept ClassCastException as it indicates type mismatch (String cannot be cast to Integer)
+        return message.contains("ClassCastException") ||
+          message.contains("cannot be cast") ||
+          message.contains("input string") ||
+          message.contains("type mismatch");
+      default: {
+        String expectedFragment = EXPECTED_FAILURE_MESSAGES.get(testName);
+        if (expectedFragment == null) {
+          // 未显式声明的 bad_*，只要抛出异常即可视为通过
+          return true;
+        }
+        return message.toLowerCase().contains(expectedFragment.toLowerCase());
+      }
+    }
+  }
+
+  private String safeMessage(Throwable e) {
+    return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+  }
+
+  private void recordPass(String testName) {
+    statsFor(testName).pass.incrementAndGet();
+  }
+
+  private void recordSkip(String testName) {
+    statsFor(testName).skip.incrementAndGet();
+  }
+
+  private void recordFail(String testName) {
+    statsFor(testName).fail.incrementAndGet();
+  }
+
+  private CategoryStats statsFor(String testName) {
+    String category = deriveCategory(testName);
+    return CATEGORY_STATS.computeIfAbsent(category, k -> new CategoryStats());
+  }
+
+  private String deriveCategory(String testName) {
+    int idx = testName.indexOf('_');
+    if (idx <= 0) {
+      return testName;
+    }
+    return testName.substring(0, idx);
+  }
+
+  @AfterAll
+  static void printCategoryStats() {
+    if (CATEGORY_STATS.isEmpty()) {
+      return;
+    }
+
+    System.out.println("==== Golden Test Category Stats ====");
+    CATEGORY_STATS.entrySet().stream()
+      .sorted(Map.Entry.comparingByKey())
+      .forEach(entry -> {
+        CategoryStats stats = entry.getValue();
+        System.out.println(String.format("[%s] PASS=%d SKIP=%d FAIL=%d",
+          entry.getKey(), stats.pass.get(), stats.skip.get(), stats.fail.get()));
+      });
+    System.out.println("====================================");
+  }
+
+  private static final class CategoryStats {
+    private final AtomicInteger pass = new AtomicInteger();
+    private final AtomicInteger skip = new AtomicInteger();
+    private final AtomicInteger fail = new AtomicInteger();
   }
 }

@@ -1,0 +1,23 @@
+# 验证记录 — Error Message Improvement
+
+- 日期：2025-11-05 19:50 NZST
+- 执行者：Codex
+- 指令：`./gradlew :aster-truffle:test --rerun-tasks --console plain --no-daemon`
+- 结果摘要：
+  - 编译：成功（`./gradlew :aster-truffle:build --console plain --no-daemon` 全部任务 UP-TO-DATE）
+  - 测试通过：131
+  - 测试失败：0
+  - GoldenTestAdapter：51 项断言全部通过，所有预期失败样例均匹配中英文提示
+- 修改前后对比：
+  - 变量未初始化（Name/Let/Set 节点）  
+    - 之前：`IllegalStateException("Frame 未初始化，无法读取变量：" + name)`  
+    - 之后：`RuntimeException(ErrorMessages.variableNotInitialized(name))`
+  - Builtins.div 除零  
+    - 之前：`"除数为 0"`（无恢复提示）  
+    - 之后：`算术错误：除数为 0 (division by zero)\n提示：检查输入参数...`
+  - Text.substring 负索引  
+    - 之前：缺少负索引校验，错误提示单语  
+    - 之后：新增负索引检测并输出 `字符串索引不能为负数：… (string index must be non-negative: …)`
+- 附注：
+  - GraalVMJitBenchmark 耗时约 733s，整体测试耗时 12 分钟，建议后续在 CI 中标记为长跑任务。
+  - 首次与二次执行因超时中止，采用 `--no-daemon` 后顺利完成，结果已在 `aster-truffle/build/test-results/test/TEST-*.xml` 中确认。

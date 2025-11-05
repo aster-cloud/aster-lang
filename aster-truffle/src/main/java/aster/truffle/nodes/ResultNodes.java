@@ -10,28 +10,38 @@ public final class ResultNodes {
     @Child private AsterExpressionNode expr;
     public OkNode(AsterExpressionNode expr) { this.expr = expr; }
     @Override
-    public Object executeGeneric(VirtualFrame frame) { Profiler.inc("ok"); return new Result.Ok(Exec.exec(expr, frame)); }
+    public Object executeGeneric(VirtualFrame frame) {
+      Profiler.inc("ok");
+      Object value = Exec.exec(expr, frame);
+      return java.util.Map.of("_type", "Ok", "value", value);
+    }
   }
   public static final class ErrNode extends AsterExpressionNode {
     @Child private AsterExpressionNode expr;
     public ErrNode(AsterExpressionNode expr) { this.expr = expr; }
     @Override
-    public Object executeGeneric(VirtualFrame frame) { Profiler.inc("err"); return new Result.Err(Exec.exec(expr, frame)); }
+    public Object executeGeneric(VirtualFrame frame) {
+      Profiler.inc("err");
+      Object value = Exec.exec(expr, frame);
+      return java.util.Map.of("_type", "Err", "value", value);
+    }
   }
 
   public static final class SomeNode extends AsterExpressionNode {
     @Child private AsterExpressionNode expr;
     public SomeNode(AsterExpressionNode expr) { this.expr = expr; }
     @Override
-    public Object executeGeneric(VirtualFrame frame) { Profiler.inc("some"); return Exec.exec(expr, frame); }
+    public Object executeGeneric(VirtualFrame frame) {
+      Profiler.inc("some");
+      Object value = Exec.exec(expr, frame);
+      return java.util.Map.of("_type", "Some", "value", value);
+    }
   }
   public static final class NoneNode extends AsterExpressionNode {
     @Override
-    public Object executeGeneric(VirtualFrame frame) { Profiler.inc("none"); return null; }
-  }
-
-  public static final class Result {
-    public static final class Ok { public final Object value; public Ok(Object v) { this.value = v; } @Override public String toString(){ return "Ok("+value+")"; } }
-    public static final class Err { public final Object value; public Err(Object v) { this.value = v; } @Override public String toString(){ return "Err("+value+")"; } }
+    public Object executeGeneric(VirtualFrame frame) {
+      Profiler.inc("none");
+      return java.util.Map.of("_type", "None");
+    }
   }
 }

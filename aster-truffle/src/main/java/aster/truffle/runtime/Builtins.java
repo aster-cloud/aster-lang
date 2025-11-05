@@ -35,166 +35,190 @@ public final class Builtins {
     public BuiltinException(String message, Throwable cause) { super(message, cause); }
   }
 
-  private static final Map<String, BuiltinFunction> REGISTRY = new HashMap<>();
+  /**
+   * Builtin 函数定义 (函数实现 + required effects)
+   */
+  public static final class BuiltinDef {
+    final BuiltinFunction impl;
+    final Set<String> requiredEffects;
+
+    public BuiltinDef(BuiltinFunction impl, Set<String> effects) {
+      this.impl = impl;
+      this.requiredEffects = effects != null ? Set.copyOf(effects) : Set.of();
+    }
+
+    // 便利构造器：无 effect 的纯函数
+    public BuiltinDef(BuiltinFunction impl) {
+      this(impl, Set.of());
+    }
+  }
+
+  private static final Map<String, BuiltinDef> REGISTRY = new HashMap<>();
 
   static {
-    // === Arithmetic Operations ===
-    register("add", args -> {
+    // === Arithmetic Operations (纯函数，无副作用) ===
+    register("add", new BuiltinDef(args -> {
       checkArity("add", args, 2);
       return toInt(args[0]) + toInt(args[1]);
-    });
+    }));
 
-    register("sub", args -> {
+    register("sub", new BuiltinDef(args -> {
       checkArity("sub", args, 2);
       return toInt(args[0]) - toInt(args[1]);
-    });
+    }));
 
-    register("mul", args -> {
+    register("mul", new BuiltinDef(args -> {
       checkArity("mul", args, 2);
       return toInt(args[0]) * toInt(args[1]);
-    });
+    }));
 
-    register("div", args -> {
+    register("div", new BuiltinDef(args -> {
       checkArity("div", args, 2);
       int divisor = toInt(args[1]);
-      if (divisor == 0) throw new BuiltinException("div: division by zero");
+      if (divisor == 0) throw new BuiltinException(ErrorMessages.arithmeticDivisionByZero());
       return toInt(args[0]) / divisor;
-    });
+    }));
 
-    register("mod", args -> {
+    register("mod", new BuiltinDef(args -> {
       checkArity("mod", args, 2);
       return toInt(args[0]) % toInt(args[1]);
-    });
+    }));
 
-    // === Comparison Operations ===
-    register("eq", args -> {
+    // === Comparison Operations (纯函数) ===
+    register("eq", new BuiltinDef(args -> {
       checkArity("eq", args, 2);
       return Objects.equals(args[0], args[1]);
-    });
+    }));
 
-    register("ne", args -> {
+    register("ne", new BuiltinDef(args -> {
       checkArity("ne", args, 2);
       return !Objects.equals(args[0], args[1]);
-    });
+    }));
 
-    register("lt", args -> {
+    register("lt", new BuiltinDef(args -> {
       checkArity("lt", args, 2);
       return toInt(args[0]) < toInt(args[1]);
-    });
+    }));
 
-    register("lte", args -> {
+    register("lte", new BuiltinDef(args -> {
       checkArity("lte", args, 2);
       return toInt(args[0]) <= toInt(args[1]);
-    });
+    }));
 
-    register("gt", args -> {
+    register("gt", new BuiltinDef(args -> {
       checkArity("gt", args, 2);
       return toInt(args[0]) > toInt(args[1]);
-    });
+    }));
 
-    register("gte", args -> {
+    register("gte", new BuiltinDef(args -> {
       checkArity("gte", args, 2);
       return toInt(args[0]) >= toInt(args[1]);
-    });
+    }));
 
-    // === Boolean Operations ===
-    register("not", args -> {
+    // === Boolean Operations (纯函数) ===
+    register("not", new BuiltinDef(args -> {
       checkArity("not", args, 1);
       return !toBool(args[0]);
-    });
+    }));
 
-    // === Text Operations ===
-    register("Text.concat", args -> {
+    // === Text Operations (纯函数) ===
+    register("Text.concat", new BuiltinDef(args -> {
       checkArity("Text.concat", args, 2);
       return String.valueOf(args[0]) + String.valueOf(args[1]);
-    });
+    }));
 
-    register("Text.toUpper", args -> {
+    register("Text.toUpper", new BuiltinDef(args -> {
       checkArity("Text.toUpper", args, 1);
       return String.valueOf(args[0]).toUpperCase();
-    });
+    }));
 
-    register("Text.toLower", args -> {
+    register("Text.toLower", new BuiltinDef(args -> {
       checkArity("Text.toLower", args, 1);
       return String.valueOf(args[0]).toLowerCase();
-    });
+    }));
 
-    register("Text.startsWith", args -> {
+    register("Text.startsWith", new BuiltinDef(args -> {
       checkArity("Text.startsWith", args, 2);
       return String.valueOf(args[0]).startsWith(String.valueOf(args[1]));
-    });
+    }));
 
-    register("Text.indexOf", args -> {
+    register("Text.indexOf", new BuiltinDef(args -> {
       checkArity("Text.indexOf", args, 2);
       return String.valueOf(args[0]).indexOf(String.valueOf(args[1]));
-    });
+    }));
 
-    register("Text.length", args -> {
+    register("Text.length", new BuiltinDef(args -> {
       checkArity("Text.length", args, 1);
       return String.valueOf(args[0]).length();
-    });
+    }));
 
-    register("Text.substring", args -> {
+    register("Text.substring", new BuiltinDef(args -> {
       checkArity("Text.substring", args, 2, 3);
       String s = String.valueOf(args[0]);
       int start = toInt(args[1]);
+      if (start < 0) {
+        throw new BuiltinException(ErrorMessages.stringIndexNegative(start));
+      }
       if (args.length == 3) {
         int end = toInt(args[2]);
+        if (end < 0) {
+          throw new BuiltinException(ErrorMessages.stringIndexNegative(end));
+        }
         return s.substring(start, end);
       }
       return s.substring(start);
-    });
+    }));
 
-    register("Text.trim", args -> {
+    register("Text.trim", new BuiltinDef(args -> {
       checkArity("Text.trim", args, 1);
       return String.valueOf(args[0]).trim();
-    });
+    }));
 
-    register("Text.split", args -> {
+    register("Text.split", new BuiltinDef(args -> {
       checkArity("Text.split", args, 2);
       String s = String.valueOf(args[0]);
       String delimiter = String.valueOf(args[1]);
       return Arrays.asList(s.split(java.util.regex.Pattern.quote(delimiter)));
-    });
+    }));
 
-    register("Text.replace", args -> {
+    register("Text.replace", new BuiltinDef(args -> {
       checkArity("Text.replace", args, 3);
       String s = String.valueOf(args[0]);
       String target = String.valueOf(args[1]);
       String replacement = String.valueOf(args[2]);
       return s.replace(target, replacement);
-    });
+    }));
 
-    register("Text.contains", args -> {
+    register("Text.contains", new BuiltinDef(args -> {
       checkArity("Text.contains", args, 2);
       String haystack = String.valueOf(args[0]);
       String needle = String.valueOf(args[1]);
       return haystack.contains(needle);
-    });
+    }));
 
-    // === List Operations ===
-    register("List.empty", args -> {
+    // === List Operations (纯函数) ===
+    register("List.empty", new BuiltinDef(args -> {
       checkArity("List.empty", args, 0);
       return new ArrayList<>();
-    });
+    }));
 
-    register("List.length", args -> {
+    register("List.length", new BuiltinDef(args -> {
       checkArity("List.length", args, 1);
       if (args[0] instanceof List<?> l) return l.size();
-      throw new BuiltinException("List.length: expected List, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("List.length", "List", typeName(args[0])));
+    }));
 
-    register("List.get", args -> {
+    register("List.get", new BuiltinDef(args -> {
       checkArity("List.get", args, 2);
       if (args[0] instanceof List<?> l) {
         int idx = toInt(args[1]);
-        if (idx < 0 || idx >= l.size()) throw new BuiltinException("List.get: index out of bounds: " + idx);
+        if (idx < 0 || idx >= l.size()) throw new BuiltinException(ErrorMessages.collectionIndexOutOfBounds(idx, l.size()));
         return l.get(idx);
       }
-      throw new BuiltinException("List.get: expected List, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("List.get", "List", typeName(args[0])));
+    }));
 
-    register("List.append", args -> {
+    register("List.append", new BuiltinDef(args -> {
       checkArity("List.append", args, 2);
       if (args[0] instanceof List<?> l) {
         @SuppressWarnings("unchecked")
@@ -202,10 +226,10 @@ public final class Builtins {
         mutable.add(args[1]);
         return mutable;
       }
-      throw new BuiltinException("List.append: expected List, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("List.append", "List", typeName(args[0])));
+    }));
 
-    register("List.concat", args -> {
+    register("List.concat", new BuiltinDef(args -> {
       checkArity("List.concat", args, 2);
       if (args[0] instanceof List<?> l1 && args[1] instanceof List<?> l2) {
         @SuppressWarnings("unchecked")
@@ -215,18 +239,18 @@ public final class Builtins {
         result.addAll(l2Cast);
         return result;
       }
-      throw new BuiltinException("List.concat: expected two Lists");
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("List.concat", "List, List", typeName(args[0]) + ", " + typeName(args[1])));
+    }));
 
-    register("List.contains", args -> {
+    register("List.contains", new BuiltinDef(args -> {
       checkArity("List.contains", args, 2);
       if (args[0] instanceof List<?> l) {
         return l.contains(args[1]);
       }
-      throw new BuiltinException("List.contains: expected List, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("List.contains", "List", typeName(args[0])));
+    }));
 
-    register("List.slice", args -> {
+    register("List.slice", new BuiltinDef(args -> {
       checkArity("List.slice", args, 2, 3);
       if (args[0] instanceof List<?> l) {
         int start = toInt(args[1]);
@@ -235,21 +259,21 @@ public final class Builtins {
         List<Object> lCast = (List<Object>)l;
         return new ArrayList<>(lCast.subList(start, end));
       }
-      throw new BuiltinException("List.slice: expected List, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("List.slice", "List", typeName(args[0])));
+    }));
 
-    register("List.map", args -> {
+    register("List.map", new BuiltinDef(args -> {
       checkArity("List.map", args, 2);
       if (!(args[0] instanceof List<?> l)) {
-        throw new BuiltinException("List.map: expected List, got " + typeName(args[0]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("List.map", "List", typeName(args[0])));
       }
       if (!(args[1] instanceof LambdaValue lambda)) {
-        throw new BuiltinException("List.map: expected Lambda function, got " + typeName(args[1]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("List.map", "Lambda", typeName(args[1])));
       }
 
       CallTarget callTarget = lambda.getCallTarget();
       if (callTarget == null) {
-        throw new BuiltinException("List.map: Lambda must have CallTarget (legacy mode not supported)");
+        throw new BuiltinException(ErrorMessages.lambdaMissingCallTarget("List.map"));
       }
 
       List<Object> result = new ArrayList<>();
@@ -264,20 +288,20 @@ public final class Builtins {
         result.add(mapped);
       }
       return result;
-    });
+    }));
 
-    register("List.filter", args -> {
+    register("List.filter", new BuiltinDef(args -> {
       checkArity("List.filter", args, 2);
       if (!(args[0] instanceof List<?> l)) {
-        throw new BuiltinException("List.filter: expected List, got " + typeName(args[0]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("List.filter", "List", typeName(args[0])));
       }
       if (!(args[1] instanceof LambdaValue lambda)) {
-        throw new BuiltinException("List.filter: expected Lambda function, got " + typeName(args[1]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("List.filter", "Lambda", typeName(args[1])));
       }
 
       CallTarget callTarget = lambda.getCallTarget();
       if (callTarget == null) {
-        throw new BuiltinException("List.filter: Lambda must have CallTarget (legacy mode not supported)");
+        throw new BuiltinException(ErrorMessages.lambdaMissingCallTarget("List.filter"));
       }
 
       List<Object> result = new ArrayList<>();
@@ -294,21 +318,21 @@ public final class Builtins {
         }
       }
       return result;
-    });
+    }));
 
-    register("List.reduce", args -> {
+    register("List.reduce", new BuiltinDef(args -> {
       checkArity("List.reduce", args, 3);
       if (!(args[0] instanceof List<?> l)) {
-        throw new BuiltinException("List.reduce: expected List, got " + typeName(args[0]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("List.reduce", "List", typeName(args[0])));
       }
       Object accumulator = args[1]; // initial value
       if (!(args[2] instanceof LambdaValue lambda)) {
-        throw new BuiltinException("List.reduce: expected Lambda function, got " + typeName(args[2]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("List.reduce", "Lambda", typeName(args[2])));
       }
 
       CallTarget callTarget = lambda.getCallTarget();
       if (callTarget == null) {
-        throw new BuiltinException("List.reduce: Lambda must have CallTarget (legacy mode not supported)");
+        throw new BuiltinException(ErrorMessages.lambdaMissingCallTarget("List.reduce"));
       }
 
       for (Object item : l) {
@@ -322,23 +346,23 @@ public final class Builtins {
         accumulator = callTarget.call(callArgs);
       }
       return accumulator;
-    });
+    }));
 
-    // === Map Operations ===
-    register("Map.empty", args -> {
+    // === Map Operations (纯函数) ===
+    register("Map.empty", new BuiltinDef(args -> {
       checkArity("Map.empty", args, 0);
       return new HashMap<>();
-    });
+    }));
 
-    register("Map.get", args -> {
+    register("Map.get", new BuiltinDef(args -> {
       checkArity("Map.get", args, 2);
       if (args[0] instanceof Map<?,?> m) {
         return m.get(args[1]);
       }
-      throw new BuiltinException("Map.get: expected Map, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("Map.get", "Map", typeName(args[0])));
+    }));
 
-    register("Map.put", args -> {
+    register("Map.put", new BuiltinDef(args -> {
       checkArity("Map.put", args, 3);
       if (args[0] instanceof Map<?,?> m) {
         @SuppressWarnings("unchecked")
@@ -346,10 +370,10 @@ public final class Builtins {
         mutable.put(args[1], args[2]);
         return mutable;
       }
-      throw new BuiltinException("Map.put: expected Map, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("Map.put", "Map", typeName(args[0])));
+    }));
 
-    register("Map.remove", args -> {
+    register("Map.remove", new BuiltinDef(args -> {
       checkArity("Map.remove", args, 2);
       if (args[0] instanceof Map<?,?> m) {
         @SuppressWarnings("unchecked")
@@ -357,164 +381,173 @@ public final class Builtins {
         mutable.remove(args[1]);
         return mutable;
       }
-      throw new BuiltinException("Map.remove: expected Map, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("Map.remove", "Map", typeName(args[0])));
+    }));
 
-    register("Map.contains", args -> {
+    register("Map.contains", new BuiltinDef(args -> {
       checkArity("Map.contains", args, 2);
       if (args[0] instanceof Map<?,?> m) {
         return m.containsKey(args[1]);
       }
-      throw new BuiltinException("Map.contains: expected Map, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("Map.contains", "Map", typeName(args[0])));
+    }));
 
-    register("Map.keys", args -> {
+    register("Map.keys", new BuiltinDef(args -> {
       checkArity("Map.keys", args, 1);
       if (args[0] instanceof Map<?,?> m) {
         return new ArrayList<>(m.keySet());
       }
-      throw new BuiltinException("Map.keys: expected Map, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("Map.keys", "Map", typeName(args[0])));
+    }));
 
-    register("Map.values", args -> {
+    register("Map.values", new BuiltinDef(args -> {
       checkArity("Map.values", args, 1);
       if (args[0] instanceof Map<?,?> m) {
         return new ArrayList<>(m.values());
       }
-      throw new BuiltinException("Map.values: expected Map, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("Map.values", "Map", typeName(args[0])));
+    }));
 
-    register("Map.size", args -> {
+    register("Map.size", new BuiltinDef(args -> {
       checkArity("Map.size", args, 1);
       if (args[0] instanceof Map<?,?> m) {
         return m.size();
       }
-      throw new BuiltinException("Map.size: expected Map, got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("Map.size", "Map", typeName(args[0])));
+    }));
 
-    // === Result Operations ===
-    register("Result.isOk", args -> {
+    // === Result Operations (纯函数) ===
+    register("Result.isOk", new BuiltinDef(args -> {
       checkArity("Result.isOk", args, 1);
-      // Check for Java Result.Ok class
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
-        return true;
-      }
       // Check for Map-based Ok
       if (args[0] instanceof Map<?,?> m) {
         return "Ok".equals(m.get("_type"));
       }
       return false;
-    });
+    }));
 
-    register("Result.isErr", args -> {
+    register("Result.isErr", new BuiltinDef(args -> {
       checkArity("Result.isErr", args, 1);
-      // Check for Java Result.Err class
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
-        return true;
-      }
       // Check for Map-based Err
       if (args[0] instanceof Map<?,?> m) {
         return "Err".equals(m.get("_type"));
       }
       return false;
-    });
+    }));
 
-    register("Result.unwrap", args -> {
+    register("Result.unwrap", new BuiltinDef(args -> {
       checkArity("Result.unwrap", args, 1);
-      // Check for Java Result.Ok class (has public 'value' field)
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
-        try {
-          var field = args[0].getClass().getField("value");
-          return field.get(args[0]);
-        } catch (Exception e) {
-          throw new BuiltinException("Result.unwrap: failed to access value field");
-        }
-      }
       // Check for Map-based Ok
       if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
         return m.get("value");
       }
-      throw new BuiltinException("Result.unwrap: called on Err");
-    });
+      throw new BuiltinException(ErrorMessages.unwrapOnUnexpectedVariant("Result.unwrap", "Err"));
+    }));
 
-    register("Result.unwrapErr", args -> {
+    register("Result.unwrapErr", new BuiltinDef(args -> {
       checkArity("Result.unwrapErr", args, 1);
-      // Check for Java Result.Err class (has public 'value' field)
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
-        try {
-          var field = args[0].getClass().getField("value");
-          return field.get(args[0]);
-        } catch (Exception e) {
-          throw new BuiltinException("Result.unwrapErr: failed to access value field");
-        }
-      }
       // Check for Map-based Err
       if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
         return m.get("value");
       }
-      throw new BuiltinException("Result.unwrapErr: called on Ok");
-    });
+      throw new BuiltinException(ErrorMessages.unwrapOnUnexpectedVariant("Result.unwrapErr", "Ok"));
+    }));
 
-    // === Maybe Operations ===
-    register("Maybe.isSome", args -> {
+    // === Maybe Operations (纯函数) ===
+    register("Maybe.isSome", new BuiltinDef(args -> {
       checkArity("Maybe.isSome", args, 1);
       if (args[0] instanceof Map<?,?> m) {
         return "Some".equals(m.get("_type"));
       }
       return false;
-    });
+    }));
 
-    register("Maybe.isNone", args -> {
+    register("Maybe.isNone", new BuiltinDef(args -> {
       checkArity("Maybe.isNone", args, 1);
+      // Check for Map-based None
       if (args[0] instanceof Map<?,?> m) {
         return "None".equals(m.get("_type"));
       }
-      return args[0] == null;
-    });
+      return false;
+    }));
 
-    register("Maybe.unwrap", args -> {
+    // === Option Operations (alias for Maybe) ===
+    register("Option.isSome", new BuiltinDef(args -> {
+      checkArity("Option.isSome", args, 1);
+      if (args[0] instanceof Map<?,?> m) {
+        return "Some".equals(m.get("_type"));
+      }
+      return false;
+    }));
+
+    register("Option.isNone", new BuiltinDef(args -> {
+      checkArity("Option.isNone", args, 1);
+      // Check for Map-based None
+      if (args[0] instanceof Map<?,?> m) {
+        return "None".equals(m.get("_type"));
+      }
+      return false;
+    }));
+
+    register("Option.unwrap", new BuiltinDef(args -> {
+      checkArity("Option.unwrap", args, 1);
+      if (args[0] instanceof Map<?,?> m && "Some".equals(m.get("_type"))) {
+        return m.get("value");
+      }
+      throw new BuiltinException(ErrorMessages.unwrapOnUnexpectedVariant("Option.unwrap", "None"));
+    }));
+
+    register("Option.unwrapOr", new BuiltinDef(args -> {
+      checkArity("Option.unwrapOr", args, 2);
+      if (args[0] instanceof Map<?,?> m && "Some".equals(m.get("_type"))) {
+        return m.get("value");
+      }
+      return args[1]; // default value
+    }));
+
+    register("Maybe.unwrap", new BuiltinDef(args -> {
       checkArity("Maybe.unwrap", args, 1);
       if (args[0] instanceof Map<?,?> m && "Some".equals(m.get("_type"))) {
         return m.get("value");
       }
-      throw new BuiltinException("Maybe.unwrap: called on None");
-    });
+      throw new BuiltinException(ErrorMessages.unwrapOnUnexpectedVariant("Maybe.unwrap", "None"));
+    }));
 
-    register("Maybe.unwrapOr", args -> {
+    register("Maybe.unwrapOr", new BuiltinDef(args -> {
       checkArity("Maybe.unwrapOr", args, 2);
       if (args[0] instanceof Map<?,?> m && "Some".equals(m.get("_type"))) {
         return m.get("value");
       }
       return args[1]; // default value
-    });
+    }));
 
     // Alias for unwrapOr
-    register("Maybe.withDefault", args -> {
+    register("Maybe.withDefault", new BuiltinDef(args -> {
       checkArity("Maybe.withDefault", args, 2);
+      // Check for Map-based Some
       if (args[0] instanceof Map<?,?> m && "Some".equals(m.get("_type"))) {
         return m.get("value");
       }
-      if (args[0] == null) return args[1];
       return args[1]; // default value
-    });
+    }));
 
-    register("Maybe.map", args -> {
+    register("Maybe.map", new BuiltinDef(args -> {
       checkArity("Maybe.map", args, 2);
 
       // If None, return None
-      if (args[0] == null || (args[0] instanceof Map<?,?> m && "None".equals(m.get("_type")))) {
-        return null; // None
+      if (args[0] instanceof Map<?,?> m && "None".equals(m.get("_type"))) {
+        return java.util.Map.of("_type", "None");
       }
 
       // If Some, apply function
       if (args[0] instanceof Map<?,?> m && "Some".equals(m.get("_type"))) {
         if (!(args[1] instanceof LambdaValue lambda)) {
-          throw new BuiltinException("Maybe.map: expected Lambda function, got " + typeName(args[1]));
+          throw new BuiltinException(ErrorMessages.operationExpectedType("Maybe.map", "Lambda", typeName(args[1])));
         }
 
         CallTarget callTarget = lambda.getCallTarget();
         if (callTarget == null) {
-          throw new BuiltinException("Maybe.map: Lambda must have CallTarget (legacy mode not supported)");
+          throw new BuiltinException(ErrorMessages.lambdaMissingCallTarget("Maybe.map"));
         }
 
         Object value = m.get("value");
@@ -532,45 +565,32 @@ public final class Builtins {
         return result;
       }
 
-      throw new BuiltinException("Maybe.map: expected Maybe (Some or None), got " + typeName(args[0]));
-    });
+      throw new BuiltinException(ErrorMessages.operationExpectedType("Maybe.map", "Maybe (Some or None)", typeName(args[0])));
+    }));
 
-    register("Result.mapOk", args -> {
+    register("Result.mapOk", new BuiltinDef(args -> {
       checkArity("Result.mapOk", args, 2);
 
-      // Check for Java Result.Ok/Err class
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
-        return args[0]; // Return Err unchanged
-      }
-
-      // Check for Map-based Err
+      // Check for Map-based Err - return unchanged
       if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
-        return args[0]; // Return Err unchanged
+        return args[0];
       }
 
       // Apply function to Ok value
       if (!(args[1] instanceof LambdaValue lambda)) {
-        throw new BuiltinException("Result.mapOk: expected Lambda function, got " + typeName(args[1]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("Result.mapOk", "Lambda", typeName(args[1])));
       }
 
       CallTarget callTarget = lambda.getCallTarget();
       if (callTarget == null) {
-        throw new BuiltinException("Result.mapOk: Lambda must have CallTarget (legacy mode not supported)");
+        throw new BuiltinException(ErrorMessages.lambdaMissingCallTarget("Result.mapOk"));
       }
 
       Object value;
-      // Check for Java Result.Ok class
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
-        try {
-          var field = args[0].getClass().getField("value");
-          value = field.get(args[0]);
-        } catch (Exception e) {
-          throw new BuiltinException("Result.mapOk: failed to access value field");
-        }
-      } else if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
+      if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
         value = m.get("value");
       } else {
-        throw new BuiltinException("Result.mapOk: expected Result (Ok or Err), got " + typeName(args[0]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("Result.mapOk", "Result (Ok or Err)", typeName(args[0])));
       }
 
       Object[] capturedValues = lambda.getCapturedValues();
@@ -585,44 +605,31 @@ public final class Builtins {
       result.put("_type", "Ok");
       result.put("value", mapped);
       return result;
-    });
+    }));
 
-    register("Result.mapErr", args -> {
+    register("Result.mapErr", new BuiltinDef(args -> {
       checkArity("Result.mapErr", args, 2);
 
-      // Check for Java Result.Ok class
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
-        return args[0]; // Return Ok unchanged
-      }
-
-      // Check for Map-based Ok
+      // Check for Map-based Ok - return unchanged
       if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
-        return args[0]; // Return Ok unchanged
+        return args[0];
       }
 
       // Apply function to Err value
       if (!(args[1] instanceof LambdaValue lambda)) {
-        throw new BuiltinException("Result.mapErr: expected Lambda function, got " + typeName(args[1]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("Result.mapErr", "Lambda", typeName(args[1])));
       }
 
       CallTarget callTarget = lambda.getCallTarget();
       if (callTarget == null) {
-        throw new BuiltinException("Result.mapErr: Lambda must have CallTarget (legacy mode not supported)");
+        throw new BuiltinException(ErrorMessages.lambdaMissingCallTarget("Result.mapErr"));
       }
 
       Object value;
-      // Check for Java Result.Err class
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
-        try {
-          var field = args[0].getClass().getField("value");
-          value = field.get(args[0]);
-        } catch (Exception e) {
-          throw new BuiltinException("Result.mapErr: failed to access value field");
-        }
-      } else if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
+      if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
         value = m.get("value");
       } else {
-        throw new BuiltinException("Result.mapErr: expected Result (Ok or Err), got " + typeName(args[0]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("Result.mapErr", "Result (Ok or Err)", typeName(args[0])));
       }
 
       Object[] capturedValues = lambda.getCapturedValues();
@@ -637,15 +644,10 @@ public final class Builtins {
       result.put("_type", "Err");
       result.put("value", mapped);
       return result;
-    });
+    }));
 
-    register("Result.tapError", args -> {
+    register("Result.tapError", new BuiltinDef(args -> {
       checkArity("Result.tapError", args, 2);
-
-      // Check for Java Result.Ok class - return unchanged
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Ok")) {
-        return args[0];
-      }
 
       // Check for Map-based Ok - return unchanged
       if (args[0] instanceof Map<?,?> m && "Ok".equals(m.get("_type"))) {
@@ -654,27 +656,19 @@ public final class Builtins {
 
       // Apply function to Err value for side effects, then return original Err
       if (!(args[1] instanceof LambdaValue lambda)) {
-        throw new BuiltinException("Result.tapError: expected Lambda function, got " + typeName(args[1]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("Result.tapError", "Lambda", typeName(args[1])));
       }
 
       CallTarget callTarget = lambda.getCallTarget();
       if (callTarget == null) {
-        throw new BuiltinException("Result.tapError: Lambda must have CallTarget (legacy mode not supported)");
+        throw new BuiltinException(ErrorMessages.lambdaMissingCallTarget("Result.tapError"));
       }
 
       Object value;
-      // Check for Java Result.Err class
-      if (args[0] != null && args[0].getClass().getSimpleName().equals("Err")) {
-        try {
-          var field = args[0].getClass().getField("value");
-          value = field.get(args[0]);
-        } catch (Exception e) {
-          throw new BuiltinException("Result.tapError: failed to access value field");
-        }
-      } else if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
+      if (args[0] instanceof Map<?,?> m && "Err".equals(m.get("_type"))) {
         value = m.get("value");
       } else {
-        throw new BuiltinException("Result.tapError: expected Result (Ok or Err), got " + typeName(args[0]));
+        throw new BuiltinException(ErrorMessages.operationExpectedType("Result.tapError", "Result (Ok or Err)", typeName(args[0])));
       }
 
       // Call lambda for side effects (discard return value)
@@ -686,42 +680,42 @@ public final class Builtins {
 
       // Return original Err unchanged
       return args[0];
-    });
+    }));
 
-    // === IO Operations ===
-    register("IO.print", args -> {
+    // === IO Operations (需要 IO effect) ===
+    register("IO.print", new BuiltinDef(args -> {
       checkArity("IO.print", args, 1);
       throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
-    });
+    }, Set.of("IO")));
 
-    register("IO.readLine", args -> {
+    register("IO.readLine", new BuiltinDef(args -> {
       checkArity("IO.readLine", args, 0);
       throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
-    });
+    }, Set.of("IO")));
 
-    register("IO.readFile", args -> {
+    register("IO.readFile", new BuiltinDef(args -> {
       checkArity("IO.readFile", args, 1);
       throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
-    });
+    }, Set.of("IO")));
 
-    register("IO.writeFile", args -> {
+    register("IO.writeFile", new BuiltinDef(args -> {
       checkArity("IO.writeFile", args, 2);
       throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
-    });
+    }, Set.of("IO")));
 
-    // === Async Operations ===
-    register("await", args -> {
+    // === Async Operations (需要 Async effect) ===
+    register("await", new BuiltinDef(args -> {
       checkArity("await", args, 1);
       // 当前简化实现：直接返回值（与AwaitNode语义一致）
       return args[0];
-    });
+    }, Set.of("Async")));
   }
 
   /**
    * 注册builtin函数
    */
-  public static void register(String name, BuiltinFunction func) {
-    REGISTRY.put(name, func);
+  public static void register(String name, BuiltinDef def) {
+    REGISTRY.put(name, def);
   }
 
   /**
@@ -731,9 +725,9 @@ public final class Builtins {
    * @return 返回值，如果不存在返回null
    */
   public static Object call(String name, Object[] args) throws BuiltinException {
-    BuiltinFunction func = REGISTRY.get(name);
-    if (func == null) return null;
-    return func.call(args);
+    BuiltinDef def = REGISTRY.get(name);
+    if (def == null) return null;
+    return def.impl.call(args);
   }
 
   /**
@@ -743,17 +737,29 @@ public final class Builtins {
     return REGISTRY.containsKey(name);
   }
 
+  /**
+   * 获取builtin函数所需的effects
+   * @param name 函数名
+   * @return effects集合，如果不存在返回null
+   */
+  public static Set<String> getEffects(String name) {
+    BuiltinDef def = REGISTRY.get(name);
+    return def != null ? def.requiredEffects : null;
+  }
+
   // ===  辅助方法 ===
 
   private static void checkArity(String name, Object[] args, int expected) {
     if (args.length != expected) {
-      throw new BuiltinException(name + ": expected " + expected + " args, got " + args.length);
+      throw new BuiltinException(
+          ErrorMessages.operationExpectedType(name, expected + " args", args.length + " args"));
     }
   }
 
   private static void checkArity(String name, Object[] args, int min, int max) {
     if (args.length < min || args.length > max) {
-      throw new BuiltinException(name + ": expected " + min + "-" + max + " args, got " + args.length);
+      throw new BuiltinException(
+          ErrorMessages.operationExpectedType(name, min + "-" + max + " args", args.length + " args"));
     }
   }
 
@@ -768,7 +774,7 @@ public final class Builtins {
   private static int toInt(Object o) {
     if (o instanceof Number n) return n.intValue();
     if (o instanceof String s) return Integer.parseInt(s);
-    throw new BuiltinException("Expected number, got " + typeName(o));
+    throw new BuiltinException(ErrorMessages.typeExpectedGot("Int", typeName(o)));
   }
 
   private static String typeName(Object o) {

@@ -49,17 +49,27 @@ tasks.register("examplesCompileAll") {
   // Ensure the generated jar exists
   dependsOn(generateAsterJarRoot)
 
-  // Compile all example subprojects
-  dependsOn(
-    ":examples:list-jvm:compileJava",
-    ":examples:login-jvm:compileJava",
-    ":examples:map-jvm:compileJava",
-    ":examples:math-jvm:compileJava",
-    ":examples:text-jvm:compileJava",
-    ":examples:hello-native:compileJava",
-    ":examples:rest-jvm:compileJava",
-    ":examples:login-native:compileJava"
+  // Compile all example subprojects (only if they exist in settings)
+  val exampleProjects = listOf(
+    ":examples:list-jvm",
+    ":examples:login-jvm",
+    ":examples:map-jvm",
+    ":examples:math-jvm",
+    ":examples:text-jvm",
+    ":examples:hello-native",
+    ":examples:rest-jvm",
+    ":examples:login-native"
   )
+
+  exampleProjects.forEach { projectPath ->
+    try {
+      project(projectPath)
+      dependsOn("$projectPath:compileJava")
+    } catch (e: Exception) {
+      // Project not included in settings.gradle.kts (e.g., in Docker build)
+      logger.info("Skipping example project $projectPath (not included in settings)")
+    }
+  }
 }
 
 // 聚合覆盖率报告任务

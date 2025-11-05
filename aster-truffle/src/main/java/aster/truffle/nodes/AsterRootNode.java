@@ -1,12 +1,16 @@
 package aster.truffle.nodes;
 
+import aster.truffle.AsterContext;
 import aster.truffle.AsterLanguage;
 import aster.truffle.core.CoreModel;
 import aster.truffle.runtime.FrameSlotBuilder;
+import aster.truffle.runtime.interop.AsterInteropAdapter;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -16,9 +20,10 @@ public final class AsterRootNode extends RootNode {
   private final List<CoreModel.Param> params;
   private final FrameDescriptor frameDescriptor;
   private final Map<String, Integer> symbolTable;
+  private final List<String> effects;
 
-  public AsterRootNode(AsterLanguage lang, Node body, Env globalEnv, List<CoreModel.Param> params) {
-    this(lang, body, globalEnv, params, initFrame(params));
+  public AsterRootNode(AsterLanguage lang, Node body, Env globalEnv, List<CoreModel.Param> params, List<String> effects) {
+    this(lang, body, globalEnv, params, effects, initFrame(params));
   }
 
   private AsterRootNode(
@@ -26,11 +31,13 @@ public final class AsterRootNode extends RootNode {
       Node body,
       Env globalEnv,
       List<CoreModel.Param> params,
+      List<String> effects,
       FrameInit frameInit) {
     super(lang, frameInit.descriptor);
     this.body = body;
     this.globalEnv = globalEnv;
     this.params = params;
+    this.effects = effects;
     this.frameDescriptor = frameInit.descriptor;
     this.symbolTable = frameInit.symbolTable;
   }
@@ -38,15 +45,25 @@ public final class AsterRootNode extends RootNode {
   /**
    * 顶层程序入口，直接委托给 Loader 生成的节点树执行。
    * 捕获 ReturnException 以兼容旧运行时语义。
+   * 在执行前设置入口函数的 effect 权限。
    */
   @Override
   public Object execute(VirtualFrame frame) {
+    // 设置入口函数的 effect 权限
+    AsterContext context = AsterLanguage.getContext();
+    if (effects != null && !effects.isEmpty()) {
+      context.setAllowedEffects(new HashSet<>(effects));
+    }
+
     bindArgumentsToFrame(frame);
     bindArgumentsToEnv(frame);
     try {
-      return Exec.exec(body, frame);
+      Object result = Exec.exec(body, frame);
+      Object adapted = AsterInteropAdapter.adapt(result);
+      return context.getEnv().asGuestValue(adapted);
     } catch (ReturnNode.ReturnException rex) {
-      return rex.value;
+      Object adapted = AsterInteropAdapter.adapt(rex.value);
+      return context.getEnv().asGuestValue(adapted);
     }
   }
 

@@ -2,6 +2,14 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-05 Profiler 条件编译验证
+- 日期：2025-11-05 21:02 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :aster-truffle:test` → 通过（131/131，Truffle 后端回归测试全部通过）
+  - `./gradlew :aster-truffle:test -Daster.profiler.enabled=true` → 通过（131/131，确认开启 profiling 时无回归）
+  - `npm run bench:truffle:fib30` → 失败（脚本未在 package.json 中定义，待主 AI 指示）
+
 ## 2025-11-05 ParserContext 工厂化回归
 - 日期：2025-11-05 07:17 NZST
 - 执行者：Codex
@@ -358,3 +366,9 @@ protected int readInt(VirtualFrame frame) throws FrameSlotTypeException {
 - 提升内联和寄存器分配效率
 
 实际效果需通过 benchmark 测试验证。
+
+## 2025-11-05 Golden Test Expansion Phase 1+2 验证
+- 日期：2025-11-05 17:33 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :aster-truffle:test --tests aster.truffle.GoldenTestAdapter --rerun-tasks` → 通过；新增 boundary_* 用例 6 个全部执行并返回期望结果，bad_* 系列 4 个确认按预期抛出异常并计为 PASS。

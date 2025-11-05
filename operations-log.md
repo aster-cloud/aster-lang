@@ -4194,3 +4194,52 @@ podman build -f Dockerfile.truffle -t aster/truffle:latest .
 - 2025-11-05 06:58 NZST | 命令：zsh -lc "sed -n '1,200p' docs/workstreams/P2-4/operations-log.md" → 汇总 parser 重构相关调研与上下文
 - 2025-11-05 07:00 NZST | 命令：zsh -lc "sed -n '1,160p' docs/workstreams/P2-4/implementation/structured-logging-usage.md" → 引用 Phase 2 已产出文档，识别结构化日志使用指南
 - 2025-11-05 07:02 NZST | 命令：zsh -lc "sed -n '1,200p' .claude/archive/phase2-analysis-completion-report.md" → 了解 Phase 2 现有测试提升成果，为整体规划提供基线
+
+# 2025-11-05 15:59 NZST Truffle Golden 测试扩展调研 (Codex)
+
+- 2025-11-05 15:51 NZST | 工具：sequential-thinking__sequentialthinking → 明确黄金测试扩展任务范围与初步探索步骤（2 条思考）
+- 2025-11-05 15:52 NZST | 命令：zsh -lc "ls" → 浏览仓库根目录，确认 `aster-truffle` 与测试目录位置
+- 2025-11-05 15:53 NZST | 命令：zsh -lc "ls .claude" → 查验既有黄金测试相关文档
+- 2025-11-05 15:54 NZST | 命令：zsh -lc "sed -n '1,160p' .claude/golden-test-report.md" → 获取当前 41 个黄金用例执行情况与失败原因
+- 2025-11-05 15:55 NZST | 命令：zsh -lc "sed -n '1,200p' scripts/golden.ts" → 了解 CNL→Core golden 生成脚本的现有覆盖范围
+- 2025-11-05 15:56 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/test/java/aster/truffle/GoldenTestAdapter.java" → 确认 JUnit 动态测试加载逻辑与参数跳过条件
+- 2025-11-05 15:57 NZST | 命令：zsh -lc "find test/e2e/golden/core -name 'expected_*_core.json' | wc -l" → 统计现有黄金 Core IR 数量（41）
+- 2025-11-05 15:57 NZST | 命令：zsh -lc "python3 - <<'PY' … PY" → 依据文件前缀分类汇总黄金用例分布
+- 2025-11-05 15:58 NZST | 命令：zsh -lc "TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'" → 获取计划文档时间戳
+- 2025-11-05 15:59 NZST | 工具：apply_patch → 新增 `.claude/golden-test-expansion-plan.md`，记录现状分析、20+ 新测试设想与执行步骤
+
+# 2025-11-05 19:07 NZST Truffle Golden 测试回归 (Codex)
+
+- 2025-11-05 19:06 NZST | 工具：sequential-thinking__sequentialthinking → Task 3 黄金测试执行前分析任务目标与验证重点
+- 2025-11-05 19:07 NZST | 命令：zsh -lc "./gradlew :aster-truffle:test --tests aster.truffle.GoldenTestAdapter --rerun-tasks" → 51 项执行，bad_text_substring_negative 断言因消息片段不匹配导致失败，其余重点用例均按预期通过
+
+# 2025-11-05 19:11 NZST Error Message Improvement (Codex)
+
+- 2025-11-05 19:10 NZST | 工具：sequential-thinking__sequentialthinking → Task 5 分析新增错误消息需求与风险点
+- 2025-11-05 19:11 NZST | 工具：apply_patch → 扩展 ErrorMessages.java，新增变量未初始化、模运算除零等 9 类双语错误模板
+- 2025-11-05 19:12 NZDT | 工具：sequential-thinking__sequentialthinking → Task 6 针对 Builtins.java 替换剩余 BuiltinException 字符串的执行思路分析
+- 2025-11-05 19:14 NZDT | 工具：apply_patch → Task 6 将 Builtins.java 中 30 余处硬编码 BuiltinException 消息改用 ErrorMessages 统一格式
+
+# 2025-11-05 20:35 NZST Core IR 规范文档 (Codex)
+
+- 2025-11-05 20:29 NZST | 工具：sequential-thinking__sequentialthinking → 梳理 Core IR 文档任务目标、约束与风险，形成执行思路
+- 2025-11-05 20:30 NZST | 工具：code-index__set_project_path → 将索引根目录设置为 `.` 以启用快速代码检索
+- 2025-11-05 20:30 NZST | 工具：code-index__find_files → 确认 `aster-truffle/src/main/java/aster/truffle/Loader.java` 位置
+- 2025-11-05 20:31 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/Loader.java" → 抽取 Core IR 解析与节点构建逻辑
+- 2025-11-05 20:31 NZST | 命令：zsh -lc "sed -n '200,400p' aster-truffle/src/main/java/aster/truffle/Loader.java" → 查看 Match、Scope、Construct 等节点的构建实现
+- 2025-11-05 20:32 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/core/CoreModel.java" → 获取 CoreModel 各类节点与类型系统定义
+- 2025-11-05 20:32 NZST | 命令：zsh -lc "ls test/e2e/golden/core" → 盘点黄金 Core IR JSON 样例
+- 2025-11-05 20:33 NZST | 命令：zsh -lc "sed -n '1,160p' test/e2e/golden/core/expected_greet_core.json" → 验证模式匹配与 Data/Func 声明示例
+- 2025-11-05 20:33 NZST | 命令：zsh -lc "sed -n '1,160p' test/e2e/golden/core/expected_lambda_cnl_core.json" → 采集 Lambda 节点 JSON 形态
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' test/e2e/golden/core/expected_fetch_dashboard_core.json" → 获取 Start/Wait/Ok/Construct 联动场景
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,160p' test/e2e/golden/core/expected_if_param_core.json" → 确认 If 语句/表达式结构
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/StartNode.java" → 记录 Start 节点异步语义
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/WaitNode.java" → 记录 Wait 节点任务轮询实现
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/MatchNode.java" → 解析模式节点匹配与绑定策略
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/BlockNode.java" → 确认 Block 执行控制流行为
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/Exec.java" → 了解 Exec 语句执行入口
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,160p' aster-truffle/src/main/java/aster/truffle/nodes/ReturnNode.java" → 检查 Return 语句控制流实现
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/LetNodeEnv.java" → 收集 Let 绑定语义细节
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/ConstructNode.java" → 理解构造器运行时表示
+- 2025-11-05 20:34 NZST | 命令：zsh -lc "sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/ResultNodes.java" → 提取 Ok/Err/Some/None 的 Map 编码
+- 2025-11-05 20:35 NZST | 工具：apply_patch → 覆盖 `docs/core-ir-specification.md`，生成完整 Core IR 规范文档
