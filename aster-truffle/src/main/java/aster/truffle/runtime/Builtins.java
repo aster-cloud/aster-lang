@@ -116,6 +116,16 @@ public final class Builtins {
     }));
 
     // === Boolean Operations (纯函数) ===
+    register("and", new BuiltinDef(args -> {
+      checkArity("and", args, 2);
+      return toBool(args[0]) && toBool(args[1]);
+    }));
+
+    register("or", new BuiltinDef(args -> {
+      checkArity("or", args, 2);
+      return toBool(args[0]) || toBool(args[1]);
+    }));
+
     register("not", new BuiltinDef(args -> {
       checkArity("not", args, 1);
       return !toBool(args[0]);

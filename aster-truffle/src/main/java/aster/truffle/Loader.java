@@ -2,6 +2,7 @@ package aster.truffle;
 
 import aster.truffle.core.CoreModel;
 import aster.truffle.nodes.*;
+import aster.truffle.runtime.Builtins;
 import aster.truffle.runtime.FrameSlotBuilder;
 import com.fasterxml.jackson.databind.*;
 import com.oracle.truffle.api.nodes.Node;
@@ -332,6 +333,30 @@ public final class Loader {
     }
     if (e instanceof CoreModel.Name n) return buildName(n.name);
     if (e instanceof CoreModel.Call c) {
+      // 检测 builtin 调用：如果 target 是 Name 且是已注册的 builtin，使用 BuiltinCallNode 优化
+      if (c.target instanceof CoreModel.Name targetName) {
+        String name = targetName.name;
+        if (Builtins.has(name)) {
+          // 创建 BuiltinCallNode（内联优化）
+          var argNodes = new java.util.ArrayList<aster.truffle.nodes.AsterExpressionNode>();
+          if (c.args != null) {
+            for (var a : c.args) {
+              Node argNode = buildExpr(a);
+              if (argNode instanceof aster.truffle.nodes.AsterExpressionNode exprNode) {
+                argNodes.add(exprNode);
+              } else {
+                throw new RuntimeException("Builtin argument must be expression node: " + argNode.getClass());
+              }
+            }
+          }
+          return aster.truffle.nodes.BuiltinCallNodeGen.create(
+              name,
+              argNodes.toArray(new aster.truffle.nodes.AsterExpressionNode[0])
+          );
+        }
+      }
+
+      // 普通函数调用：使用 CallNode
       Node target = buildExpr(c.target);
       var args = new java.util.ArrayList<Node>();
       if (c.args != null) for (var a : c.args) args.add(buildExpr(a));
