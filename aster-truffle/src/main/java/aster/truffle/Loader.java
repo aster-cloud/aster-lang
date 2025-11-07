@@ -135,12 +135,7 @@ public final class Loader {
         java.util.Set<String> requiredEffects = fn.effects != null ? new java.util.HashSet<>(fn.effects) : java.util.Set.of();
 
         // Set LambdaValue with CallTarget and effects into env
-        env.set(e.getKey(), new aster.truffle.nodes.LambdaValue(env, params, List.of(), new Object[0], callTarget, requiredEffects));
-      } else {
-        // Legacy approach for direct Loader usage (non-Polyglot tests, deprecated)
-        // Use old LambdaValue without CallTarget (for backward compatibility)
-        Node body = buildFunctionBody(fn);
-        env.set(e.getKey(), new aster.truffle.nodes.LambdaValue(env, params, captured, body));
+        env.set(e.getKey(), new aster.truffle.nodes.LambdaValue(params, List.of(), new Object[0], callTarget, requiredEffects));
       }
     }
     // Ensure params exist in env for binding (they shadow any function names)
