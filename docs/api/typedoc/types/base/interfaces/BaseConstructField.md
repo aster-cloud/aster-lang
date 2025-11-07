@@ -4,7 +4,7 @@
 
 # Interface: BaseConstructField\<Expr\>
 
-Defined in: [types/base.ts:342](https://github.com/wontlost-ltd/aster-lang/blob/993685e7eafa48757ea1cda6c52c09bf5d2fdf9e/src/types/base.ts#L342)
+Defined in: [types/base.ts:342](https://github.com/wontlost-ltd/aster-lang/blob/15240bb8979a8fe7b7b1bfa8309f1a78ca9fb35b/src/types/base.ts#L342)
 
 构造器字段基础接口。
 
@@ -25,7 +25,7 @@ Defined in: [types/base.ts:342](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:343](https://github.com/wontlost-ltd/aster-lang/blob/993685e7eafa48757ea1cda6c52c09bf5d2fdf9e/src/types/base.ts#L343)
+Defined in: [types/base.ts:343](https://github.com/wontlost-ltd/aster-lang/blob/15240bb8979a8fe7b7b1bfa8309f1a78ca9fb35b/src/types/base.ts#L343)
 
 ***
 
@@ -33,4 +33,4 @@ Defined in: [types/base.ts:343](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **expr**: `Expr`
 
-Defined in: [types/base.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/993685e7eafa48757ea1cda6c52c09bf5d2fdf9e/src/types/base.ts#L344)
+Defined in: [types/base.ts:344](https://github.com/wontlost-ltd/aster-lang/blob/15240bb8979a8fe7b7b1bfa8309f1a78ca9fb35b/src/types/base.ts#L344)

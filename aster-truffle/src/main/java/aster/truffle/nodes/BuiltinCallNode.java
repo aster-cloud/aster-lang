@@ -1,18 +1,24 @@
 package aster.truffle.nodes;
 
 import aster.truffle.runtime.Builtins;
+import aster.truffle.runtime.ErrorMessages;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * BuiltinCallNode - 内联常用 builtin 函数的优化节点
  *
- * 通过 Truffle DSL @Specialization 实现类型特化，直接内联算术、比较、逻辑运算，
+ * 通过 Truffle DSL @Specialization 实现类型特化，直接内联算术、比较、逻辑、文本、集合运算，
  * 消除 CallTarget 调用开销。仅处理已知的 builtin，其他情况 fallback 到 Builtins.call。
  *
- * Phase 2A：当前实现包含算术运算 add/sub/mul/div/mod、比较运算 eq/lt/gt/lte/gte
- * 和逻辑运算 and/or/not (共 13 个 builtin)。
+ * Phase 2A：算术运算 add/sub/mul/div/mod、比较运算 eq/lt/gt/lte/gte、
+ *           逻辑运算 and/or/not (共 13 个 builtin)
+ * Phase 2B Batch 1：文本运算 Text.concat/Text.length (新增 2 个 builtin，累计 15 个)
+ * Phase 2B Batch 2：集合运算 List.length (新增 1 个 builtin，累计 16 个)
  */
 public abstract class BuiltinCallNode extends AsterExpressionNode {
   @CompilationFinal protected final String builtinName;
@@ -76,6 +82,22 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
 
   protected boolean isNot() {
     return "not".equals(builtinName);
+  }
+
+  protected boolean isTextConcat() {
+    return "Text.concat".equals(builtinName);
+  }
+
+  protected boolean isTextLength() {
+    return "Text.length".equals(builtinName);
+  }
+
+  protected boolean isListLength() {
+    return "List.length".equals(builtinName);
+  }
+
+  protected boolean isListAppend() {
+    return "List.append".equals(builtinName);
   }
 
   protected boolean hasTwoArgs() {
@@ -411,12 +433,95 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
   }
 
   /**
+   * 内联 Text.concat (String + String)
+   * 快速路径: 两个参数都是 String，直接拼接
+   * Fallback: UnexpectedResultException 时回退到 Builtins.call（支持 String.valueOf）
+   */
+  @Specialization(guards = {"isTextConcat()", "hasTwoArgs()"})
+  protected String doTextConcat(VirtualFrame frame) {
+    Profiler.inc("builtin_text_concat_inlined");
+
+    try {
+      String left = argNodes[0].executeString(frame);
+      String right = argNodes[1].executeString(frame);
+      return left + right;
+    } catch (Exception e) {
+      // Fallback 到通用路径
+      return (String) doGeneric(frame);
+    }
+  }
+
+  /**
+   * 内联 Text.length (String.length())
+   * 快速路径: 参数是 String，直接返回长度
+   * Fallback: UnexpectedResultException 时回退到 Builtins.call（支持 String.valueOf）
+   */
+  @Specialization(guards = {"isTextLength()", "hasOneArg()"})
+  protected int doTextLength(VirtualFrame frame) {
+    Profiler.inc("builtin_text_length_inlined");
+
+    try {
+      String text = argNodes[0].executeString(frame);
+      return text.length();
+    } catch (Exception e) {
+      // Fallback 到通用路径
+      return (int) doGeneric(frame);
+    }
+  }
+
+  /**
+   * 内联 List.length (List.size())
+   * 无类型特化执行方法，使用 executeGeneric() + instanceof 检查
+   * 类型不匹配时直接抛出 RuntimeException（保持异常透明性）
+   */
+  @Specialization(guards = {"isListLength()", "hasOneArg()"})
+  protected int doListLength(VirtualFrame frame) {
+    Profiler.inc("builtin_list_length_inlined");
+
+    Object list = argNodes[0].executeGeneric(frame);
+    if (list instanceof List<?> l) {
+      return l.size();
+    }
+
+    throw new RuntimeException(
+      ErrorMessages.operationExpectedType("List.length", "List",
+        list == null ? "null" : list.getClass().getSimpleName())
+    );
+  }
+
+  /**
+   * 内联 List.append (list + element)
+   * 使用 executeGeneric() + instanceof 模式，涉及对象分配 (new ArrayList)
+   * 类型不匹配时直接抛出 RuntimeException（保持异常透明性）
+   */
+  @Specialization(guards = {"isListAppend()", "hasTwoArgs()"})
+  @SuppressWarnings("unchecked")
+  protected List<Object> doListAppend(VirtualFrame frame) {
+    Profiler.inc("builtin_list_append_inlined");
+
+    Object listObj = argNodes[0].executeGeneric(frame);
+    Object element = argNodes[1].executeGeneric(frame);
+
+    if (listObj instanceof List<?>) {
+      List<Object> mutable = new ArrayList<>((List<Object>)listObj);
+      mutable.add(element);
+      return mutable;
+    }
+
+    throw new RuntimeException(
+      ErrorMessages.operationExpectedType("List.append", "List",
+        listObj == null ? "null" : listObj.getClass().getSimpleName())
+    );
+  }
+
+  /**
    * Fallback: 调用 Builtins.call（通用路径）
    * 处理所有未内联的 builtin 或类型不匹配的情况
    */
   @Specialization(replaces = {"doAddInt", "doSubInt", "doMulInt", "doDivInt", "doModInt",
                                "doEqInt", "doLtInt", "doGtInt", "doLteInt", "doGteInt",
-                               "doAndBoolean", "doOrBoolean", "doNotBoolean"})
+                               "doAndBoolean", "doOrBoolean", "doNotBoolean",
+                               "doTextConcat", "doTextLength", "doListLength", "doListAppend"})
   protected Object doGeneric(VirtualFrame frame) {
     Profiler.inc("builtin_call_generic");
 

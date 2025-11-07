@@ -6,7 +6,7 @@
 
 > `const` **KW**: `object`
 
-Defined in: [config/semantic.ts:194](https://github.com/wontlost-ltd/aster-lang/blob/993685e7eafa48757ea1cda6c52c09bf5d2fdf9e/src/config/semantic.ts#L194)
+Defined in: [config/semantic.ts:194](https://github.com/wontlost-ltd/aster-lang/blob/15240bb8979a8fe7b7b1bfa8309f1a78ca9fb35b/src/config/semantic.ts#L194)
 
 Aster CNL 关键字定义（v1 lexicon, en-US）。
 

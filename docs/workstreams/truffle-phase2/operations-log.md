@@ -13,3 +13,8 @@
 - 2025-11-03 08:27 NZST｜工具：code-index.build_deep_index｜动作：刷新深度索引｜摘要：重建符号索引用于精确检索 Loader/NodeAdapter 相关实现。
 - 2025-11-03 08:28 NZST｜工具：code-index.get_file_summary｜动作：提取文件概要｜摘要：快速了解 Loader.java 的结构和新增方法位置。
 - 2025-11-03 08:28 NZST｜工具：shell（sed/nl）｜动作：阅读关键代码｜摘要：定位 buildBlock 与 collectLocalVariables 细节并记录行号用于审查引用。
+- 2025-11-07 19:46 NZST｜工具：sequential-thinking｜动作：Phase 2B 调研思考｜摘要：明确 builtin 覆盖范围、统计策略与 JSON 交付要求。
+- 2025-11-07 19:46 NZST｜工具：code-index.set_project_path｜动作：索引初始化｜摘要：为 Phase 2B 调研重新设置项目根以便后续检索与统计。
+- 2025-11-07 19:46 NZST｜工具：shell（sed）｜动作：读取 Builtins.java｜摘要：逐段审阅 register 列表并确认分类（Text/List/Map/Result/其他）。
+- 2025-11-07 19:46 NZST｜工具：shell（python3）｜动作：统计测试与 golden 频次｜摘要：遍历 tests/golden 目录，生成 `.claude/builtin-usage-counts.json`。
+- 2025-11-07 19:46 NZST｜工具：shell（python3）｜动作：生成分析 JSON｜摘要：根据频次与评估描述写入 `.claude/context-phase2b-builtin-analysis.json`。

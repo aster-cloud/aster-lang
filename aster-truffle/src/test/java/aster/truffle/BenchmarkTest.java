@@ -668,4 +668,530 @@ public class BenchmarkTest {
       assertTrue(avgMs < 2.0, "Performance regression: " + avgMs + " ms > 2 ms");
     }
   }
+
+  /**
+   * 基准测试：Text.concat (字符串拼接)
+   * 测试场景：验证 executeString() 快速路径性能
+   * Phase 2B: Text builtin 内联优化
+   */
+  @Test
+  public void benchmarkTextConcat() throws IOException {
+    String json = """
+        {
+          "name": "bench.textconcat",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "concat10",
+              "params": [{"name": "x", "type": {"kind": "TypeName", "name": "String"}}],
+              "ret": {"kind": "TypeName", "name": "String"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "Text.concat"},
+                    "args": [
+                      {
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "Text.concat"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "Text.concat"},
+                            "args": [
+                              {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "Text.concat"},
+                                "args": [
+                                  {"kind": "Name", "name": "x"},
+                                  {"kind": "Name", "name": "x"}
+                                ]
+                              },
+                              {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "Text.concat"},
+                                "args": [
+                                  {"kind": "Name", "name": "x"},
+                                  {"kind": "Name", "name": "x"}
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "Text.concat"},
+                            "args": [
+                              {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "Text.concat"},
+                                "args": [
+                                  {"kind": "Name", "name": "x"},
+                                  {"kind": "Name", "name": "x"}
+                                ]
+                              },
+                              {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "Text.concat"},
+                                "args": [
+                                  {"kind": "Name", "name": "x"},
+                                  {"kind": "Name", "name": "x"}
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {"kind": "Name", "name": "x"}
+                    ]
+                  }
+                }]
+              }
+            },
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": {"kind": "TypeName", "name": "String"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "concat10"},
+                    "args": [{"kind": "String", "value": "test"}]
+                  }
+                }]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-textconcat.json").build();
+
+      // Warmup
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals("testtesttesttesttesttesttesttesttest", result.asString(),
+                     "concat10(\"test\") should concatenate 8 times");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("Text.concat benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      // Text.concat 应该很快（executeString 快速路径）
+      assertTrue(avgMs < 1.0, "Performance regression: " + avgMs + " ms > 1 ms");
+    }
+  }
+
+  /**
+   * 基准测试：Text.length (字符串长度)
+   * 测试场景：验证 executeString() 快速路径性能
+   * Phase 2B: Text builtin 内联优化
+   */
+  @Test
+  public void benchmarkTextLength() throws IOException {
+    String json = """
+        {
+          "name": "bench.textlength",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "lengths",
+              "params": [{"name": "s", "type": {"kind": "TypeName", "name": "String"}}],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "add"},
+                    "args": [
+                      {
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "add"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "Text.length"},
+                            "args": [{"kind": "Name", "name": "s"}]
+                          },
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "Text.length"},
+                            "args": [{"kind": "Name", "name": "s"}]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "add"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "Text.length"},
+                            "args": [{"kind": "Name", "name": "s"}]
+                          },
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "Text.length"},
+                            "args": [{"kind": "Name", "name": "s"}]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }]
+              }
+            },
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "lengths"},
+                    "args": [{"kind": "String", "value": "hello world"}]
+                  }
+                }]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-textlength.json").build();
+
+      // Warmup
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals(44, result.asInt(), "lengths(\"hello world\") should be 11*4=44");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("Text.length benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      // Text.length 应该非常快（executeString 快速路径 + 简单操作）
+      assertTrue(avgMs < 0.5, "Performance regression: " + avgMs + " ms > 0.5 ms");
+    }
+  }
+
+  /**
+   * List.length 性能基准测试
+   * 测试场景：4次 List.length 调用 + 算术运算
+   * 关键性能对比：List.length (executeGeneric + instanceof) vs Text.length (executeString)
+   * 目标：量化 instanceof 检查的性能开销
+   */
+  @Test
+  public void benchmarkListLength() throws IOException {
+    String json = """
+        {
+          "name": "bench.listlength",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "lengths",
+              "params": [{"name": "lst", "type": {"kind": "TypeName", "name": "List"}}],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "add"},
+                    "args": [
+                      {
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "add"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "List.length"},
+                            "args": [{"kind": "Name", "name": "lst"}]
+                          },
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "List.length"},
+                            "args": [{"kind": "Name", "name": "lst"}]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "add"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "List.length"},
+                            "args": [{"kind": "Name", "name": "lst"}]
+                          },
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "List.length"},
+                            "args": [{"kind": "Name", "name": "lst"}]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }]
+              }
+            },
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "lengths"},
+                    "args": [{
+                      "kind": "Call",
+                      "target": {"kind": "Name", "name": "List.append"},
+                      "args": [
+                        {
+                          "kind": "Call",
+                          "target": {"kind": "Name", "name": "List.append"},
+                          "args": [
+                            {
+                              "kind": "Call",
+                              "target": {"kind": "Name", "name": "List.append"},
+                              "args": [
+                                {
+                                  "kind": "Call",
+                                  "target": {"kind": "Name", "name": "List.append"},
+                                  "args": [
+                                    {
+                                      "kind": "Call",
+                                      "target": {"kind": "Name", "name": "List.append"},
+                                      "args": [
+                                        {
+                                          "kind": "Call",
+                                          "target": {"kind": "Name", "name": "List.empty"},
+                                          "args": []
+                                        },
+                                        {"kind": "Int", "value": 1}
+                                      ]
+                                    },
+                                    {"kind": "Int", "value": 2}
+                                  ]
+                                },
+                                {"kind": "Int", "value": 3}
+                              ]
+                            },
+                            {"kind": "Int", "value": 4}
+                          ]
+                        },
+                        {"kind": "Int", "value": 5}
+                      ]
+                    }]
+                  }
+                }]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-listlength.json").build();
+
+      // Warmup: 1000次迭代
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals(20, result.asInt(), "lengths([1,2,3,4,5]) should be 5*4=20");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("List.length benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      // List.length 应该快速（executeGeneric + instanceof 模式）
+      // 允许比 Text.length 略慢（预期 5-20% 慢），因为 instanceof 检查开销
+      assertTrue(avgMs < 1.0, "Performance regression: " + avgMs + " ms > 1.0 ms");
+    }
+  }
+
+  /**
+   * List.append 性能基准测试
+   * 测试场景：连续 3 次 List.append 调用，测试对象分配性能影响
+   * 关键风险：new ArrayList() 对象分配可能导致性能低于 0.01 ms 阈值
+   * 目标：验证 executeGeneric + instanceof + 对象分配 模式的性能可行性
+   */
+  @Test
+  public void benchmarkListAppend() throws IOException {
+    String json = """
+        {
+          "name": "bench.listappend",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "appendMultiple",
+              "params": [{"name": "base", "type": {"kind": "TypeName", "name": "List"}}],
+              "ret": {"kind": "TypeName", "name": "List"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "List.append"},
+                    "args": [
+                      {
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "List.append"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "List.append"},
+                            "args": [
+                              {"kind": "Name", "name": "base"},
+                              {"kind": "Int", "value": 6}
+                            ]
+                          },
+                          {"kind": "Int", "value": 7}
+                        ]
+                      },
+                      {"kind": "Int", "value": 8}
+                    ]
+                  }
+                }]
+              }
+            },
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "List.length"},
+                    "args": [{
+                      "kind": "Call",
+                      "target": {"kind": "Name", "name": "appendMultiple"},
+                      "args": [{
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "List.append"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "List.append"},
+                            "args": [
+                              {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "List.append"},
+                                "args": [
+                                  {
+                                    "kind": "Call",
+                                    "target": {"kind": "Name", "name": "List.append"},
+                                    "args": [
+                                      {
+                                        "kind": "Call",
+                                        "target": {"kind": "Name", "name": "List.append"},
+                                        "args": [
+                                          {
+                                            "kind": "Call",
+                                            "target": {"kind": "Name", "name": "List.empty"},
+                                            "args": []
+                                          },
+                                          {"kind": "Int", "value": 1}
+                                        ]
+                                      },
+                                      {"kind": "Int", "value": 2}
+                                    ]
+                                  },
+                                  {"kind": "Int", "value": 3}
+                                ]
+                              },
+                              {"kind": "Int", "value": 4}
+                            ]
+                          },
+                          {"kind": "Int", "value": 5}
+                        ]
+                      }]
+                    }]
+                  }
+                }]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-listappend.json").build();
+
+      // Warmup: 1000次迭代
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals(8, result.asInt(), "appendMultiple([1,2,3,4,5]) should produce list of length 8");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("List.append benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      // List.append 应该快速（但涉及对象分配：new ArrayList()）
+      // 性能阈值：< 0.01 ms（比 List.length 的 1.0 ms 严格 100 倍）
+      // 如果超过阈值，说明对象分配开销过大，触发 Batch 3 退出条件
+      assertTrue(avgMs < 0.01, "Performance regression: " + avgMs + " ms >= 0.01 ms (object allocation overhead too high)");
+    }
+  }
 }

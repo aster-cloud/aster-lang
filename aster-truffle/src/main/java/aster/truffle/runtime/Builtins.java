@@ -787,7 +787,13 @@ public final class Builtins {
     throw new BuiltinException(ErrorMessages.typeExpectedGot("Int", typeName(o)));
   }
 
-  private static String typeName(Object o) {
+  /**
+   * 获取对象的类型名称，用于错误消息生成
+   *
+   * @param o 待检查的对象
+   * @return 类型名称字符串
+   */
+  public static String typeName(Object o) {
     if (o == null) return "null";
     if (o instanceof Map<?,?> m) {
       Object t = m.get("_type");
