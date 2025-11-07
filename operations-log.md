@@ -1,3 +1,79 @@
+# 2025-11-08 09:26 NZST Phase 3C P1-1 完成 ✅
+
+**任务目标**: 实现小列表快速路径（size <= 10）修复 JIT 性能回归
+
+**阶段**: Phase 3C (Post-Phase 3B 优化清理阶段)
+
+**实现内容**:
+
+1. **新增 isSmallList() 守卫方法** (BuiltinCallNode.java:120-130)
+   - 判断列表大小是否 <= 10
+   - 执行 argNodes[0] 获取列表对象
+   - 返回 false 如果无参数或非 List 类型
+
+2. **新增 doListMapSmall() 特化** (BuiltinCallNode.java:542-597)
+   - 守卫：`{"isListMap()", "hasTwoArgs()", "isSmallList(frame)"}`
+   - 直接调用 CallTarget.call()，避免 InvokeNode 缓存开销
+   - Profiler 计数器：`builtin_list_map_small`
+
+3. **修改 doListMap() 守卫** (BuiltinCallNode.java:614)
+   - 添加守卫：`"!isSmallList(frame)"`
+   - 现在仅处理大列表（size > 10）
+
+4. **新增 doListFilterSmall() 特化** (BuiltinCallNode.java:665-722)
+   - 守卫：`{"isListFilter()", "hasTwoArgs()", "isSmallList(frame)"}`
+   - 直接调用 CallTarget.call()
+   - Profiler 计数器：`builtin_list_filter_small`
+
+5. **修改 doListFilter() 守卫** (BuiltinCallNode.java:739)
+   - 添加守卫：`"!isSmallList(frame)"`
+   - 现在仅处理大列表（size > 10）
+
+6. **更新 doGeneric replaces 列表** (BuiltinCallNode.java:799-803)
+   - 添加：`"doListMapSmall", "doListFilterSmall"`
+   - 确保 fallback 能正确替换所有特化
+
+**验证结果**:
+- ✅ compileJava: BUILD SUCCESSFUL
+- ✅ compileTestJava: BUILD SUCCESSFUL
+- ✅ benchmarkListMapSimple(): PASSED (0.006 ms per iteration)
+- ✅ Profiler 计数器验证：`builtin_list_map_small: 11000` 正确捕获
+
+**技术细节**:
+- 小列表使用直接 CallTarget.call()，避免 DirectCallNode 缓存查找开销
+- 大列表继续使用 InvokeNode.execute()，享受单态缓存优化
+- 守卫顺序确保小列表优先匹配快速路径
+- Profiler 计数器区分两种路径：`_small` vs `_node`
+
+**性能验证** (2025-11-08 09:35 NZST):
+- ✅ benchmarkListMapSimple (2 items): **0.002 ms** ≤ 0.0022 ms（目标达成）
+- ✅ benchmarkListMapCaptured (2 items): **0.002 ms**
+- ✅ benchmarkListMapScaling (10 items): **0.003 ms**
+- ✅ benchmarkListFilterSimple (4 items): **0.004 ms**
+- ✅ benchmarkListFilterCaptured (4 items): **0.002 ms**
+- ✅ 所有测试通过：12/12 PASSED
+
+**性能对比**:
+- Phase 3A baseline: 0.00182 ms
+- Phase 3B 回归后: 0.00296 ms (+62.6%)
+- **Phase 3C P1-1**: **0.002 ms** (+9.9%，接近 baseline) ✅
+- **性能提升**: -32.4%（相对 Phase 3B）
+
+**完成报告**:
+- 实现报告：/tmp/p1-1-completion-report.md
+- 性能报告：/tmp/p1-1-performance-report.md
+- 测试日志：/tmp/p1-1-full-benchmark.log
+
+**任务状态**: ✅ P1-1 完全验收通过
+
+# 2025-11-08 06:45 NZST Phase 3B List.map/filter Context 收集
+
+**操作记录**:
+- 工具：sequential-thinking → 明确 Phase 3B 上下文收集范围与步骤。
+- 工具：code-index（set_project_path、find_files、search_code）→ 定位 Builtins、LambdaValue、InvokeNode、BenchmarkTest 文件与基类情况。
+- 工具：zsh + rg/sed/nl → 提取 `List.map`/`List.filter` 循环、CallNode/InvokeNode 代码片段、BenchmarkTest/Profiler 证据。
+- 产出：`.claude/context-phase3b-initial.json`（Phase 3B Context Collection 报告，含 BuiltinNode/InvokeNode/测试信息）。
+
 # 2025-11-07 22:23 NZST Phase 2B 完整结束 ✅
 
 **阶段目标**: 扩展 builtin 内联至 Text/List 操作（Batch 1-3）
@@ -4523,3 +4599,181 @@ podman build -f Dockerfile.truffle -t aster/truffle:latest .
 2. 启动实际应用性能验证以量化 5-15% 目标
 
 ---
+
+- 2025-11-07 23:02 NZST | Codex | 收集 lambda/闭包调用、List.map/filter 实现与测试信息，生成 .claude/context-phase3-initial.json 提供 Phase 3 初始上下文
+- 2025-11-07 23:09 NZST | Codex | 使用 sequential-thinking 工具梳理 Phase 3 审查任务要点与分析步骤
+- 2025-11-07 23:09 NZST | Codex | 执行 `ls` 获取仓库根目录结构以定位 Phase 3 相关文档与源码
+- 2025-11-07 23:09 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录本地时间用于日志与文档时间戳
+- 2025-11-07 23:09 NZST | Codex | 尝试使用 code-index find_files 模糊匹配 `.claude/phase2b-*.md` 以定位 Phase 2B 文档（命令因未设定项目路径失败）
+- 2025-11-07 23:09 NZST | Codex | 配置 code-index 项目根 `/Users/rpang/IdeaProjects/aster-lang` 以启用索引与快速检索
+- 2025-11-07 23:09 NZST | Codex | 再次执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 获取日志时间戳
+- 2025-11-07 23:10 NZST | Codex | 使用 code-index find_files (`.claude/phase2b-*.md`) 检索 Phase 2B 文档（未检索到结果）
+- 2025-11-07 23:10 NZST | Codex | 使用 code-index find_files (`**/phase2b-*.md`) 扩大匹配范围（仍未检索到结果）
+- 2025-11-07 23:10 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录最新时间
+- 2025-11-07 23:10 NZST | Codex | 使用 code-index search_code_advanced (`phase2b-batch`) 了解 Phase 2B 文档引用位置
+- 2025-11-07 23:10 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 获取日志时间
+- 2025-11-07 23:10 NZST | Codex | 执行 `ls .claude` 列出 Phase 相关文档以定位 Phase 3 资料
+- 2025-11-07 23:10 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 更新时间戳
+- 2025-11-07 23:10 NZST | Codex | 阅读 `.claude/phase2b-batch1-performance.md` 以了解 Phase 2B 批次1性能与测试背景
+- 2025-11-07 23:10 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:10 NZST | Codex | 阅读 `.claude/phase2b-batch2-performance.md` 了解 List.length 内联与 instanceof 模式性能
+- 2025-11-07 23:10 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:10 NZST | Codex | 阅读 `.claude/phase2b-batch3-performance.md` 了解 List.append 内联与对象分配性能
+- 2025-11-07 23:10 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:11 NZST | Codex | 阅读 `.claude/context-phase3-initial.json` 获取 Phase 3 现状、测试与挑战
+- 2025-11-07 23:11 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:11 NZST | Codex | 使用 code-index find_files (`**/BuiltinCallNode.java`) 定位内联节点源码
+- 2025-11-07 23:11 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:11 NZST | Codex | 阅读 `aster-truffle/src/main/java/aster/truffle/nodes/BuiltinCallNode.java` 了解已实现内联模式
+- 2025-11-07 23:11 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:11 NZST | Codex | 使用 code-index find_files (`**/Builtins.java`) 区分 runtime/truffle 双版本实现
+- 2025-11-07 23:11 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:12 NZST | Codex | 阅读 `aster-truffle/src/main/java/aster/truffle/runtime/Builtins.java` 中 List.map/filter 当前实现
+- 2025-11-07 23:12 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:12 NZST | Codex | 深入阅读 `Builtins.java` 其他 lambda/集合 builtin（Maybe/Result 系列）寻找循环 + lambda 复用模式
+- 2025-11-07 23:12 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:13 NZST | Codex | 使用 `rg "List.append"` 在 BuiltinCallNode 中定位 List.append 专门化实现
+- 2025-11-07 23:13 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:13 NZST | Codex | 阅读 `BuiltinCallNode` 中 Text/List 内联区段，确认现有 @Specialization 模式
+- 2025-11-07 23:13 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:13 NZST | Codex | 阅读 `aster-truffle/src/main/java/aster/truffle/nodes/InvokeNode.java` 了解 @Cached InvokeNode 机制
+- 2025-11-07 23:13 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:13 NZST | Codex | 阅读 `aster-truffle/src/main/java/aster/truffle/nodes/CallNode.java` 确认 InvokeNode 缓存与参数打包流程
+- 2025-11-07 23:13 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:13 NZST | Codex | 使用 `rg "InvokeNode"` 全局搜索，确认仅 CallNode 使用该模式
+- 2025-11-07 23:13 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:13 NZST | Codex | 阅读 `.claude/phase2b-completion-report.md` 了解 Phase 2B 成果与流程
+- 2025-11-07 23:13 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:14 NZST | Codex | 使用 `rg "benchmarkList"` 在 BenchmarkTest.java 中定位 Phase 2B 性能测试
+- 2025-11-07 23:14 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:14 NZST | Codex | 阅读 `.claude/phase2a-performance-report.md` 确认 Phase 2A 报告结构与命名风格
+- 2025-11-07 23:14 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:14 NZST | Codex | 再次使用 sequential-thinking 工具整理 Phase 3 审查分析步骤
+- 2025-11-07 23:14 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:14 NZST | Codex | 使用 planning 工具定义 Phase 3 审查子步骤与顺序
+- 2025-11-07 23:14 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:15 NZST | Codex | 使用 code-index search (`Phase 3A`) 确认仓库尚无详细 Phase 3A 文档
+- 2025-11-07 23:15 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:15 NZST | Codex | 更新计划：标记“整理 Phase 3A/3B 方案需求与约束”步骤为进行中
+- 2025-11-07 23:15 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:16 NZST | Codex | 使用 `rg \"List.map\"` 全局检索，定位现有基准与文档引用
+- 2025-11-07 23:16 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:16 NZST | Codex | 使用 `nl` 查看 `Builtins.java` 260-333 行，记录 List.map/filter 循环实现
+- 2025-11-07 23:16 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:16 NZST | Codex | 使用 `nl` 查看 `BuiltinCallNode.java` 80-540 行，记录 guard 与 List.append 专门化
+- 2025-11-07 23:16 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:17 NZST | Codex | 使用 `nl` 查看 `InvokeNode.java` 1-87 行，确认 @GenerateInline + DirectCallNode 缓存细节
+- 2025-11-07 23:17 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:17 NZST | Codex | 使用 `nl` 查看 `CallNode.java` 30-110 行，确认 @Cached InvokeNode 用法
+- 2025-11-07 23:17 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:17 NZST | Codex | 使用 `nl` 查看 `CrossBackendBenchmark.java` 320-380 行，确认现有 List.map 基准描述
+- 2025-11-07 23:17 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:17 NZST | Codex | 使用 `rg \"List.map\" benchmarks/performance-thresholds.json` 查阅现有性能阈值
+- 2025-11-07 23:17 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:18 NZST | Codex | 阅读 `benchmarks/performance-thresholds.json` 60-90 行，确认 List.map 警戒阈值
+- 2025-11-07 23:18 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:18 NZST | Codex | 使用 `nl` 查看 `GraalVMJitBenchmark.java` 230-320 行，确认 List.map JIT 基准
+- 2025-11-07 23:18 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:18 NZST | Codex | 更新计划：标记步骤1完成并将步骤2设为进行中
+- 2025-11-07 23:18 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:18 NZST | Codex | 更新计划：步骤2完成，步骤3进入进行中
+- 2025-11-07 23:18 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:19 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 获取撰写审查报告所需时间戳
+- 2025-11-07 23:19 NZST | Codex | 使用 `nl` 查看 `.claude/phase2b-batch1-performance.md` 首段，确认 Phase 2B 报告格式
+- 2025-11-07 23:19 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:20 NZST | Codex | 使用 `nl` 查看 `.claude/context-phase3-initial.json` 以引用测试覆盖与挑战内容
+- 2025-11-07 23:20 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:20 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间（撰写阶段前再确认）
+- 2025-11-07 23:22 NZST | Codex | 新增 `.claude/phase3-analysis-review.md`，输出 Phase 3 深度审查报告
+- 2025-11-07 23:22 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录提交时间
+- 2025-11-07 23:22 NZST | Codex | 更新计划：四个步骤全部标记为完成
+- 2025-11-07 23:22 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:23 NZST | Codex | 使用 `nl` 检查 `.claude/phase3-analysis-review.md` 40-80 行，提取行动计划与风险矩阵行号
+- 2025-11-07 23:23 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:12 NZST | Codex | 使用 code-index search_code_advanced (`Phase 3`) 快速定位全局 Phase 3 参考
+- 2025-11-07 23:12 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:12 NZST | Codex | 尝试使用 code-index find_files (`.claude/*phase3*`) 查找 Phase 3 文档（未命中）
+- 2025-11-07 23:12 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+- 2025-11-07 23:12 NZST | Codex | 使用 code-index search_code_advanced (`LambdaValue` in aster-truffle/runtime) 定位高阶函数实现
+- 2025-11-07 23:12 NZST | Codex | 执行 `TZ=\"Pacific/Auckland\" date '+%Y-%m-%d %H:%M NZST'` 记录时间
+
+## 2025-11-08 P0-1: Fix Truffle DSL warnings (@Bind deprecation)
+
+### 任务目标
+修复 doListMap 和 doListFilter 的 Truffle DSL 警告，应用最佳实践。
+
+### 实施过程
+
+**尝试1：Static methods + @Bind("$node") + @Shared**
+- 修改方法签名为 `protected static List<Object>`
+- 将 `@Bind("this")` 改为 `@Bind("$node")`
+- 尝试添加 `@Shared("invokeNode")` 注解
+- **失败原因**: `com.oracle.truffle.api.dsl.Shared` 不存在（Truffle 25.0.0 不支持）
+
+**尝试2：Static methods + @Bind("$node") + @Bind("this.argNodes")**
+- 移除 @Shared 注解
+- 尝试用 `@Bind("this.argNodes") AsterExpressionNode[] argNodes` 传递实例字段
+- **失败原因**: Truffle DSL 无法在 static 方法中解析 `this.argNodes`（@Children 字段无法通过 @Bind 传递）
+
+**最终方案：Non-static methods + @Bind("$node")**
+- 恢复方法为非 static：`protected List<Object>`
+- 仅修改 `@Bind("this")` → `@Bind("$node")`
+- **成功编译并通过所有测试（135/135）**
+
+### 根本原因分析
+
+**为什么 static 方法不可行**:
+1. Truffle DSL 的 `@Children` 字段（argNodes）是实例级别的节点数组
+2. Static 方法无法访问实例字段，即使通过 `@Bind` 也无法传递 `@Children` 字段
+3. 其他 Truffle 节点（如 InvokeNode）同样未使用 static 方法
+
+**为什么 @Shared 不可用**:
+- Truffle 25.0.0 的 `com.oracle.truffle.api.dsl` 包中不存在 `Shared` 注解
+- InvokeNode 和项目中其他节点都未使用 @Shared
+
+**实际修复的警告**:
+- ✅ 修复 `@Bind("this")` 弃用警告（改为 `@Bind("$node")`）
+- ❌ 无法应用 static 方法（受 @Children 字段限制）
+- ❌ 无法应用 @Shared 注解（Truffle 版本不支持）
+
+### 验证结果
+
+**编译**：
+```
+BUILD SUCCESSFUL in 835ms
+48 warnings（与修改前相同，主要是其他节点的 @Idempotent/@NonIdempotent 警告）
+```
+
+**测试**:
+```
+BUILD SUCCESSFUL in 6m 40s
+135 tests PASSED
+0 tests FAILED
+```
+
+**基准测试** (Phase 3B 对比):
+```
+List.map ×2 (2 items): 0.001745 ms
+List.map (1000 items) Heavy: 1.516680 ms
+```
+与 Phase 3B baseline 一致（±5% 范围内）。
+
+### 文件修改
+
+**aster-truffle/src/main/java/aster/truffle/nodes/BuiltinCallNode.java**:
+1. Line 546: `@Bind("this")` → `@Bind("$node")` (doListMap)
+2. Line 610: `@Bind("this")` → `@Bind("$node")` (doListFilter)
+
+### 结论
+
+**完成度**: 1/3 原始警告已修复
+- ✅ @Bind("this") 弃用警告
+- ❌ Static 方法建议（技术不可行）
+- ❌ @Shared 注解建议（Truffle 版本限制）
+
+**对性能影响**: 无（保持非 static 方法，行为与 Phase 3B 完全一致）
+
+**建议**: 
+- P0-1 任务目标调整为"仅修复 @Bind 弃用警告"
+- Static 方法和 @Shared 注解在当前 Truffle 版本和代码结构下不适用
+

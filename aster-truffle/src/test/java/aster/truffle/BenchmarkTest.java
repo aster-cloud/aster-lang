@@ -1,11 +1,16 @@
 package aster.truffle;
 
+import aster.truffle.nodes.Profiler;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,6 +39,34 @@ import static org.junit.jupiter.api.Assertions.*;
  * - 模式匹配: < 2 ms/iteration (5000 iterations)
  */
 public class BenchmarkTest {
+
+  /**
+   * Phase 3C P0-2: Profiler 数据收集
+   * 在每个测试后自动收集并记录 Profiler 计数器数据
+   */
+  @AfterEach
+  public void dumpProfilerData(TestInfo testInfo) throws IOException {
+    Map<String, Long> counters = Profiler.getCounters();
+    if (!counters.isEmpty()) {
+      String testName = testInfo.getDisplayName();
+      String fileName = "/tmp/profiler-benchmark-" + testName.replaceAll("[^a-zA-Z0-9]", "_") + ".txt";
+      try (FileWriter writer = new FileWriter(fileName, true)) {
+        writer.write("=== Test: " + testName + " ===\n");
+        writer.write("Timestamp: " + java.time.Instant.now() + "\n");
+        writer.write("\nProfiler Counters:\n");
+        counters.forEach((key, value) -> {
+          try {
+            writer.write("  " + key + ": " + value + "\n");
+          } catch (IOException e) {
+            System.err.println("Error writing profiler data: " + e.getMessage());
+          }
+        });
+        writer.write("\n");
+      }
+      System.out.println("✓ Profiler data written to: " + fileName);
+    }
+    Profiler.reset();  // 清除计数器，确保下个测试独立
+  }
 
   /**
    * 基准测试：阶乘计算（递归）
@@ -1192,6 +1225,599 @@ public class BenchmarkTest {
       // 性能阈值：< 0.01 ms（比 List.length 的 1.0 ms 严格 100 倍）
       // 如果超过阈值，说明对象分配开销过大，触发 Batch 3 退出条件
       assertTrue(avgMs < 0.01, "Performance regression: " + avgMs + " ms >= 0.01 ms (object allocation overhead too high)");
+    }
+  }
+
+  /**
+   * Phase 3A 性能基线测试 1: List.map 简单 lambda (无 captures)
+   *
+   * 测试场景: List.map([1,2], x => x * 2)
+   * Lambda 类型: 简单算术操作，无捕获变量
+   * 列表长度: 2 元素（保持 JSON 简洁）
+   * 性能阈值: < 0.1 ms/iteration
+   * Profiler: builtin_list_map_called
+   */
+  @Test
+  public void benchmarkListMapSimple() throws IOException {
+    String json = """
+        {
+          "name": "bench.listmap.simple",
+          "decls": [{
+            "kind": "Func",
+            "name": "main",
+            "params": [],
+            "ret": {"kind": "TypeName", "name": "Int"},
+            "effects": [],
+            "body": {
+              "kind": "Block",
+              "statements": [{
+                "kind": "Return",
+                "expr": {
+                  "kind": "Call",
+                  "target": {"kind": "Name", "name": "List.length"},
+                  "args": [{
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "List.map"},
+                    "args": [
+                      {
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "List.append"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "List.append"},
+                            "args": [
+                              {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "List.empty"},
+                                "args": []
+                              },
+                              {"kind": "Int", "value": 1}
+                            ]
+                          },
+                          {"kind": "Int", "value": 2}
+                        ]
+                      },
+                      {
+                        "kind": "Lambda",
+                        "params": [{"name": "x", "type": {"kind": "TypeName", "name": "Int"}}],
+                        "ret": {"kind": "TypeName", "name": "Int"},
+                        "captures": [],
+                        "body": {
+                          "kind": "Block",
+                          "statements": [{
+                            "kind": "Return",
+                            "expr": {
+                              "kind": "Call",
+                              "target": {"kind": "Name", "name": "mul"},
+                              "args": [
+                                {"kind": "Name", "name": "x"},
+                                {"kind": "Int", "value": 2}
+                              ]
+                            }
+                          }]
+                        }
+                      }
+                    ]
+                  }]
+                }
+              }]
+            }
+          }]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-listmap-simple.json").build();
+
+      // Warmup: 1000次迭代
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals(2, result.asInt(), "List.map([1,2], x=>x*2) should return list of length 2");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("List.map (simple lambda, 2 items) benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      // Phase 3A 性能阈值：< 0.1 ms
+      assertTrue(avgMs < 0.1, "Performance regression: " + avgMs + " ms >= 0.1 ms");
+    }
+  }
+
+  /**
+   * Phase 3A 性能基线测试 2: List.map 带 captures 的 lambda
+   *
+   * 测试场景: factor=3; List.map([1,2], x => x * factor)
+   * Lambda 类型: 捕获外部变量 factor
+   * 列表长度: 2 元素
+   * 性能阈值: < 0.1 ms/iteration
+   * Profiler: builtin_list_map_called
+   */
+  @Test
+  public void benchmarkListMapCaptured() throws IOException {
+    String json = """
+        {
+          "name": "bench.listmap.captured",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "mapWithFactor",
+              "params": [{"name": "factor", "type": {"kind": "TypeName", "name": "Int"}}],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "List.length"},
+                    "args": [{
+                      "kind": "Call",
+                      "target": {"kind": "Name", "name": "List.map"},
+                      "args": [
+                        {
+                          "kind": "Call",
+                          "target": {"kind": "Name", "name": "List.append"},
+                          "args": [
+                            {
+                              "kind": "Call",
+                              "target": {"kind": "Name", "name": "List.append"},
+                              "args": [
+                                {
+                                  "kind": "Call",
+                                  "target": {"kind": "Name", "name": "List.empty"},
+                                  "args": []
+                                },
+                                {"kind": "Int", "value": 1}
+                              ]
+                            },
+                            {"kind": "Int", "value": 2}
+                          ]
+                        },
+                        {
+                          "kind": "Lambda",
+                          "params": [{"name": "x", "type": {"kind": "TypeName", "name": "Int"}}],
+                          "ret": {"kind": "TypeName", "name": "Int"},
+                          "captures": ["factor"],
+                          "body": {
+                            "kind": "Block",
+                            "statements": [{
+                              "kind": "Return",
+                              "expr": {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "mul"},
+                                "args": [
+                                  {"kind": "Name", "name": "x"},
+                                  {"kind": "Name", "name": "factor"}
+                                ]
+                              }
+                            }]
+                          }
+                        }
+                      ]
+                    }]
+                  }
+                }]
+              }
+            },
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "mapWithFactor"},
+                    "args": [{"kind": "Int", "value": 3}]
+                  }
+                }]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-listmap-captured.json").build();
+
+      // Warmup
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals(2, result.asInt(), "List.map with captured factor should return list of length 2");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("List.map (captured lambda, 2 items) benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      assertTrue(avgMs < 0.1, "Performance regression: " + avgMs + " ms >= 0.1 ms");
+    }
+  }
+
+  /**
+   * Phase 3A 性能基线测试 3: List.filter 简单谓词 (无 captures)
+   *
+   * 测试场景: List.filter([1,2,3,4], x => x > 2)
+   * Lambda 类型: 简单比较操作，返回 Boolean
+   * 列表长度: 4 元素
+   * 预期结果: [3,4] 长度为 2
+   * 性能阈值: < 0.1 ms/iteration
+   * Profiler: builtin_list_filter_called
+   */
+  @Test
+  public void benchmarkListFilterSimple() throws IOException {
+    String json = """
+        {
+          "name": "bench.listfilter.simple",
+          "decls": [{
+            "kind": "Func",
+            "name": "main",
+            "params": [],
+            "ret": {"kind": "TypeName", "name": "Int"},
+            "effects": [],
+            "body": {
+              "kind": "Block",
+              "statements": [{
+                "kind": "Return",
+                "expr": {
+                  "kind": "Call",
+                  "target": {"kind": "Name", "name": "List.length"},
+                  "args": [{
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "List.filter"},
+                    "args": [
+                      {
+                        "kind": "Call",
+                        "target": {"kind": "Name", "name": "List.append"},
+                        "args": [
+                          {
+                            "kind": "Call",
+                            "target": {"kind": "Name", "name": "List.append"},
+                            "args": [
+                              {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "List.append"},
+                                "args": [
+                                  {
+                                    "kind": "Call",
+                                    "target": {"kind": "Name", "name": "List.append"},
+                                    "args": [
+                                      {
+                                        "kind": "Call",
+                                        "target": {"kind": "Name", "name": "List.empty"},
+                                        "args": []
+                                      },
+                                      {"kind": "Int", "value": 1}
+                                    ]
+                                  },
+                                  {"kind": "Int", "value": 2}
+                                ]
+                              },
+                              {"kind": "Int", "value": 3}
+                            ]
+                          },
+                          {"kind": "Int", "value": 4}
+                        ]
+                      },
+                      {
+                        "kind": "Lambda",
+                        "params": [{"name": "x", "type": {"kind": "TypeName", "name": "Int"}}],
+                        "ret": {"kind": "TypeName", "name": "Boolean"},
+                        "captures": [],
+                        "body": {
+                          "kind": "Block",
+                          "statements": [{
+                            "kind": "Return",
+                            "expr": {
+                              "kind": "Call",
+                              "target": {"kind": "Name", "name": "gt"},
+                              "args": [
+                                {"kind": "Name", "name": "x"},
+                                {"kind": "Int", "value": 2}
+                              ]
+                            }
+                          }]
+                        }
+                      }
+                    ]
+                  }]
+                }
+              }]
+            }
+          }]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-listfilter-simple.json").build();
+
+      // Warmup
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals(2, result.asInt(), "List.filter([1,2,3,4], x>2) should return [3,4] with length 2");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("List.filter (simple predicate, 4 items) benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      assertTrue(avgMs < 0.1, "Performance regression: " + avgMs + " ms >= 0.1 ms");
+    }
+  }
+
+  /**
+   * Phase 3A 性能基线测试 4: List.filter 带 captures 的谓词
+   *
+   * 测试场景: threshold=2; List.filter([1,2,3,4], x => x > threshold)
+   * Lambda 类型: 捕获外部变量 threshold
+   * 列表长度: 4 元素
+   * 预期结果: [3,4] 长度为 2
+   * 性能阈值: < 0.1 ms/iteration
+   * Profiler: builtin_list_filter_called
+   */
+  @Test
+  public void benchmarkListFilterCaptured() throws IOException {
+    String json = """
+        {
+          "name": "bench.listfilter.captured",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "filterAbove",
+              "params": [{"name": "threshold", "type": {"kind": "TypeName", "name": "Int"}}],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "List.length"},
+                    "args": [{
+                      "kind": "Call",
+                      "target": {"kind": "Name", "name": "List.filter"},
+                      "args": [
+                        {
+                          "kind": "Call",
+                          "target": {"kind": "Name", "name": "List.append"},
+                          "args": [
+                            {
+                              "kind": "Call",
+                              "target": {"kind": "Name", "name": "List.append"},
+                              "args": [
+                                {
+                                  "kind": "Call",
+                                  "target": {"kind": "Name", "name": "List.append"},
+                                  "args": [
+                                    {
+                                      "kind": "Call",
+                                      "target": {"kind": "Name", "name": "List.append"},
+                                      "args": [
+                                        {
+                                          "kind": "Call",
+                                          "target": {"kind": "Name", "name": "List.empty"},
+                                          "args": []
+                                        },
+                                        {"kind": "Int", "value": 1}
+                                      ]
+                                    },
+                                    {"kind": "Int", "value": 2}
+                                  ]
+                                },
+                                {"kind": "Int", "value": 3}
+                              ]
+                            },
+                            {"kind": "Int", "value": 4}
+                          ]
+                        },
+                        {
+                          "kind": "Lambda",
+                          "params": [{"name": "x", "type": {"kind": "TypeName", "name": "Int"}}],
+                          "ret": {"kind": "TypeName", "name": "Boolean"},
+                          "captures": ["threshold"],
+                          "body": {
+                            "kind": "Block",
+                            "statements": [{
+                              "kind": "Return",
+                              "expr": {
+                                "kind": "Call",
+                                "target": {"kind": "Name", "name": "gt"},
+                                "args": [
+                                  {"kind": "Name", "name": "x"},
+                                  {"kind": "Name", "name": "threshold"}
+                                ]
+                              }
+                            }]
+                          }
+                        }
+                      ]
+                    }]
+                  }
+                }]
+              }
+            },
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": {"kind": "TypeName", "name": "Int"},
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [{
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "filterAbove"},
+                    "args": [{"kind": "Int", "value": 2}]
+                  }
+                }]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-listfilter-captured.json").build();
+
+      // Warmup
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals(2, result.asInt(), "List.filter with captured threshold should return list of length 2");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("List.filter (captured predicate, 4 items) benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      assertTrue(avgMs < 0.1, "Performance regression: " + avgMs + " ms >= 0.1 ms");
+    }
+  }
+
+  /**
+   * Phase 3A 性能基线测试 5: List.map 列表长度扩展性测试
+   *
+   * 测试场景: List.map([1,2,...,10], x => x * 2)
+   * Lambda 类型: 简单算术操作
+   * 列表长度: 10 元素（测试更大列表的性能）
+   * 性能阈值: < 0.2 ms/iteration（允许稍高，因为列表更大）
+   * 目的: 观察性能随列表长度的扩展性
+   */
+  @Test
+  public void benchmarkListMapScaling() throws IOException {
+    // 使用辅助函数生成 10 元素列表的 JSON
+    StringBuilder listBuilder = new StringBuilder();
+    listBuilder.append("{\n");
+    listBuilder.append("  \"kind\": \"Call\",\n");
+    listBuilder.append("  \"target\": {\"kind\": \"Name\", \"name\": \"List.empty\"},\n");
+    listBuilder.append("  \"args\": []\n");
+    listBuilder.append("}");
+
+    // 构建嵌套的 List.append 调用
+    for (int i = 1; i <= 10; i++) {
+      String current = listBuilder.toString();
+      listBuilder = new StringBuilder();
+      listBuilder.append("{\n");
+      listBuilder.append("  \"kind\": \"Call\",\n");
+      listBuilder.append("  \"target\": {\"kind\": \"Name\", \"name\": \"List.append\"},\n");
+      listBuilder.append("  \"args\": [\n");
+      listBuilder.append("    ").append(current.replace("\n", "\n    ")).append(",\n");
+      listBuilder.append("    {\"kind\": \"Int\", \"value\": ").append(i).append("}\n");
+      listBuilder.append("  ]\n");
+      listBuilder.append("}");
+    }
+
+    String listExpr = listBuilder.toString();
+
+    String json = String.format("""
+        {
+          "name": "bench.listmap.scaling",
+          "decls": [{
+            "kind": "Func",
+            "name": "main",
+            "params": [],
+            "ret": {"kind": "TypeName", "name": "Int"},
+            "effects": [],
+            "body": {
+              "kind": "Block",
+              "statements": [{
+                "kind": "Return",
+                "expr": {
+                  "kind": "Call",
+                  "target": {"kind": "Name", "name": "List.length"},
+                  "args": [{
+                    "kind": "Call",
+                    "target": {"kind": "Name", "name": "List.map"},
+                    "args": [
+                      %s,
+                      {
+                        "kind": "Lambda",
+                        "params": [{"name": "x", "type": {"kind": "TypeName", "name": "Int"}}],
+                        "ret": {"kind": "TypeName", "name": "Int"},
+                        "captures": [],
+                        "body": {
+                          "kind": "Block",
+                          "statements": [{
+                            "kind": "Return",
+                            "expr": {
+                              "kind": "Call",
+                              "target": {"kind": "Name", "name": "mul"},
+                              "args": [
+                                {"kind": "Name", "name": "x"},
+                                {"kind": "Int", "value": 2}
+                              ]
+                            }
+                          }]
+                        }
+                      }
+                    ]
+                  }]
+                }
+              }]
+            }
+          }]
+        }
+        """, listExpr);
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "bench-listmap-scaling.json").build();
+
+      // Warmup
+      for (int i = 0; i < 1000; i++) {
+        context.eval(source);
+      }
+
+      // 实际测试
+      long start = System.nanoTime();
+      int iterations = 10000;
+      for (int i = 0; i < iterations; i++) {
+        Value result = context.eval(source);
+        assertEquals(10, result.asInt(), "List.map([1..10], x=>x*2) should return list of length 10");
+      }
+      long end = System.nanoTime();
+
+      double avgMs = (end - start) / 1_000_000.0 / iterations;
+      System.out.printf("List.map (simple lambda, 10 items) benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+
+      // 更宽松的阈值，因为列表更大
+      assertTrue(avgMs < 0.2, "Performance regression: " + avgMs + " ms >= 0.2 ms");
     }
   }
 }

@@ -36,6 +36,9 @@ tasks.test {
     exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     showStandardStreams = true
   }
+  // Phase 3C P0-2: 支持 Profiler 数据收集
+  // 通过 -Daster.profiler.enabled=true 启用 profiling
+  systemProperty("aster.profiler.enabled", System.getProperty("aster.profiler.enabled", "false"))
 }
 
 // GraalVM Native Image 配置
