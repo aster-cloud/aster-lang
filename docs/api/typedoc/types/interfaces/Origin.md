@@ -4,7 +4,7 @@
 
 # Interface: Origin
 
-Defined in: [types.ts:18](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types.ts#L18)
+Defined in: [types.ts:18](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types.ts#L18)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:18](https://github.com/wontlost-ltd/aster-lang/blob/fa50db
 
 > `readonly` `optional` **file**: `string`
 
-Defined in: [types.ts:19](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types.ts#L19)
+Defined in: [types.ts:19](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types.ts#L19)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:19](https://github.com/wontlost-ltd/aster-lang/blob/fa50db
 
 > `readonly` **start**: [`Position`](Position.md)
 
-Defined in: [types.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types.ts#L20)
+Defined in: [types.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types.ts#L20)
 
 ***
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/fa50db
 
 > `readonly` **end**: [`Position`](Position.md)
 
-Defined in: [types.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types.ts#L21)
+Defined in: [types.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types.ts#L21)

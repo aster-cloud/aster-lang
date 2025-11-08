@@ -4,7 +4,7 @@
 
 # Interface: Double
 
-Defined in: [types.ts:484](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types.ts#L484)
+Defined in: [types.ts:484](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types.ts#L484)
 
 浮点数字面量基础接口。
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:484](https://github.com/wontlost-ltd/aster-lang/blob/fa50d
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types/base.ts#L41)
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types/base.ts#L41)
 
 #### Inherited from
 
@@ -30,7 +30,7 @@ Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/f
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -42,7 +42,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/f
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types/base.ts#L43)
 
 #### Inherited from
 
@@ -54,7 +54,7 @@ Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/f
 
 > `readonly` **kind**: `"Double"`
 
-Defined in: [types/base.ts:292](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types/base.ts#L292)
+Defined in: [types/base.ts:292](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types/base.ts#L292)
 
 #### Inherited from
 
@@ -66,7 +66,7 @@ Defined in: [types/base.ts:292](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **value**: `number`
 
-Defined in: [types/base.ts:293](https://github.com/wontlost-ltd/aster-lang/blob/fa50dbc54c51a80ed2059bde2d89a41958e445b2/src/types/base.ts#L293)
+Defined in: [types/base.ts:293](https://github.com/wontlost-ltd/aster-lang/blob/4899d627882a090d7d5d1cdf62f9eb9449c10cfb/src/types/base.ts#L293)
 
 #### Inherited from
 

@@ -41,6 +41,26 @@ tasks.test {
   systemProperty("aster.profiler.enabled", System.getProperty("aster.profiler.enabled", "false"))
 }
 
+// Native Image Agent 配置生成任务
+tasks.register<JavaExec>("generateNativeConfig") {
+  group = "native"
+  description = "Generate Native Image configuration using Agent"
+  classpath = sourceSets["main"].runtimeClasspath
+  mainClass.set("aster.truffle.Runner")
+
+  val configOutputDir = "${projectDir}/src/main/resources/META-INF/native-image"
+  jvmArgs = listOf(
+    "-agentlib:native-image-agent=config-output-dir=${configOutputDir}"
+  )
+
+  // 运行典型工作负载以收集元数据
+  args = listOf(
+    "${projectDir}/../benchmarks/core/fibonacci_20_core.json",
+    "${projectDir}/../benchmarks/core/factorial_12_core.json",
+    "${projectDir}/../benchmarks/core/list_map_1000_core.json"
+  )
+}
+
 // GraalVM Native Image 配置
 graalvmNative {
   metadataRepository {
@@ -54,6 +74,32 @@ graalvmNative {
       buildArgs.add("-H:+ReportExceptionStackTraces")
       buildArgs.add("--initialize-at-build-time=")
       buildArgs.add("-H:+UnlockExperimentalVMOptions")
+
+      // PGO 支持: 通过 -PpgoMode 传递参数
+      // 用法: ./gradlew nativeCompile -PpgoMode=instrument
+      //      ./gradlew nativeCompile -PpgoMode=default.iprof
+      val pgoMode: String? by project
+      if (pgoMode != null) {
+        when {
+          pgoMode == "instrument" -> buildArgs.add("--pgo-instrument")
+          pgoMode!!.endsWith(".iprof") -> buildArgs.add("--pgo=$pgoMode")
+          else -> println("Warning: Unknown PGO mode: $pgoMode")
+        }
+      }
+
+      // 二进制大小优化 (Phase 5 Task 5.2): 通过 -PsizeOptimization=true 启用
+      // 注意: PGO 已经实现了主要优化 (36.88MB → 23MB),以下参数是可选的额外优化
+      // 用法: ./gradlew nativeCompile -PpgoMode=<path>.iprof -PsizeOptimization=true
+      val sizeOptimization: String? by project
+      if (sizeOptimization == "true") {
+        buildArgs.add("-O3")                      // 最高优化级别 (注: 默认已是 O3)
+        buildArgs.add("--gc=serial")              // 更小的 GC (注: 默认已是 serial)
+        buildArgs.add("-H:+StripDebugInfo")       // 去除调试信息 (可能影响堆栈跟踪)
+        buildArgs.add("-H:-AddAllCharsets")       // 仅包含需要的字符集 (可能影响字符处理)
+        buildArgs.add("-H:+RemoveUnusedSymbols")  // 移除未使用符号 (PGO 已处理大部分)
+        println("[Size Optimization] Enabled additional size optimization flags")
+      }
+
       // 配置文件会从 META-INF/native-image/ 自动发现（不需要 resources.autodetect()）
       // 移除 resources.autodetect() 避免生成错误的 -H:*ConfigurationFiles= 路径
     }
