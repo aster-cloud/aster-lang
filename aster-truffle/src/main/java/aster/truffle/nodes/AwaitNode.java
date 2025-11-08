@@ -8,6 +8,8 @@ import aster.truffle.runtime.AsyncTaskRegistry.TaskStatus;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
+import com.oracle.truffle.api.dsl.Specialization;
+
 /**
  * Await表达式节点 - 等待异步任务完成并返回结果
  *
@@ -16,16 +18,24 @@ import com.oracle.truffle.api.nodes.Node;
  * - 轮询 AsyncTaskRegistry 直到任务完成
  * - 在轮询过程中调用 executeNext() 调度待执行任务
  * - COMPLETED 时返回结果，FAILED 时抛出异常
+ *
+ * Phase 2.4 优化：
+ * - 改为 abstract class + @Specialization
+ * - 保持单一执行路径（异步轮询逻辑）
  */
-public final class AwaitNode extends AsterExpressionNode {
+public abstract class AwaitNode extends AsterExpressionNode {
   @Child private AsterExpressionNode taskIdExpr;
 
-  public AwaitNode(AsterExpressionNode taskIdExpr) {
+  protected AwaitNode(AsterExpressionNode taskIdExpr) {
     this.taskIdExpr = taskIdExpr;
   }
 
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
+  public static AwaitNode create(AsterExpressionNode taskIdExpr) {
+    return AwaitNodeGen.create(taskIdExpr);
+  }
+
+  @Specialization
+  protected Object doAwait(VirtualFrame frame) {
     Profiler.inc("await");
 
     // 获取 task_id

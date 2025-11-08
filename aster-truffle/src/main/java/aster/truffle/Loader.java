@@ -214,7 +214,7 @@ public final class Loader {
   private final java.util.Deque<java.util.Map<String,Integer>> paramSlotStack = new java.util.ArrayDeque<>();
 
   private Node buildBlock(CoreModel.Block b) {
-    if (b == null || b.statements == null || b.statements.isEmpty()) return new LiteralNode(null);
+    if (b == null || b.statements == null || b.statements.isEmpty()) return LiteralNode.create(null);
     var list = new java.util.ArrayList<Node>();
     java.util.Map<String,Integer> slots = currentParamSlots();  // 获取当前 frame slots
 
@@ -222,7 +222,7 @@ public final class Loader {
       if (s instanceof CoreModel.Return r) {
         list.add(new ReturnNode(buildExpr(r.expr)));
       } else if (s instanceof CoreModel.If iff) {
-        list.add(new IfNode(buildExpr(iff.cond), buildBlock(iff.thenBlock), buildBlock(iff.elseBlock)));
+        list.add(IfNode.create(buildExpr(iff.cond), buildBlock(iff.thenBlock), buildBlock(iff.elseBlock)));
       } else if (s instanceof CoreModel.Let let) {
         // 优先使用 frame-based LetNode，回退到 Env-based
         AsterExpressionNode valueNode = buildExpr(let.expr);
@@ -249,17 +249,17 @@ public final class Loader {
         list.add(new WaitNode(env, ((wt.names != null) ? wt.names : java.util.List.<String>of()).toArray(new String[0])));
       }
     }
-    return new BlockNode(list);
+    return BlockNode.create(list);
   }
 
   private AsterExpressionNode buildExpr(CoreModel.Expr e) {
-    if (e instanceof CoreModel.StringE s) return new LiteralNode(s.value);
-    if (e instanceof CoreModel.Bool b) return new LiteralNode(b.value);
-    if (e instanceof CoreModel.IntE i) return new LiteralNode(Integer.valueOf(i.value));
-    if (e instanceof CoreModel.LongE l) return new LiteralNode(Long.valueOf(l.value));
-    if (e instanceof CoreModel.DoubleE d) return new LiteralNode(Double.valueOf(d.value));
-    if (e instanceof CoreModel.NullE) return new LiteralNode(null);
-    if (e instanceof CoreModel.AwaitE aw) return new aster.truffle.nodes.AwaitNode(buildExpr(aw.expr));
+    if (e instanceof CoreModel.StringE s) return LiteralNode.create(s.value);
+    if (e instanceof CoreModel.Bool b) return LiteralNode.create(b.value);
+    if (e instanceof CoreModel.IntE i) return LiteralNode.create(Integer.valueOf(i.value));
+    if (e instanceof CoreModel.LongE l) return LiteralNode.create(Long.valueOf(l.value));
+    if (e instanceof CoreModel.DoubleE d) return LiteralNode.create(Double.valueOf(d.value));
+    if (e instanceof CoreModel.NullE) return LiteralNode.create(null);
+    if (e instanceof CoreModel.AwaitE aw) return aster.truffle.nodes.AwaitNode.create(buildExpr(aw.expr));
     if (e instanceof CoreModel.Lambda lam) {
       java.util.List<String> params = new java.util.ArrayList<>();
       if (lam.params != null) for (var p : lam.params) params.add(p.name);
@@ -317,7 +317,7 @@ public final class Loader {
         }
 
         // Return LambdaNode that will create LambdaValue with captured values at runtime
-        return new aster.truffle.nodes.LambdaNode(language, env, params, caps, captureExprs, callTarget);
+        return aster.truffle.nodes.LambdaNode.create(language, env, params, caps, captureExprs, callTarget);
       } else {
         // Legacy Loader (Runner without AsterLanguage) 不支持 Lambda
         // 这是有意的设计决策,因为:
@@ -367,7 +367,7 @@ public final class Loader {
     if (e instanceof CoreModel.Some sm) return new aster.truffle.nodes.ResultNodes.SomeNode(buildExpr(sm.expr));
     if (e instanceof CoreModel.NoneE) return new aster.truffle.nodes.ResultNodes.NoneNode();
     if (e instanceof CoreModel.Construct cons) return buildConstruct(cons);
-    return new LiteralNode(null);
+    return LiteralNode.create(null);
   }
 
   private Node buildMatch(CoreModel.Match mm) {
@@ -384,12 +384,12 @@ public final class Loader {
           singleStmtBlock.statements = java.util.List.of(c.body);
           body = buildBlock(singleStmtBlock);
         } else {
-          body = new LiteralNode(null);
+          body = LiteralNode.create(null);
         }
         patCases.add(new aster.truffle.nodes.MatchNode.CaseNode(pn, body));
       }
     }
-    return new aster.truffle.nodes.MatchNode(env, buildExpr(mm.expr), patCases);
+    return aster.truffle.nodes.MatchNode.create(env, buildExpr(mm.expr), patCases);
   }
 
   private aster.truffle.nodes.MatchNode.PatternNode buildPatternNode(CoreModel.Pattern p) {
@@ -409,18 +409,18 @@ public final class Loader {
     if (sc.statements != null) for (var s : sc.statements) {
       if (s instanceof CoreModel.Return r) list.add(new ReturnNode(buildExpr(r.expr)));
       else if (s instanceof CoreModel.Let let) list.add(new LetNodeEnv(let.name, buildExpr(let.expr), env));
-      else if (s instanceof CoreModel.If iff) list.add(new IfNode(buildExpr(iff.cond), buildBlock(iff.thenBlock), buildBlock(iff.elseBlock)));
+      else if (s instanceof CoreModel.If iff) list.add(IfNode.create(buildExpr(iff.cond), buildBlock(iff.thenBlock), buildBlock(iff.elseBlock)));
       else if (s instanceof CoreModel.Set set) list.add(new SetNodeEnv(set.name, buildExpr(set.expr), env));
       else if (s instanceof CoreModel.Start st) list.add(new StartNode(env, st.name, buildExpr(st.expr)));
       else if (s instanceof CoreModel.Wait wt) list.add(new WaitNode(((wt.names != null) ? wt.names : java.util.List.<String>of()).toArray(new String[0])));
     }
-    return new BlockNode(list);
+    return BlockNode.create(list);
   }
 
   private AsterExpressionNode buildConstruct(CoreModel.Construct cons) {
     var fields = new java.util.LinkedHashMap<String, AsterExpressionNode>();
     if (cons.fields != null) for (var f : cons.fields) fields.put(f.name, buildExpr(f.expr));
-    return new ConstructNode(cons.typeName, fields);
+    return ConstructNode.create(cons.typeName, fields);
   }
 
   private AsterExpressionNode buildName(String name) {
@@ -428,11 +428,11 @@ public final class Loader {
     if (enumVariantToEnum != null) {
       String en = enumVariantToEnum.get(name);
       if (en != null) {
-        return new LiteralNode(new java.util.LinkedHashMap<String,Object>() {{ put("_enum", en); put("value", name); }});
+        return LiteralNode.create(new java.util.LinkedHashMap<String,Object>() {{ put("_enum", en); put("value", name); }});
       }
     }
     // If name contains '.', treat as fully-qualified enum value string literal
-    if (name.contains(".")) return new LiteralNode(name);
+    if (name.contains(".")) return LiteralNode.create(name);
     java.util.Map<String,Integer> slots = currentParamSlots();
     if (slots != null && slots.containsKey(name)) {
       return NameNodeGen.create(name, slots.get(name));
@@ -441,7 +441,7 @@ public final class Loader {
   }
 
   private Node buildFunctionBody(CoreModel.Func fn) {
-    if (fn == null) return new LiteralNode(null);
+    if (fn == null) return LiteralNode.create(null);
     if (fn == entryFunction && entryParamSlots != null && !entryParamSlots.isEmpty()) {
       return withParamSlots(entryParamSlots, () -> buildBlock(fn.body));
     }

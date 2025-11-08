@@ -1,29 +1,50 @@
 package aster.truffle.nodes;
 
 import aster.truffle.runtime.AsterConfig;
+import com.oracle.truffle.api.dsl.Idempotent;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
-public final class MatchNode extends AsterExpressionNode {
+@NodeChild(value = "scrutineeNode", type = AsterExpressionNode.class)
+public abstract class MatchNode extends AsterExpressionNode {
   private final Env env;
-  @Child private Node scrutinee;
-  @Children private CaseNode[] cases;
+  @Children private final CaseNode[] cases;
 
-  public MatchNode(Env env, Node scrutinee, java.util.List<CaseNode> cases) {
+  protected MatchNode(Env env, java.util.List<CaseNode> cases) {
     this.env = env;
-    this.scrutinee = scrutinee;
     this.cases = cases.toArray(new CaseNode[0]);
   }
 
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
+  public static MatchNode create(Env env, AsterExpressionNode scrutinee, java.util.List<CaseNode> cases) {
+    return MatchNodeGen.create(env, cases, scrutinee);
+  }
+
+  @Specialization(guards = "isNull(scrutinee)")
+  protected Object matchNull(VirtualFrame frame, Object scrutinee) {
     Profiler.inc("match");
-    Object s = Exec.exec(scrutinee, frame);
+    return executeCases(frame, scrutinee);
+  }
+
+  @Specialization(guards = "isMap(scrutinee)")
+  protected Object matchMap(VirtualFrame frame, Object scrutinee) {
+    Profiler.inc("match");
+    return executeCases(frame, scrutinee);
+  }
+
+  @Specialization(replaces = {"matchNull", "matchMap"})
+  protected Object matchGeneric(VirtualFrame frame, Object scrutinee) {
+    Profiler.inc("match");
+    return executeCases(frame, scrutinee);
+  }
+
+  private Object executeCases(VirtualFrame frame, Object scrutinee) {
     if (AsterConfig.DEBUG) {
-      System.err.println("DEBUG: match scrutinee=" + s);
+      System.err.println("DEBUG: match scrutinee=" + scrutinee);
     }
     for (CaseNode c : cases) {
-      if (c.matchesAndBind(s, env)) {
+      if (c.matchesAndBind(scrutinee, env)) {
         if (AsterConfig.DEBUG) {
           System.err.println("DEBUG: case matched");
         }
@@ -31,6 +52,15 @@ public final class MatchNode extends AsterExpressionNode {
       }
     }
     return null;
+  }
+
+  @Idempotent protected boolean isNull(Object value) {
+    return value == null;
+  }
+
+  @Idempotent @SuppressWarnings("rawtypes")
+  protected boolean isMap(Object value) {
+    return value instanceof java.util.Map;
   }
 
   public static abstract class PatternNode extends Node {

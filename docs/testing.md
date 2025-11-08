@@ -2,6 +2,15 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-08 Truffle Phase 2 Task 2.3 验证
+- 日期：2025-11-08 15:48 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :aster-truffle:compileJava` → 通过（沿用既有 BuiltinCallNode guard @Idempotent 警告，编译产出 `LambdaNodeGen/ConstructNodeGen`）
+  - `./gradlew :aster-truffle:test`（CLI 默认 10s 超时）→ 失败（命令超时，测试仍在运行）
+  - `./gradlew :aster-truffle:test`（超时阈值 200s）→ 失败（命令在 200s 时被终止）
+  - `./gradlew :aster-truffle:test`（超时阈值 600s）→ 通过（全部单元、集成、基准测试成功，包含 BenchmarkTest/CrossBackendBenchmark）
+
 ## 2025-11-05 Profiler 条件编译验证
 - 日期：2025-11-05 21:02 NZST
 - 执行者：Codex

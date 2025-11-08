@@ -3,14 +3,17 @@ package aster.truffle.nodes;
 import aster.truffle.AsterLanguage;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.dsl.Idempotent;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
 
 /**
  * LambdaNode - 在运行时创建 LambdaValue，动态捕获闭包变量
  */
-public final class LambdaNode extends AsterExpressionNode {
+public abstract class LambdaNode extends AsterExpressionNode {
   @CompilationFinal private final AsterLanguage language;
   @CompilationFinal private final Env env;
   @CompilationFinal private final List<String> params;
@@ -18,7 +21,7 @@ public final class LambdaNode extends AsterExpressionNode {
   @Children private final AsterExpressionNode[] captureExprs;
   @CompilationFinal private final CallTarget callTarget;
 
-  public LambdaNode(
+  protected LambdaNode(
       AsterLanguage language,
       Env env,
       List<String> params,
@@ -33,18 +36,36 @@ public final class LambdaNode extends AsterExpressionNode {
     this.callTarget = callTarget;
   }
 
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
-    Profiler.inc("lambda_create");
+  public static LambdaNode create(
+      AsterLanguage language,
+      Env env,
+      List<String> params,
+      List<String> captureNames,
+      AsterExpressionNode[] captureExprs,
+      CallTarget callTarget) {
+    return LambdaNodeGen.create(language, env, params, captureNames, captureExprs, callTarget);
+  }
 
-    // Evaluate capture expressions at runtime to get current values
+  @Specialization(guards = "hasNoCaptures()")
+  protected LambdaValue doNoClosure() {
+    Profiler.inc("lambda_create");
+    return new LambdaValue(params, captureNames, new Object[0], callTarget, java.util.Set.of());
+  }
+
+  @Specialization
+  @ExplodeLoop
+  protected LambdaValue doWithClosure(VirtualFrame frame) {
+    Profiler.inc("lambda_create");
     Object[] capturedValues = new Object[captureExprs.length];
     for (int i = 0; i < captureExprs.length; i++) {
       capturedValues[i] = captureExprs[i].executeGeneric(frame);
     }
-
-    // Create and return LambdaValue with captured values (without effects, for runtime lambda creation)
     return new LambdaValue(params, captureNames, capturedValues, callTarget, java.util.Set.of());
+  }
+
+  @Idempotent
+  protected boolean hasNoCaptures() {
+    return captureExprs.length == 0;
   }
 
   @Override

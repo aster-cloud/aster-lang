@@ -18,3 +18,79 @@
 - 2025-11-07 19:46 NZST｜工具：shell（sed）｜动作：读取 Builtins.java｜摘要：逐段审阅 register 列表并确认分类（Text/List/Map/Result/其他）。
 - 2025-11-07 19:46 NZST｜工具：shell（python3）｜动作：统计测试与 golden 频次｜摘要：遍历 tests/golden 目录，生成 `.claude/builtin-usage-counts.json`。
 - 2025-11-07 19:46 NZST｜工具：shell（python3）｜动作：生成分析 JSON｜摘要：根据频次与评估描述写入 `.claude/context-phase2b-builtin-analysis.json`。
+- 2025-11-08 15:24 NZST｜工具：sequential-thinking｜动作：Task 2.3 初始思考｜摘要：梳理 LambdaNode、ConstructNode、LambdaRootNode 的 DSL 重构要求与风险。
+- 2025-11-08 15:25 NZST｜工具：sequential-thinking｜动作：重复调用（失败）｜摘要：误将检索需求发送到思考工具，收到参数格式错误提示。
+- 2025-11-08 15:25 NZST｜工具：code-index.find_files｜动作：查找 operations-log 文件（失败）｜摘要：因未初始化项目根导致工具提示需要先设置目录。
+- 2025-11-08 15:25 NZST｜工具：code-index.set_project_path｜动作：建立索引上下文｜摘要：将 `/Users/rpang/IdeaProjects/aster-lang` 注册到索引服务以支持检索。
+- 2025-11-08 15:26 NZST｜工具：code-index.find_files｜动作：定位 operations-log 文件｜摘要：获取多条 `docs/workstreams/*/operations-log.md` 路径以确认当前任务目录。
+- 2025-11-08 15:26 NZST｜工具：shell（sed）｜动作：查看现有操作日志｜摘要：阅读 `docs/workstreams/truffle-phase2/operations-log.md` 了解记录格式。
+- 2025-11-08 15:27 NZST｜工具：shell（date）｜动作：获取当前新西兰时间｜摘要：使用 `TZ=Pacific/Auckland date` 记录日志时间戳。
+- 2025-11-08 15:27 NZST｜工具：apply_patch｜动作：批量写入工具日志｜摘要：追加 sequential-thinking、code-index、shell 等操作的留痕记录。
+- 2025-11-08 15:28 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：在日志中记下当前补丁行为，确保所有写操作可追溯。
+- 2025-11-08 15:29 NZST｜工具：update_plan｜动作：建立执行计划｜摘要：拆分审阅、DSL 重构、Loader 更新与验证报告四个步骤并标记当前进度。
+- 2025-11-08 15:29 NZST｜工具：apply_patch｜动作：登记 update_plan 留痕｜摘要：为计划工具调用追加日志记录。
+- 2025-11-08 15:30 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：同步记载当前补丁行为以保持链路完整。
+- 2025-11-08 15:31 NZST｜工具：code-index.get_file_summary｜动作：读取 LambdaNode 摘要（失败）｜摘要：未构建深度索引导致 needs_deep_index 提示。
+- 2025-11-08 15:31 NZST｜工具：code-index.build_deep_index｜动作：重建索引｜摘要：为节点重构准备符号检索数据。
+- 2025-11-08 15:32 NZST｜工具：code-index.get_file_summary｜动作：读取 LambdaNode 摘要｜摘要：确认字段列表与行数以规划 DSL 重构。
+- 2025-11-08 15:32 NZST｜工具：shell（sed）｜动作：审阅 LambdaNode 代码｜摘要：`sed -n '1,200p' .../LambdaNode.java` 理解闭包捕获逻辑。
+- 2025-11-08 15:33 NZST｜工具：code-index.get_file_summary｜动作：读取 ConstructNode 摘要｜摘要：获取字段及 @ExplodeLoop 标注信息。
+- 2025-11-08 15:33 NZST｜工具：shell（sed）｜动作：审阅 ConstructNode 代码｜摘要：查看构造函数与 Map 生成流程。
+- 2025-11-08 15:34 NZST｜工具：code-index.get_file_summary｜动作：读取 LambdaRootNode 摘要｜摘要：确认 execute/bindParameters/bindCaptures 实现。
+- 2025-11-08 15:34 NZST｜工具：shell（sed）｜动作：审阅 LambdaRootNode 代码｜摘要：了解参数绑定与捕获逻辑以评估是否需要 DSL。
+- 2025-11-08 15:35 NZST｜工具：code-index.search_code_advanced｜动作：查找 `new LambdaNode`（未命中）｜摘要：确认 Loader 是唯一实例化位置。
+- 2025-11-08 15:35 NZST｜工具：code-index.search_code_advanced｜动作：限定 Loader 检索 LambdaNode｜摘要：定位 `return new ... LambdaNode(...)` 片段便于替换。
+- 2025-11-08 15:36 NZST｜工具：shell（sed）｜动作：查看 Loader Lambda 构建段落｜摘要：理解 FrameSlotBuilder 和节点创建流程。
+- 2025-11-08 15:36 NZST｜工具：code-index.search_code_advanced｜动作：查找 `new aster.truffle.nodes.ConstructNode`（未命中）｜摘要：确认使用未带全限定名。
+- 2025-11-08 15:36 NZST｜工具：code-index.search_code_advanced｜动作：查找 `new ConstructNode`｜摘要：定位 buildConstruct 返回位置。
+- 2025-11-08 15:37 NZST｜工具：shell（sed）｜动作：查看 Loader 构造节点代码｜摘要：审阅 buildConstruct 并记录字段构建方式。
+- 2025-11-08 15:37 NZST｜工具：apply_patch｜动作：记录检索与审阅日志｜摘要：本次补丁新增上述工具调用留痕。
+- 2025-11-08 15:38 NZST｜工具：code-index.get_file_summary｜动作：读取 LiteralNode 摘要｜摘要：参考 Phase 2.2 节点已完成的 DSL 结构。
+- 2025-11-08 15:38 NZST｜工具：shell（sed）｜动作：审阅 LiteralNode 代码｜摘要：了解抽象类 + @Specialization 定义供对齐风格。
+- 2025-11-08 15:38 NZST｜工具：apply_patch｜动作：记录 LiteralNode 调研操作｜摘要：追加上述检索与阅读日志。
+- 2025-11-08 15:39 NZST｜工具：update_plan｜动作：更新执行阶段｜摘要：将调研步骤标记完成并开始 LambdaNode 重构阶段。
+- 2025-11-08 15:39 NZST｜工具：apply_patch｜动作：登记 plan 更新｜摘要：写入 update_plan 调用的日志记录。
+- 2025-11-08 15:40 NZST｜工具：apply_patch｜动作：重构 LambdaNode｜摘要：改为抽象类，新增 @Specialization 特化与 create 工厂方法。
+- 2025-11-08 15:40 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：同步写入上述补丁的留痕。
+- 2025-11-08 15:41 NZST｜工具：update_plan｜动作：标记 LambdaNode 阶段完成｜摘要：推进计划进入 ConstructNode 重构与 Loader 更新。
+- 2025-11-08 15:41 NZST｜工具：apply_patch｜动作：记录 plan 更新日志｜摘要：为最新的计划状态调整留痕。
+- 2025-11-08 15:42 NZST｜工具：apply_patch｜动作：重构 ConstructNode｜摘要：引入 DSL 特化与工厂方法以配合 Truffle 生成器。
+- 2025-11-08 15:42 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：将 ConstructNode 补丁写入日志。
+- 2025-11-08 15:43 NZST｜工具：apply_patch｜动作：更新 Loader 工厂调用｜摘要：将 LambdaNode 与 ConstructNode 实例化改为对应 create 方法。
+- 2025-11-08 15:43 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：写入 Loader 更新的日志。
+- 2025-11-08 15:44 NZST｜工具：update_plan｜动作：推进至验证阶段｜摘要：标记 ConstructNode/Loader 步骤完成，开始编译与测试。
+- 2025-11-08 15:44 NZST｜工具：apply_patch｜动作：记录计划更新｜摘要：追加上述 update_plan 调用的日志。
+- 2025-11-08 15:44 NZST｜工具：shell（gradlew）｜动作：编译 aster-truffle（失败）｜摘要：执行 `./gradlew :aster-truffle:compileJava`，捕获 DSL 警告与错误。
+- 2025-11-08 15:44 NZST｜工具：shell（sed）｜动作：检查编译报告文件｜摘要：尝试读取 `build/reports/compileJava/compileJava.txt`，发现尚未生成。
+- 2025-11-08 15:45 NZST｜工具：shell（gradlew）｜动作：重跑编译并输出到日志（失败）｜摘要：将 `./gradlew :aster-truffle:compileJava` 输出重定向至 `/tmp/gradle-compile.log` 便于排查。
+- 2025-11-08 15:45 NZST｜工具：shell（sed）｜动作：阅读编译日志前段｜摘要：查看 `/tmp/gradle-compile.log` 前 200 行了解 DSL 警告。
+- 2025-11-08 15:45 NZST｜工具：shell（tail）｜动作：阅读编译日志末段｜摘要：获取 `/tmp/gradle-compile.log` 后 200 行查找错误。
+- 2025-11-08 15:45 NZST｜工具：shell（rg）｜动作：定位编译错误｜摘要：使用 `rg -n \"error\"` 搜索日志，确认 LambdaNode guard 不可见导致失败。
+- 2025-11-08 15:45 NZST｜工具：apply_patch｜动作：修正 LambdaNode guard｜摘要：改用 @Idempotent hasNoCaptures() 供 DSL guard 调用。
+- 2025-11-08 15:45 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：为 LambdaNode 守卫修复写入日志。
+- 2025-11-08 15:46 NZST｜工具：apply_patch｜动作：记录编译排查日志｜摘要：补充 gradlew/sed/tail/rg 操作的留痕。
+- 2025-11-08 15:46 NZST｜工具：shell（gradlew）｜动作：重新编译 aster-truffle｜摘要：`./gradlew :aster-truffle:compileJava` 成功，仅保留既有 BuiltinCallNode 警告。
+- 2025-11-08 15:46 NZST｜工具：shell（gradlew）｜动作：运行测试（10s 超时）｜摘要：首次 `./gradlew :aster-truffle:test` 在 CLI 默认超时前被终止。
+- 2025-11-08 15:47 NZST｜工具：shell（gradlew）｜动作：延长 200s 再测（仍超时）｜摘要：再次执行测试并记录更多输出，依旧在 200s 后超时。
+- 2025-11-08 15:48 NZST｜工具：shell（gradlew）｜动作：延长 600s 完成测试｜摘要：第三次运行 `./gradlew :aster-truffle:test` 成功通过全部用例与基准。
+- 2025-11-08 15:48 NZST｜工具：shell（ls）｜动作：检查生成源码目录｜摘要：确认 `build/generated/sources` 结构存在。
+- 2025-11-08 15:48 NZST｜工具：shell（ls/grep）｜动作：验证 LambdaNodeGen 生成｜摘要：在 annotationProcessor/java/main 路径下找到 `LambdaNodeGen.java`。
+- 2025-11-08 15:48 NZST｜工具：shell（ls/grep）｜动作：验证 ConstructNodeGen 生成｜摘要：在 annotationProcessor/java/main 路径下找到 `ConstructNodeGen.java`。
+- 2025-11-08 15:48 NZST｜工具：apply_patch｜动作：记录编译与测试操作日志｜摘要：追加上述 gradlew/ls 调用的留痕。
+- 2025-11-08 15:49 NZST｜工具：apply_patch｜动作：撰写 Task 2.3 报告｜摘要：创建 `.claude/phase2-task2.3-report.md`，记录执行概览与验证结果。
+- 2025-11-08 15:49 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：登记报告生成操作。
+- 2025-11-08 15:50 NZST｜工具：update_plan｜动作：关闭执行计划｜摘要：四个步骤全部完成，计划进入收尾阶段。
+- 2025-11-08 15:50 NZST｜工具：apply_patch｜动作：记录 plan 关闭｜摘要：为最新 update_plan 调用写入日志。
+- 2025-11-08 15:50 NZST｜工具：apply_patch｜动作：更新 docs/testing.md｜摘要：记录编译与三次测试执行（含超时）结果。
+- 2025-11-08 15:50 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：为测试记录补丁追加日志。
+- 2025-11-08 15:51 NZST｜工具：apply_patch｜动作：创建 verification.md｜摘要：在 `docs/workstreams/truffle-phase2/` 写入 Task 2.3 编译与测试验证详情。
+- 2025-11-08 15:51 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：登记 verification 文档写入操作。
+- 2025-11-08 15:52 NZST｜工具：shell（git）｜动作：查看工作区状态｜摘要：`git status -sb` 用于确认受影响文件列表。
+- 2025-11-08 15:52 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：追加 git status 命令的日志。
+- 2025-11-08 15:53 NZST｜工具：shell（nl）｜动作：标注 LambdaNode 行号｜摘要：使用 `nl -ba .../LambdaNode.java` 生成行号视图以便引用。
+- 2025-11-08 15:53 NZST｜工具：shell（nl）｜动作：标注 ConstructNode 行号｜摘要：输出 `ConstructNode.java` 行号片段。
+- 2025-11-08 15:53 NZST｜工具：shell（nl）｜动作：标注 Loader 片段行号｜摘要：查看 buildConstruct 与 LambdaNode 工厂调用的位置。
+- 2025-11-08 15:53 NZST｜工具：shell（nl）｜动作：标注 docs/testing.md 行号｜摘要：记录新增测试章节的准确位置。
+- 2025-11-08 15:53 NZST｜工具：shell（nl）｜动作：标注 `.claude/phase2-task2.3-report.md` 行号｜摘要：方便报告引用。
+- 2025-11-08 15:53 NZST｜工具：shell（nl）｜动作：标注 verification.md 行号｜摘要：记录验证文档段落位置。
+- 2025-11-08 15:53 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：为上述行号查询写入日志。

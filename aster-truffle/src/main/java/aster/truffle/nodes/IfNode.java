@@ -1,27 +1,62 @@
 package aster.truffle.nodes;
 
 import aster.truffle.runtime.AsterConfig;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
-public final class IfNode extends AsterExpressionNode {
-  @Child private Node cond;
+/**
+ * 条件分支节点 - 利用 Truffle DSL 针对布尔条件进行特化，并提供通用回退。
+ */
+@NodeChild(value = "condNode", type = AsterExpressionNode.class)
+public abstract class IfNode extends AsterExpressionNode {
   @Child private Node thenNode;
   @Child private Node elseNode;
-  public IfNode(Node cond, Node thenNode, Node elseNode) {
-    this.cond = cond; this.thenNode = thenNode; this.elseNode = elseNode;
+
+  protected IfNode(Node thenNode, Node elseNode) {
+    this.thenNode = thenNode;
+    this.elseNode = elseNode;
   }
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
+
+  public static IfNode create(AsterExpressionNode cond, Node thenNode, Node elseNode) {
+    return IfNodeGen.create(thenNode, elseNode, cond);
+  }
+
+  @Specialization
+  protected Object doBooleanCond(VirtualFrame frame, boolean condValue) {
     Profiler.inc("if");
-    Object c = executeChild(cond, frame);
-    boolean b = Exec.toBool(c);
     if (AsterConfig.DEBUG) {
-      System.err.println("DEBUG: if condition=" + c + " => " + b + ", thenNode=" +
-          (thenNode != null ? thenNode.getClass().getSimpleName() : "null") +
-          ", elseNode=" + (elseNode != null ? elseNode.getClass().getSimpleName() : "null"));
+      logDebug(Boolean.valueOf(condValue), condValue);
     }
-    return b ? executeChild(thenNode, frame) : executeChild(elseNode, frame);
+    return executeBranch(condValue, frame);
   }
-  private static Object executeChild(Node n, VirtualFrame f) { return Exec.exec(n, f); }
+
+  @Specialization(replaces = "doBooleanCond")
+  protected Object doGenericCond(VirtualFrame frame, Object condValue) {
+    Profiler.inc("if");
+    boolean boolValue = Exec.toBool(condValue);
+    if (AsterConfig.DEBUG) {
+      logDebug(condValue, boolValue);
+    }
+    return executeBranch(boolValue, frame);
+  }
+
+  private Object executeBranch(boolean condValue, VirtualFrame frame) {
+    Node target = condValue ? thenNode : elseNode;
+    if (target == null) {
+      return null;
+    }
+    return Exec.exec(target, frame);
+  }
+
+  private void logDebug(Object condValue, boolean boolValue) {
+    System.err.println("DEBUG: if condition=" + condValue + " => " + boolValue +
+        ", thenNode=" + simpleName(thenNode) +
+        ", elseNode=" + simpleName(elseNode));
+  }
+
+  private static String simpleName(Node node) {
+    return node != null ? node.getClass().getSimpleName() : "null";
+  }
 }
