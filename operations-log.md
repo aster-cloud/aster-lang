@@ -4777,3 +4777,96 @@ List.map (1000 items) Heavy: 1.516680 ms
 - P0-1 任务目标调整为"仅修复 @Bind 弃用警告"
 - Static 方法和 @Shared 注解在当前 Truffle 版本和代码结构下不适用
 
+
+## 2025-11-08 21:16 NZST 上下文收集：审计日志实现审计
+
+- 工具：code-index.set_project_path -> 建立索引
+- 工具：code-index.search_code_advanced -> 定位 AuditLog/AuditLogger/AuditLogComplianceTest
+- 工具：shell cat -> 读取实体、资源、测试源码
+- 工具：python3 脚本 -> 生成 .claude/context-audit-refactor.json (含完整代码片段与观察)
+- 输出：完成所需 JSON，覆盖实体/调用点/测试/依赖/专家观察
+
+## 2025-11-08 22:24 NZDT 审计日志事件驱动改造
+
+- 工具：sequential-thinking -> 任务拆解与风险识别，确认需事件模型/监听器/测试策略
+- 工具：code-index.search_code_advanced -> 检索 AuditLog/AuditLogger/PolicyEvaluationResource/SimplePolicyE2ETest 现状
+- 工具：apply_patch -> 新增 AuditEvent/EventType/AuditEventListener，扩展 AuditLog 实体及 V3 迁移，修改 PolicyEvaluationResource 发布事件，更新 SimplePolicyE2ETest，新增 Awaitility 依赖
+- 工具：shell ./gradlew :quarkus-policy-api:test --tests io.aster.policy.integration.SimplePolicyE2ETest --tests io.aster.policy.audit.AuditLogComplianceTest -> 目标测试通过（日志输出 0 失败）
+
+## 2025-11-08 22:45 NZDT 审计日志事件包装与序列化增强
+
+- 工具：sequential-thinking -> 评估 AuditLogger 事件化、metadata 序列化与数据库约束的执行步骤
+- 工具：code-index.set_project_path/find_files -> 索引并定位 AuditLogger/AuditEventListener/AuditEvent/EventType
+- 工具：shell sed -> 阅读 AuditLogger/AuditEvent/AuditEventListener/V3 迁移脚本源码
+- 工具：apply_patch -> 将 AuditLogger 重构为事件发布包装器并新增 publishEvent 等待逻辑；更新 EventType/AuditEvent 以保留 legacy 字段；在 AuditEventListener 中注入 ObjectMapper 并实现 4KB 限流
+- 工具：shell ./gradlew :quarkus-policy-api:test --tests io.aster.policy.audit.* --console=plain -> 审计相关测试通过（BUILD SUCCESSFUL）
+
+## 2025-11-09 00:15 NZDT Phase 0 基础能力评估准备
+
+- 工具：sequential-thinking -> 解析 Phase 0 评估范围与执行步骤
+- 工具：code-index.set_project_path/find_files/search_code_advanced -> 构建索引并定位 ROADMAP_SUMMARY、effect 相关文件
+- 工具：shell sed/cat -> 阅读 src/config/effects.ts、src/effect_inference.ts、EffectChecker.java、golden 测试样例
+- 工具：shell npm test -- effect -> 执行 effect 相关完整测试套件（成功）
+- 工具：shell ./gradlew :aster-core:test --tests \"*EffectChecker*\"、:aster-truffle:test -> JVM 与 Truffle 测试通过
+- 工具：shell ./gradlew :aster-truffle:nativeCompile（首次失败，配置缓存写入错误）; 追加 --no-configuration-cache 再次执行，原生镜像构建成功并记录警告
+
+## 2025-11-08 23:35 NZDT P0-2 上下文收集：effects 配置基线
+
+- 工具：sequential-thinking -> 梳理收集范围与步骤
+- 工具：code-index.set_project_path/search_code_advanced -> 定位 EffectConfig.java、effects.json 相关文档、测试
+- 工具：shell sed/rg -> 阅读 aster-core/src/main/java/aster/core/typecheck/EffectConfig.java、EffectChecker.java、docs/guide/capabilities.md、test/effect_config_manual.test.sh、test/integration/capabilities/effect-config.test.ts；使用 `rg --files -g '*effects.json*'` 确认仓库无现成样例
+- 工具：shell cat -> 生成 .claude/context-p0-2-effects-config.json，记录 schema/位置/验证方式/ASYNC 策略
+
+## 2025-11-08 23:35 NZDT P0-3/P0-4 上下文收集启动
+
+- 工具：sequential-thinking -> 明确 Scope/Wait 问题的收集范围与待查文件
+- 工具：shell ls -> 确认仓库根目录结构与现有 operations-log
+- 工具：code-index.set_project_path -> 设定索引根目录 /Users/rpang/IdeaProjects/aster-lang
+- 工具：code-index.search_code_advanced -> 定位 Loader.java 中 buildScope 相关位置以备分析
+- 工具：shell sed/rg -> 阅读 Loader.buildBlock/buildScope、WaitNode/StartNode/AsyncTaskRegistry/FrameSlotBuilder、ExecutionTestSuite 等源码与测试
+- 工具：code-index.search_code_advanced -> 检索 Scope/Wait 相关类型与测试覆盖信息
+- 工具：apply_patch -> 生成 .claude/context-p0-3-4-truffle-scope-wait.json 并补充上下文
+
+## 2025-11-08 23:40 NZST P0-3.1 Loader WaitNode 修复 ✅
+- 工具: sequential-thinking(任务分析), sed(上下文查阅), apply_patch(代码修改), ./gradlew :aster-truffle:compileJava --no-configuration-cache
+- 修改: Loader.buildScope 中等待节点改为 new WaitNode(env, names) 以与 buildBlock 保持一致
+- 验证: compileJava 通过（Truffle guard 注解警告依旧存在）
+
+## 2025-11-08 23:45 NZDT P0-3.2 Scope 变量隔离 ✅
+- 工具：sequential-thinking -> 明确 Env 子环境需求与风险
+- 工具：code-index.find_files/search_code_advanced -> 定位 Env.java、Loader.buildScope、collectLocalVariables 注释
+- 工具：shell sed -> 阅读当前实现细节，确认 Env 仅为 Map 包装
+- 工具：apply_patch -> 为 Env 增加 parent/createChild 查找链，buildScope 切换到子 Env，更新 Scope 注释
+- 工具：shell ./gradlew :aster-truffle:compileJava --no-configuration-cache -> 编译成功（保留既有 Truffle guard warnings）
+
+## 2025-11-08 23:48 NZDT P0-4.1 WaitNode 返回结果 ✅
+- 工具：sequential-thinking(任务分析)、shell sed(节点/注册表上下文阅读)、apply_patch(WaitNode 返回值与注释更新)、./gradlew :aster-truffle:compileJava --no-configuration-cache(编译验证)
+- 修改：WaitNode 在全部任务完成后调用 AsyncTaskRegistry.getResult，单任务返回单值，多任务按 taskIdNames 顺序返回 Object[]，并更新类注释
+- 验证：compileJava 通过，沿用现有 truffle-guard warnings（BuiltinCallNode）
+
+## 2025-11-09 00:04 NZDT P0-3/P0-4 ExecutionTestSuite 覆盖补充
+
+- 工具：sequential-thinking -> 确认 Scope/Wait 场景需求与现有测试结构
+- 工具：apply_patch -> 在 aster-truffle/src/test/java/aster/truffle/ExecutionTestSuite.java 中新增 Scope 遮蔽与 Wait 返回值 5 个测试
+- 工具：shell ./gradlew :aster-truffle:test --tests "*ExecutionTestSuite*" --no-configuration-cache -> 测试失败（testScopeNoVariableLeaking、testWaitSingleTaskResult、testWaitMultipleTasksResult、testWaitInNestedScope 断言未满足）
+
+# 2025-11-09 01:16 NZDT Scope Set & Wait 修复进展
+
+- 工具：sequential-thinking → 梳理 Env#set 父链需求与 Wait 语义确认步骤。
+- 工具：code-index（set_project_path、find_files）→ 定位 Env/Loader/WaitNode 等文件。
+- 工具：shell sed/rg → 检视 Loader.buildScope、Env.java、WaitNode.java、ExecutionTestSuite Scope/Wait JSON。
+- 工具：apply_patch -> 更新 Env.set/contains、Loader.buildScope/collectLocalVariables、WaitNode 回写逻辑。
+- 工具：gradlew → 执行 `:aster-truffle:test`, `:aster-truffle:test --tests "*ScopeNoVariableLeaking"` 以及 Wait 相关 3 个用例，最终全量 140 tests ✅
+
+**实现要点**:
+1. Env.java：新增 contains()，set() 先更新当前绑定，再向父 Env 递归写入，必要时才创建新变量，Scope 子环境可修改父绑定。
+2. Loader.java：Scope 语句跟踪 `scopeLocals`，仅在名称未被当前 Scope 声明且存在 frame slot 时使用 SetNodeGen；collectLocalVariables 不再收集 Scope 局部，避免 slot 污染。
+3. WaitNode.java：等待完成后将结果写回 Env 并返回值（单任务返回单值，多任务返回 Object[]），确保 Wait 语句后的 Name 读取到真实结果。
+
+**验证**:
+- `./gradlew :aster-truffle:test` ✅（包含 140 tests，含 Benchmark/GraalVM JIT 场景）
+- `./gradlew :aster-truffle:test --tests "aster.truffle.ExecutionTestSuite.testScopeNoVariableLeaking"` ✅
+- `./gradlew :aster-truffle:test --tests "aster.truffle.ExecutionTestSuite.testWait*"` ✅
+
+**观察**:
+- Wait 仍在 Core IR 中建模为 Stmt，若需要 `let value = wait task` 表达式语法，需要在 Loader/IR 侧提供表达式节点或转换策略。

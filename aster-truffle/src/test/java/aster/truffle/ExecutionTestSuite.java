@@ -999,6 +999,266 @@ public class ExecutionTestSuite {
     }
   }
 
+  // ==================== Scope and Wait Semantics ====================
+
+  @Test
+  public void testScopeVariableShadowing() throws Exception {
+    String json = """
+        {
+          "name": "test.scope.shadowing",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Let",
+                    "name": "x",
+                    "expr": { "kind": "Int", "value": 10 }
+                  },
+                  {
+                    "kind": "Scope",
+                    "statements": [
+                      {
+                        "kind": "Let",
+                        "name": "x",
+                        "expr": { "kind": "Int", "value": 20 }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": { "kind": "Name", "name": "x" }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(10, result.asInt(), "Inner scope binding should not override outer variable");
+    }
+  }
+
+  @Test
+  public void testScopeNoVariableLeaking() throws Exception {
+    String json = """
+        {
+          "name": "test.scope.isolation",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": [],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Let",
+                    "name": "outer",
+                    "expr": { "kind": "Int", "value": 1 }
+                  },
+                  {
+                    "kind": "Scope",
+                    "statements": [
+                      {
+                        "kind": "Let",
+                        "name": "inner",
+                        "expr": { "kind": "Int", "value": 2 }
+                      },
+                      {
+                        "kind": "Set",
+                        "name": "outer",
+                        "expr": { "kind": "Int", "value": 3 }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": { "kind": "Name", "name": "outer" }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(3, result.asInt(), "Scope should allow updating outer variables while inner bindings remain isolated");
+    }
+  }
+
+  @Test
+  public void testWaitSingleTaskResult() throws Exception {
+    String json = """
+        {
+          "name": "test.wait.single",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task1",
+                    "expr": { "kind": "Int", "value": 42 }
+                  },
+                  {
+                    "kind": "Wait",
+                    "names": ["task1"]
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": { "kind": "Name", "name": "task1" }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(42, result.asInt(), "wait task should expose completed result in the same scope");
+    }
+  }
+
+  @Test
+  public void testWaitMultipleTasksResult() throws Exception {
+    String json = """
+        {
+          "name": "test.wait.multi",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "List" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task1",
+                    "expr": { "kind": "Int", "value": 10 }
+                  },
+                  {
+                    "kind": "Start",
+                    "name": "task2",
+                    "expr": { "kind": "Int", "value": 20 }
+                  },
+                  {
+                    "kind": "Wait",
+                    "names": ["task1", "task2"]
+                  },
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": { "kind": "Name", "name": "List.append" },
+                      "args": [
+                        {
+                          "kind": "Call",
+                          "target": { "kind": "Name", "name": "List.append" },
+                          "args": [
+                            {
+                              "kind": "Call",
+                              "target": { "kind": "Name", "name": "List.empty" },
+                              "args": []
+                            },
+                            { "kind": "Name", "name": "task1" }
+                          ]
+                        },
+                        { "kind": "Name", "name": "task2" }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertTrue(result.hasArrayElements(), "wait should allow aggregating results into a list");
+      assertEquals(2, result.getArraySize(), "Aggregated wait result should contain both task values");
+      assertEquals(10, result.getArrayElement(0).asInt(), "First task result should be 10");
+      assertEquals(20, result.getArrayElement(1).asInt(), "Second task result should be 20");
+    }
+  }
+
+  @Test
+  public void testWaitInNestedScope() throws Exception {
+    String json = """
+        {
+          "name": "test.wait.scope",
+          "decls": [
+            {
+              "kind": "Func",
+              "name": "main",
+              "params": [],
+              "ret": { "kind": "TypeName", "name": "Int" },
+              "effects": ["Async"],
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Start",
+                    "name": "task",
+                    "expr": { "kind": "Int", "value": 99 }
+                  },
+                  {
+                    "kind": "Scope",
+                    "statements": [
+                      {
+                        "kind": "Wait",
+                        "names": ["task"]
+                      },
+                      {
+                        "kind": "Return",
+                        "expr": { "kind": "Name", "name": "task" }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    try (Context context = Context.newBuilder("aster").allowAllAccess(true).build()) {
+      Source source = Source.newBuilder("aster", json, "test.json").build();
+      Value result = context.eval(source);
+      assertEquals(99, result.asInt(), "wait inside nested scope should still return the awaited value");
+    }
+  }
+
   // ==================== Effect Violations ====================
 
   @Test

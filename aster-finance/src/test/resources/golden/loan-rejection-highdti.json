@@ -1,0 +1,27 @@
+{
+  "customer": {
+    "id": "C_HIGHDTI",
+    "name": "High DTI Customer",
+    "dateOfBirth": "1988-11-10",
+    "creditScore": 720,
+    "annualIncome": {
+      "amount": 60000.00,
+      "currency": "USD"
+    }
+  },
+  "loanApplication": {
+    "id": "LA_HIGHDTI",
+    "requestedAmount": {
+      "amount": 500000.00,
+      "currency": "USD"
+    },
+    "termMonths": 360,
+    "purpose": "HOME"
+  },
+  "expectedEvaluation": {
+    "approved": false,
+    "reasonContains": "Debt-to-income ratio",
+    "interestRate": 0.10,
+    "riskLevel": "MEDIUM"
+  }
+}

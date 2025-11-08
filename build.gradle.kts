@@ -112,3 +112,38 @@ tasks.register<JacocoReport>("jacocoAggregateReport") {
     html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/aggregate/html"))
   }
 }
+
+// JaCoCo 覆盖率阈值验证任务
+tasks.register<JacocoCoverageVerification>("jacocoAggregateVerification") {
+  group = "verification"
+  description = "验证聚合覆盖率是否达到阈值 (≥80%)"
+
+  dependsOn(tasks.named("jacocoAggregateReport"))
+
+  // 使用聚合报告的执行数据
+  val reportTask = tasks.named<JacocoReport>("jacocoAggregateReport").get()
+  sourceDirectories.from(reportTask.sourceDirectories)
+  classDirectories.from(reportTask.classDirectories)
+  executionData.from(reportTask.executionData)
+
+  violationRules {
+    rule {
+      limit {
+        minimum = "0.80".toBigDecimal()
+      }
+    }
+
+    rule {
+      limit {
+        counter = "BRANCH"
+        minimum = "0.75".toBigDecimal()
+      }
+    }
+  }
+}
+
+// PIT Mutation Testing 全局配置
+// 注意：各子模块需要自行应用 info.solidsoft.pitest 插件（在各自 build.gradle.kts 中）
+// 这里提供全局默认配置供子模块继承
+// 配置方式：在子模块 build.gradle.kts 中添加 apply(plugin = "info.solidsoft.pitest")
+// 然后可以覆盖或继承这里的默认配置

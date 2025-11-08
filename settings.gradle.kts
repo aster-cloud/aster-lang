@@ -54,3 +54,11 @@ project(":aster-vaadin-native-deployment").projectDir = file("aster-vaadin-nativ
 // Phase 1: Quarkus Policy API
 include(":quarkus-policy-api")
 project(":quarkus-policy-api").projectDir = file("quarkus-policy-api")
+
+// Phase 1: Finance domain library
+include(":aster-finance")
+project(":aster-finance").projectDir = file("aster-finance")
+
+// Phase 1: Policy common library
+include(":aster-policy-common")
+project(":aster-policy-common").projectDir = file("aster-policy-common")

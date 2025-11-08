@@ -237,6 +237,170 @@ Clears the policy evaluation cache. Supports clearing all cache, module-level, o
 }
 ```
 
+### 5. Rollback Policy to Previous Version
+
+**POST** `/api/policies/{policyId}/rollback`
+
+Rolls back a policy to a specific historical version. All rollback operations are audited.
+
+#### Request Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-Tenant-Id` | No | Tenant identifier (default: "default") |
+| `X-User-Id` | No | User performing rollback (default: "anonymous") |
+| `Content-Type` | Yes | Must be `application/json` |
+
+#### Path Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `policyId` | Unique identifier for the policy (e.g., "aster.finance.loan") |
+
+#### Request Body
+
+```json
+{
+  "targetVersion": 1730890123456,
+  "reason": "回滚到修复前的稳定版本"
+}
+```
+
+#### Response (Success)
+
+```json
+{
+  "success": true,
+  "message": "Policy rolled back successfully to version 1730890123456",
+  "version": 1730890123456
+}
+```
+
+#### Response (Error)
+
+```json
+{
+  "success": false,
+  "message": "版本不存在: 1730890123456",
+  "version": null
+}
+```
+
+#### Example using curl
+
+```bash
+curl -X POST http://localhost:8080/api/policies/aster.finance.loan/rollback \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: production" \
+  -H "X-User-Id: admin@example.com" \
+  -d '{
+    "targetVersion": 1730890123456,
+    "reason": "回滚到修复前的稳定版本"
+  }'
+```
+
+### 6. Get Policy Version History
+
+**GET** `/api/policies/{policyId}/versions`
+
+Retrieves the complete version history of a policy.
+
+#### Path Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `policyId` | Unique identifier for the policy |
+
+#### Response
+
+```json
+[
+  {
+    "version": 1730890123456,
+    "active": true,
+    "moduleName": "aster.finance.loan",
+    "functionName": "evaluateLoanEligibility",
+    "createdAt": "2025-11-08T10:30:00Z",
+    "createdBy": "admin@example.com",
+    "notes": "修复信用分计算逻辑"
+  },
+  {
+    "version": 1730880000000,
+    "active": false,
+    "moduleName": "aster.finance.loan",
+    "functionName": "evaluateLoanEligibility",
+    "createdAt": "2025-11-08T08:00:00Z",
+    "createdBy": "developer@example.com",
+    "notes": "初始版本"
+  }
+]
+```
+
+### 7. Query Audit Logs
+
+**GET** `/api/audit`
+
+Retrieves audit logs for the current tenant.
+
+#### Request Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-Tenant-Id` | No | Tenant identifier (default: "default") |
+
+#### Response
+
+```json
+[
+  {
+    "id": 1,
+    "eventType": "POLICY_EVALUATION",
+    "timestamp": "2025-11-08T10:30:00Z",
+    "tenantId": "production",
+    "policyModule": "aster.finance.loan",
+    "policyFunction": "evaluateLoanEligibility",
+    "performedBy": "***@***.***",
+    "success": true,
+    "executionTimeMs": 15,
+    "errorMessage": null,
+    "metadata": "{\"applicantId\":\"LOAN-1001\"}"
+  }
+]
+```
+
+### 8. Query Audit Logs by Event Type
+
+**GET** `/api/audit/type/{eventType}`
+
+Retrieves audit logs filtered by event type.
+
+#### Path Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `eventType` | Event type: `POLICY_EVALUATION`, `ROLLBACK`, or `DEPLOYMENT` |
+
+#### Response
+
+Same format as `/api/audit` endpoint.
+
+### 9. Query Audit Logs by Policy
+
+**GET** `/api/audit/policy/{module}/{function}`
+
+Retrieves audit logs for a specific policy function.
+
+#### Path Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `module` | Policy module name (e.g., "aster.finance.loan") |
+| `function` | Policy function name (e.g., "evaluateLoanEligibility") |
+
+#### Response
+
+Same format as `/api/audit` endpoint.
+
 ## Available Policy Functions
 
 ### Loan Evaluation
@@ -353,6 +517,126 @@ Errors are returned in the response body with descriptive messages:
 ├─────────────────┤
 │  Aster Runtime  │  Compiled .aster policies (aster.jar)
 └─────────────────┘
+```
+
+## Compliance & Security Features
+
+### Audit Logging
+
+#### Event-Driven Architecture
+
+审计日志使用事件驱动架构实现，确保高性能和解耦：
+
+1. **事件发布** - 业务操作完成后发布 `AuditEvent`（异步，非阻塞）
+2. **事件监听** - `AuditEventListener` 异步处理事件并持久化
+3. **PII 脱敏** - 监听器中自动对敏感信息脱敏
+4. **数据库持久化** - 存储到 `audit_logs` 表
+
+#### 审计信息
+
+All policy operations are automatically logged to the `audit_logs` table with the following information:
+
+- Event type (POLICY_EVALUATION, ROLLBACK, DEPLOYMENT)
+- Timestamp and tenant ID
+- Policy module and function name
+- User who performed the operation
+- Execution time and success status
+- Error messages (if any)
+- Metadata (额外的上下文信息)
+
+### PII Redaction
+
+Personal Identifiable Information (PII) is automatically redacted in audit logs:
+
+- Email addresses: `user@example.com` → `***@***.***`
+- Phone numbers: `+1-555-1234` → `***-***-****`
+- Credit card numbers: Automatically detected and masked
+
+### Multi-Tenant Isolation
+
+Each tenant has:
+- Separate cache namespace
+- Isolated audit logs
+- Independent policy versions
+
+## FAQ
+
+### How do I add a new policy function?
+
+1. Create a `.aster` policy file in `src/main/resources/policies/`
+2. Run `./gradlew :quarkus-policy-api:syncPolicyJar` to compile
+3. Restart the application
+4. The policy is automatically available via `/api/policies/evaluate`
+
+### How do I monitor policy performance?
+
+Access Prometheus metrics at `/q/metrics`:
+
+```bash
+curl http://localhost:8080/q/metrics | grep policy
+```
+
+Key metrics:
+- `policy_evaluation_duration_seconds` - Evaluation latency histogram
+- `policy_evaluation_total` - Total evaluation count
+- `cache_hit_ratio` - Cache effectiveness
+
+### How do I handle policy rollbacks?
+
+1. Get version history: `GET /api/policies/{policyId}/versions`
+2. Identify the target version
+3. Rollback: `POST /api/policies/{policyId}/rollback` with `targetVersion`
+4. Verify rollback in audit logs: `GET /api/audit/type/ROLLBACK`
+
+### How do I query audit logs for compliance?
+
+```bash
+# Get all logs for a tenant
+curl -H "X-Tenant-Id: production" http://localhost:8080/api/audit
+
+# Get policy evaluation logs
+curl http://localhost:8080/api/audit/type/POLICY_EVALUATION
+
+# Get logs for specific policy
+curl http://localhost:8080/api/audit/policy/aster.finance.loan/evaluateLoanEligibility
+```
+
+### How do I optimize cache performance?
+
+The cache configuration in `application.properties`:
+
+```properties
+# Cache size (initial/maximum)
+quarkus.cache.caffeine.policy-results.initial-capacity=512
+quarkus.cache.caffeine.policy-results.maximum-size=4096
+
+# TTL settings
+quarkus.cache.caffeine.policy-results.expire-after-write=30M
+quarkus.cache.caffeine.policy-results.expire-after-access=10M
+```
+
+Monitor cache effectiveness:
+```bash
+./gradlew :quarkus-policy-api:test --tests "PolicyEvaluationPerformanceTest"
+```
+
+### What happens if a policy evaluation fails?
+
+Failures are handled gracefully:
+1. Error is logged to audit logs with `success=false`
+2. Error metrics are recorded
+3. Client receives error response with descriptive message
+4. Original request data is preserved for debugging
+
+### How do I enable OpenAPI/Swagger documentation?
+
+OpenAPI is enabled by default:
+- Swagger UI: `http://localhost:8080/q/swagger-ui/`
+- OpenAPI Spec: `http://localhost:8080/q/openapi`
+
+For production, disable Swagger UI:
+```properties
+quarkus.swagger-ui.always-include=false
 ```
 
 ## License

@@ -33,12 +33,21 @@ dependencies {
     // Caching - Caffeine cache
     implementation("io.quarkus:quarkus-cache")
 
+    // WebSocket support for Live Preview
+    implementation("io.quarkus:quarkus-websockets")
+
     // GraphQL支持
     implementation("io.quarkus:quarkus-smallrye-graphql")
+
+    // Persistence - Hibernate Panache + PostgreSQL + Flyway
+    implementation("io.quarkus:quarkus-hibernate-orm-panache")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation("io.quarkus:quarkus-flyway")
 
     // Aster运行时和编译后的策略
     implementation(project(":aster-runtime"))
     implementation(project(":aster-validation"))
+    implementation(project(":aster-policy-common"))
     implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
 
     // 测试依赖
@@ -48,6 +57,8 @@ dependencies {
     testImplementation("io.smallrye.reactive:smallrye-mutiny-vertx-junit5")
     testImplementation("org.assertj:assertj-core:3.26.0")
     testImplementation("org.mockito:mockito-core:5.7.0")
+    testImplementation("io.quarkus:quarkus-jdbc-h2")
+    testImplementation("org.awaitility:awaitility:4.2.0")
 }
 
 tasks.withType<JavaCompile>().configureEach {

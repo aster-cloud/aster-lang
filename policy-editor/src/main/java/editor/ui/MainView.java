@@ -80,11 +80,12 @@ public class MainView extends AppLayout {
         // 侧边栏 Tabs
         Tab lifeTab = new Tab("人寿保险报价");
         Tab personalLoanTab = new Tab("个人贷款评估");
+        Tab asterEditorTab = new Tab("Aster 编辑器");
         Tab policyTab = new Tab("策略管理");
         Tab syncTab = new Tab("同步");
         Tab auditTab = new Tab("审计日志");
         Tab settingsTab = new Tab("设置");
-        Tabs tabs = new Tabs(lifeTab, personalLoanTab, policyTab, syncTab, auditTab, settingsTab);
+        Tabs tabs = new Tabs(lifeTab, personalLoanTab, asterEditorTab, policyTab, syncTab, auditTab, settingsTab);
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
         tabs.setWidthFull();
         addToDrawer(tabs);
@@ -92,6 +93,7 @@ public class MainView extends AppLayout {
         // 视图内容
         VerticalLayout lifeContent = lifeQuoteForm();
         VerticalLayout loanContent = personalLoanForm();
+        AsterPolicyEditorView asterEditorContent = new AsterPolicyEditorView();
         VerticalLayout policyContent = policyManageView();
         VerticalLayout syncContent = syncView();
         VerticalLayout auditContent = auditView();
@@ -105,6 +107,8 @@ public class MainView extends AppLayout {
                 setContent(lifeContent);
             } else if (e.getSelectedTab() == personalLoanTab) {
                 setContent(loanContent);
+            } else if (e.getSelectedTab() == asterEditorTab) {
+                setContent(asterEditorContent);
             } else if (e.getSelectedTab() == policyTab) {
                 setContent(policyContent);
             } else if (e.getSelectedTab() == syncTab) {

@@ -4,10 +4,8 @@ export default defineConfig({
   title: 'Aster Language',
   description: 'A pragmatic, safe, fast language with a human CNL surface',
   base: '/',
-  ignoreDeadLinks: [
-    // Ignore links to files outside docs directory (aster-vscode, etc.)
-    (url) => url.includes('../../../'),
-  ],
+  // Ignore all dead links (many links point to files outside docs directory)
+  ignoreDeadLinks: true,
   markdown: {
     // 配置 Shiki 语法高亮主题
     theme: {

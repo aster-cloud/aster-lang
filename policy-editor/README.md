@@ -402,10 +402,143 @@ docker run --rm -p 8081:8081 policy-editor:native
 - 未登录访问受保护接口返回 401/403
   - 预期行为；使用顶栏“登录”完成认证；管理员权限方可执行增删改与同步推送等敏感操作。
 
+## Aster Language Policy Editing (Phase 1 Features)
+
+### Live Preview
+
+实时预览功能允许在编辑策略时立即看到评估结果，无需手动部署。
+
+#### 功能特性
+
+- **WebSocket 实时连接**：与 quarkus-policy-api 建立 WebSocket 连接
+- **自动评估**：编辑 Aster CNL 代码时自动触发策略评估
+- **即时反馈**：毫秒级延迟显示评估结果
+- **错误提示**：语法错误和运行时错误实时显示
+
+#### 使用方法
+
+1. 在策略编辑器中打开 `.aster` 文件
+2. 启用 Live Preview 开关
+3. 编辑策略代码，评估结果自动更新
+4. 查看右侧面板的评估结果和性能指标
+
+#### API 端点
+
+Live Preview 使用以下 WebSocket 端点：
+
+```
+ws://localhost:8080/ws/policy/preview
+```
+
+#### 示例代码
+
+```aster
+This module is aster.finance.loan.
+
+Define LoanApplication with applicantId: Text, amount: Int, termMonths: Int.
+Define LoanDecision with approved: Bool, reason: Text.
+
+To evaluateLoanEligibility with application: LoanApplication, produce LoanDecision:
+  If <(application.amount, 10000),:
+    Return LoanDecision with approved = false, reason = "Amount too low".
+  Return LoanDecision with approved = true, reason = "Approved".
+```
+
+实时预览将显示：
+```json
+{
+  "approved": true,
+  "reason": "Approved"
+}
+```
+
+### CNL 导出导入功能
+
+支持 Aster Controlled Natural Language (CNL) 格式的策略导出和导入，实现策略文件的可移植性。
+
+#### 导出功能
+
+将编辑器中的策略导出为 `.aster` 文件：
+
+1. 在编辑器中编辑策略
+2. 点击"Export CNL"按钮
+3. 选择保存位置
+4. 文件自动保存为 `{policyName}.aster`
+
+#### 导入功能
+
+从 `.aster` 文件导入策略：
+
+1. 点击"Import CNL"按钮
+2. 选择 `.aster` 文件
+3. 策略自动加载到编辑器
+4. 可以立即使用 Live Preview 验证
+
+#### 文件格式
+
+导出的 `.aster` 文件包含：
+
+```aster
+This module is {moduleName}.
+
+{type definitions}
+
+{function definitions}
+```
+
+#### Round-trip 保证
+
+导出和导入支持 round-trip：
+
+```
+编辑器 → Export CNL → .aster 文件 → Import CNL → 编辑器
+```
+
+保证以下内容一致：
+- 模块定义
+- 类型定义
+- 函数签名
+- 函数实现逻辑
+
+#### 使用 PolicySerializer
+
+CNL 功能使用 `aster-policy-common` 模块的 `PolicySerializer`：
+
+```java
+// 导出
+String asterCode = PolicySerializer.toAsterCNL(policyObject);
+
+// 导入
+PolicyObject policy = PolicySerializer.fromAsterCNL(asterCode);
+```
+
+### 集成 quarkus-policy-api
+
+策略编辑器与 quarkus-policy-api 无缝集成：
+
+1. **策略评估**：通过 REST API 评估策略
+2. **版本控制**：查看和回滚策略版本
+3. **审计日志**：查询策略操作历史
+4. **性能监控**：实时查看评估性能指标
+
+#### 配置连接
+
+在 `application.properties` 中配置 API 端点：
+
+```properties
+# Policy API endpoint
+policy.api.base-url=http://localhost:8080
+policy.api.websocket-url=ws://localhost:8080
+
+# WebSocket connection
+quarkus.websocket-client.connect-timeout=5000
+```
+
 ## 相关项目
 
 - [Aster Language](../../README.md)
 - [Policy Engine Example](../policy-jvm/README.md)
+- [Quarkus Policy API](../quarkus-policy-api/README.md)
 
 ## 许可证
 

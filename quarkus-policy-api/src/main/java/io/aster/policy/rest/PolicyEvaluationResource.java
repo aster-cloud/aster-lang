@@ -2,9 +2,14 @@ package io.aster.policy.rest;
 
 import io.aster.policy.api.PolicyEvaluationService;
 import io.aster.policy.api.model.BatchRequest;
+import io.aster.policy.event.AuditEvent;
+import io.aster.policy.entity.PolicyVersion;
+import io.aster.policy.metrics.PolicyMetrics;
 import io.aster.policy.rest.model.*;
+import io.aster.policy.service.PolicyVersionService;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
@@ -14,6 +19,9 @@ import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
 
 /**
  * REST API资源：策略评估服务
@@ -31,6 +39,15 @@ public class PolicyEvaluationResource {
     @Inject
     PolicyEvaluationService evaluationService;
 
+    @Inject
+    PolicyMetrics policyMetrics;
+
+    @Inject
+    PolicyVersionService versionService;
+
+    @Inject
+    Event<AuditEvent> auditEventPublisher;
+
     @Context
     RoutingContext routingContext;
 
@@ -45,7 +62,9 @@ public class PolicyEvaluationResource {
     @Path("/evaluate")
     public Uni<EvaluationResponse> evaluate(@Valid EvaluationRequest request) {
         String tenantId = tenantId();
+        String performedBy = performedBy();
         long startTime = System.currentTimeMillis();
+        Map<String, Object> metadata = buildEvaluationMetadata(request);
 
         LOG.infof("Evaluating policy: %s.%s for tenant %s", request.policyModule(), request.policyFunction(), tenantId);
 
@@ -57,11 +76,44 @@ public class PolicyEvaluationResource {
         )
         .onItem().transform(result -> {
             long executionTime = System.currentTimeMillis() - startTime;
+
+            // 记录指标（非阻塞）
+            policyMetrics.recordEvaluation(request.policyModule(), request.policyFunction(), executionTime, true);
+
+            // 记录业务指标（贷款批准/拒绝）
+            if ("aster.finance.loan".equals(request.policyModule())) {
+                recordLoanDecision(result.getResult());
+            }
+
+            publishPolicyEvaluationEvent(
+                tenantId,
+                request,
+                performedBy,
+                true,
+                executionTime,
+                null,
+                metadata
+            );
+
             LOG.infof("Policy evaluation completed in %dms: %s.%s", executionTime, request.policyModule(), request.policyFunction());
             return EvaluationResponse.success(result.getResult(), executionTime);
         })
         .onFailure().recoverWithItem(throwable -> {
             long executionTime = System.currentTimeMillis() - startTime;
+
+            // 记录错误指标（非阻塞）
+            policyMetrics.recordEvaluation(request.policyModule(), request.policyFunction(), executionTime, false);
+
+            publishPolicyEvaluationEvent(
+                tenantId,
+                request,
+                performedBy,
+                false,
+                executionTime,
+                throwable.getMessage(),
+                metadata
+            );
+
             LOG.errorf(throwable, "Policy evaluation failed after %dms: %s.%s", executionTime, request.policyModule(), request.policyFunction());
             return EvaluationResponse.error(throwable.getMessage());
         });
@@ -101,14 +153,39 @@ public class PolicyEvaluationResource {
 
                 // 添加成功的结果
                 for (var attempt : batchResult.getSuccesses()) {
+                    long execTime = (long) attempt.getResult().getExecutionTimeMs();
+
+                    // 记录成功指标
+                    policyMetrics.recordEvaluation(
+                        attempt.getPolicyModule(),
+                        attempt.getPolicyFunction(),
+                        execTime,
+                        true
+                    );
+
+                    // 记录业务指标
+                    if ("aster.finance.loan".equals(attempt.getPolicyModule())) {
+                        recordLoanDecision(attempt.getResult().getResult());
+                    }
+
                     responses.add(EvaluationResponse.success(
                         attempt.getResult().getResult(),
-                        (long) attempt.getResult().getExecutionTimeMs()
+                        execTime
                     ));
                 }
 
                 // 添加失败的结果
                 for (var attempt : batchResult.getFailures()) {
+                    long execTime = totalExecutionTime / batchRequests.size(); // 估算
+
+                    // 记录失败指标
+                    policyMetrics.recordEvaluation(
+                        attempt.getPolicyModule(),
+                        attempt.getPolicyFunction(),
+                        execTime,
+                        false
+                    );
+
                     responses.add(EvaluationResponse.error(attempt.getError()));
                 }
 
@@ -191,6 +268,140 @@ public class PolicyEvaluationResource {
     }
 
     /**
+     * 回滚策略到指定版本
+     *
+     * POST /api/policies/{policyId}/rollback
+     * Headers: X-Tenant-Id (optional, defaults to "default")
+     * Body: { "targetVersion": 1730890123456, "reason": "回滚原因" }
+     */
+    @POST
+    @Path("/{policyId}/rollback")
+    @io.smallrye.common.annotation.Blocking
+    public Uni<RollbackResponse> rollback(
+        @PathParam("policyId") String policyId,
+        @Valid RollbackRequest request
+    ) {
+        String tenantId = tenantId();
+        String performedBy = performedBy();
+
+        LOG.infof("Rolling back policy %s to version %d for tenant %s",
+            policyId, request.targetVersion(), tenantId);
+
+        return Uni.createFrom().item(() -> {
+            // 获取当前活跃版本（用于审计日志）
+            PolicyVersion currentVersion = versionService.getActiveVersion(policyId);
+            Long fromVersion = currentVersion != null ? currentVersion.version : null;
+
+            // 执行回滚
+            PolicyVersion rolledBackVersion = versionService.rollbackToVersion(
+                policyId,
+                request.targetVersion()
+            );
+
+            auditEventPublisher.fireAsync(
+                AuditEvent.rollback(
+                    tenantId,
+                    rolledBackVersion.moduleName,
+                    policyId,
+                    fromVersion,
+                    rolledBackVersion.version,
+                    performedBy,
+                    request.reason()
+                )
+            );
+
+            LOG.infof("Policy %s successfully rolled back to version %d",
+                policyId, rolledBackVersion.version);
+
+            return RollbackResponse.success(rolledBackVersion.version);
+        })
+        .onFailure(IllegalArgumentException.class)
+        .recoverWithItem(throwable -> {
+            LOG.errorf(throwable, "Rollback failed for policy %s", policyId);
+            return RollbackResponse.failure("版本不存在: " + request.targetVersion());
+        })
+        .onFailure().recoverWithItem(throwable -> {
+            LOG.errorf(throwable, "Rollback failed for policy %s", policyId);
+            return RollbackResponse.failure("回滚失败: " + throwable.getMessage());
+        });
+    }
+
+    /**
+     * 获取策略版本历史
+     *
+     * GET /api/policies/{policyId}/versions
+     * Headers: X-Tenant-Id (optional, defaults to "default")
+     */
+    @GET
+    @Path("/{policyId}/versions")
+    @io.smallrye.common.annotation.Blocking
+    public Uni<List<PolicyVersionInfo>> getVersionHistory(@PathParam("policyId") String policyId) {
+        String tenantId = tenantId();
+
+        LOG.infof("Fetching version history for policy %s (tenant: %s)", policyId, tenantId);
+
+        return Uni.createFrom().item(() -> {
+            List<PolicyVersion> versions = versionService.getAllVersions(policyId);
+            return versions.stream()
+                .map(v -> new PolicyVersionInfo(
+                    v.version,
+                    v.active,
+                    v.moduleName,
+                    v.functionName,
+                    v.createdAt,
+                    v.createdBy,
+                    v.notes
+                ))
+                .toList();
+        });
+    }
+
+    private void publishPolicyEvaluationEvent(
+        String tenantId,
+        EvaluationRequest request,
+        String performedBy,
+        boolean success,
+        long executionTimeMs,
+        String errorMessage,
+        Map<String, Object> metadata
+    ) {
+        if (auditEventPublisher == null) {
+            return;
+        }
+        auditEventPublisher.fireAsync(
+            AuditEvent.policyEvaluation(
+                tenantId,
+                request.policyModule(),
+                request.policyFunction(),
+                performedBy,
+                success,
+                executionTimeMs,
+                errorMessage,
+                metadata == null ? Collections.emptyMap() : metadata
+            )
+        );
+    }
+
+    private Map<String, Object> buildEvaluationMetadata(EvaluationRequest request) {
+        if (request == null || request.context() == null || request.context().length == 0) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("contextSize", request.context().length);
+
+        Object firstContext = request.context()[0];
+        if (firstContext instanceof Map<?, ?> contextMap) {
+            Object applicantId = contextMap.get("applicantId");
+            if (applicantId != null) {
+                metadata.put("applicantId", applicantId.toString());
+            }
+        }
+
+        return metadata.isEmpty() ? Collections.emptyMap() : metadata;
+    }
+
+    /**
      * 提取租户ID
      *
      * 从 X-Tenant-Id 请求头提取租户ID，如果不存在则返回 "default"
@@ -201,5 +412,61 @@ public class PolicyEvaluationResource {
         }
         String tenant = routingContext.request().getHeader("X-Tenant-Id");
         return tenant == null || tenant.isBlank() ? "default" : tenant.trim();
+    }
+
+    /**
+     * 提取执行者信息
+     *
+     * 从 X-User-Id 请求头提取用户ID，如果不存在则返回 "anonymous"
+     */
+    private String performedBy() {
+        if (routingContext == null || routingContext.request() == null) {
+            return "anonymous";
+        }
+        String user = routingContext.request().getHeader("X-User-Id");
+        return user == null || user.isBlank() ? "anonymous" : user.trim();
+    }
+
+    /**
+     * 记录贷款决策指标
+     *
+     * 根据策略结果判断是批准还是拒绝，并记录相应指标
+     *
+     * @param result 策略评估结果
+     */
+    private void recordLoanDecision(Object result) {
+        if (result == null) {
+            return;
+        }
+
+        // 检查结果是否表示批准
+        // 支持多种结果格式：
+        // 1. Boolean 值
+        // 2. 包含 "approved" 字段的对象
+        // 3. 字符串 "APPROVED" / "REJECTED"
+        boolean approved = false;
+
+        if (result instanceof Boolean boolResult) {
+            approved = boolResult;
+        } else if (result instanceof String strResult) {
+            approved = "APPROVED".equalsIgnoreCase(strResult) || "true".equalsIgnoreCase(strResult);
+        } else {
+            // 尝试通过反射检查 approved 字段
+            try {
+                var method = result.getClass().getMethod("isApproved");
+                if (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class) {
+                    approved = (Boolean) method.invoke(result);
+                }
+            } catch (Exception e) {
+                // 无法确定批准状态，不记录
+                return;
+            }
+        }
+
+        if (approved) {
+            policyMetrics.recordLoanApproval();
+        } else {
+            policyMetrics.recordLoanRejection();
+        }
     }
 }

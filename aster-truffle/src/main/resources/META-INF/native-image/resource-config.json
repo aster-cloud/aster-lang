@@ -6,6 +6,9 @@
       },
       {
         "pattern": ".*\\.aster$"
+      },
+      {
+        "pattern": "META-INF/.*"
       }
     ]
   },

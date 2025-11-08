@@ -405,14 +405,33 @@ public final class Loader {
   }
 
   private Node buildScope(CoreModel.Scope sc) {
-    var list = new java.util.ArrayList<Node>();
-    if (sc.statements != null) for (var s : sc.statements) {
-      if (s instanceof CoreModel.Return r) list.add(new ReturnNode(buildExpr(r.expr)));
-      else if (s instanceof CoreModel.Let let) list.add(new LetNodeEnv(let.name, buildExpr(let.expr), env));
-      else if (s instanceof CoreModel.If iff) list.add(IfNode.create(buildExpr(iff.cond), buildBlock(iff.thenBlock), buildBlock(iff.elseBlock)));
-      else if (s instanceof CoreModel.Set set) list.add(new SetNodeEnv(set.name, buildExpr(set.expr), env));
-      else if (s instanceof CoreModel.Start st) list.add(new StartNode(env, st.name, buildExpr(st.expr)));
-      else if (s instanceof CoreModel.Wait wt) list.add(new WaitNode(((wt.names != null) ? wt.names : java.util.List.<String>of()).toArray(new String[0])));
+    java.util.ArrayList<Node> list = new java.util.ArrayList<>();
+    Env previousEnv = this.env;
+    Env scopeEnv = (previousEnv != null) ? previousEnv.createChild() : new Env();
+    java.util.Map<String,Integer> slots = currentParamSlots();
+    java.util.Set<String> scopeLocals = new java.util.LinkedHashSet<>();
+    this.env = scopeEnv;
+    try {
+      if (sc.statements != null) for (var s : sc.statements) {
+        if (s instanceof CoreModel.Return r) list.add(new ReturnNode(buildExpr(r.expr)));
+        else if (s instanceof CoreModel.Let let) {
+          scopeLocals.add(let.name);
+          list.add(new LetNodeEnv(let.name, buildExpr(let.expr), scopeEnv));
+        }
+        else if (s instanceof CoreModel.If iff) list.add(IfNode.create(buildExpr(iff.cond), buildBlock(iff.thenBlock), buildBlock(iff.elseBlock)));
+        else if (s instanceof CoreModel.Set set) {
+          AsterExpressionNode valueNode = buildExpr(set.expr);
+          if (!scopeLocals.contains(set.name) && slots != null && slots.containsKey(set.name)) {
+            list.add(SetNodeGen.create(set.name, slots.get(set.name), valueNode));
+          } else {
+            list.add(new SetNodeEnv(set.name, valueNode, scopeEnv));
+          }
+        }
+        else if (s instanceof CoreModel.Start st) list.add(new StartNode(scopeEnv, st.name, buildExpr(st.expr)));
+        else if (s instanceof CoreModel.Wait wt) list.add(new WaitNode(scopeEnv, ((wt.names != null) ? wt.names : java.util.List.<String>of()).toArray(new String[0])));
+      }
+    } finally {
+      this.env = previousEnv;
     }
     return BlockNode.create(list);
   }
@@ -482,12 +501,9 @@ public final class Loader {
         // If 语句的两个分支可能声明局部变量
         collectLocalVariables(iff.thenBlock, locals);
         collectLocalVariables(iff.elseBlock, locals);
-      } else if (stmt instanceof CoreModel.Scope scope) {
-        // Scope 语句创建新的作用域，但暂时不隔离（简化实现）
-        // 将 scope.statements 包装为 Block 继续收集
-        CoreModel.Block scopeBlock = new CoreModel.Block();
-        scopeBlock.statements = scope.statements;
-        collectLocalVariables(scopeBlock, locals);
+      } else if (stmt instanceof CoreModel.Scope) {
+        // Scope 块内声明的变量不逃逸到外层作用域，不纳入 frame slots
+        continue;
       } else if (stmt instanceof CoreModel.Match match) {
         // Match 语句的每个 case 可能有局部变量
         if (match.cases != null) {

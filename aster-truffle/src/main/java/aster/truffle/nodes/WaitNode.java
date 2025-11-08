@@ -9,7 +9,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
 /**
- * Wait节点 - 等待多个异步任务完成但不返回结果
+ * Wait节点 - 等待多个异步任务完成并返回结果
  *
  * Phase 1 实现：
  * - 接收多个 task_id 变量名作为输入
@@ -17,7 +17,7 @@ import com.oracle.truffle.api.nodes.Node;
  * - 轮询 AsyncTaskRegistry 直到所有任务完成
  * - 在轮询过程中调用 executeNext() 调度待执行任务
  * - 任何任务 FAILED 时抛出异常
- * - 所有任务完成后返回 null
+ * - 所有任务完成后返回对应结果（单任务返回单值，多任务返回结果数组）
  *
  * 注意：此节点不使用 @Child 注解，因为它在构造时就确定了要等待的变量名列表。
  * 这些变量名会在运行时通过 Env 查找对应的 task_id 值。
@@ -88,7 +88,24 @@ public final class WaitNode extends Node {
 
       // 所有任务都已完成
       if (allCompleted) {
-        return null;
+        // 单任务场景直接返回对应结果，多任务保持 taskIdNames 顺序返回结果数组
+        if (taskIds.length == 1) {
+          Object result = registry.getResult(taskIds[0]);
+          if (env != null) {
+            env.set(taskIdNames[0], result);
+          }
+          return result;
+        }
+
+        Object[] results = new Object[taskIds.length];
+        for (int i = 0; i < taskIds.length; i++) {
+          Object result = registry.getResult(taskIds[i]);
+          results[i] = result;
+          if (env != null) {
+            env.set(taskIdNames[i], result);
+          }
+        }
+        return results;
       }
 
       // 调度下一个任务并继续等待
@@ -99,4 +116,3 @@ public final class WaitNode extends Node {
     }
   }
 }
-

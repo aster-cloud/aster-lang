@@ -65,6 +65,7 @@ class EffectCheckerTest {
     assertEquals("pure", Effect.PURE.toString());
     assertEquals("cpu", Effect.CPU.toString());
     assertEquals("io", Effect.IO.toString());
+    assertEquals("async", Effect.ASYNC.toString());
   }
 
   // ========== 效果Join测试 ==========
@@ -441,5 +442,105 @@ class EffectCheckerTest {
     var pattern = new CoreModel.PatInt();
     pattern.value = value;
     return pattern;
+  }
+
+  // ========== ASYNC 效果测试 ==========
+
+  @Test
+  void testEffectFromStringAsync() {
+    // 测试 ASYNC 字符串解析
+    assertEquals(Effect.ASYNC, Effect.fromString("async"));
+    assertEquals(Effect.ASYNC, Effect.fromString("ASYNC"));
+    assertEquals(Effect.ASYNC, Effect.fromString("Async"));
+  }
+
+  @Test
+  void testJoinPureWithAsync() {
+    // PURE ⊔ ASYNC = ASYNC
+    assertEquals(Effect.ASYNC, checker.join(Effect.PURE, Effect.ASYNC));
+    assertEquals(Effect.ASYNC, checker.join(Effect.ASYNC, Effect.PURE));
+  }
+
+  @Test
+  void testJoinCPUWithAsync() {
+    // CPU ⊔ ASYNC = ASYNC
+    assertEquals(Effect.ASYNC, checker.join(Effect.CPU, Effect.ASYNC));
+    assertEquals(Effect.ASYNC, checker.join(Effect.ASYNC, Effect.CPU));
+  }
+
+  @Test
+  void testJoinIOWithAsync() {
+    // IO ⊔ ASYNC = ASYNC
+    assertEquals(Effect.ASYNC, checker.join(Effect.IO, Effect.ASYNC));
+    assertEquals(Effect.ASYNC, checker.join(Effect.ASYNC, Effect.IO));
+  }
+
+  @Test
+  void testJoinAsync() {
+    // ASYNC ⊔ ASYNC = ASYNC
+    assertEquals(Effect.ASYNC, checker.join(Effect.ASYNC, Effect.ASYNC));
+  }
+
+  @Test
+  void testIsSubEffectAsync() {
+    // 所有效果都是 ASYNC 的子效果
+    assertTrue(checker.isSubEffect(Effect.PURE, Effect.ASYNC));
+    assertTrue(checker.isSubEffect(Effect.CPU, Effect.ASYNC));
+    assertTrue(checker.isSubEffect(Effect.IO, Effect.ASYNC));
+    assertTrue(checker.isSubEffect(Effect.ASYNC, Effect.ASYNC));
+
+    // ASYNC 不是 IO/CPU/PURE 的子效果
+    assertFalse(checker.isSubEffect(Effect.ASYNC, Effect.IO));
+    assertFalse(checker.isSubEffect(Effect.ASYNC, Effect.CPU));
+    assertFalse(checker.isSubEffect(Effect.ASYNC, Effect.PURE));
+  }
+
+  @Test
+  void testInferEffectAwait() {
+    // await(42) - ASYNC
+    var await = new CoreModel.Await();
+    await.expr = createInt(42);
+
+    assertEquals(Effect.ASYNC, checker.inferEffect(await, ctx));
+  }
+
+  @Test
+  void testInferEffectAwaitWithIO() {
+    // await(IO.readFile()) - ASYNC（await 的效果总是 ASYNC）
+    var call = new CoreModel.Call();
+    call.target = createName("IO.readFile");
+    call.args = List.of();
+
+    var await = new CoreModel.Await();
+    await.expr = call;
+
+    assertEquals(Effect.ASYNC, checker.inferEffect(await, ctx));
+  }
+
+  @Test
+  void testCompareEffectsAsync() {
+    // ASYNC 的 ordinal 最大
+    assertTrue(checker.compareEffects(Effect.PURE, Effect.ASYNC) < 0);
+    assertTrue(checker.compareEffects(Effect.CPU, Effect.ASYNC) < 0);
+    assertTrue(checker.compareEffects(Effect.IO, Effect.ASYNC) < 0);
+    assertEquals(0, checker.compareEffects(Effect.ASYNC, Effect.ASYNC));
+  }
+
+  @Test
+  void testCheckEffectCompatibilityAsyncValid() {
+    // PURE ⊑ ASYNC - 有效
+    checker.checkEffectCompatibility(Effect.ASYNC, Effect.PURE, Optional.empty());
+    assertTrue(diagnostics.getDiagnostics().isEmpty());
+
+    // IO ⊑ ASYNC - 有效
+    checker.checkEffectCompatibility(Effect.ASYNC, Effect.IO, Optional.empty());
+    assertTrue(diagnostics.getDiagnostics().isEmpty());
+  }
+
+  @Test
+  void testCheckEffectCompatibilityAsyncInvalid() {
+    // ASYNC ⋢ IO - 无效
+    checker.checkEffectCompatibility(Effect.IO, Effect.ASYNC, Optional.empty());
+    assertFalse(diagnostics.getDiagnostics().isEmpty());
   }
 }

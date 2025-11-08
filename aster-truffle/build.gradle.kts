@@ -64,7 +64,7 @@ tasks.register<JavaExec>("generateNativeConfig") {
 // GraalVM Native Image 配置
 graalvmNative {
   metadataRepository {
-    enabled.set(true) // 重新启用以使用官方 Jackson/NIO 元数据
+    enabled.set(false) // P1-1: 禁用以兼容 configuration cache（手动提供 META-INF/native-image 配置）
   }
   binaries {
     named("main") {
@@ -74,6 +74,11 @@ graalvmNative {
       buildArgs.add("-H:+ReportExceptionStackTraces")
       buildArgs.add("--initialize-at-build-time=")
       buildArgs.add("-H:+UnlockExperimentalVMOptions")
+
+      // Phase 2.5: 编译时初始化配置 - 优化 Native Image 启动性能
+      // 标记可在构建时初始化的类（无状态、不依赖运行时环境）
+      buildArgs.add("--initialize-at-build-time=aster.truffle.AsterLanguage")
+      buildArgs.add("--initialize-at-build-time=aster.truffle.runtime.AsterConfig")
 
       // PGO 支持: 通过 -PpgoMode 传递参数
       // 用法: ./gradlew nativeCompile -PpgoMode=instrument
@@ -115,4 +120,10 @@ graalvmNative {
       standard {}
     }
   }
+}
+
+// P1-1: 禁用 nativeCompile 任务的 configuration cache
+// 原因: GraalVM Native Image 构建需要独占锁，与 configuration cache 不兼容
+tasks.named("nativeCompile") {
+  notCompatibleWithConfigurationCache("GraalVM Native Image build requires exclusive lock")
 }
