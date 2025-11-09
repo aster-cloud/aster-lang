@@ -1,9 +1,16 @@
 package aster.truffle;
 
+import aster.truffle.runtime.AsyncTaskRegistry;
+import aster.truffle.runtime.DependencyGraph;
+import aster.truffle.runtime.WorkflowScheduler;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1490,6 +1497,101 @@ public class ExecutionTestSuite {
       Source source = Source.newBuilder("aster", json, "test.json").build();
       Value result = context.eval(source);
       assertEquals(77, result.asInt(), "Option in async should unwrap Some value 77");
+    }
+  }
+
+  // ==================== Workflow Integration ====================
+
+  /**
+   * 测试：线性工作流 A→B→C，验证阶段顺序与结果传递。
+   */
+  @Test
+  public void testWorkflowLinearChain() {
+    WorkflowTestFixture fx = new WorkflowTestFixture();
+    AtomicInteger sequence = new AtomicInteger(0);
+
+    fx.register("prepare", () -> fx.registry.setResult("prepare", "stage-" + sequence.incrementAndGet()),
+        Collections.emptySet());
+    fx.register("process", () -> fx.registry.setResult("process", "stage-" + sequence.incrementAndGet()),
+        Set.of("prepare"));
+    fx.register("finish", () -> fx.registry.setResult("finish", "stage-" + sequence.incrementAndGet()),
+        Set.of("process"));
+
+    fx.run(5_000);
+
+    assertEquals("stage-1", fx.registry.getResult("prepare"));
+    assertEquals("stage-2", fx.registry.getResult("process"));
+    assertEquals("stage-3", fx.registry.getResult("finish"));
+    assertTrue(fx.graph.allCompleted(), "线性工作流执行后应全部完成");
+  }
+
+  /**
+   * 测试：菱形工作流 A→B,C→D，验证分支合流逻辑。
+   */
+  @Test
+  public void testWorkflowDiamond() {
+    WorkflowTestFixture fx = new WorkflowTestFixture();
+
+    fx.register("seed", () -> fx.registry.setResult("seed", 5), Collections.emptySet());
+    fx.register("branch-left", () -> {
+      int base = (int) fx.registry.getResult("seed");
+      fx.registry.setResult("branch-left", base + 10);
+    }, Set.of("seed"));
+
+    fx.register("branch-right", () -> {
+      int base = (int) fx.registry.getResult("seed");
+      fx.registry.setResult("branch-right", base + 20);
+    }, Set.of("seed"));
+
+    fx.register("merge", () -> {
+      int left = (int) fx.registry.getResult("branch-left");
+      int right = (int) fx.registry.getResult("branch-right");
+      fx.registry.setResult("merge", left + right);
+    }, Set.of("branch-left", "branch-right"));
+
+    fx.run(5_000);
+
+    assertEquals(5, fx.registry.getResult("seed"));
+    assertEquals(15, fx.registry.getResult("branch-left"));
+    assertEquals(25, fx.registry.getResult("branch-right"));
+    assertEquals(40, fx.registry.getResult("merge"));
+  }
+
+  /**
+   * 测试：工作流中某个任务失败时，错误应向后传播并取消依赖链。
+   */
+  @Test
+  public void testWorkflowError() {
+    WorkflowTestFixture fx = new WorkflowTestFixture();
+
+    fx.register("source", () -> fx.registry.setResult("source", "ok"), Collections.emptySet());
+    fx.register("fail", () -> { throw new RuntimeException("intentional"); }, Set.of("source"));
+    fx.register("sink", () -> fx.registry.setResult("sink", "never"), Set.of("fail"));
+
+    RuntimeException thrown = assertThrows(RuntimeException.class, () -> fx.run(5_000));
+    assertTrue(thrown.getMessage().contains("Task failed"), "应提示任务失败");
+
+    assertTrue(fx.registry.isCompleted("source"));
+    assertTrue(fx.registry.isFailed("fail"));
+    assertTrue(fx.registry.isCancelled("sink"));
+  }
+
+  /**
+   * 工作流测试夹具：复用调度组件，简化每个用例的注册流程。
+   */
+  private static final class WorkflowTestFixture {
+    final AsyncTaskRegistry registry = new AsyncTaskRegistry();
+    final WorkflowScheduler scheduler = new WorkflowScheduler(registry);
+    final DependencyGraph graph = new DependencyGraph();
+
+    void register(String taskId, Runnable body, Set<String> deps) {
+      registry.registerTask(taskId, body);
+      graph.addTask(taskId, deps == null ? Collections.emptySet() : deps);
+    }
+
+    void run(long timeoutMs) {
+      scheduler.registerWorkflow(graph);
+      scheduler.executeUntilComplete(timeoutMs);
     }
   }
 }

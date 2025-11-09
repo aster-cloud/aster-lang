@@ -1,6 +1,6 @@
 package aster.truffle.runtime;
 
-import java.util.LinkedList;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -11,6 +11,11 @@ import java.util.concurrent.atomic.AtomicReference;
  * - 任务按注册顺序存入队列
  * - executeNext() 方法显式调度下一个 PENDING 任务
  * - 无真实并发，简化调试和测试
+ *
+ * Phase 2 扩展：依赖管理
+ * - 支持任务依赖声明
+ * - 依赖感知调度
+ * - 任务取消和错误传播
  */
 public final class AsyncTaskRegistry {
   // 任务存储：task_id -> TaskState
@@ -19,12 +24,16 @@ public final class AsyncTaskRegistry {
   // Phase 1: 任务队列（FIFO 调度）
   private final LinkedList<String> pendingQueue = new LinkedList<>();
 
+  // Phase 2: 依赖存储：task_id -> 依赖的 task_id 集合
+  private final Map<String, Set<String>> dependencies = new HashMap<>();
+
   // 任务状态枚举
   public enum TaskStatus {
     PENDING,    // 任务已注册，尚未开始执行
     RUNNING,    // 任务正在执行中
     COMPLETED,  // 任务成功完成，结果已存储
-    FAILED      // 任务执行失败，异常已存储
+    FAILED,     // 任务执行失败，异常已存储
+    CANCELLED   // Phase 2: 任务已取消（错误传播时使用）
   }
 
   /**
@@ -247,5 +256,76 @@ public final class AsyncTaskRegistry {
    */
   public int getPendingCount() {
     return pendingQueue.size();
+  }
+
+  // ========== Phase 2: 依赖管理方法 ==========
+
+  /**
+   * 注册带依赖的任务
+   *
+   * @param taskId 任务唯一标识符
+   * @param taskBody 任务执行体
+   * @param deps 依赖的任务 ID 集合（可为 null 或空）
+   * @return 任务 ID
+   */
+  public String registerTaskWithDependencies(String taskId, Runnable taskBody, Set<String> deps) {
+    // 复用现有注册逻辑
+    registerTask(taskId, taskBody);
+
+    // 存储依赖关系
+    if (deps != null && !deps.isEmpty()) {
+      dependencies.put(taskId, new HashSet<>(deps));
+    }
+
+    return taskId;
+  }
+
+  /**
+   * 检查任务的依赖是否已满足
+   *
+   * @param taskId 任务 ID
+   * @return true 如果所有依赖任务都已完成，或无依赖
+   */
+  public boolean isDependencySatisfied(String taskId) {
+    Set<String> deps = dependencies.get(taskId);
+
+    // 无依赖或依赖集合为空
+    if (deps == null || deps.isEmpty()) {
+      return true;
+    }
+
+    // 检查所有依赖任务是否已完成
+    return deps.stream().allMatch(this::isCompleted);
+  }
+
+  /**
+   * 取消任务（用于错误传播）
+   *
+   * @param taskId 任务 ID
+   */
+  public void cancelTask(String taskId) {
+    TaskState state = tasks.get(taskId);
+    if (state == null) {
+      return;
+    }
+
+    TaskStatus currentStatus = state.status.get();
+
+    // 只能取消 PENDING 状态的任务
+    if (currentStatus == TaskStatus.PENDING) {
+      state.status.set(TaskStatus.CANCELLED);
+      pendingQueue.remove(taskId);
+    }
+  }
+
+  /**
+   * 检查任务是否已取消
+   *
+   * @param taskId 任务 ID
+   * @return true 如果任务状态为 CANCELLED
+   */
+  public boolean isCancelled(String taskId) {
+    TaskStatus status = getStatus(taskId);
+    return status == TaskStatus.CANCELLED;
   }
 }

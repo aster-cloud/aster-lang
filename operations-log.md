@@ -1,3 +1,20 @@
+# 2025-11-09 22:33 NZDT Phase 2.0 Workflow 测试编写中
+
+**操作记录**:
+- 工具：sequential-thinking（任务理解）→ 明确 Phase 2.0 工作流测试范围与需要覆盖的分支。
+- 工具：code-index（set_project_path + find_files）→ 锁定 runtime/ExecutionTestSuite 目标文件。
+- 工具：apply_patch（多次）→ 重写 `DependencyGraphTest.java`、`WorkflowSchedulerTest.java` 并扩展 `ExecutionTestSuite.java`。
+- 工具：gradlew `:aster-truffle:test`（600s 超时时间）→ 全量测试通过，验证新增单测与集成测试。
+
+**变更摘要**:
+- 补全 DependencyGraph 线性/菱形/循环/性能等 6 个指定用例，确保 100% 覆盖。
+- 重写 WorkflowScheduler 单测，涵盖顺序/Fail-fast/Timeout/并发就绪/取消/空调度等分支。
+- 在 ExecutionTestSuite 中新增 3 个工作流集成测试（线性、菱形、错误传播）与复用夹具。
+
+**观察**:
+- gradle test 包含大量 benchmark，执行约 5 分钟；需预留 ≥300s 超时时间。
+- Timeout 测试依赖“缺失依赖”场景触发全局超时，已验证 cancelAllPendingTasks 路径。
+
 # 2025-11-08 09:26 NZST Phase 3C P1-1 完成 ✅
 
 **任务目标**: 实现小列表快速路径（size <= 10）修复 JIT 性能回归
@@ -4870,3 +4887,23 @@ List.map (1000 items) Heavy: 1.516680 ms
 
 **观察**:
 - Wait 仍在 Core IR 中建模为 Stmt，若需要 `let value = wait task` 表达式语法，需要在 Loader/IR 侧提供表达式节点或转换策略。
+# 2025-11-09 02:18 NZST Phase 2 Workflow Orchestration Context 收集（进行中）
+
+**操作记录**:
+- 工具：sequential-thinking → 明确 Phase 2 上下文收集步骤与潜在风险。
+- 工具：shell (`ls`) → 快速查看仓库根目录结构。
+- 工具：shell (`cat operations-log.md`) → 了解现有操作日志格式与内容。
+- 工具：code-index（get_settings_info/set_project_path）→ 初始化索引、确认检索工具状态。
+- 工具：shell (`date` with TZ=Pacific/Auckland) → 获取 NZST 时间戳用于日志与文档。
+- 工具：shell (`ls aster-truffle`, `ls aster-truffle/src/main/java/aster/truffle`, `ls .claude`) → 掌握 aster-truffle 模块目录与子模块并确认 .claude 文档目录。
+- 工具：shell+sed → 阅读 AsyncTaskRegistry/StartNode/WaitNode/AsterContext/ExecutionTestSuite 等核心文件。
+- 工具：code-index.search_code_advanced → 搜索 AsyncTaskRegistry/executeNext 等引用，定位 AwaitNode 等类似实现。
+- 工具：shell (`rg`) → 定位 ExecutionTestSuite 中 async/wait 测试片段以提取验证模式。
+- 工具：apply_patch → 新建 `.claude/context-phase2-initial.json`，写入 Phase 2 Workflow Orchestration 结构化快速扫描结果。
+# 2025-11-09 02:19 NZST Phase 2 Workflow Orchestration 上下文收集（進行中）
+
+**操作記錄**:
+- 工具：sequential-thinking → 明確快速掃描步驟與輸出需求。
+- 工具：code-index（set_project_path, find_files, build_deep_index, search_code_advanced, get_file_summary）→ 掃描 aster-truffle 模組與 Async 任務相關檔案。
+- 工具：zsh+sed → 閱讀 AsyncTaskRegistry / Start / Wait / Await / ExecutionTestSuite / AsyncTaskRegistryTest 內容取得細節。
+- 輸出：.claude/context-phase2-initial.json（Phase 2 初始上下文報告）。
