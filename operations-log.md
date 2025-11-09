@@ -5059,3 +5059,38 @@ List.map (1000 items) Heavy: 1.516680 ms
 - 工具：apply_patch → 添加 workflow effect/capability Golden 测试与期望文件，更新回归测试清单。
 - 工具：shell（npm test > /tmp/npm-test.log 2>&1; printf "exit %d" $?）→ 全量测试通过，日志存于 `/tmp/npm-test.log`。
 - 工具：shell（tail -n 20 /tmp/npm-test.log）→ 抽样记录 property 测试结果。
+- # 2025-11-10 05:43 NZDT Phase 2.2 Durable Execution Runtime 分析
+- 工具：shell（TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"）→ 记录 Phase 2.2 分析时间基准 2025-11-10 05:43 NZDT。
+- 工具：sequential-thinking__sequentialthinking → 梳理 Phase 2.2 分析步骤（阅读 DESIGN/Roadmap、复盘 Phase 2.0/2.1、检查 runtime/依赖、研究参考架构、汇总报告）。
+- 工具：plan.update → 建立 5 步执行计划（文档调研 → Phase2.0/2.1 审查 → runtime/依赖检查 → 架构研究 → 生成分析报告）。
+- 工具：shell（sed -n '1,200p' DESIGN.md）→ 摘取 Phase 2.2 背景、待交付组件与运行时缺口。
+- 工具：shell（sed -n '1,200p' ROADMAP_SUMMARY.md）→ 汇总阶段目标、成功指标与技术栈定位。
+- 工具：shell（sed -n '1,200p' aster-truffle/src/main/java/aster/truffle/nodes/WorkflowNode.java）→ 解析 Phase 2.0 WorkflowNode 执行流程与依赖图构建。
+- 工具：shell（sed -n '1,400p' aster-truffle/src/main/java/aster/truffle/runtime/DependencyGraph.java）→ 复核依赖图实现与缺失的事件溯源功能。
+- 工具：shell（sed -n '1,260p' aster-truffle/src/main/java/aster/truffle/runtime/WorkflowScheduler.java）→ 审查调度器的协作式执行与 fail-fast 行为。
+- 工具：shell（sed -n '1,400p' aster-truffle/src/main/java/aster/truffle/runtime/AsyncTaskRegistry.java）→ 检查任务注册/状态机与缺失的持久化能力。
+- 工具：shell（sed -n '1,200p' .claude/phase2.0-task-P0-5-report.md）→ 读取 Phase 2.0 测试交付与覆盖范围。
+- 工具：shell（sed -n '1,200p' .claude/phase2.1.1-phase2.1.6-implementation-report.md）→ 汇总 Phase 2.1 语言、类型与 emitter 成果。
+- 工具：shell（sed -n '180,340p' src/types.ts）→ 抽取 WorkflowStmt/StepStmt AST 结构定义。
+- 工具：shell（sed -n '240,360p' src/lower_to_core.ts）→ 分析 Workflow 降级逻辑与 capability 聚合。
+- 工具：shell（sed -n '770,920p' src/typecheck.ts）→ 了解 Workflow 类型推断、effect 校验与补偿规则。
+- 工具：shell（sed -n '292,380p' src/jvm/emitter.ts）→ 检查 emitWorkflowStatement 的 runtime 接线与限制。
+- 工具：shell（sed -n '1,200p' docs/dev/workflow-implementation.md）→ 获取 Phase 2.1 编译/运行时实现文档。
+- 工具：shell（sed -n '1,200p' quarkus-policy-api/build.gradle.kts）→ 确认 Quarkus 模块对 PostgreSQL/Hibernate/Flyway 的依赖配置。
+- 工具：shell（sed -n '1,200p' quarkus-policy-api/src/main/resources/application.properties）→ 核实 PostgreSQL/Flyway 数据源与运行时配置。
+- 工具：shell（sed -n '1,200p' standard-workflow.md）→ 复查标准工作流与 sequential-thinking 强制要求。
+- 工具：shell（rg -n "EventStore" -g"*.java"）→ 验证代码库尚无事件存储实现。
+- 工具：mcp__exa__web_search_exa（query="Temporal durable execution runtime event sourcing history architecture"）→ 收集 Temporal 事件历史与耐久执行资料。
+- 工具：mcp__exa__web_search_exa（query="PostgreSQL event sourcing schema design events table snapshots best practices"）→ 获取 Postgres 事件存储 schema 最佳实践参考。
+- 工具：mcp__exa__web_search_exa（query="Saga pattern compensating transactions orchestration state machine database example"）→ 汇总 Saga 模式补偿机制资料。
+- 工具：mcp__exa__web_search_exa（query="Temporal event history durable execution replay commands events persisted"）→ 获取 Temporal 官方 Event History 机制描述。
+- 工具：mcp__exa__web_search_exa（query="\"Saga pattern\" compensating transactions orchestrator state machine"）→ 深入补偿式 Saga 编排参考案例。
+- 工具：mcp__exa__web_search_exa（query="\"Saga\" \"compensating\" transactions state machine orchestration"）→ 交叉验证 Saga 失败补偿实践。
+- 工具：mcp__exa__web_search_exa（query="PostgreSQL event sourcing schema events table aggregate_id version snapshot best practices"）→ 抽取事件表字段（aggregate_id/version/payload/timestamp）建议。
+- 工具：shell（TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"）→ 更新文档写入时间基准 2025-11-10 05:48 NZDT。
+- 2025-11-10 05:58 NZDT Codex
+- 工具：sequential-thinking__sequentialthinking → Phase 2.2 Durable Runtime 审查前整理评估范围与风险。
+- 工具：plan.update → 将执行步骤拆解为上下文收集、现有实现调研、性能/一致性评估、报告写入。
+- 工具：code-index.search → 查询 “Durable Execution”、“Phase 2.2”、“Panache”、“@Incoming”、“workflow_events” 等关键词，确认代码库现状与缺失。
+- 工具：shell（nl/sed/rg）→ 逐段阅读 DESIGN.md Phase 2.2 交付、LANGUAGE_REFERENCE.md 能力契约、WorkflowScheduler/WorkflowNode/AsyncTaskRegistry、src/jvm/emitter.ts、quarkus-policy-api/build.gradle.kts、application.properties、PolicyEvaluationResource、AuditEvent/AuditEventListener/AuditLog/PolicyMetrics/PolicyManagementService/PolicyEvaluationService/AuditLogResource、WorkflowSchedulerTest 等文件。
+- 摘要：完成 Phase 2.2 初步方案的代码对照审查取证，收集事件处理、持久化、调度器、指标、测试基线与设计缺口，准备生成 `.claude/phase2.2-reflection.json` 审查报告。

@@ -4,7 +4,7 @@
 
 # Interface: TypeApp
 
-Defined in: [types.ts:389](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L389)
+Defined in: [types.ts:389](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L389)
 
 类型应用基础接口。
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:389](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:390](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L390)
+Defined in: [types.ts:390](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L390)
 
 #### Overrides
 
@@ -30,7 +30,7 @@ Defined in: [types.ts:390](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -42,7 +42,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/e
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types/base.ts#L43)
 
 #### Inherited from
 
@@ -54,7 +54,7 @@ Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/e
 
 > `readonly` **kind**: `"TypeApp"`
 
-Defined in: [types/base.ts:450](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types/base.ts#L450)
+Defined in: [types/base.ts:450](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types/base.ts#L450)
 
 #### Inherited from
 
@@ -66,7 +66,7 @@ Defined in: [types/base.ts:450](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **base**: `string`
 
-Defined in: [types/base.ts:451](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types/base.ts#L451)
+Defined in: [types/base.ts:451](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types/base.ts#L451)
 
 #### Inherited from
 
@@ -78,7 +78,7 @@ Defined in: [types/base.ts:451](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **args**: readonly [`Type`](../type-aliases/Type.md)[]
 
-Defined in: [types/base.ts:452](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types/base.ts#L452)
+Defined in: [types/base.ts:452](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types/base.ts#L452)
 
 #### Inherited from
 

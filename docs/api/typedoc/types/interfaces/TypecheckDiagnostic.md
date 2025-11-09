@@ -4,7 +4,7 @@
 
 # Interface: TypecheckDiagnostic
 
-Defined in: [types.ts:129](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L129)
+Defined in: [types.ts:129](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L129)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:129](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > **severity**: `"error"` \| `"warning"` \| `"info"`
 
-Defined in: [types.ts:130](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L130)
+Defined in: [types.ts:130](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L130)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:130](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > **code**: [`ErrorCode`](../../error_codes/enumerations/ErrorCode.md)
 
-Defined in: [types.ts:131](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L131)
+Defined in: [types.ts:131](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L131)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:131](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > **message**: `string`
 
-Defined in: [types.ts:132](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L132)
+Defined in: [types.ts:132](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L132)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:132](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `optional` **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:133](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L133)
+Defined in: [types.ts:133](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L133)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [types.ts:133](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `optional` **origin**: [`Origin`](Origin.md)
 
-Defined in: [types.ts:134](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L134)
+Defined in: [types.ts:134](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L134)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [types.ts:134](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `optional` **help**: `string`
 
-Defined in: [types.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L135)
+Defined in: [types.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L135)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: [types.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `optional` **data**: `unknown`
 
-Defined in: [types.ts:136](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L136)
+Defined in: [types.ts:136](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L136)

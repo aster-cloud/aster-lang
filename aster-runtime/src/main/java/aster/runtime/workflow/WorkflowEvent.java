@@ -1,0 +1,138 @@
+package aster.runtime.workflow;
+
+import java.time.Instant;
+
+/**
+ * Workflow 事件
+ *
+ * 表示 workflow 执行过程中的一个事件，包含事件类型、负载数据和元数据。
+ */
+public class WorkflowEvent {
+
+    private final long sequence;
+    private final String workflowId;
+    private final String eventType;
+    private final Object payload;
+    private final Instant occurredAt;
+
+    /**
+     * 构造 workflow 事件
+     *
+     * @param sequence 事件序列号
+     * @param workflowId workflow 唯一标识符
+     * @param eventType 事件类型
+     * @param payload 事件负载数据
+     * @param occurredAt 事件发生时间
+     */
+    public WorkflowEvent(long sequence, String workflowId, String eventType, Object payload, Instant occurredAt) {
+        this.sequence = sequence;
+        this.workflowId = workflowId;
+        this.eventType = eventType;
+        this.payload = payload;
+        this.occurredAt = occurredAt;
+    }
+
+    /**
+     * 获取事件序列号
+     *
+     * 序列号在同一 workflow 内单调递增，从 1 开始。
+     *
+     * @return 事件序列号
+     */
+    public long getSequence() {
+        return sequence;
+    }
+
+    /**
+     * 获取 workflow ID
+     *
+     * @return workflow 唯一标识符
+     */
+    public String getWorkflowId() {
+        return workflowId;
+    }
+
+    /**
+     * 获取事件类型
+     *
+     * 常见事件类型：
+     * - WorkflowStarted: workflow 开始执行
+     * - StepScheduled: step 被调度
+     * - StepStarted: step 开始执行
+     * - StepCompleted: step 执行成功
+     * - StepFailed: step 执行失败
+     * - CompensationScheduled: 补偿被调度
+     * - CompensationCompleted: 补偿执行完成
+     * - TimerScheduled: 定时器被调度
+     * - TimerFired: 定时器触发
+     * - WorkflowCompleted: workflow 执行完成
+     * - WorkflowFailed: workflow 执行失败
+     *
+     * @return 事件类型
+     */
+    public String getEventType() {
+        return eventType;
+    }
+
+    /**
+     * 获取事件负载数据
+     *
+     * 负载包含事件相关的具体数据，格式取决于事件类型。
+     *
+     * @return 事件负载
+     */
+    public Object getPayload() {
+        return payload;
+    }
+
+    /**
+     * 获取事件发生时间
+     *
+     * @return 事件时间戳
+     */
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("WorkflowEvent{seq=%d, workflowId='%s', type='%s', occurredAt=%s}",
+                sequence, workflowId, eventType, occurredAt);
+    }
+
+    /**
+     * 事件类型常量
+     */
+    public static final class Type {
+        private Type() {} // 禁止实例化
+
+        /** Workflow 开始执行 */
+        public static final String WORKFLOW_STARTED = "WorkflowStarted";
+        /** Step 被调度 */
+        public static final String STEP_SCHEDULED = "StepScheduled";
+        /** Step 开始执行 */
+        public static final String STEP_STARTED = "StepStarted";
+        /** Step 执行成功 */
+        public static final String STEP_COMPLETED = "StepCompleted";
+        /** Step 执行失败 */
+        public static final String STEP_FAILED = "StepFailed";
+        /** 补偿被调度 */
+        public static final String COMPENSATION_SCHEDULED = "CompensationScheduled";
+        /** 补偿开始执行 */
+        public static final String COMPENSATION_STARTED = "CompensationStarted";
+        /** 补偿执行完成 */
+        public static final String COMPENSATION_COMPLETED = "CompensationCompleted";
+        /** 补偿执行失败 */
+        public static final String COMPENSATION_FAILED = "CompensationFailed";
+        /** 定时器被调度 */
+        public static final String TIMER_SCHEDULED = "TimerScheduled";
+        /** 定时器触发 */
+        public static final String TIMER_FIRED = "TimerFired";
+        /** Workflow 执行完成 */
+        public static final String WORKFLOW_COMPLETED = "WorkflowCompleted";
+        /** Workflow 执行失败 */
+        public static final String WORKFLOW_FAILED = "WorkflowFailed";
+        /** Workflow 已终止 */
+        public static final String WORKFLOW_TERMINATED = "WorkflowTerminated";
+    }
+}

@@ -6,7 +6,7 @@
 
 > **formatErrorMessage**(`code`, `params`): `string`
 
-Defined in: [error\_codes.ts:487](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/error_codes.ts#L487)
+Defined in: [error\_codes.ts:487](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/error_codes.ts#L487)
 
 使用命名参数填充错误消息模板。
 

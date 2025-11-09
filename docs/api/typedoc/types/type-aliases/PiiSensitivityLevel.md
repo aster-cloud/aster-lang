@@ -6,7 +6,7 @@
 
 > **PiiSensitivityLevel** = `"L1"` \| `"L2"` \| `"L3"`
 
-Defined in: [types.ts:353](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L353)
+Defined in: [types.ts:353](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L353)
 
 PII 敏感级别
 - L1: 低敏感（如公开的邮箱地址）

@@ -4,7 +4,7 @@
 
 # Interface: Annotation
 
-Defined in: [types.ts:429](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L429)
+Defined in: [types.ts:429](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L429)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:429](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:430](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L430)
+Defined in: [types.ts:430](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L430)
 
 ***
 
@@ -20,4 +20,4 @@ Defined in: [types.ts:430](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `readonly` **params**: `Readonly`\<`Record`\<`string`, `unknown`\>\>
 
-Defined in: [types.ts:431](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L431)
+Defined in: [types.ts:431](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L431)

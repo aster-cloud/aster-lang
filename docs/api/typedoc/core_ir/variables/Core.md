@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/core_ir.ts#L8)
 
 ## Type Declaration
 

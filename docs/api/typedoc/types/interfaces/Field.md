@@ -4,7 +4,7 @@
 
 # Interface: Field
 
-Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L160)
+Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L160)
 
 字段基础接口。
 
@@ -18,7 +18,7 @@ Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `readonly` `optional` **annotations**: readonly [`Annotation`](Annotation.md)[]
 
-Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L161)
+Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L161)
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types.ts#L162)
+Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types.ts#L162)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/ec56d
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types/base.ts#L74)
+Defined in: [types/base.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types/base.ts#L74)
 
 #### Inherited from
 
@@ -46,7 +46,7 @@ Defined in: [types/base.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/e
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types/base.ts:75](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/types/base.ts#L75)
+Defined in: [types/base.ts:75](https://github.com/wontlost-ltd/aster-lang/blob/8b40c0ffcba44ce641461ada8bbd5fcd27cd1f64/src/types/base.ts#L75)
 
 #### Inherited from
 
