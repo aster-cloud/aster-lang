@@ -2,6 +2,12 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-10 Phase 2.1.2 Workflow Core IR 验证
+- 日期：2025-11-10 00:06 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm test` → 通过（串行执行 fmt:examples、build、unit、integration、golden、property；涵盖新增 workflow Core IR 降级、pretty 打印与 golden 样例，验证 effectCaps 聚合逻辑无回归）。
+
 ## 2025-11-08 Truffle Phase 2 Task 2.3 验证
 - 日期：2025-11-08 15:48 NZST
 - 执行者：Codex
@@ -381,3 +387,9 @@ protected int readInt(VirtualFrame frame) throws FrameSlotTypeException {
 - 执行者：Codex
 - 指令与结果：
   - `./gradlew :aster-truffle:test --tests aster.truffle.GoldenTestAdapter --rerun-tasks` → 通过；新增 boundary_* 用例 6 个全部执行并返回期望结果，bad_* 系列 4 个确认按预期抛出异常并计为 PASS。
+
+## 2025-11-09 Phase 2.1.1 Parser 扩展验证
+- 日期：2025-11-09 23:37 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm test` → 通过；完整执行 fmt:examples、build、unit、integration、golden、property 流水线，确认 workflow/step/retry/timeout 语法与新 AST 模型不会破坏既有测试集。

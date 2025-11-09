@@ -67,6 +67,8 @@ class PrettyCoreVisitor extends DefaultCoreVisitor {
         this.indentLevel--;
         return `match (${this.formatExpr(s.expr)}) {\n${cases}\n${this.indent()}}`;
       }
+      case 'workflow':
+        return this.formatWorkflow(s);
       case 'Scope': {
         const inner: Core.Block = { kind: 'Block', statements: s.statements };
         return `scope ${this.formatBlock(inner)}`;
@@ -76,6 +78,31 @@ class PrettyCoreVisitor extends DefaultCoreVisitor {
       case 'Wait':
         return `awaitAll(${s.names.join(', ')})`;
     }
+  }
+
+  private formatWorkflow(w: Core.Workflow): string {
+    if (!w.steps.length && !w.retry && !w.timeout) return 'workflow {}';
+    this.indentLevel++;
+    const lines: string[] = [];
+    for (const step of w.steps) lines.push(this.formatWorkflowStep(step));
+    if (w.retry) {
+      lines.push(
+        `${this.indent()}retry(maxAttempts=${w.retry.maxAttempts}, backoff=${w.retry.backoff})`
+      );
+    }
+    if (w.timeout) {
+      lines.push(`${this.indent()}timeout(${w.timeout.milliseconds}ms)`);
+    }
+    this.indentLevel--;
+    return `workflow {\n${lines.join('\n')}\n${this.indent()}}`;
+  }
+
+  private formatWorkflowStep(step: Core.Step): string {
+    const sections = [`${this.indent()}step ${step.name} ${this.formatBlock(step.body)}`];
+    if (step.compensate) {
+      sections.push(`${this.indent()}compensate ${this.formatBlock(step.compensate)}`);
+    }
+    return sections.join('\n');
   }
 
   private formatPattern(p: Core.Pattern): string {

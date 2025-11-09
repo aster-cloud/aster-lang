@@ -71,7 +71,27 @@ function analyzeFunction(
   const localEffects = new Set<Effect>();
 
   // 使用统一的 Core 访客遍历函数体，收集调用与内建效果
-  class CallScanVisitor extends DefaultCoreVisitor {
+  class EffectCollector extends DefaultCoreVisitor {
+    override visitStatement(
+      statement: Core.Statement,
+      context: import('./visitor.js').VisitorContext
+    ): void {
+      if (statement.kind === 'workflow') {
+        this.visitWorkflow(statement, context);
+        return;
+      }
+      super.visitStatement(statement, context);
+    }
+
+    visitWorkflow(workflow: Core.Workflow, context: import('./visitor.js').VisitorContext): void {
+      // workflow 天然需要 IO 效果（调度/状态存储），即使步骤本身为纯操作也必须声明 @io
+      localEffects.add(Effect.IO);
+      for (const step of workflow.steps) {
+        this.visitBlock(step.body, context);
+        if (step.compensate) this.visitBlock(step.compensate, context);
+      }
+    }
+
     override visitExpression(e: Core.Expression, context: import('./visitor.js').VisitorContext): void {
       if (e.kind === 'Call') {
         const calleeName = extractFunctionName(e.target);
@@ -93,7 +113,7 @@ function analyzeFunction(
     }
   }
 
-  if (func.body) new CallScanVisitor().visitBlock(func.body, createVisitorContext());
+  if (func.body) new EffectCollector().visitBlock(func.body, createVisitorContext());
 
   return { constraints, localEffects };
 }

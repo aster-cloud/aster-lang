@@ -146,6 +146,55 @@
     "message": "Optional value required here: expected Maybe or Option, but got {actual}",
     "help": "传入 Maybe/Option 类型或显式包装值。"
   },
+  "WORKFLOW_COMPENSATE_TYPE": {
+    "code": "E022",
+    "category": "type",
+    "severity": "error",
+    "message": "Compensate block for step '{step}' must return Result<Unit, {expectedErr}>, got {actual}",
+    "help": "确保补偿块返回 Result<Unit, E>，其中 E 为 step 错误类型。"
+  },
+  "WORKFLOW_COMPENSATE_MISSING": {
+    "code": "E023",
+    "category": "effect",
+    "severity": "warning",
+    "message": "Step '{step}' performs side effects but does not define a compensate block.",
+    "help": "为包含 IO 副作用的 step 提供 compensate 块以便回滚。"
+  },
+  "WORKFLOW_RETRY_INVALID": {
+    "code": "E024",
+    "category": "type",
+    "severity": "error",
+    "message": "Workflow retry max attempts must be greater than zero (actual: {maxAttempts}).",
+    "help": "设置 retry.maxAttempts 为正整数。"
+  },
+  "WORKFLOW_TIMEOUT_INVALID": {
+    "code": "E025",
+    "category": "type",
+    "severity": "error",
+    "message": "Workflow timeout must be greater than zero milliseconds (actual: {milliseconds}).",
+    "help": "配置 timeout 秒数为正值，确保补偿逻辑可被触发。"
+  },
+  "WORKFLOW_MISSING_IO_EFFECT": {
+    "code": "E026",
+    "category": "effect",
+    "severity": "error",
+    "message": "Workflow '{func}' must declare @io effect before using a 'workflow' block.",
+    "help": "在函数 '{func}' 的头部添加 `It performs io ...`（可同时声明 capability），否则编译器拒绝 workflow 语句。"
+  },
+  "WORKFLOW_UNDECLARED_CAPABILITY": {
+    "code": "E027",
+    "category": "capability",
+    "severity": "error",
+    "message": "Workflow '{func}' step '{step}' uses capability {capability} that is not declared on the function header.",
+    "help": "在 `It performs io with ...` 中列出 {capability}（例如 Http、Sql、Secrets），或调整 step 代码避免调用未授权能力。"
+  },
+  "COMPENSATE_NEW_CAPABILITY": {
+    "code": "E028",
+    "category": "capability",
+    "severity": "error",
+    "message": "Compensate block for step '{step}' in function '{func}' introduces new capability {capability} that does not appear in the main step body.",
+    "help": "Compensate 只能重复主体已使用的能力；如需额外调用，请将相同行为移至主体或在主体中声明该 capability。"
+  },
   "DUPLICATE_IMPORT_ALIAS": {
     "code": "E100",
     "category": "scope",
@@ -299,5 +348,12 @@
     "severity": "warning",
     "message": "Async task '{task}' waited multiple times ({count} occurrences)",
     "help": "确保每个任务仅等待一次，或使用单独的同步机制。"
+  },
+  "ASYNC_WAIT_BEFORE_START": {
+    "code": "E504",
+    "category": "async",
+    "severity": "error",
+    "message": "Wait for async task '{task}' occurs before any matching start",
+    "help": "在 wait for 之前先执行 start，并确保两者位于兼容的控制路径。"
   }
 }

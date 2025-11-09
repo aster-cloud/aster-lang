@@ -42,6 +42,10 @@ export function resolveAlias(name: string, imports: Map<string, string>): string
 
 const typecheckLogger = createLogger('typecheck');
 const UNKNOWN_TYPE: Core.Type = TypeSystem.unknown();
+const UNIT_TYPE: Core.Type = { kind: 'TypeName', name: 'Unit' };
+const IO_EFFECT_TYPE: Core.Type = { kind: 'TypeName', name: 'IO' };
+const CPU_EFFECT_TYPE: Core.Type = { kind: 'TypeName', name: 'CPU' };
+const PURE_EFFECT_TYPE: Core.Type = { kind: 'TypeName', name: 'PURE' };
 
 function isUnknown(type: Core.Type | undefined | null): boolean {
   if (!type) return true;
@@ -62,6 +66,11 @@ function formatType(type: Core.Type | undefined | null): string {
 
 function typesEqual(a: Core.Type | undefined | null, b: Core.Type | undefined | null, strict = false): boolean {
   return TypeSystem.equals(normalizeType(a), normalizeType(b), strict);
+}
+
+function originToSpan(origin: Origin | undefined): Span | undefined {
+  if (!origin) return undefined;
+  return { start: origin.start, end: origin.end };
 }
 
 interface FunctionSignature {
@@ -450,11 +459,65 @@ function checkEffects(
 
   if (!effs.has('cpu') && hasCPU)
     diagnostics.warning(ErrorCode.EFF_SUPERFLUOUS_CPU, f.span, { func: f.name });
+
+  const workflows = collectWorkflows(f.body);
+  if (workflows.length > 0) {
+    if (!hasIO) {
+      diagnostics.error(ErrorCode.WORKFLOW_MISSING_IO_EFFECT, f.span, { func: f.name });
+    }
+    const funcMeta = f as unknown as { effectCaps?: readonly CapabilityKind[] };
+    const declaredCaps = new Set<CapabilityKind>(funcMeta.effectCaps ?? []);
+    for (const workflow of workflows) {
+      for (const step of workflow.steps) {
+        const stepSpan = originToSpan(step.origin);
+        const bodyCaps = collectCapabilities(step.body);
+        reportWorkflowCapabilityViolation(diagnostics, declaredCaps, bodyCaps, f.name, step.name, stepSpan);
+        if (step.compensate) {
+          const compensateCaps = collectCapabilities(step.compensate);
+          const compensateSpan = originToSpan(step.compensate.origin ?? step.origin);
+          reportWorkflowCapabilityViolation(
+            diagnostics,
+            declaredCaps,
+            compensateCaps,
+            f.name,
+            step.name,
+            compensateSpan
+          );
+          const bodyCapSet = new Set(bodyCaps.keys());
+          for (const cap of compensateCaps.keys()) {
+            if (!bodyCapSet.has(cap)) {
+              diagnostics.error(ErrorCode.COMPENSATE_NEW_CAPABILITY, compensateSpan, {
+                func: f.name,
+                step: step.name,
+                capability: cap,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 function collectEffects(ctx: ModuleContext, b: Core.Block): Set<'io' | 'cpu'> {
   const effs = new Set<'io' | 'cpu'>();
   class EffectsVisitor extends DefaultCoreVisitor {
+    override visitStatement(
+      statement: Core.Statement,
+      context: import('./visitor.js').VisitorContext
+    ): void {
+      if (statement.kind === 'workflow') {
+        // workflow 自身由运行时驱动，默认需要 IO 效果
+        effs.add('io');
+        for (const step of statement.steps) {
+          this.visitBlock(step.body, context);
+          if (step.compensate) this.visitBlock(step.compensate, context);
+        }
+        return;
+      }
+      super.visitStatement(statement, context);
+    }
+
     override visitExpression(e: Core.Expression, context: import('./visitor.js').VisitorContext): void {
       if (e.kind === 'Call' && e.target.kind === 'Name') {
         const rawName = e.target.name;
@@ -491,6 +554,37 @@ function collectCapabilities(b: Core.Block): Map<CapabilityKind, string[]> {
   }
   new CapVisitor().visitBlock(b, createVisitorContext());
   return caps;
+}
+
+function collectWorkflows(block: Core.Block): Core.Workflow[] {
+  const workflows: Core.Workflow[] = [];
+  class WorkflowCollector extends DefaultCoreVisitor {
+    override visitStatement(statement: Core.Statement, context: import('./visitor.js').VisitorContext): void {
+      if (statement.kind === 'workflow') workflows.push(statement);
+      super.visitStatement(statement, context);
+    }
+  }
+  new WorkflowCollector().visitBlock(block, createVisitorContext());
+  return workflows;
+}
+
+function reportWorkflowCapabilityViolation(
+  diagnostics: DiagnosticBuilder,
+  declaredCaps: Set<CapabilityKind>,
+  observedCaps: Map<CapabilityKind, string[]>,
+  funcName: string,
+  stepName: string,
+  span: Span | undefined
+): void {
+  for (const cap of observedCaps.keys()) {
+    if (!declaredCaps.has(cap)) {
+      diagnostics.error(ErrorCode.WORKFLOW_UNDECLARED_CAPABILITY, span, {
+        func: funcName,
+        step: stepName,
+        capability: cap,
+      });
+    }
+  }
 }
 
 interface TypecheckWalkerContext {
@@ -672,8 +766,128 @@ class TypecheckVisitor extends DefaultCoreVisitor<TypecheckWalkerContext> {
         this.result = unknownType();
         return;
       }
+      case 'workflow': {
+        this.result = typecheckWorkflow(context, statement as Core.Workflow);
+        return;
+      }
     }
   }
+}
+
+function typecheckWorkflow(context: TypecheckWalkerContext, workflow: Core.Workflow): Core.Type {
+  let resultType: Core.Type = unknownType();
+  const stepEffects = new Map<Core.Step, Set<'io' | 'cpu'>>();
+  for (const step of workflow.steps) {
+    resultType = typecheckStep(context, step, stepEffects);
+  }
+  validateWorkflowMetadata(workflow, context.diagnostics);
+  const effectType = workflowEffectType(context, workflow, stepEffects);
+  return {
+    kind: 'TypeApp',
+    base: 'Workflow',
+    args: [normalizeType(resultType), effectType],
+  };
+}
+
+function typecheckStep(
+  context: TypecheckWalkerContext,
+  step: Core.Step,
+  effectCache?: Map<Core.Step, Set<'io' | 'cpu'>>
+): Core.Type {
+  const bodyType = typecheckBlock(context.module, context.symbols, step.body, context.diagnostics);
+  const effects = collectEffects(context.module, step.body);
+  if (effectCache) {
+    effectCache.set(step, effects);
+  }
+  if (step.compensate) {
+    const compensateType = typecheckBlock(context.module, context.symbols, step.compensate, context.diagnostics);
+    validateCompensateBlock(context, step, bodyType, compensateType);
+  } else if (stepHasSideEffects(step, effects)) {
+    context.diagnostics.warning(ErrorCode.WORKFLOW_COMPENSATE_MISSING, originToSpan(step.origin), {
+      step: step.name,
+    });
+  }
+  return bodyType;
+}
+
+function validateCompensateBlock(
+  context: TypecheckWalkerContext,
+  step: Core.Step,
+  bodyType: Core.Type,
+  compensateType: Core.Type
+): void {
+  const expected = normalizeType(bodyType);
+  if (expected.kind !== 'Result') return;
+
+  const expectedErr = normalizeType(expected.err as Core.Type);
+  const targetSpan = originToSpan(step.compensate?.origin ?? step.origin);
+
+  if (compensateType.kind !== 'Result') {
+    context.diagnostics.error(ErrorCode.WORKFLOW_COMPENSATE_TYPE, targetSpan, {
+      step: step.name,
+      expectedErr: formatType(expectedErr),
+      actual: formatType(compensateType),
+    });
+    return;
+  }
+
+  const okMatchesUnit =
+    TypeSystem.equals(compensateType.ok as Core.Type, UNIT_TYPE) || isUnknown(compensateType.ok as Core.Type);
+  const errMatches =
+    TypeSystem.equals(normalizeType(compensateType.err as Core.Type), expectedErr) ||
+    TypeSystem.isSubtype(normalizeType(compensateType.err as Core.Type), expectedErr);
+
+  if (!okMatchesUnit || !errMatches) {
+    context.diagnostics.error(ErrorCode.WORKFLOW_COMPENSATE_TYPE, targetSpan, {
+      step: step.name,
+      expectedErr: formatType(expectedErr),
+      actual: formatType(compensateType),
+    });
+  }
+}
+
+function workflowEffectType(
+  context: TypecheckWalkerContext,
+  workflow: Core.Workflow,
+  cachedEffects?: Map<Core.Step, Set<'io' | 'cpu'>>
+): Core.Type {
+  let hasIOCap = workflow.effectCaps.some(cap => cap !== CapabilityKind.CPU);
+  let hasCpuCap = workflow.effectCaps.some(cap => cap === CapabilityKind.CPU);
+
+  if (!hasIOCap) {
+    for (const step of workflow.steps) {
+      const effects = cachedEffects?.get(step) ?? collectEffects(context.module, step.body);
+      if (effects.has('io')) {
+        hasIOCap = true;
+        break;
+      }
+      if (effects.has('cpu')) {
+        hasCpuCap = true;
+      }
+    }
+  }
+
+  if (hasIOCap) return IO_EFFECT_TYPE;
+  if (hasCpuCap) return CPU_EFFECT_TYPE;
+  return PURE_EFFECT_TYPE;
+}
+
+function validateWorkflowMetadata(workflow: Core.Workflow, diagnostics: DiagnosticBuilder): void {
+  if (workflow.retry && workflow.retry.maxAttempts <= 0) {
+    diagnostics.error(ErrorCode.WORKFLOW_RETRY_INVALID, originToSpan(workflow.origin), {
+      maxAttempts: workflow.retry.maxAttempts,
+    });
+  }
+  if (workflow.timeout && workflow.timeout.milliseconds <= 0) {
+    diagnostics.error(ErrorCode.WORKFLOW_TIMEOUT_INVALID, originToSpan(workflow.origin), {
+      milliseconds: workflow.timeout.milliseconds,
+    });
+  }
+}
+
+function stepHasSideEffects(step: Core.Step, effects: Set<'io' | 'cpu'>): boolean {
+  if (effects.has('io')) return true;
+  return step.effectCaps.some(cap => cap !== CapabilityKind.CPU);
 }
 
 function typecheckBlock(

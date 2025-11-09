@@ -2,6 +2,13 @@
 
 | 时间 (NZST) | 工具 | 参数概要 | 输出摘要 |
 | --- | --- | --- | --- |
+| 2025-11-10 00:00 | sequential-thinking | totalThoughts=1 | Phase 2.1.2 workflow Core IR 扩展任务分析与风险识别 |
+| 2025-11-10 00:01 | code-index__set_project_path | path=/Users/rpang/IdeaProjects/aster-lang | 设置索引根目录（1518 文件） |
+| 2025-11-10 00:01 | code-index__build_deep_index | - | 重建深度索引，启用 get_file_summary |
+| 2025-11-10 00:02 | code-index__get_file_summary | file=src/lower_to_core.ts | 获取 Lowering 函数/导入结构摘要 |
+| 2025-11-10 00:15 | apply_patch/shell | 更新 src/core_ir.ts、src/lower_to_core.ts、src/pretty_core.ts、src/visitor.ts、src/jvm/emitter.ts | 定义 Core.Workflow/Core.Step，添加降级、pretty 打印与 JVM emitter 占位逻辑 |
+| 2025-11-10 00:25 | shell (node dist/scripts/emit-core.js) | workflow-linear/diamond | 生成两组 workflow Core golden 期望 JSON |
+| 2025-11-10 00:06 | shell (npm test) | - | 全量 fmt→property 流水线通过，验证新节点无回归 |
 | 2025-10-07 20:43 | sequential-thinking | totalThoughts=6 | 形成任务理解、步骤规划与风险评估 |
 | 2025-10-07 20:43 | code-index__find_files | pattern=src/lsp/** | 失败：需先设置项目路径 |
 | 2025-10-07 20:43 | code-index__set_project_path | path=. | 成功，索引 469 个文件 |
@@ -113,3 +120,14 @@
 | 2025-10-16 16:03 | apply_patch | 更新 PolicyGraphQLResourceTest.java | 添加 TTL、并发、批量与复杂组合测试 |
 | 2025-10-16 16:03 | shell (./gradlew :quarkus-policy-api:cleanTest) | - | 清理上一轮测试产物 |
 | 2025-10-16 16:03 | shell (./gradlew :quarkus-policy-api:test) | - | quarkus-policy-api 模块测试全部通过 |
+| 2025-11-09 22:58 | sequential-thinking | totalThoughts=6 | 梳理 workflow/retry/timeout 语法扩展方案与风险 |
+| 2025-11-09 22:59 | code-index__set_project_path | /Users/rpang/IdeaProjects/aster-lang | 设定代码索引根目录以便全文检索 |
+| 2025-11-09 23:00 | code-index__build_deep_index | - | 重建深度索引（1516 文件）供类型/解析器查阅 |
+| 2025-11-09 23:08 | apply_patch | src/config/semantic.ts | 注册 workflow/step/compensate/retry/timeout/max attempts/backoff 关键字 |
+| 2025-11-09 23:10 | apply_patch | src/types/base.ts, src/types.ts, src/ast.ts | 定义 Workflow/Step/Retry/Timeout AST 类型并更新 Node 工厂 |
+| 2025-11-09 23:14 | apply_patch | src/parser/expr-stmt-parser.ts | 新增 parseWorkflow/parseStep/parseRetryPolicy/parseTimeout 及语句分支 |
+| 2025-11-09 23:18 | shell (cat) | 写入 workflow-linear/compensate.aster | 创建 2 个新的 AST golden 输入样例 |
+| 2025-11-09 23:20 | shell (node --input-type=module) | 生成 expected_workflow-*.ast.json | 通过解析器输出匹配的 AST 期望文件 |
+| 2025-11-09 23:24 | shell (npm test) | - | fmt:examples、build、unit、integration、golden、property 全量通过 |
+| 2025-11-09 23:33 | apply_patch | docs/testing.md, docs/workstreams/P2-1/verification.md | 记录 Phase 2.1.1 验证结果 |
+| 2025-11-09 23:37 | shell (cat) | .claude/phase2.1.1-implementation-report.md | 输出阶段实现报告（含修改摘要与测试结论） |

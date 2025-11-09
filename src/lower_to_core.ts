@@ -18,7 +18,7 @@
  */
 
 import { Core } from './core_ir.js';
-import { parseEffect, getAllEffects } from './config/semantic.js';
+import { parseEffect, getAllEffects, inferCapabilityFromName } from './config/semantic.js';
 import { Diagnostics } from './diagnostics.js';
 import type { Span, Origin } from './types.js';
 import type {
@@ -30,8 +30,12 @@ import type {
   Expression,
   Pattern,
   Type,
+  WorkflowStmt,
+  StepStmt,
 } from './types.js';
 import { DefaultAstVisitor } from './ast_visitor.js';
+import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
+import type { CapabilityKind } from './config/semantic.js';
 
 // ==================== 类型安全的元数据辅助函数 ====================
 
@@ -237,6 +241,8 @@ function lowerStmt(s: Statement): import('./types.js').Core.Statement {
       return withOrigin(Core.Start(s.name, lowerExpr(s.expr)), s);
     case 'Wait':
       return withOrigin(Core.Wait(s.names), s);
+    case 'workflow':
+      return lowerWorkflow(s as WorkflowStmt);
     case 'Block':
       return withOrigin(Core.Scope((s as Block).statements.map(lowerStmt)), s);
     case 'Call':
@@ -254,6 +260,69 @@ function lowerStmt(s: Statement): import('./types.js').Core.Statement {
       throw new Error('unreachable'); // For TypeScript's control flow analysis
     }
   }
+}
+
+function lowerWorkflow(stmt: WorkflowStmt): import('./types.js').Core.Workflow {
+  const steps = stmt.steps.map(lowerStep);
+  const effectCaps = mergeCapabilitySets(steps.map(step => step.effectCaps));
+  const retry = stmt.retry
+    ? { maxAttempts: stmt.retry.maxAttempts, backoff: stmt.retry.backoff }
+    : undefined;
+  const timeout = stmt.timeout ? { milliseconds: stmt.timeout.milliseconds } : undefined;
+  const workflow = Core.Workflow(steps, effectCaps, retry, timeout);
+  return withOrigin(workflow, stmt);
+}
+
+function lowerStep(stmt: StepStmt): import('./types.js').Core.Step {
+  const body = lowerBlock(stmt.body);
+  const compensate = stmt.compensate ? lowerBlock(stmt.compensate) : undefined;
+  const effectCaps = mergeCapabilitySets([
+    collectCapabilitiesFromBlock(body),
+    ...(compensate ? [collectCapabilitiesFromBlock(compensate)] : []),
+  ]);
+  const step = Core.Step(stmt.name, body, effectCaps, compensate);
+  return withOrigin(step, stmt);
+}
+
+function mergeCapabilitySets(
+  lists: readonly (readonly CapabilityKind[])[]
+): CapabilityKind[] {
+  const merged: CapabilityKind[] = [];
+  const seen = new Set<CapabilityKind>();
+  for (const caps of lists) {
+    if (!caps) continue;
+    for (const cap of caps) {
+      if (!seen.has(cap)) {
+        seen.add(cap);
+        merged.push(cap);
+      }
+    }
+  }
+  return merged;
+}
+
+function collectCapabilitiesFromBlock(
+  block: import('./types.js').Core.Block
+): CapabilityKind[] {
+  const caps: CapabilityKind[] = [];
+  const seen = new Set<CapabilityKind>();
+  class WorkflowCapabilityVisitor extends DefaultCoreVisitor {
+    override visitExpression(
+      e: import('./types.js').Core.Expression,
+      context: import('./visitor.js').VisitorContext
+    ): void {
+      if (e.kind === 'Call' && e.target.kind === 'Name') {
+        const capability = inferCapabilityFromName(e.target.name);
+        if (capability && !seen.has(capability)) {
+          seen.add(capability);
+          caps.push(capability);
+        }
+      }
+      super.visitExpression(e, context);
+    }
+  }
+  new WorkflowCapabilityVisitor().visitBlock(block, createVisitorContext());
+  return caps;
 }
 
 function lowerCaseBody(

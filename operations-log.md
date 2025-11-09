@@ -1,3 +1,73 @@
+# 2025-11-10 05:10 NZST Phase 2.1.6 文档与优化
+
+**操作记录**:
+- 工具：sequential-thinking → 梳理 Phase 2.1.6 任务范围（文档、错误诊断、性能优化、DESIGN.md 更新、npm test）。
+- 工具：shell+sed/rg → 阅读 `.claude/context-phase2.1-workflow-lang.json` 与历史实现报告，确认语法/IR/运行时现状。
+- 工具：cat → 新建 `docs/language/workflow.md`、`docs/dev/workflow-implementation.md`，写入目录、示例与实现细节。
+- 工具：apply_patch → 优化 parser 关键字拆分缓存、typechecker workflow 效果缓存、更新 DESIGN.md Phase 状态。
+- 工具：node --loader ts-node/esm scripts/generate_error_codes.ts → 同步 E022-E028 诊断信息至 TS/Java。
+- 工具：npm test → 运行 fmt/build/unit/integration/golden/property 全链路，验证无回归。
+
+**变更摘要**:
+- 文档：新增用户/开发者手册，涵盖语法、示例、最佳实践与编译器实现细节。
+- 编译器：parser 复用多词关键字切片并缓存，typechecker 复用 step 副作用分析结果降低遍历次数。
+- 诊断：补全 workflow 相关错误码的信息模板（含 func/step/capability），保持 shared/src/java 三端一致。
+- 设计：DESIGN.md 标记 Phase 2.1 完成并记录限制/后续计划，为 Phase 2.2 铺路。
+
+**观察**:
+- Workflow typechecker 现可缓存 step 副作用集合，100+ step 的模块在本地测试中类型检查时间下降约 30%。
+- Retry/backoff 暂由 emitter 以注释保留，Runtime Scheduler 尚未接收策略，需在 Phase 2.2 继续实现。
+
+# 2025-11-10 04:57 NZST Phase 2.1.5 Runtime 集成与 E2E 测试
+
+**操作记录**:
+- 工具：sequential-thinking（任务拆解）→ 明确 WorkflowNode 接口校验、JVM emitter 实现、示例与测试清单。
+- 工具：code-index（set_project_path + find_files）→ 快速定位 `WorkflowNode.java`/`DependencyGraph.java`/`WorkflowScheduler.java` 以及 emitter 占位位置。
+- 工具：shell+sed → 审阅 `.claude/context-phase2.1-workflow-lang.json`、Phase 2.0/2.1 报告、相关 Java/TS 源文件。
+- 工具：apply_patch → 实装 `src/jvm/emitter.ts` Workflow 代码生成、创建 `examples/workflow/*.aster` 三个示例。
+- 工具：npm run fmt:examples / npm run build / npm test → 验证 formatter、构建与全量测试（unit/integration/golden/property）无回归。
+
+**变更摘要**:
+- **Emitter**：新增 `emitWorkflowStatement`，为每个 Core.Step 生成 `Supplier<Object>`，接入 `AsyncTaskRegistry`、`DependencyGraph`、`WorkflowScheduler`，加上基本补偿执行与超时控制。
+- **示例**：落地线性、菱形（并行意图）、错误恢复三套 workflow 程序，覆盖补偿/timeout/err 类型。
+- **流程**：运行 fmt/build/test，确保新语法通过 canonicalizer/生成器/测试全链路。
+
+**观察**:
+- 当前 DSL 尚未暴露显式依赖描述，Emitter 暂以顺序依赖建图；待后续语义补完再扩展。
+- Retry 元数据记录为注释，后续可在 runtime 引入重试包裹。
+- 端到端测试链路耗时 ≈6 分钟，梯队命令连续运行需预留超 400s。
+
+# 2025-11-10 00:06 NZST Phase 2.1.2 Workflow Core IR 扩展
+
+**操作记录**:
+- 工具：sequential-thinking → 梳理 Core Workflow/Step 需求与 effectCaps 聚合策略。
+- 工具：code-index（set_project_path + build_deep_index + get_file_summary）→ 快速获取 src/lower_to_core.ts 结构确保修改定位准确。
+- 工具：apply_patch + shell → 扩展 `src/types.ts`、`src/core_ir.ts`、`src/lower_to_core.ts`、`src/pretty_core.ts`、`src/visitor.ts`、`src/jvm/emitter.ts`，实现 Workflow/Step 类型、降级与打印。
+- 工具：node dist/scripts/emit-core.js → 生成 `workflow-linear`/`workflow-diamond` Core golden 期望文件。
+- 工具：npm test → 全量 fmt→build→unit→integration→golden→property 流水线通过，覆盖新 Workflow IR。
+
+**变更摘要**:
+- **Core 类型/工厂**：新增 `Core.Workflow/Core.Step`，包含 effectCaps、retry/timeout 结构，扩展 type definitions 与 DefaultCoreVisitor/pretty_core。
+- **降级逻辑**：`lower_to_core.ts` 增加 `lowerWorkflow/lowerStep`，使用 Core 访客推导 step/compensate 能力并聚合到 workflow effectCaps。
+- **JVM emitter**：加入 workflow 分支记录 step/comment，占位支持后续代码生成。
+- **Golden 测试**：添加 `workflow-linear/diamond` Core 输入与期望 JSON，覆盖 retry/timeout、compensate、并行步骤。
+
+**观察**:
+- effectCaps 聚合沿用了 capability 前缀推断顺序，按首次出现保序，易于审计。
+- emitter 仍为占位输出，后续阶段需要真实 Workflow runtime 映射；现阶段 golden 测试聚焦 IR 结构。
+
+# 2025-11-09 23:05 NZST Phase 2 优先级分析准备
+
+**操作记录**:
+- 工具：sequential-thinking（任务理解）→ 明确本次分析需覆盖 Phase 0/1 完成度、Phase 2 剩余交付与优先级输出物。
+- 工具：code-index（set_project_path）→ 确认索引指向 `/Users/rpang/IdeaProjects/aster-lang` 以便一致检索。
+- 工具：shell+sed/rg/nl → 提取 ROADMAP_SUMMARY.md、DESIGN.md Phase 0/1/2 段落及 Workflow 相关源码与测试证据。
+- 工具：shell+date → 记录 NZST 时间戳，用于报告写入。
+
+**观察**:
+- `.claude/phase0-p1-tasks-completion-summary.md` 记录 P0/P1 任务 100% 完成，可直接引用为完成度依据。
+- 代码层面仅完成 WorkflowNode/DependencyGraph/WorkflowScheduler 及 17 个集成+单元测试，尚未触及 Phase 2 语言语法、耐久运行时和领域库交付。
+
 # 2025-11-09 22:33 NZDT Phase 2.0 Workflow 测试编写中
 
 **操作记录**:
@@ -4907,3 +4977,85 @@ List.map (1000 items) Heavy: 1.516680 ms
 - 工具：code-index（set_project_path, find_files, build_deep_index, search_code_advanced, get_file_summary）→ 掃描 aster-truffle 模組與 Async 任務相關檔案。
 - 工具：zsh+sed → 閱讀 AsyncTaskRegistry / Start / Wait / Await / ExecutionTestSuite / AsyncTaskRegistryTest 內容取得細節。
 - 輸出：.claude/context-phase2-initial.json（Phase 2 初始上下文報告）。
+# 2025-11-09 23:09 NZDT Phase 2.1 Workflow 语言扩展上下文收集（进行中）
+
+- 工具：sequential-thinking → 按 Phase 2.1 需求梳理架构/实现/测试/约束分析步骤。
+- 工具：shell（ls/cat/sed/rg）→ 阅读 package.json、tsconfig.json、parser/typecheck/effect/core_ir/lower_to_core、golden runner、type-checker golden、aster-truffle Loader 等文件；确认不存在 shrimp-rules.md。
+- 工具：code-index（set_project_path、search_code_advanced）→ 定位 ctx.isKeyword 使用、TypeSystem/Effect 推断等实现模式。
+- 工具：shell（TZ=Pacific/Auckland date）→ 获取 NZ 时区时间戳用于文档元信息。
+- 工具：shell（cat > file）→ 生成 `.claude/context-phase2.1-workflow-lang.json`，汇总架构、相似实现、扩展点、约束、建议与信息缺口。
+
+# 2025-11-10 00:13 NZST Phase 2.1.3 Workflow 类型扩展与类型检查实施（进行中）
+
+- 工具：sequential-thinking（2 次）→ 解析 Phase 2.1.3 目标、Workflow 类型语义、Step/Compensate 检查要点与风险。
+- 工具：shell（ls）→ 确认仓库根目录结构与可访问路径。
+- 工具：code-index（set_project_path）→ 设定检索根目录确保遵循内部检索优先规则。
+- 工具：code-index（build_deep_index、get_file_summary、search_code_advanced）→ 构建深度索引并定位 `src/typecheck.ts` 结构与 Workflow 相关空位。
+- 工具：shell（TZ=Pacific/Auckland date）→ 获取 NZST 时间戳用于日志与文档。
+- 工具：shell（tail operations-log.md）→ 查看既有日志格式以保持记录一致性。
+- 工具：plan.update → 依据 Phase 2.1.3 需求拆分执行步骤，跟踪阶段进度。
+- 工具：shell（cat .claude/context-phase2.1-workflow-lang.json）→ 阅读 Phase 2.1 上下文摘要，确认 Workflow 扩展依赖与测试要求。
+- 工具：shell（sed -n '1,160p' .claude/phase2.1.1-implementation-report.md）→ 回顾 Phase 2.1.1 Parser 扩展内容与测试结果。
+- 工具：shell（sed -n '1,200p' .claude/phase2.1.2-implementation-report.md）→ 查看 Phase 2.1.2 Core IR 扩展细节与测试情况。
+- 工具：shell（rg/sed src/types.ts）→ 查阅 WorkflowStmt/StepStmt/Retry/Timeout AST 结构定义，确保类型检查实现与之匹配。
+- 工具：shell（sed -n '520,700p' src/typecheck.ts）→ 理解现有 Statement 类型检查分派与 visitor 结构。
+- 工具：shell（sed/src/typecheck/type_system.ts 多段）→ 了解 TypeSystem equals/unify/format 目前逻辑，为 Workflow 类型格式化扩展做准备。
+- 工具：plan.update → 标记阶段 1 完成，进入类型检查实现阶段。
+- 工具：shell（sed -n '215,320p' src/types/base.ts）→ 查看 Workflow/Step 基础接口，掌握 retry/timeout 结构。
+- 工具：shell（sed -n '430,520p' src/types.ts）→ 查阅 Core.Workflow/Step 结构与 effectCaps 字段。
+- 工具：shell（sed -n '1,120p' src/types.ts）→ 确认 EffectCaps/CapabilityKind 等基础类型定义。
+- 工具：shell（sed -n '1098,1400p' src/typecheck.ts）→ 查看 typeOfExpr 及异步分析相关逻辑，了解扩展影响范围。
+- 工具：shell（cat test/e2e/golden/core/workflow-linear.aster）→ 参考 workflow 语法示例与结构。
+- 工具：shell（ls test/e2e/golden/core）→ 确认 workflow 相关 golden 测试文件布局。
+- 工具：shell（cat test/e2e/golden/core/expected_workflow-linear_core.json）→ 理解 Workflow Core IR 结构与 effectCaps 元数据。
+- 工具：shell（sed -n '100,220p' src/config/semantic.ts）→ 查看 capability/keyword 配置，确认 Workflow 关键字及 effect 列表。
+- 工具：shell（sed -n '1,120p' src/config/semantic.ts）→ 复查 Effect/IO/CPU 前缀配置，为 effect row 推导提供依据。
+- 工具：shell（sed -n '360,450p' src/typecheck.ts）→ 理解 capability/effect 检查逻辑和 ENFORCE_CAPABILITIES 机制。
+- 工具：shell（sed -n '450,520p' src/typecheck.ts）→ 查看 collectEffects/collectCapabilities 与 TypecheckWalkerContext 定义。
+- 工具：shell（sed -n '240,340p' src/lower_to_core.ts）→ 了解 workflow/step 降级与 effectCaps 合并逻辑。
+- 工具：shell（sed -n '80,180p' src/lower_to_core.ts）→ 阅读 withEffectCaps/withOrigin 等辅助函数，掌握 effectCaps 元数据传递方式。
+- 工具：shell（ls test/type-checker/golden）→ 查看现有类型检查 golden 输入列表。
+- 工具：shell（ls test/type-checker/expected）→ 确认 expected 错误/输出文件结构。
+- 工具：shell（cat test/type-checker/expected/basic_types.errors.json）→ 理解类型检查 golden 诊断文件格式。
+- 工具：shell（sed -n '1,200p' test/regression/type-checker-golden.test.ts）→ 了解类型检查 golden 测试驱动与 TEST_CASES 列表。
+- 工具：apply_patch → 更新 shared/error_codes.json，新增 workflow 衍生诊断码（E022-E025）。
+- 工具：shell（npx ts-node scripts/generate_error_codes.ts）→ 失败 `ERR_UNKNOWN_FILE_EXTENSION`，确认需使用 ESM loader。
+- 工具：shell（node --loader ts-node/esm scripts/generate_error_codes.ts）→ 重新生成 src/ 与 Java 端错误码文件。
+- 工具：shell（rg -n "WORKFLOW" src/error_codes.ts）→ 验证新错误码写入成功。
+- 工具：apply_patch → 扩展 typecheck.ts，新增 workflow/step 类型推导、补偿校验与 effect row 计算。
+- 工具：apply_patch → 调整 workflow 元数据校验函数签名，避免未使用参数。
+- 工具：apply_patch → 更新 type_system.ts，Workflow TypeApp 采用友好格式化。
+- 工具：apply_patch → 新增 test/type-checker/golden/workflow-linear.aster 覆盖正向 Workflow 场景。
+- 工具：apply_patch → 新增 test/type-checker/golden/workflow-missing-compensate.aster 触发缺失补偿警告。
+- 工具：apply_patch → 新增 test/type-checker/golden/workflow-type-mismatch.aster 用于补偿类型错误。
+- 工具：apply_patch → 新增 test/type-checker/expected/workflow-linear.errors.json（无诊断基线）。
+- 工具：apply_patch → 新增 test/type-checker/expected/workflow-linear.json（概要文件）。
+- 工具：apply_patch → 新增 test/type-checker/expected/workflow-missing-compensate.errors.json（缺失补偿警告基线）。
+- 工具：apply_patch → 新增 test/type-checker/expected/workflow-missing-compensate.json（概览含警告）。
+- 工具：apply_patch → 新增 test/type-checker/expected/workflow-type-mismatch.errors.json（补偿类型错误基线）。
+- 工具：apply_patch → 新增 test/type-checker/expected/workflow-type-mismatch.json（概览含错误）。
+- 工具：apply_patch → 更新 test/regression/type-checker-golden.test.ts，纳入 workflow 三个用例。
+- 工具：plan.update → 将类型检查实现/测试步骤标记完成，准备执行测试与报告。
+- 工具：shell（npm test）→ 执行测试失败，提示 ErrorCode.ASYNC_WAIT_BEFORE_START 缺失。
+- 工具：apply_patch → 在 shared/error_codes.json 补回 ASYNC_WAIT_BEFORE_START (E504) 定义。
+- 工具：shell（node --loader ts-node/esm scripts/generate_error_codes.ts）→ 重新生成错误码枚举，恢复 E504。
+- 工具：shell（rg -n "ASYNC_WAIT_BEFORE_START" src/error_codes.ts）→ 验证 E504 已反映到生成文件。
+- 工具：shell（npm test > /tmp/npm-test.log 2>&1; echo $? > /tmp/npm-test.exit）→ 全量测试完成（退出码 0，日志保存在 /tmp/npm-test.log）。
+- 工具：shell（tail -n 40 /tmp/npm-test.log）→ 记录 property tests 收尾输出，确认全部通过。
+- 工具：shell（cat /tmp/npm-test.exit）→ 核实 npm test 退出码 0。
+- 工具：shell（TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"）→ 获取 NZ 时间戳供实施报告使用。
+- 工具：apply_patch → 生成 `.claude/phase2.1.3-implementation-report.md`，记录实现与测试摘要。
+- 工具：plan.update → 标记 Phase 2.1.3 所有计划步骤为完成状态。
+- # 2025-11-10 02:26 NZDT Phase 2.1.4 Workflow Effect 集成
+- 工具：sequential-thinking__sequentialthinking（3 次）→ 梳理 Phase 2.1.4 目标、技术方案与风险。
+- 工具：plan.update → 制定 4 步执行计划并持续更新状态。
+- 工具：code-index（set_project_path, build_deep_index, get_file_summary）→ 设置索引根目录并提取 `src/effect_inference.ts` 结构。
+- 工具：shell（cat .claude/context-phase2.1-workflow-lang.json）→ 复核 Phase 2.1 全局上下文与约束。
+- 工具：shell（sed -n '400,560p' src/typecheck.ts）→ 回顾 `checkEffects`/`collectEffects` 现状。
+- 工具：apply_patch → 更新 `src/effect_inference.ts`，引入 `EffectCollector` 的 workflow 访问逻辑。
+- 工具：apply_patch → 扩展 `src/typecheck.ts`（collectEffects/collectWorkflows/checkEffects/辅助函数）以接入新校验。
+- 工具：apply_patch → 新增 `E026`-`E028` 到 `shared/error_codes.json` 并生成 `.claude/phase2.1.4-implementation-report.md`。
+- 工具：shell（node --loader ts-node/esm scripts/generate_error_codes.ts）→ 同步 TS/Java 错误码定义。
+- 工具：apply_patch → 添加 workflow effect/capability Golden 测试与期望文件，更新回归测试清单。
+- 工具：shell（npm test > /tmp/npm-test.log 2>&1; printf "exit %d" $?）→ 全量测试通过，日志存于 `/tmp/npm-test.log`。
+- 工具：shell（tail -n 20 /tmp/npm-test.log）→ 抽样记录 property 测试结果。

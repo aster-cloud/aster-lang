@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/efb0f2facb9ed55abb63daeedbecff4695d98be4/src/ast.ts#L11)
+Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/ast.ts#L11)
 
 ## Type Declaration
 
@@ -277,6 +277,50 @@ readonly `string`[]
 #### Returns
 
 [`Wait`](../../types/interfaces/Wait.md)
+
+### Workflow()
+
+> **Workflow**: (`steps`, `retry?`, `timeout?`) => [`WorkflowStmt`](../../types/interfaces/WorkflowStmt.md)
+
+#### Parameters
+
+##### steps
+
+readonly [`StepStmt`](../../types/interfaces/StepStmt.md)[]
+
+##### retry?
+
+[`RetryPolicy`](../../types/interfaces/RetryPolicy.md)
+
+##### timeout?
+
+[`Timeout`](../../types/interfaces/Timeout.md)
+
+#### Returns
+
+[`WorkflowStmt`](../../types/interfaces/WorkflowStmt.md)
+
+### Step()
+
+> **Step**: (`name`, `body`, `compensate?`) => [`StepStmt`](../../types/interfaces/StepStmt.md)
+
+#### Parameters
+
+##### name
+
+`string`
+
+##### body
+
+[`Block`](../../types/interfaces/Block.md)
+
+##### compensate?
+
+[`Block`](../../types/interfaces/Block.md)
+
+#### Returns
+
+[`StepStmt`](../../types/interfaces/StepStmt.md)
 
 ### Name()
 

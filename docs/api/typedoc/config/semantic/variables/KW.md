@@ -6,7 +6,7 @@
 
 > `const` **KW**: `object`
 
-Defined in: [config/semantic.ts:194](https://github.com/wontlost-ltd/aster-lang/blob/efb0f2facb9ed55abb63daeedbecff4695d98be4/src/config/semantic.ts#L194)
+Defined in: [config/semantic.ts:194](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/config/semantic.ts#L194)
 
 Aster CNL 关键字定义（v1 lexicon, en-US）。
 
@@ -90,6 +90,34 @@ Aster CNL 关键字定义（v1 lexicon, en-US）。
 ### WHEN
 
 > `readonly` **WHEN**: `"when"` = `'when'`
+
+### WORKFLOW
+
+> `readonly` **WORKFLOW**: `"workflow"` = `'workflow'`
+
+### STEP
+
+> `readonly` **STEP**: `"step"` = `'step'`
+
+### COMPENSATE
+
+> `readonly` **COMPENSATE**: `"compensate"` = `'compensate'`
+
+### RETRY
+
+> `readonly` **RETRY**: `"retry"` = `'retry'`
+
+### TIMEOUT
+
+> `readonly` **TIMEOUT**: `"timeout"` = `'timeout'`
+
+### MAX\_ATTEMPTS
+
+> `readonly` **MAX\_ATTEMPTS**: `"max attempts"` = `'max attempts'`
+
+### BACKOFF
+
+> `readonly` **BACKOFF**: `"backoff"` = `'backoff'`
 
 ### RETURN
 

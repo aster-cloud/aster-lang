@@ -112,6 +112,12 @@ export class DefaultCoreVisitor<Ctx = VisitorContext> implements CoreVisitor<Ctx
         return;
       case 'Wait':
         return;
+      case 'workflow':
+        for (const step of s.steps) {
+          this.visitBlock(step.body, ctx);
+          if (step.compensate) this.visitBlock(step.compensate, ctx);
+        }
+        return;
     }
   }
 

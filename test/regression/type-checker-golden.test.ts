@@ -45,7 +45,13 @@ const TEST_CASES = [
   // Issue: 解析错误 "Unexpected expression"
   // 'list_literal_mismatch',
   'generics',
-  'basic_types'
+  'basic_types',
+  'workflow-linear',
+  'workflow-missing-compensate',
+  'workflow-type-mismatch',
+  'workflow-missing-io',
+  'workflow-undeclared-capability',
+  'workflow-compensate-new-cap'
 ] as const;
 
 const GOLDEN_DIR = path.join(TYPE_CHECKER_DIR, 'golden');

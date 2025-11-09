@@ -2,7 +2,7 @@
 // 源数据: shared/error_codes.json
 
 
-export type ErrorCategory = 'type' | 'scope' | 'effect' | 'capability' | 'pii' | 'async';
+export type ErrorCategory = 'type' | 'effect' | 'capability' | 'scope' | 'pii' | 'async';
 export type ErrorSeverity = 'error' | 'warning' | 'info';
 
 export const enum ErrorCode {
@@ -27,6 +27,13 @@ export const enum ErrorCode {
   AMBIGUOUS_INTEROP_NUMERIC = "E019",
   LIST_ELEMENT_TYPE_MISMATCH = "E020",
   OPTIONAL_EXPECTED = "E021",
+  WORKFLOW_COMPENSATE_TYPE = "E022",
+  WORKFLOW_COMPENSATE_MISSING = "E023",
+  WORKFLOW_RETRY_INVALID = "E024",
+  WORKFLOW_TIMEOUT_INVALID = "E025",
+  WORKFLOW_MISSING_IO_EFFECT = "E026",
+  WORKFLOW_UNDECLARED_CAPABILITY = "E027",
+  COMPENSATE_NEW_CAPABILITY = "E028",
   DUPLICATE_IMPORT_ALIAS = "E100",
   UNDEFINED_VARIABLE = "E101",
   EFF_MISSING_IO = "E200",
@@ -82,6 +89,13 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.AMBIGUOUS_INTEROP_NUMERIC]: "Ambiguous interop call '{target}': mixing numeric kinds (Int={hasInt}, Long={hasLong}, Double={hasDouble}). Overload resolution may widen/box implicitly.",
   [ErrorCode.LIST_ELEMENT_TYPE_MISMATCH]: "List literal element type mismatch: expected {expected}, got {actual}",
   [ErrorCode.OPTIONAL_EXPECTED]: "Optional value required here: expected Maybe or Option, but got {actual}",
+  [ErrorCode.WORKFLOW_COMPENSATE_TYPE]: "Compensate block for step '{step}' must return Result<Unit, {expectedErr}>, got {actual}",
+  [ErrorCode.WORKFLOW_COMPENSATE_MISSING]: "Step '{step}' performs side effects but does not define a compensate block.",
+  [ErrorCode.WORKFLOW_RETRY_INVALID]: "Workflow retry max attempts must be greater than zero (actual: {maxAttempts}).",
+  [ErrorCode.WORKFLOW_TIMEOUT_INVALID]: "Workflow timeout must be greater than zero milliseconds (actual: {milliseconds}).",
+  [ErrorCode.WORKFLOW_MISSING_IO_EFFECT]: "Workflow '{func}' must declare @io effect before using a 'workflow' block.",
+  [ErrorCode.WORKFLOW_UNDECLARED_CAPABILITY]: "Workflow '{func}' step '{step}' uses capability {capability} that is not declared on the function header.",
+  [ErrorCode.COMPENSATE_NEW_CAPABILITY]: "Compensate block for step '{step}' in function '{func}' introduces new capability {capability} that does not appear in the main step body.",
   [ErrorCode.DUPLICATE_IMPORT_ALIAS]: "Duplicate import alias '{alias}'.",
   [ErrorCode.UNDEFINED_VARIABLE]: "Undefined variable: {name}",
   [ErrorCode.EFF_MISSING_IO]: "Function '{func}' may perform I/O but is missing @io effect.",
@@ -104,7 +118,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.ASYNC_WAIT_NOT_STARTED]: "Waiting for async task '{task}' that was never started",
   [ErrorCode.ASYNC_DUPLICATE_START]: "Async task '{task}' started multiple times ({count} occurrences)",
   [ErrorCode.ASYNC_DUPLICATE_WAIT]: "Async task '{task}' waited multiple times ({count} occurrences)",
-  [ErrorCode.ASYNC_WAIT_BEFORE_START]: "等待异步任务 '{task}' 时，该任务尚未启动或启动顺序错误",
+  [ErrorCode.ASYNC_WAIT_BEFORE_START]: "Wait for async task '{task}' occurs before any matching start",
 };
 
 export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
@@ -254,6 +268,55 @@ export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
     severity: 'error',
     message: "Optional value required here: expected Maybe or Option, but got {actual}",
     help: "传入 Maybe/Option 类型或显式包装值。",
+  },
+  [ErrorCode.WORKFLOW_COMPENSATE_TYPE]: {
+    code: ErrorCode.WORKFLOW_COMPENSATE_TYPE,
+    category: 'type',
+    severity: 'error',
+    message: "Compensate block for step '{step}' must return Result<Unit, {expectedErr}>, got {actual}",
+    help: "确保补偿块返回 Result<Unit, E>，其中 E 为 step 错误类型。",
+  },
+  [ErrorCode.WORKFLOW_COMPENSATE_MISSING]: {
+    code: ErrorCode.WORKFLOW_COMPENSATE_MISSING,
+    category: 'effect',
+    severity: 'warning',
+    message: "Step '{step}' performs side effects but does not define a compensate block.",
+    help: "为包含 IO 副作用的 step 提供 compensate 块以便回滚。",
+  },
+  [ErrorCode.WORKFLOW_RETRY_INVALID]: {
+    code: ErrorCode.WORKFLOW_RETRY_INVALID,
+    category: 'type',
+    severity: 'error',
+    message: "Workflow retry max attempts must be greater than zero (actual: {maxAttempts}).",
+    help: "设置 retry.maxAttempts 为正整数。",
+  },
+  [ErrorCode.WORKFLOW_TIMEOUT_INVALID]: {
+    code: ErrorCode.WORKFLOW_TIMEOUT_INVALID,
+    category: 'type',
+    severity: 'error',
+    message: "Workflow timeout must be greater than zero milliseconds (actual: {milliseconds}).",
+    help: "配置 timeout 秒数为正值，确保补偿逻辑可被触发。",
+  },
+  [ErrorCode.WORKFLOW_MISSING_IO_EFFECT]: {
+    code: ErrorCode.WORKFLOW_MISSING_IO_EFFECT,
+    category: 'effect',
+    severity: 'error',
+    message: "Workflow '{func}' must declare @io effect before using a 'workflow' block.",
+    help: "在函数 '{func}' 的头部添加 `It performs io ...`（可同时声明 capability），否则编译器拒绝 workflow 语句。",
+  },
+  [ErrorCode.WORKFLOW_UNDECLARED_CAPABILITY]: {
+    code: ErrorCode.WORKFLOW_UNDECLARED_CAPABILITY,
+    category: 'capability',
+    severity: 'error',
+    message: "Workflow '{func}' step '{step}' uses capability {capability} that is not declared on the function header.",
+    help: "在 `It performs io with ...` 中列出 {capability}（例如 Http、Sql、Secrets），或调整 step 代码避免调用未授权能力。",
+  },
+  [ErrorCode.COMPENSATE_NEW_CAPABILITY]: {
+    code: ErrorCode.COMPENSATE_NEW_CAPABILITY,
+    category: 'capability',
+    severity: 'error',
+    message: "Compensate block for step '{step}' in function '{func}' introduces new capability {capability} that does not appear in the main step body.",
+    help: "Compensate 只能重复主体已使用的能力；如需额外调用，请将相同行为移至主体或在主体中声明该 capability。",
   },
   [ErrorCode.DUPLICATE_IMPORT_ALIAS]: {
     code: ErrorCode.DUPLICATE_IMPORT_ALIAS,
@@ -413,8 +476,8 @@ export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
     code: ErrorCode.ASYNC_WAIT_BEFORE_START,
     category: 'async',
     severity: 'error',
-    message: "等待异步任务 '{task}' 时，该任务尚未启动或启动顺序错误",
-    help: "确认对应的 Start 出现在 Wait 之前，且位于可以访问的作用域内。",
+    message: "Wait for async task '{task}' occurs before any matching start",
+    help: "在 wait for 之前先执行 start，并确保两者位于兼容的控制路径。",
   },
 };
 

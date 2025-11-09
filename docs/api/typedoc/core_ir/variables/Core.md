@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/efb0f2facb9ed55abb63daeedbecff4695d98be4/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/ec56dc5865274099ba9065d4f0b63ed821e2967c/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -291,6 +291,58 @@ readonly `string`[]
 #### Returns
 
 [`Wait`](../../types/namespaces/Core/interfaces/Wait.md)
+
+### Workflow()
+
+> **Workflow**: (`steps`, `effectCaps`, `retry?`, `timeout?`) => [`Workflow`](../../types/namespaces/Core/interfaces/Workflow.md)
+
+#### Parameters
+
+##### steps
+
+readonly [`Step`](../../types/namespaces/Core/interfaces/Step.md)[]
+
+##### effectCaps
+
+readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)[]
+
+##### retry?
+
+[`RetryPolicy`](../../types/namespaces/Core/interfaces/RetryPolicy.md)
+
+##### timeout?
+
+[`Timeout`](../../types/namespaces/Core/interfaces/Timeout.md)
+
+#### Returns
+
+[`Workflow`](../../types/namespaces/Core/interfaces/Workflow.md)
+
+### Step()
+
+> **Step**: (`name`, `body`, `effectCaps`, `compensate?`) => [`Step`](../../types/namespaces/Core/interfaces/Step.md)
+
+#### Parameters
+
+##### name
+
+`string`
+
+##### body
+
+[`Block`](../../types/namespaces/Core/interfaces/Block.md)
+
+##### effectCaps
+
+readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)[]
+
+##### compensate?
+
+[`Block`](../../types/namespaces/Core/interfaces/Block.md)
+
+#### Returns
+
+[`Step`](../../types/namespaces/Core/interfaces/Step.md)
 
 ### Name()
 

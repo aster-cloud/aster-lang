@@ -191,6 +191,7 @@ function emitExpr(e: Core.Expression, helpers: EmitHelpers): string {
 interface EmitHelpers {
   dataSchema: Map<string, Core.Data>;
   enumVariantToEnum: Map<string, string>;
+  workflowCounter: number;
 }
 
 // 保持原始代码生成逻辑：不使用访问器以免影响输出行为
@@ -287,6 +288,9 @@ function emitStatement(
     case 'Scope': {
         return s.statements.map(st => emitStatement(st, locals, helpers, indent)).join('');
     }
+    case 'workflow': {
+      return emitWorkflowStatement(s, locals, helpers, indent);
+    }
     case 'Start':
     case 'Wait':
       // Async not handled in MVP
@@ -307,6 +311,79 @@ function emitCaseBody(
 
 function emitBlock(b: Core.Block, locals: string[], helpers: EmitHelpers, indent = '    '): string {
   return b.statements.map(s => emitStatement(s, locals, helpers, indent)).join('');
+}
+
+function emitWorkflowStatement(
+  workflow: Core.Workflow,
+  locals: string[],
+  helpers: EmitHelpers,
+  indent: string
+): string {
+  const wfId = helpers.workflowCounter++;
+  const base = `__workflow${wfId}`;
+  const timeoutLiteral = workflow.timeout ? `${workflow.timeout.milliseconds}L` : '60000L';
+  const lines: string[] = [];
+  lines.push(`${indent}{`);
+  lines.push(
+    `${indent}  var ${base}Registry = new aster.truffle.runtime.AsyncTaskRegistry();`
+  );
+  lines.push(
+    `${indent}  var ${base}Graph = new aster.truffle.runtime.DependencyGraph();`
+  );
+  lines.push(
+    `${indent}  var ${base}Scheduler = new aster.truffle.runtime.WorkflowScheduler(${base}Registry);`
+  );
+  lines.push(`${indent}  long ${base}TimeoutMs = ${timeoutLiteral};`);
+  if (workflow.retry) {
+    lines.push(
+      `${indent}  // retry 未在 JVM emitter MVP 中实现：maxAttempts=${workflow.retry.maxAttempts}, backoff=${workflow.retry.backoff}`
+    );
+  }
+  workflow.steps.forEach((step, index) => {
+    const supplierVar = `${base}Step${index}`;
+    const compensateVar = step.compensate ? `${base}Compensate${index}` : null;
+    lines.push(`${indent}  java.util.function.Supplier<Object> ${supplierVar} = () -> {`);
+    lines.push(emitBlock(step.body, locals, helpers, `${indent}    `));
+    lines.push(`${indent}  };`);
+    if (compensateVar && step.compensate) {
+      lines.push(`${indent}  java.util.function.Supplier<Object> ${compensateVar} = () -> {`);
+      lines.push(emitBlock(step.compensate, locals, helpers, `${indent}    `));
+      lines.push(`${indent}  };`);
+    }
+    lines.push(`${indent}  ${base}Registry.registerTask("${step.name}", () -> {`);
+    lines.push(`${indent}    try {`);
+    lines.push(`${indent}      Object result = ${supplierVar}.get();`);
+    lines.push(`${indent}      ${base}Registry.setResult("${step.name}", result);`);
+    lines.push(`${indent}    } catch (RuntimeException ex) {`);
+    if (compensateVar) {
+      lines.push(`${indent}      ${compensateVar}.get();`);
+    }
+    lines.push(`${indent}      throw ex;`);
+    lines.push(`${indent}    } catch (Throwable t) {`);
+    if (compensateVar) {
+      lines.push(`${indent}      ${compensateVar}.get();`);
+    }
+    lines.push(
+      `${indent}      throw new RuntimeException("workflow step failed: ${step.name}", t);`
+    );
+    lines.push(`${indent}    }`);
+    lines.push(`${indent}  });`);
+    const deps =
+      index === 0
+        ? 'java.util.Collections.emptySet()'
+        : workflowDependencyLiteral([workflow.steps[index - 1]!.name]);
+    lines.push(`${indent}  ${base}Graph.addTask("${step.name}", ${deps});`);
+  });
+  lines.push(`${indent}  ${base}Scheduler.registerWorkflow(${base}Graph);`);
+  lines.push(`${indent}  ${base}Scheduler.executeUntilComplete(${base}TimeoutMs);`);
+  lines.push(`${indent}}\n`);
+  return lines.join('\n');
+}
+
+function workflowDependencyLiteral(stepNames: string[]): string {
+  if (stepNames.length === 0) return 'java.util.Collections.emptySet()';
+  const items = stepNames.map(name => JSON.stringify(name)).join(', ');
+  return `new java.util.LinkedHashSet<>(java.util.Arrays.asList(${items}))`;
 }
 
 function javaLocalDecl(name: string): string {
@@ -402,7 +479,11 @@ export async function emitJava(core: Core.Module, outRoot = 'build/jvm-src'): Pr
   for (const d of core.decls) {
     if (d.kind === 'Data') dataSchema.set(d.name, d);
   }
-  const helpers: EmitHelpers = { dataSchema, enumVariantToEnum: collectEnums(core) };
+  const helpers: EmitHelpers = {
+    dataSchema,
+    enumVariantToEnum: collectEnums(core),
+    workflowCounter: 0,
+  };
 
   for (const d of core.decls) {
     if (d.kind === 'Data') {

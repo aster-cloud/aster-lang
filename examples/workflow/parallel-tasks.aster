@@ -1,0 +1,18 @@
+This module is examples.workflow.parallel_tasks.
+
+To processParallelTasks, produce Result of Text with IO. It performs io:
+  
+  workflow:
+    step start:
+      return ok of "started".
+    
+    step task_a:
+      return ok of "task a done".
+    
+    step task_b:
+      return ok of "task b done".
+    
+    step merge:
+      return ok of "merged".
+  
+  .

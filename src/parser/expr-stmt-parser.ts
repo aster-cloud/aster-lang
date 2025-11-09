@@ -7,8 +7,12 @@ import type {
   Pattern,
   Span,
   Statement,
+  StepStmt,
   Token,
   Type,
+  RetryPolicy,
+  Timeout,
+  WorkflowStmt,
 } from '../types.js';
 import type { ParserContext } from './context.js';
 import { kwParts, tokLowerAt } from './context.js';
@@ -23,6 +27,9 @@ import {
   spanFromSources,
   spanFromTokens,
 } from './span-utils.js';
+
+const WAIT_FOR_PARTS = kwParts(KW.WAIT_FOR);
+const MAX_ATTEMPTS_PARTS = kwParts(KW.MAX_ATTEMPTS);
 
 function peekKeywordIgnoringLayout(ctx: ParserContext, startIndex: number = ctx.index): string | null {
   let idx = startIndex;
@@ -293,6 +300,9 @@ export function parseStatement(
     assignSpan(nd, spanFromTokens(mTok, endTok));
     return nd;
   }
+  if (ctx.isKeyword(KW.WORKFLOW)) {
+    return parseWorkflow(ctx, error);
+  }
   // Plain bare expression as statement (allow method calls, constructions) ending with '.'
   if (
     ctx.at(TokenKind.IDENT) ||
@@ -333,10 +343,9 @@ export function parseStatement(
     assignSpan(nd, spanFromTokens(startTok, endTok));
     return nd as Statement;
   }
-  if (ctx.isKeywordSeq(KW.WAIT_FOR)) {
-    const waitTokens = kwParts(KW.WAIT_FOR);
+  if (ctx.isKeywordSeq(WAIT_FOR_PARTS)) {
     const waitStart = ctx.peek();
-    ctx.nextWords(waitTokens);
+    ctx.nextWords(WAIT_FOR_PARTS);
     const names: string[] = [];
     names.push(parseIdent(ctx, error));
     while (ctx.isKeyword(KW.AND) || ctx.at(TokenKind.COMMA)) {
@@ -356,6 +365,135 @@ export function parseStatement(
   }
 
   error('Unknown statement');
+}
+
+function parseWorkflow(
+  ctx: ParserContext,
+  error: (msg: string) => never
+): WorkflowStmt {
+  const workflowTok = ctx.peek();
+  expectKeyword(ctx, error, KW.WORKFLOW, "Expected 'workflow'");
+  if (!ctx.at(TokenKind.COLON)) error("Expected ':' after 'workflow'");
+  ctx.next();
+  expectNewline(ctx, error);
+  if (!ctx.at(TokenKind.INDENT)) error('Expected indent after workflow header');
+  ctx.next();
+  ctx.consumeNewlines();
+  const steps: StepStmt[] = [];
+  while (ctx.isKeyword(KW.STEP)) {
+    steps.push(parseStep(ctx, error));
+    ctx.consumeNewlines();
+  }
+  if (steps.length === 0) error('Workflow must declare at least one step');
+  let retry: RetryPolicy | undefined;
+  if (ctx.isKeyword(KW.RETRY)) {
+    retry = parseRetryPolicy(ctx, error);
+    ctx.consumeNewlines();
+  }
+  let timeout: Timeout | undefined;
+  if (ctx.isKeyword(KW.TIMEOUT)) {
+    timeout = parseTimeout(ctx, error);
+    ctx.consumeNewlines();
+  }
+  if (!ctx.at(TokenKind.DEDENT)) error('Expected dedent after workflow body');
+  ctx.next();
+  ctx.consumeNewlines();
+  expectPeriodEnd(ctx, error);
+  const workflow = Node.Workflow(steps, retry, timeout);
+  const endTok = lastConsumedToken(ctx);
+  assignSpan(workflow, spanFromTokens(workflowTok, endTok));
+  return workflow;
+}
+
+function parseStep(
+  ctx: ParserContext,
+  error: (msg: string) => never
+): StepStmt {
+  const stepTok = ctx.peek();
+  expectKeyword(ctx, error, KW.STEP, "Expected 'step'");
+  const name = parseIdent(ctx, error);
+  if (!ctx.at(TokenKind.COLON)) error("Expected ':' after step name");
+  ctx.next();
+  expectNewline(ctx, error);
+  const body = parseBlock(ctx, error);
+  ctx.consumeNewlines();
+  let compensate: Block | undefined;
+  if (ctx.isKeyword(KW.COMPENSATE)) {
+    ctx.nextWord();
+    if (!ctx.at(TokenKind.COLON)) error("Expected ':' after 'compensate'");
+    ctx.next();
+    expectNewline(ctx, error);
+    compensate = parseBlock(ctx, error);
+    ctx.consumeNewlines();
+  }
+  const step = Node.Step(name, body, compensate);
+  const endTok = lastConsumedToken(ctx);
+  assignSpan(step, spanFromTokens(stepTok, endTok));
+  return step;
+}
+
+function parseRetryPolicy(
+  ctx: ParserContext,
+  error: (msg: string) => never
+): RetryPolicy {
+  expectKeyword(ctx, error, KW.RETRY, "Expected 'retry'");
+  if (!ctx.at(TokenKind.COLON)) error("Expected ':' after 'retry'");
+  ctx.next();
+  expectNewline(ctx, error);
+  if (!ctx.at(TokenKind.INDENT)) error('Expected indent for retry policy');
+  ctx.next();
+  ctx.consumeNewlines();
+  let maxAttempts: number | null = null;
+  let backoff: RetryPolicy['backoff'] | null = null;
+  while (!ctx.at(TokenKind.DEDENT)) {
+    if (ctx.isKeywordSeq(MAX_ATTEMPTS_PARTS)) {
+      ctx.nextWords(MAX_ATTEMPTS_PARTS);
+      if (!ctx.at(TokenKind.COLON)) error("Expected ':' after 'max attempts'");
+      ctx.next();
+      if (!ctx.at(TokenKind.INT)) error("Expected integer after 'max attempts'");
+      const attempts = ctx.next().value as number;
+      if (attempts <= 0) error("'max attempts' must be greater than zero");
+      maxAttempts = attempts;
+      expectPeriodEnd(ctx, error);
+    } else if (ctx.isKeyword(KW.BACKOFF)) {
+      ctx.nextWord();
+      if (!ctx.at(TokenKind.COLON)) error("Expected ':' after 'backoff'");
+      ctx.next();
+      const modeTok = ctx.nextWord();
+      const mode = String(modeTok.value ?? '').toLowerCase();
+      if (mode !== 'exponential' && mode !== 'linear') {
+        error("Backoff must be either 'exponential' or 'linear'");
+      }
+      backoff = mode as RetryPolicy['backoff'];
+      expectPeriodEnd(ctx, error);
+    } else {
+      error('Unknown retry directive');
+    }
+    ctx.consumeNewlines();
+  }
+  ctx.next();
+  if (maxAttempts === null) error("Retry section must include 'max attempts'");
+  if (backoff === null) error("Retry section must include 'backoff'");
+  return { maxAttempts, backoff };
+}
+
+function parseTimeout(
+  ctx: ParserContext,
+  error: (msg: string) => never
+): Timeout {
+  expectKeyword(ctx, error, KW.TIMEOUT, "Expected 'timeout'");
+  if (!ctx.at(TokenKind.COLON)) error("Expected ':' after 'timeout'");
+  ctx.next();
+  if (!ctx.at(TokenKind.INT)) error('Expected integer timeout value');
+  const secondsTok = ctx.next();
+  const seconds = secondsTok.value as number;
+  if (seconds < 0) error('Timeout value must be non-negative');
+  if (!(ctx.isKeyword('seconds') || ctx.isKeyword('second'))) {
+    error("Timeout must specify time unit 'seconds'");
+  }
+  ctx.nextWord();
+  expectPeriodEnd(ctx, error);
+  return { milliseconds: seconds * 1000 };
 }
 
 /**

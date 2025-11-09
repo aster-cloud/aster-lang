@@ -6,6 +6,7 @@ import aster.core.ir.CoreModel.Type;
 import aster.core.typecheck.model.SymbolInfo;
 import aster.core.typecheck.model.SymbolInfo.SymbolKind;
 
+import java.io.Serial;
 import java.util.*;
 import java.util.function.BiConsumer;
 
@@ -47,6 +48,8 @@ public final class SymbolTable {
    * 重复符号定义异常
    */
   public static final class DuplicateSymbolError extends RuntimeException {
+    @Serial
+    private static final long serialVersionUID = 1L;
     private final SymbolInfo symbol;
 
     public DuplicateSymbolError(SymbolInfo symbol) {

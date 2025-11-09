@@ -40,6 +40,32 @@ Position Aster as the **definitive language for auditable, business-critical wor
 
 ---
 
+### Phase 2.1: Workflow Language Extensions ✅ (Completed 2025-11-10)
+
+**Status**: Completed  
+**Deliverables**:
+- ✅ Workflow/Step/Compensate/Retry/Timeout 语法支持
+- ✅ Core IR 节点定义与降级逻辑
+- ✅ Workflow<T,E> 类型系统扩展
+- ✅ Effect/Capability 验证机制
+- ✅ JVM Emitter 集成
+- ✅ 3 个完整示例（linear-order, parallel-tasks, error-recovery）
+
+**Implementation Details**: See `.claude/phase2.1.1-phase2.1.6-implementation-report.md`
+
+**记录限制与已知问题**:
+- DSL 尚未提供显式依赖声明（`depends on` 语法）
+- Retry/backoff 运行时语义待实现
+- Truffle Loader 尚未完全集成 `WorkflowNode`
+
+**后续改进方向**:
+- 扩展语法支持显式依赖声明
+- 实现 retry/backoff 运行时策略
+- 完成 Truffle Loader/WorkflowNode 集成
+- 添加 workflow 可视化工具
+
+---
+
 ## Architecture Overview
 
 ### System Architecture (Layered)
@@ -1081,5 +1107,4 @@ aster-pm update
 ---
 
 **This roadmap is a living document.** Update quarterly based on customer feedback, technical discoveries, and market conditions. Prioritize ruthlessly: **ship early, iterate based on real-world usage, and focus on the five killer app domains.**
-
 

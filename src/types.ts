@@ -43,7 +43,7 @@ export interface AstMetadata {
  */
 export interface EffectCapable {
   /** 效应能力列表（无副作用时为空列表） */
-  effectCaps: readonly CapabilityKind[];
+  effectCaps: EffectCaps;
   /** 效应能力是否显式声明（区分隐式推导和显式标注） */
   effectCapsExplicit: boolean;
 }
@@ -54,6 +54,9 @@ export interface EffectCapable {
  * 定义系统支持的所有效应能力类型。
  */
 export type CapabilityKind = import('./config/semantic.js').CapabilityKind;
+
+/** Effect capability 列表的统一别名 */
+export type EffectCaps = readonly CapabilityKind[];
 
 export interface Token {
   readonly kind: TokenKind;
@@ -181,7 +184,17 @@ export interface Block extends Base.BaseBlock<Span, Statement> {
 
 export type Declaration = Import | Data | Enum | Func;
 
-export type Statement = Let | Set | Return | If | Match | Start | Wait | Expression | Block;
+export type Statement =
+  | Let
+  | Set
+  | Return
+  | If
+  | Match
+  | Start
+  | Wait
+  | WorkflowStmt
+  | Expression
+  | Block;
 
 export interface Let extends Base.BaseLet<Span, Expression> {
   span: Span;
@@ -215,6 +228,19 @@ export interface Start extends Base.BaseStart<Span, Expression> {
 export interface Wait extends Base.BaseWait<Span> {
   span: Span;
 }
+
+export interface WorkflowStmt
+  extends Base.BaseWorkflow<Span, StepStmt, RetryPolicy, Timeout> {
+  span: Span;
+}
+
+export interface StepStmt extends Base.BaseStep<Span, Block> {
+  span: Span;
+}
+
+export interface RetryPolicy extends Base.BaseRetryPolicy {}
+
+export interface Timeout extends Base.BaseTimeout {}
 
 export type Pattern = PatternNull | PatternCtor | PatternName | PatternInt;
 
@@ -432,7 +458,29 @@ export namespace Core {
 
   export interface Scope extends Base.BaseScope<Origin, Statement> {}
 
-  export type Statement = Let | Set | Return | If | Match | Scope | Start | Wait;
+  export interface Workflow
+    extends Base.BaseWorkflow<Origin, Step, RetryPolicy, Timeout> {
+    readonly effectCaps: EffectCaps;
+  }
+
+  export interface Step extends Base.BaseStep<Origin, Block> {
+    readonly effectCaps: EffectCaps;
+  }
+
+  export interface RetryPolicy extends Base.BaseRetryPolicy {}
+
+  export interface Timeout extends Base.BaseTimeout {}
+
+  export type Statement =
+    | Let
+    | Set
+    | Return
+    | If
+    | Match
+    | Scope
+    | Start
+    | Wait
+    | Workflow;
 
   export interface Let extends Base.BaseLet<Origin, Expression> {}
 

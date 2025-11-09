@@ -81,6 +81,30 @@ export const Core = {
     expr,
   }),
   Wait: (names: readonly string[]): CoreTypes.Wait => ({ kind: 'Wait', names }),
+  Workflow: (
+    steps: readonly CoreTypes.Step[],
+    effectCaps: readonly import('./types.js').CapabilityKind[],
+    retry?: CoreTypes.RetryPolicy,
+    timeout?: CoreTypes.Timeout
+  ): CoreTypes.Workflow => ({
+    kind: 'workflow',
+    steps,
+    effectCaps: [...effectCaps],
+    ...(retry ? { retry } : {}),
+    ...(timeout ? { timeout } : {}),
+  }),
+  Step: (
+    name: string,
+    body: CoreTypes.Block,
+    effectCaps: readonly import('./types.js').CapabilityKind[],
+    compensate?: CoreTypes.Block
+  ): CoreTypes.Step => ({
+    kind: 'step',
+    name,
+    body,
+    effectCaps: [...effectCaps],
+    ...(compensate ? { compensate } : {}),
+  }),
 
   // Expressions
   Name: (name: string): CoreTypes.Name => ({ kind: 'Name', name }),

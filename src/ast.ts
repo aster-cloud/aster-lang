@@ -106,6 +106,24 @@ export const Node = {
     names,
     span: createEmptySpan(),
   }),
+  Workflow: (
+    steps: readonly AST.StepStmt[],
+    retry?: AST.RetryPolicy,
+    timeout?: AST.Timeout
+  ): AST.WorkflowStmt => ({
+    kind: 'workflow',
+    steps,
+    ...(retry !== undefined ? { retry } : {}),
+    ...(timeout !== undefined ? { timeout } : {}),
+    span: createEmptySpan(),
+  }),
+  Step: (name: string, body: AST.Block, compensate?: AST.Block): AST.StepStmt => ({
+    kind: 'step',
+    name,
+    body,
+    ...(compensate !== undefined ? { compensate } : {}),
+    span: createEmptySpan(),
+  }),
 
   // Expressions
   Name: (name: string): AST.Name => ({ kind: 'Name', name, span: createEmptySpan() }),

@@ -18,12 +18,12 @@ import java.util.Optional;
  * - 辅助重构决策（提供量化依据）
  */
 public record FunctionMetrics(
-  /**
+  /*
    * 函数名称
    */
   String functionName,
 
-  /**
+  /*
    * 语句总数（包括所有嵌套语句）
    * <p>
    * 计算规则：递归统计所有 Statement 节点
@@ -32,7 +32,7 @@ public record FunctionMetrics(
    */
   int statementCount,
 
-  /**
+  /*
    * return 语句数量
    * <p>
    * 多个返回路径增加函数复杂度，但某些情况下是合理的（早期返回优化）
@@ -41,16 +41,16 @@ public record FunctionMetrics(
    */
   int returnCount,
 
-  /**
-   * 分支数量（if 语句 + match case 数量）
-   * <p>
-   * 反映控制流复杂度
-   * <p>
-   * 建议阈值：<= 10（超过需要考虑使用多态或策略模式）
+  /*
+    分支数量（if 语句 + match case 数量）
+    <p>
+    反映控制流复杂度
+    <p>
+    建议阈值：<= 10（超过需要考虑使用多态或策略模式）
    */
   int branchCount,
 
-  /**
+  /*
    * 最大嵌套深度
    * <p>
    * 从函数体开始计算，每进入一层 Block/If/Match 增加 1
@@ -59,7 +59,7 @@ public record FunctionMetrics(
    */
   int maxNestingDepth,
 
-  /**
+  /*
    * 函数体行数（可选，需要 origin 信息）
    * <p>
    * 如果函数体缺少 origin 信息则为 empty

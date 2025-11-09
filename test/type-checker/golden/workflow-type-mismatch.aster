@@ -1,0 +1,11 @@
+This module is tests.workflow.type_error.
+
+To brokenWorkflow, produce Workflow of Result of Text and Text and IO. It performs io:
+  
+  workflow:
+    step danger:
+      Return err of "boom".
+    compensate:
+      Return ok of "still wrong".
+  
+  .

@@ -30,6 +30,13 @@ public enum ErrorCode {
   AMBIGUOUS_INTEROP_NUMERIC("E019", Category.TYPE, Severity.WARNING, "Ambiguous interop call '%s': mixing numeric kinds (Int=%s, Long=%s, Double=%s). Overload resolution may widen/box implicitly.", "统一互操作调用的参数数值类型，避免隐式装箱与拓宽。"),
   LIST_ELEMENT_TYPE_MISMATCH("E020", Category.TYPE, Severity.ERROR, "List literal element type mismatch: expected %s, got %s", "确保列表字面量中的所有元素类型一致。"),
   OPTIONAL_EXPECTED("E021", Category.TYPE, Severity.ERROR, "Optional value required here: expected Maybe or Option, but got %s", "传入 Maybe/Option 类型或显式包装值。"),
+  WORKFLOW_COMPENSATE_TYPE("E022", Category.TYPE, Severity.ERROR, "Compensate block for step '%s' must return Result<Unit, %s>, got %s", "确保补偿块返回 Result<Unit, E>，其中 E 为 step 错误类型。"),
+  WORKFLOW_COMPENSATE_MISSING("E023", Category.EFFECT, Severity.WARNING, "Step '%s' performs side effects but does not define a compensate block.", "为包含 IO 副作用的 step 提供 compensate 块以便回滚。"),
+  WORKFLOW_RETRY_INVALID("E024", Category.TYPE, Severity.ERROR, "Workflow retry max attempts must be greater than zero (actual: %s).", "设置 retry.maxAttempts 为正整数。"),
+  WORKFLOW_TIMEOUT_INVALID("E025", Category.TYPE, Severity.ERROR, "Workflow timeout must be greater than zero milliseconds (actual: %s).", "配置 timeout 秒数为正值，确保补偿逻辑可被触发。"),
+  WORKFLOW_MISSING_IO_EFFECT("E026", Category.EFFECT, Severity.ERROR, "Workflow '%s' must declare @io effect before using a 'workflow' block.", "在函数 '{func}' 的头部添加 `It performs io ...`（可同时声明 capability），否则编译器拒绝 workflow 语句。"),
+  WORKFLOW_UNDECLARED_CAPABILITY("E027", Category.CAPABILITY, Severity.ERROR, "Workflow '%s' step '%s' uses capability %s that is not declared on the function header.", "在 `It performs io with ...` 中列出 {capability}（例如 Http、Sql、Secrets），或调整 step 代码避免调用未授权能力。"),
+  COMPENSATE_NEW_CAPABILITY("E028", Category.CAPABILITY, Severity.ERROR, "Compensate block for step '%s' in function '%s' introduces new capability %s that does not appear in the main step body.", "Compensate 只能重复主体已使用的能力；如需额外调用，请将相同行为移至主体或在主体中声明该 capability。"),
   DUPLICATE_IMPORT_ALIAS("E100", Category.SCOPE, Severity.WARNING, "Duplicate import alias '%s'.", "为不同的导入使用唯一别名，避免覆盖。"),
   UNDEFINED_VARIABLE("E101", Category.SCOPE, Severity.ERROR, "Undefined variable: %s", "在使用变量前先声明并初始化。"),
   EFF_MISSING_IO("E200", Category.EFFECT, Severity.ERROR, "Function '%s' may perform I/O but is missing @io effect.", "为具有 IO 行为的函数声明 @io 效果。"),
@@ -52,6 +59,7 @@ public enum ErrorCode {
   ASYNC_WAIT_NOT_STARTED("E501", Category.ASYNC, Severity.ERROR, "Waiting for async task '%s' that was never started", "确认 wait 的任务名称在 Start 中正确出现。"),
   ASYNC_DUPLICATE_START("E502", Category.ASYNC, Severity.ERROR, "Async task '%s' started multiple times (%s occurrences)", "避免重复启动同名任务，可复用已有任务或改用新名称。"),
   ASYNC_DUPLICATE_WAIT("E503", Category.ASYNC, Severity.WARNING, "Async task '%s' waited multiple times (%s occurrences)", "确保每个任务仅等待一次，或使用单独的同步机制。"),
+  ASYNC_WAIT_BEFORE_START("E504", Category.ASYNC, Severity.ERROR, "Wait for async task '%s' occurs before any matching start", "在 wait for 之前先执行 start，并确保两者位于兼容的控制路径。"),
   ;
 
   private final String code;

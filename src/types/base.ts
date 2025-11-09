@@ -209,6 +209,46 @@ export interface BaseWait<S = Span | Origin> extends BaseNode<S> {
   readonly names: readonly string[];
 }
 
+/**
+ * Workflow 语句基础接口。
+ */
+export interface BaseWorkflow<
+  S = Span | Origin,
+  StepStmt = unknown,
+  Retry = unknown,
+  Timeout = unknown
+> extends BaseNode<S> {
+  readonly kind: 'workflow';
+  readonly steps: readonly StepStmt[];
+  readonly retry?: Retry;
+  readonly timeout?: Timeout;
+}
+
+/**
+ * Step 语句基础接口。
+ */
+export interface BaseStep<S = Span | Origin, Block = unknown> extends BaseNode<S> {
+  readonly kind: 'step';
+  readonly name: string;
+  readonly body: Block;
+  readonly compensate?: Block;
+}
+
+/**
+ * RetryPolicy 基础接口。
+ */
+export interface BaseRetryPolicy {
+  readonly maxAttempts: number;
+  readonly backoff: 'exponential' | 'linear';
+}
+
+/**
+ * Timeout 基础接口。
+ */
+export interface BaseTimeout {
+  readonly milliseconds: number;
+}
+
 // ============================================================
 // 共享 Pattern 节点
 // ============================================================

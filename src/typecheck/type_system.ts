@@ -326,6 +326,10 @@ export class TypeSystem {
       case 'TypeVar':
         return type.name;
       case 'TypeApp':
+        if (type.base === 'Workflow' && type.args.length === 2) {
+          const [resultType, effectRow] = type.args;
+          return `Workflow<${TypeSystem.format(resultType as Type)}, ${TypeSystem.format(effectRow as Type)}>`;
+        }
         return `${type.base}<${type.args.map(arg => TypeSystem.format(arg as Type)).join(', ')}>`;
       case 'Maybe':
         return `${TypeSystem.format(type.type as Type)}?`;

@@ -39,6 +39,10 @@
 - [Case](interfaces/Case.md)
 - [Start](interfaces/Start.md)
 - [Wait](interfaces/Wait.md)
+- [WorkflowStmt](interfaces/WorkflowStmt.md)
+- [StepStmt](interfaces/StepStmt.md)
+- [RetryPolicy](interfaces/RetryPolicy.md)
+- [Timeout](interfaces/Timeout.md)
 - [PatternNull](interfaces/PatternNull.md)
 - [PatternCtor](interfaces/PatternCtor.md)
 - [PatternName](interfaces/PatternName.md)
@@ -73,6 +77,7 @@
 ## Type Aliases
 
 - [CapabilityKind](type-aliases/CapabilityKind.md)
+- [EffectCaps](type-aliases/EffectCaps.md)
 - [AstNode](type-aliases/AstNode.md)
 - [Declaration](type-aliases/Declaration.md)
 - [Statement](type-aliases/Statement.md)
