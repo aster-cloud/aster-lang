@@ -67,6 +67,29 @@ public class WorkflowMetadata {
     }
 
     /**
+     * 设置策略版本信息（Phase 3.1）
+     *
+     * @param policyId 策略 ID（模块名.函数名）
+     * @param version 策略版本号
+     * @param versionId 策略版本数据库 ID
+     */
+    public void setPolicyVersion(String policyId, Long version, Long versionId) {
+        properties.put(Keys.POLICY_ID, policyId);
+        properties.put(Keys.POLICY_VERSION, version);
+        properties.put(Keys.POLICY_VERSION_ID, versionId);
+    }
+
+    /**
+     * 获取策略版本 ID（Phase 3.1）
+     *
+     * @return 策略版本数据库 ID，如果不存在则返回 null
+     */
+    public Long getPolicyVersionId() {
+        Object value = properties.get(Keys.POLICY_VERSION_ID);
+        return value instanceof Number ? ((Number) value).longValue() : null;
+    }
+
+    /**
      * 获取所有属性的只读视图
      *
      * @return 属性映射的只读视图
@@ -101,5 +124,14 @@ public class WorkflowMetadata {
 
         /** 自定义标签（用于监控和过滤） */
         public static final String TAGS = "tags";
+
+        /** 策略 ID（模块名.函数名）- Phase 3.1 */
+        public static final String POLICY_ID = "policyId";
+
+        /** 策略版本号 - Phase 3.1 */
+        public static final String POLICY_VERSION = "policyVersion";
+
+        /** 策略版本数据库 ID - Phase 3.1 */
+        public static final String POLICY_VERSION_ID = "policyVersionId";
     }
 }

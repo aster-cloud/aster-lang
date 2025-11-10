@@ -1,0 +1,198 @@
+package io.aster.audit.rest;
+
+import io.aster.audit.dto.*;
+import io.aster.audit.entity.AnomalyReportEntity;
+import io.aster.audit.service.PolicyAnalyticsService;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.smallrye.common.annotation.Blocking;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * 策略分析 REST 控制器（Phase 3.3）
+ *
+ * 提供实时审计仪表板 API：
+ * - 聚合统计（按时间粒度聚合版本使用情况）
+ * - 异常检测（高失败率、僵尸版本）
+ * - 版本对比（对比两个版本的性能指标）
+ */
+@Path("/api/audit")
+@Produces(MediaType.APPLICATION_JSON)
+public class PolicyAnalyticsResource {
+
+    @Inject
+    PolicyAnalyticsService analyticsService;
+
+    /**
+     * 获取版本使用统计（按时间粒度聚合）
+     *
+     * GET /api/audit/stats/version-usage?versionId=1&granularity=day&from=2025-01-01T00:00:00Z&to=2025-01-31T23:59:59Z&tenantId=tenant1
+     *
+     * @param versionId   策略版本 ID（必填）
+     * @param granularity 时间粒度（hour, day, week, month，默认 day）
+     * @param from        开始时间（默认最近 7 天）
+     * @param to          结束时间（默认当前时间）
+     * @param tenantId    可选的租户 ID 过滤
+     * @return 按时间桶聚合的统计数据
+     */
+    @GET
+    @Path("/stats/version-usage")
+    @Blocking
+    public List<VersionUsageStatsDTO> getVersionUsageStats(
+        @QueryParam("versionId") Long versionId,
+        @QueryParam("granularity") @DefaultValue("day") String granularity,
+        @QueryParam("from") Instant from,
+        @QueryParam("to") Instant to,
+        @QueryParam("tenantId") String tenantId
+    ) {
+        // 参数验证
+        if (versionId == null) {
+            throw new BadRequestException("versionId parameter is required");
+        }
+
+        if (!List.of("hour", "day", "week", "month").contains(granularity)) {
+            throw new BadRequestException("Invalid granularity: must be one of [hour, day, week, month]");
+        }
+
+        // 默认时间范围：最近 7 天
+        if (from == null) {
+            from = Instant.now().minus(7, ChronoUnit.DAYS);
+        }
+        if (to == null) {
+            to = Instant.now();
+        }
+
+        // 验证时间顺序
+        if (from.isAfter(to)) {
+            throw new BadRequestException("'from' must be before or equal to 'to'");
+        }
+
+        // 限制最大时间跨度
+        long daysDiff = Duration.between(from, to).toDays();
+        if (daysDiff > 90) {
+            throw new BadRequestException("Time range cannot exceed 90 days (current: " + daysDiff + " days)");
+        }
+
+        return analyticsService.getVersionUsageStats(versionId, granularity, from, to, tenantId);
+    }
+
+    /**
+     * 获取异常检测报告（异步模式 - Phase 3.4）
+     *
+     * GET /api/audit/anomalies?page=1&size=20&type=HIGH_FAILURE_RATE&days=7
+     *
+     * 从 anomaly_reports 表查询异常记录，而非实时计算。
+     * 异常数据由定时任务（AnomalyDetectionScheduler）每小时生成。
+     *
+     * @param page 页码（从 1 开始，默认 1）
+     * @param size 每页大小（1-100，默认 20）
+     * @param type 异常类型过滤（HIGH_FAILURE_RATE, ZOMBIE_VERSION, PERFORMANCE_DEGRADATION，可选）
+     * @param days 时间窗口（天，默认 30 天）
+     * @return 异常报告列表
+     */
+    @GET
+    @Path("/anomalies")
+    @Blocking
+    public List<AnomalyReportDTO> detectAnomalies(
+        @QueryParam("page") @DefaultValue("1") int page,
+        @QueryParam("size") @DefaultValue("20") int size,
+        @QueryParam("type") String type,
+        @QueryParam("days") @DefaultValue("30") int days
+    ) {
+        // 参数验证
+        if (page < 1) {
+            throw new BadRequestException("page must be >= 1");
+        }
+        if (size < 1 || size > 100) {
+            throw new BadRequestException("size must be between 1 and 100");
+        }
+        if (days < 1 || days > 365) {
+            throw new BadRequestException("days must be between 1 and 365");
+        }
+
+        // 构建查询条件
+        String query = "detectedAt >= ?1";
+        List<Object> params = new ArrayList<>();
+        params.add(Instant.now().minus(days, ChronoUnit.DAYS));
+
+        // 可选的异常类型过滤
+        if (type != null && !type.isBlank()) {
+            query += " AND anomalyType = ?2";
+            params.add(type);
+        }
+
+        // 执行分页查询
+        PanacheQuery<AnomalyReportEntity> panacheQuery = AnomalyReportEntity.find(
+            query + " ORDER BY detectedAt DESC",
+            params.toArray()
+        );
+
+        List<AnomalyReportEntity> entities = panacheQuery
+            .page(page - 1, size)  // Panache 使用 0-based 索引
+            .list();
+
+        // 转换为 DTO
+        return entities.stream()
+            .map(this::toAnomalyReportDTO)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 将 AnomalyReportEntity 转换为 AnomalyReportDTO
+     */
+    private AnomalyReportDTO toAnomalyReportDTO(AnomalyReportEntity entity) {
+        AnomalyReportDTO dto = new AnomalyReportDTO();
+        dto.anomalyType = entity.anomalyType;
+        dto.versionId = entity.versionId;
+        dto.policyId = entity.policyId;
+        dto.severity = entity.severity;
+        dto.description = entity.description;
+        dto.metricValue = entity.metricValue;
+        dto.threshold = entity.threshold;
+        dto.detectedAt = entity.detectedAt;
+        dto.recommendation = entity.recommendation;
+        return dto;
+    }
+
+    /**
+     * 对比两个版本的性能指标
+     *
+     * GET /api/audit/compare?versionA=1&versionB=2&days=7
+     *
+     * @param versionAId 版本 A ID（必填）
+     * @param versionBId 版本 B ID（必填）
+     * @param days       对比时间窗口（天，默认 7 天）
+     * @return 版本对比结果
+     */
+    @GET
+    @Path("/compare")
+    @Blocking
+    public VersionComparisonDTO compareVersions(
+        @QueryParam("versionA") Long versionAId,
+        @QueryParam("versionB") Long versionBId,
+        @QueryParam("days") @DefaultValue("7") int days
+    ) {
+        // 参数验证
+        if (versionAId == null || versionBId == null) {
+            throw new BadRequestException("Both versionA and versionB parameters are required");
+        }
+
+        if (versionAId.equals(versionBId)) {
+            throw new BadRequestException("versionA and versionB must be different");
+        }
+
+        if (days < 1 || days > 90) {
+            throw new BadRequestException("days must be between 1 and 90");
+        }
+
+        return analyticsService.compareVersions(versionAId, versionBId, days);
+    }
+}

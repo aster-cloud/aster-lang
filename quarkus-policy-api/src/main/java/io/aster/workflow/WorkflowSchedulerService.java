@@ -261,7 +261,7 @@ public class WorkflowSchedulerService {
 
             // 处理补偿失败
             if (compensationFailed) {
-                state.status = "COMPENSATION_FAILED";
+                state.markCompleted("COMPENSATION_FAILED");
                 state.lockOwner = null;
                 state.lockExpiresAt = null;
                 state.persist();
@@ -274,7 +274,7 @@ public class WorkflowSchedulerService {
 
             // 处理正常完成
             if (completed) {
-                state.status = "COMPLETED";
+                state.markCompleted("COMPLETED");
                 state.lockOwner = null;
                 state.lockExpiresAt = null;
                 state.persist();
@@ -290,7 +290,7 @@ public class WorkflowSchedulerService {
                 Log.infof("Workflow %s completed", workflowId);
 
             } else if (failed) {
-                state.status = "FAILED";
+                state.markCompleted("FAILED");
                 state.lockOwner = null;
                 state.lockExpiresAt = null;
                 state.persist();

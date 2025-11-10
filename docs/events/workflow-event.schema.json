@@ -52,6 +52,18 @@
         "error": {
           "type": "string",
           "description": "失败时的错误详情"
+        },
+        "policyId": {
+          "type": "string",
+          "description": "策略 ID（模块名.函数名），用于审计追踪（Phase 3.1）"
+        },
+        "policyVersion": {
+          "type": "integer",
+          "description": "策略版本号，用于审计追踪（Phase 3.1）"
+        },
+        "policyVersionId": {
+          "type": "integer",
+          "description": "策略版本数据库 ID，关联到 policy_versions 表（Phase 3.1）"
         }
       },
       "additionalProperties": true

@@ -63,6 +63,11 @@ dependencies {
     testImplementation("io.quarkus:quarkus-jdbc-h2")
     testImplementation("org.awaitility:awaitility:4.2.0")
     testImplementation(project(":aster-ecommerce"))
+
+    // Testcontainers - PostgreSQL 测试环境（Phase 3.4）
+    testImplementation("org.testcontainers:testcontainers:1.19.3")
+    testImplementation("org.testcontainers:postgresql:1.19.3")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
 }
 
 tasks.withType<JavaCompile>().configureEach {

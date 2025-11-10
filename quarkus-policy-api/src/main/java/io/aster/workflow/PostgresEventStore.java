@@ -74,11 +74,18 @@ public class PostgresEventStore implements EventStore {
             event.occurredAt = Instant.now();
             event.idempotencyKey = idempotencyKey;
 
+            // Phase 3.1: 从 workflow_state 获取 policyVersionId 并记录到事件
+            WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfId);
+            if (state.policyVersionId != null) {
+                event.policyVersionId = state.policyVersionId;
+                Log.debugf("Event %s for workflow %s recorded with policyVersionId=%d",
+                        eventType, workflowId, state.policyVersionId);
+            }
+
             // 持久化事件
             event.persist();
 
-            // 更新或创建 workflow 状态
-            WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfId);
+            // 更新 workflow 状态
             state.lastEventSeq = nextSeq;
             state.status = deriveStatusFromEvent(eventType);
             state.persist();

@@ -2,6 +2,8 @@ package io.aster.workflow;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +35,7 @@ public class WorkflowEventEntity extends PanacheEntityBase {
     @Column(name = "event_type", nullable = false, length = 64)
     public String eventType;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     public String payload;
 
@@ -41,6 +44,13 @@ public class WorkflowEventEntity extends PanacheEntityBase {
 
     @Column(name = "idempotency_key", length = 255)
     public String idempotencyKey;
+
+    /**
+     * 策略版本 ID（Phase 3.1）
+     * NULL 表示版本化功能上线前的事件
+     */
+    @Column(name = "policy_version_id")
+    public Long policyVersionId;
 
     /**
      * 查询指定 workflow 的事件历史

@@ -22,7 +22,7 @@ public class IntegrationTestProfile implements QuarkusTestProfile {
             Map.entry("quarkus.flyway.clean-at-start", "true"),
             Map.entry("quarkus.flyway.baseline-on-migrate", "true"),
             Map.entry("quarkus.flyway.baseline-version", "0"),
-            Map.entry("quarkus.flyway.locations", "classpath:db/migration"),
+            Map.entry("quarkus.flyway.locations", "classpath:db/h2"),
             Map.entry("quarkus.cache.caffeine.\"policy-results\".expire-after-write", "3M"),
             Map.entry("quarkus.log.category.\"io.aster\".level", "DEBUG")
         );

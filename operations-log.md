@@ -1,3 +1,14 @@
+# 2025-11-11 00:04 NZDT PolicyAnalyticsResourceTest Flyway 故障分析阶段0
+
+**操作记录**:
+- 工具：sequential-thinking → 梳理 Flyway 迁移失败排查范围与行动计划。
+- 工具：code-index（set_project_path/find_files/search_code_advanced）→ 定位 `quarkus-policy-api` 全量迁移脚本并确认索引结构。
+- 工具：shell+sed → 依次阅读 V1~V3.3.0 脚本内容，确认 BIGSERIAL、分区、外键等 PostgreSQL 特性。
+
+**观察**:
+- 迁移脚本大量使用 PostgreSQL 分区与 JSONB，若 Testcontainers DB 未加载扩展或 schema 未清理，容易出现依赖顺序问题。
+- V1 脚本简单，仅创建 `policy_versions` 表与索引，失败很可能来自 DDL 权限/ schema 状态而非语法。
+
 # 2025-11-10 18:03 NZDT PostgresEventStore H2 兼容修复
 
 **操作记录**:
@@ -5371,3 +5382,101 @@ List.map (1000 items) Heavy: 1.516680 ms
 - 工具：sequential-thinking__sequentialthinking → 确认需移除示例文件 `//` 注释并使用自然语言语句替换，评估编译风险与验证步骤。
 - 工具：apply_patch（quarkus-policy-api/src/main/resources/policies/examples/fanout-concurrent.aster, diamond-merge.aster, serial-compatible.aster）→ 将 `//` 注释改写为 CNL 语法可接受的独立说明语句，避免 Unknown statement 错误。
 - 工具：shell（./gradlew :quarkus-policy-api:compileJava）→ 运行失败，emit-classfiles 报 Unexpected character '模'。
+# 2025-11-10 20:29 NZDT Phase 3.1 策略版本化上下文收集 - 初始化
+
+**操作记录**:
+- 工具：sequential-thinking → 5 步思考，厘清 Phase 3.1 调研范围、风险与执行计划。
+- 工具：shell+`ls` → 快速扫描仓库根目录，确认 quarkus-policy-api 与 docs 等目标模块位置。
+- 工具：shell+`cat operations-log.md` → 查看既有记录格式，确保新增条目保持一致。
+- 工具：shell+`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M %Z'` → 获取新西兰时区时间用于日志标注。
+
+**观察**:
+- operations-log.md 内容庞大，只能在文件末尾附加新段落，避免修改历史记录。
+- 后续需在 `.claude/phase3.1-context-initial.json` 汇总调研结果并继续留痕。
+
+# 2025-11-10 20:31 NZDT Phase 3.1 策略版本化上下文收集 - 索引初始化
+
+**操作记录**:
+- 工具：code-index（set_project_path）→ 设置索引根目录 `/Users/rpang/IdeaProjects/aster-lang`，确认 1,616 个文件可被检索。
+- 工具：shell+`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M %Z'` → 再次取当前时间用于阶段记录。
+
+**观察**:
+- code-index 已启用 ripgrep 高级搜索，后续检索 Flyway/Resource/Workflow 代码可直接复用。
+
+# 2025-11-10 21:09 NZDT Phase 3.1 策略版本化上下文收集 - 数据库与 API 检索
+
+**操作记录**:
+- 工具：code-index（find_files/search_code_advanced）→ 列出 quarkus-policy-api Flyway 迁移、实体与资源类（WorkflowStateEntity/WorkflowEventEntity/OrderResource/WorkflowAuditResource/PostgresEventStore/PolicyVersionService 等）。
+- 工具：shell+`sed`/`cat` → 逐个阅读 V1/V2.* 迁移脚本、实体、DTO、WorkflowSchedulerService、AuditEvent 及监听器，提取命名约定与字段含义。
+- 工具：shell+`ls`/`find` → 确认 `.aster` 策略文件分布在 `src/main/resources/policies/**`，列举样例。
+- 工具：shell+`rg` → 检索 `@Provider`、`appendEvent`、`emit:class` 等关键词，定位 REST 错误处理与编译脚本。
+- 工具：shell+`sed` → 阅读 `scripts/emit-classfiles.ts`、`scripts/jar-jvm.ts`、`aster-asm-emitter/Main.java`，掌握策略编译与 package-map 写入流程。
+- 工具：shell+`TZ=Pacific/Auckland date ...` → 记录当前 NZ 时区时间以标注日志。
+
+**观察**:
+- Flyway 脚本与实体全部使用 snake_case 表名、BIGSERIAL/UUID 组合主键，并通过 JSONB/partition 强化事件审计。
+- REST 资源沿用 JAX-RS + Mutiny `Uni` 处理模式，DTO 采用 public field/record 命名，无统一异常映射（直接抛 `NotFoundException`）。
+- 策略版本、审计事件与 workflow 事件之间已存在基础关联，可作为 Phase 3.1 扩展挂钩。
+- `.aster` 编译链依赖 `npm run emit:class` → `npm run jar:jvm`，package-map 由 ASM emitter 生成到 `build/aster-out/package-map.json`。
+
+# 2025-11-10 21:17 NZDT Phase 3.1 策略版本化上下文收集 - 审计与 Workflow 元数据
+
+**操作记录**:
+- 工具：shell+`sed` → 阅读 `quarkus-policy-api/src/main/java/io/aster/policy/event/AuditEvent*.java`，梳理审计事件/监听器如何记录版本号、metadata 及 PII 脱敏流程。
+- 工具：shell+`sed` → 查阅 `aster-runtime/src/main/java/aster/runtime/workflow/WorkflowMetadata.java` 与 `WorkflowEvent.java`，确认元数据/事件载荷的扩展点。
+- 工具：shell+`TZ=Pacific/Auckland date ...` → 更新 NZ 时区时间以便日志对齐。
+
+**观察**:
+- AuditEvent 已包含 `fromVersion/toVersion` 字段，可在策略版本化场景直接写入；监听器会截断超过 4KB 的 metadata。
+- WorkflowMetadata/WorkflowEvent 均以 Map/JSONB 形式保存 payload，可在不迁移 schema 的情况下附加 `policyVersion` 字段，但 Flyway schema 仍需同步引入索引与审计字段。
+
+# 2025-11-10 21:23 NZDT Phase 3.1 策略版本化上下文收集 - 策略 DSL 目录
+
+**操作记录**:
+- 工具：shell+`sed -n '1,160p' quarkus-policy-api/src/main/resources/policies/ecommerce/order-fulfillment.aster` → 抽取电商示例 workflow 代码，确认 `.aster` 文件路径与模块声明格式。
+- 工具：shell+`TZ=Pacific/Auckland date ...` → 更新时间戳用于日志。
+
+**观察**:
+- 策略 DSL 以模块声明 `This module is ...` 开头，Workflow 定义后跟中文注释，便于在 JSON 摘要中引用作为代码示例。
+
+# 2025-11-10 21:34 NZDT Phase 3.1 策略版本化上下文收集 - 初始 JSON 输出
+
+**操作记录**:
+- 工具：shell+python → 组合 databaseSchema/restApi/workflowEvents/policyArtifacts/versioningRefs 五大段落，使用 `json.dump` 生成 `.claude/phase3.1-context-initial.json`。
+- 工具：shell+`TZ=Pacific/Auckland date ...` → 记录生成时间用于日志与 JSON `generatedAt` 字段。
+
+**观察**:
+- JSON 已包含代码示例、模式约定、schema 建议与开放问题，后续深化可在同文件追加 `deepdive` 字段或版本号。
+
+# 2025-11-10 21:37 NZDT Phase 3.1 策略版本化上下文收集 - JSON 校验
+
+**操作记录**:
+- 工具：shell+`cat .claude/phase3.1-context-initial.json` → 逐行检查 196 行 JSON 输出，确认 sections/schemaRecommendations/openQuestions 均正确写入。
+- 工具：shell+`TZ=Pacific/Auckland date ...` → 更新时间标签。
+
+**观察**:
+- JSON 内容符合简体中文要求并保留多段代码片段，可直接供主 AI 后续引用；如需追加深挖问题，可在文件新增 `deepDive` 键。 
+# 2025-11-11 00:13 NZDT PolicyAnalyticsResourceTest Flyway 故障分析阶段1
+
+**操作记录**:
+- 工具：shell+`./gradlew :quarkus-policy-api:test --tests io.aster.audit.rest.PolicyAnalyticsResourceTest --stacktrace` → 复现 Quarkus 启动失败并将日志写入 `quarkus-policy-tests.log`。
+- 工具：shell+`sed/rg` → 从 `quarkus-policy-tests.log` 与 `TEST-io.aster.audit.rest.PolicyAnalyticsResourceTest.xml` 抽取 Flyway 堆栈与 SQLState=42601 详细信息。
+- 工具：shell+`podman run` + `psql -f` → 启动临时 postgres:15 容器并分别执行 H2 与 PostgreSQL 版本的 V1 脚本，记录语法错误与成功结果。
+- 工具：shell+`QUARKUS_FLYWAY_LOCATIONS=filesystem:... ./gradlew ...` → 强制使用生产脚本验证迁移可继续执行，捕捉二次 SQLGrammarException 以定位 JSONB 字段映射问题。
+
+**观察**:
+- `quarkus-policy-api/src/test/resources/db/migration` 内的 H2 版本脚本优先于主资源目录的 PostgreSQL 版本加载，`CURRENT_TIMESTAMP()` 与 `CLOB` 语法在 Postgres 上触发 42601。
+- 手动在 postgres:15 中执行 H2 V1 脚本同样在 DEFAULT CURRENT_TIMESTAMP() 处报错，而生产脚本可顺利创建表与索引，验证问题源于脚本集冲突。
+- 将 Flyway 路径指向主脚本后，迁移继续但插入 `workflow_state.result`/`snapshot` 时因 Hibernate 仍以 `VARCHAR` 绑定 JSONB 字段导致 SQLGrammarException，提示后续还需 JSON 映射修复。
+# 2025-11-11 00:22 NZDT PolicyAnalyticsResourceTest PostgreSQL 方案落地
+
+**操作记录**:
+- 工具：shell → 将 `src/test/resources/db/migration` 迁移至 `db/h2`，同步更新测试 `application.properties`/`IntegrationTestProfile`。
+- 工具：apply_patch → 为 WorkflowState/Event/Timer Entity JSONB 字段添加 `@JdbcTypeCode(SqlTypes.JSON)`，新增 PostgresAnalyticsTestProfile，给 PolicyAnalyticsResourceTest 绑定 Profile，并修正 PostgresTestResource 配置。
+- 工具：apply_patch → 更新 PolicyAnalyticsService 聚合 SQL（移除 HAVING 别名依赖、加入多类型 time bucket 解析）。
+- 工具：shell+`./gradlew :quarkus-policy-api:test --tests io.aster.audit.rest.PolicyAnalyticsResourceTest` → 执行 14 个集成测试并通过，日志记录于 `/tmp/PolicyAnalyticsResourceTest.log`（存在调度器 WARN，不影响结果）。
+
+**观察**:
+- H2 兼容脚本迁移至独立路径后，可通过 TestProfile 精确切换 PostgreSQL/生产 schema，避免类路径冲突。
+- JSONB 字段先前因缺少 JDBC 类型声明导致 `character varying`→`jsonb` 绑定失败，新注解后 Hibernate 以原生 JSON 类型持久化。
+- PolicyAnalyticsService 在 PostgreSQL 下需避免 HAVING 中引用别名，并兼容 `DATE_TRUNC` 返回的 Instant/OffsetDateTime 类型，否则会触发 `column failure_rate does not exist` 与 `ClassCastException`。

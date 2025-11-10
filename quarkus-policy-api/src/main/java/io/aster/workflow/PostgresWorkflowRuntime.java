@@ -2,6 +2,8 @@ package io.aster.workflow;
 
 import aster.runtime.workflow.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.aster.policy.entity.PolicyVersion;
+import io.aster.policy.service.PolicyVersionService;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -37,6 +39,9 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
 
     @Inject
     WorkflowMetrics metrics;
+
+    @Inject
+    PolicyVersionService policyVersionService;
 
     @ConfigProperty(name = "workflow.result-futures.ttl-hours", defaultValue = "24")
     int ttlHours;
@@ -89,7 +94,14 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
             }
 
             // 创建 workflow 状态（如果不存在）
-            WorkflowStateEntity.getOrCreate(wfUuid);
+            WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfUuid);
+
+            // Phase 3.4: 标记 workflow 开始时间
+            state.markStarted();
+
+            // Phase 3.1: 注入策略版本信息
+            enrichPolicyVersion(metadata, state);
+            state.persist(); // 保存版本信息
 
             boolean alreadyStarted = WorkflowEventEntity.hasEvent(wfUuid, WorkflowEvent.Type.WORKFLOW_STARTED);
             if (!alreadyStarted) {
@@ -238,6 +250,45 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
             return objectMapper.writeValueAsString(metadata);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize metadata", e);
+        }
+    }
+
+    /**
+     * 注入策略版本信息（Phase 3.1）
+     *
+     * 如果元数据包含 policyId，自动查询当前活跃版本并注入到元数据中。
+     * 用于审计追踪：记录每次 workflow 执行使用的具体策略版本。
+     *
+     * @param metadata workflow 元数据
+     * @param state workflow 状态实体（用于记录版本信息）
+     */
+    private void enrichPolicyVersion(WorkflowMetadata metadata, WorkflowStateEntity state) {
+        // 检查元数据是否包含 policyId
+        String policyId = metadata.get(WorkflowMetadata.Keys.POLICY_ID, String.class);
+        if (policyId == null || policyId.isEmpty()) {
+            return; // 无策略信息，跳过
+        }
+
+        try {
+            // 查询当前活跃版本
+            PolicyVersion activeVersion = policyVersionService.getActiveVersion(policyId);
+
+            if (activeVersion != null) {
+                // 注入到元数据
+                metadata.setPolicyVersion(policyId, activeVersion.version, activeVersion.id);
+
+                // 记录到 workflow_state
+                state.policyVersionId = activeVersion.id;
+                state.policyActivatedAt = Instant.now();
+
+                Log.debugf("Enriched workflow with policy version: %s v%d (id=%d)",
+                        policyId, activeVersion.version, activeVersion.id);
+            } else {
+                Log.warnf("No active version found for policyId=%s, workflow will proceed without version tracking", policyId);
+            }
+        } catch (Exception e) {
+            // 版本查询失败不影响 workflow 执行，仅记录警告
+            Log.warnf(e, "Failed to enrich policy version for policyId=%s, workflow will proceed without version tracking", policyId);
         }
     }
 }

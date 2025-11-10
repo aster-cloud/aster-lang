@@ -77,6 +77,31 @@ public class PolicyVersion extends PanacheEntityBase {
     @Column(name = "notes", columnDefinition = "TEXT")
     public String notes;
 
+    /**
+     * 编译产物 SHA256 校验和（Phase 3.1）
+     */
+    @Column(name = "artifact_sha256", length = 64)
+    public String artifactSha256;
+
+    /**
+     * 编译产物存储路径（Phase 3.1）
+     */
+    @Column(name = "artifact_uri", columnDefinition = "TEXT")
+    public String artifactUri;
+
+    /**
+     * Runtime 构建版本（Phase 3.1）
+     */
+    @Column(name = "runtime_build", length = 50)
+    public String runtimeBuild;
+
+    /**
+     * 版本激活时间（Phase 3.1）
+     * 用于审计时间线分析
+     */
+    @Column(name = "activated_at")
+    public Instant activatedAt;
+
     // 无参构造函数（JPA 要求）
     public PolicyVersion() {
     }

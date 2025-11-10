@@ -2,6 +2,8 @@ package io.aster.workflow;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,6 +28,7 @@ public class WorkflowTimerEntity extends PanacheEntityBase {
     @Column(name = "fire_at", nullable = false)
     public Instant fireAt;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     public String payload;
 
