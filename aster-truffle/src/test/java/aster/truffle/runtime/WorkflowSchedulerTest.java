@@ -103,4 +103,158 @@ public class WorkflowSchedulerTest {
   public void testGetRegistry() {
     assertSame(registry, scheduler.getRegistry());
   }
+
+  /**
+   * 测试 DAG 并发执行：init -> {fanout_a, fanout_b} -> merge
+   * 验证 fanout_a 和 fanout_b 可以并发执行
+   */
+  @Test
+  public void testConcurrentDAGExecution() {
+    AtomicInteger concurrentCount = new AtomicInteger(0);
+    AtomicInteger maxConcurrent = new AtomicInteger(0);
+    List<String> executionOrder = Collections.synchronizedList(new ArrayList<>());
+
+    registerTask("init", () -> {
+      executionOrder.add("init");
+      registry.setResult("init", "initialized");
+    }, Collections.emptySet());
+
+    registerTask("fanout_a", () -> {
+      executionOrder.add("fanout_a-start");
+      int current = concurrentCount.incrementAndGet();
+      maxConcurrent.updateAndGet(max -> Math.max(max, current));
+      try {
+        Thread.sleep(50); // 模拟并发窗口
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      executionOrder.add("fanout_a-end");
+      concurrentCount.decrementAndGet();
+      registry.setResult("fanout_a", "result_a");
+    }, Set.of("init"));
+
+    registerTask("fanout_b", () -> {
+      executionOrder.add("fanout_b-start");
+      int current = concurrentCount.incrementAndGet();
+      maxConcurrent.updateAndGet(max -> Math.max(max, current));
+      try {
+        Thread.sleep(50); // 模拟并发窗口
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      executionOrder.add("fanout_b-end");
+      concurrentCount.decrementAndGet();
+      registry.setResult("fanout_b", "result_b");
+    }, Set.of("init"));
+
+    registerTask("merge", () -> {
+      executionOrder.add("merge");
+      registry.setResult("merge", "merged");
+    }, Set.of("fanout_a", "fanout_b"));
+
+    scheduler.executeUntilComplete();
+
+    // 验证所有任务完成
+    assertTrue(registry.isCompleted("init"));
+    assertTrue(registry.isCompleted("fanout_a"));
+    assertTrue(registry.isCompleted("fanout_b"));
+    assertTrue(registry.isCompleted("merge"));
+
+    // 验证并发执行：maxConcurrent 应该 >= 2（fanout_a 和 fanout_b 同时执行）
+    assertTrue(maxConcurrent.get() >= 2, "fanout_a 和 fanout_b 应该并发执行，maxConcurrent=" + maxConcurrent.get());
+
+    // 验证执行顺序：init 必须在 fanout 之前，merge 必须在所有 fanout 之后
+    int initIndex = executionOrder.indexOf("init");
+    int fanoutAStartIndex = executionOrder.indexOf("fanout_a-start");
+    int fanoutBStartIndex = executionOrder.indexOf("fanout_b-start");
+    int mergeIndex = executionOrder.indexOf("merge");
+
+    assertTrue(initIndex < fanoutAStartIndex, "init 应在 fanout_a 之前");
+    assertTrue(initIndex < fanoutBStartIndex, "init 应在 fanout_b 之前");
+    assertTrue(fanoutAStartIndex < mergeIndex, "fanout_a 应在 merge 之前");
+    assertTrue(fanoutBStartIndex < mergeIndex, "fanout_b 应在 merge 之前");
+  }
+
+  /**
+   * 测试向后兼容：无 depends on 时仍保持串行执行
+   */
+  @Test
+  public void testLinearWorkflowBackwardCompatibility() {
+    List<String> executionOrder = Collections.synchronizedList(new ArrayList<>());
+
+    registerTask("step1", () -> {
+      executionOrder.add("step1");
+      registry.setResult("step1", "result1");
+    }, Collections.emptySet());
+
+    registerTask("step2", () -> {
+      executionOrder.add("step2");
+      registry.setResult("step2", "result2");
+    }, Set.of("step1")); // 自动依赖前一个步骤
+
+    registerTask("step3", () -> {
+      executionOrder.add("step3");
+      registry.setResult("step3", "result3");
+    }, Set.of("step2")); // 自动依赖前一个步骤
+
+    scheduler.executeUntilComplete();
+
+    // 验证严格串行顺序
+    assertEquals(List.of("step1", "step2", "step3"), executionOrder, "应保持串行执行顺序");
+    assertTrue(registry.isCompleted("step1"));
+    assertTrue(registry.isCompleted("step2"));
+    assertTrue(registry.isCompleted("step3"));
+  }
+
+  /**
+   * 测试 Diamond DAG：init -> {left, right} -> merge
+   * 验证 Diamond 模式的正确性
+   */
+  @Test
+  public void testDiamondDAGPattern() {
+    List<String> executionOrder = Collections.synchronizedList(new ArrayList<>());
+
+    registerTask("init", () -> {
+      executionOrder.add("init");
+      registry.setResult("init", "start");
+    }, Collections.emptySet());
+
+    registerTask("left", () -> {
+      executionOrder.add("left");
+      registry.setResult("left", "left_result");
+    }, Set.of("init"));
+
+    registerTask("right", () -> {
+      executionOrder.add("right");
+      registry.setResult("right", "right_result");
+    }, Set.of("init"));
+
+    registerTask("merge", () -> {
+      executionOrder.add("merge");
+      // merge 应该能访问 left 和 right 的结果
+      Object leftResult = registry.getResult("left");
+      Object rightResult = registry.getResult("right");
+      registry.setResult("merge", leftResult + "+" + rightResult);
+    }, Set.of("left", "right"));
+
+    scheduler.executeUntilComplete();
+
+    assertTrue(registry.isCompleted("init"));
+    assertTrue(registry.isCompleted("left"));
+    assertTrue(registry.isCompleted("right"));
+    assertTrue(registry.isCompleted("merge"));
+
+    assertEquals("left_result+right_result", registry.getResult("merge"));
+
+    // 验证拓扑顺序
+    int initIndex = executionOrder.indexOf("init");
+    int leftIndex = executionOrder.indexOf("left");
+    int rightIndex = executionOrder.indexOf("right");
+    int mergeIndex = executionOrder.indexOf("merge");
+
+    assertTrue(initIndex < leftIndex);
+    assertTrue(initIndex < rightIndex);
+    assertTrue(leftIndex < mergeIndex);
+    assertTrue(rightIndex < mergeIndex);
+  }
 }
