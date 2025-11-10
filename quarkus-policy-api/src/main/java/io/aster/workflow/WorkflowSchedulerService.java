@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
@@ -41,6 +42,9 @@ public class WorkflowSchedulerService {
 
     @Inject
     SagaCompensationExecutor compensationExecutor;
+
+    @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgresql")
+    String dbKind;
 
     private ExecutorService executorService;
     private ScheduledExecutorService timerPollingService;
@@ -143,16 +147,24 @@ public class WorkflowSchedulerService {
     @Transactional
     @SuppressWarnings("unchecked")
     public List<WorkflowStateEntity> findReadyWorkflows(int limit) {
-        return entityManager.createQuery(
+        StringBuilder query = new StringBuilder(
                 "SELECT w FROM WorkflowStateEntity w " +
                 "WHERE w.status IN ('READY', 'RUNNING') " +
                 "AND (w.lockExpiresAt IS NULL OR w.lockExpiresAt < :now) " +
-                "ORDER BY w.createdAt " +
-                "FOR UPDATE SKIP LOCKED"
-        )
+                "ORDER BY w.createdAt"
+        );
+        if (supportsSkipLocked()) {
+            query.append(" FOR UPDATE SKIP LOCKED");
+        }
+
+        return entityManager.createQuery(query.toString())
         .setParameter("now", Instant.now())
         .setMaxResults(limit)
         .getResultList();
+    }
+
+    private boolean supportsSkipLocked() {
+        return !"h2".equalsIgnoreCase(dbKind);
     }
 
     /**

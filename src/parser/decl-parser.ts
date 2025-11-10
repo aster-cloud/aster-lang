@@ -216,6 +216,12 @@ export function parseFuncDecl(
   const retType = parseType(ctx, error);
 
   let effects: string[] = [];
+  // 允许在返回类型后声明效果：produce Result ... with IO.
+  if (ctx.isKeyword(KW.WITH)) {
+    const retTypeEffects = parseEffectList(ctx, error);
+    effects.push(...retTypeEffects);
+    skipLayoutTrivia();
+  }
   // 准备收集函数体内的效果声明
   const prevCollected: string[] | null = ctx.collectedEffects;
   ctx.collectedEffects = [];

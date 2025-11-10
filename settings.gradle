@@ -55,6 +55,10 @@ project(':aster-finance').projectDir = file('aster-finance')
 include ':aster-policy-common'
 project(':aster-policy-common').projectDir = file('aster-policy-common')
 
+// Phase 2: E-commerce domain library
+include ':aster-ecommerce'
+project(':aster-ecommerce').projectDir = file('aster-ecommerce')
+
 // Vaadin native integration extension modules
 include ':aster-vaadin-native'
 project(':aster-vaadin-native').projectDir = file('aster-vaadin-native')

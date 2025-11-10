@@ -2,6 +2,13 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-10 OrderResource REST API 验证
+- 日期：2025-11-10 10:35 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:compileJava` → 通过（生成最新策略类与订单 API 源码，确认编译无误）。
+  - `./gradlew :quarkus-policy-api:test --tests io.aster.ecommerce.rest.OrderResourceTest` → 通过（使用自定义 TestProfile 关闭 Flyway 与 WorkflowScheduler/AuditListener，依赖 QuarkusMock 注入 PostgresWorkflowRuntime/PostgresEventStore/OrderMetrics mock，6 个场景全部成功）。
+
 ## 2025-11-10 Phase 2.1.2 Workflow Core IR 验证
 - 日期：2025-11-10 00:06 NZST
 - 执行者：Codex
@@ -393,3 +400,10 @@ protected int readInt(VirtualFrame frame) throws FrameSlotTypeException {
 - 执行者：Codex
 - 指令与结果：
   - `npm test` → 通过；完整执行 fmt:examples、build、unit、integration、golden、property 流水线，确认 workflow/step/retry/timeout 语法与新 AST 模型不会破坏既有测试集。
+
+## 2025-11-10 OrderResource 审计与指标修复验证
+- 日期：2025-11-10 10:55 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:compileJava` → 通过；重新触发 policy emit workflow，生成最新 classfiles 后编译成功，无新增告警。
+  - `./gradlew :quarkus-policy-api:test --tests io.aster.ecommerce.rest.OrderResourceTest` → 通过；包含新增失败路径与审计校验用例，确认审计元数据白名单与指标低基数策略工作正常。

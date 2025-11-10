@@ -44,6 +44,9 @@ dependencies {
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("io.quarkus:quarkus-flyway")
 
+    // Scheduler - for workflow cleanup tasks
+    implementation("io.quarkus:quarkus-scheduler")
+
     // Aster运行时和编译后的策略
     implementation(project(":aster-runtime"))
     implementation(project(":aster-validation"))
@@ -59,11 +62,14 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.7.0")
     testImplementation("io.quarkus:quarkus-jdbc-h2")
     testImplementation("org.awaitility:awaitility:4.2.0")
+    testImplementation(project(":aster-ecommerce"))
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.compilerArgs.addAll(listOf("-parameters", "-Xlint:all", "-Werror"))
+    options.compilerArgs.remove("-Werror") // Override global setting from reproducible-builds.gradle.kts
+    options.compilerArgs.addAll(listOf("-parameters", "-Xlint:all"))
+    // Note: -Werror removed due to classfile warnings from MicroProfile Config API
 }
 
 tasks.withType<Test> {

@@ -32,6 +32,7 @@ public class WorkflowMetrics {
     private Counter compensationsTriggered;
     private Counter compensationsCompleted;
     private Counter compensationsFailed;
+    private Counter resultFuturesCleaned;
     private Timer executionDuration;
 
     // 用于 pending workflows gauge 的原子计数器
@@ -64,6 +65,10 @@ public class WorkflowMetrics {
 
         compensationsFailed = Counter.builder("workflow.compensations.failed.total")
                 .description("Total compensations failed")
+                .register(registry);
+
+        resultFuturesCleaned = Counter.builder("workflow.result_futures.cleaned.total")
+                .description("Total result futures cleaned up due to TTL expiration")
                 .register(registry);
 
         // 执行耗时直方图
@@ -152,5 +157,14 @@ public class WorkflowMetrics {
         long count = WorkflowStateEntity.countByStatus("READY") +
                      WorkflowStateEntity.countByStatus("RUNNING");
         pendingCount.set(count);
+    }
+
+    /**
+     * 记录 resultFutures 清理
+     *
+     * @param count 清理的 future 数量
+     */
+    public void recordResultFuturesCleaned(int count) {
+        resultFuturesCleaned.increment(count);
     }
 }

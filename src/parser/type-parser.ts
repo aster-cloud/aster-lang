@@ -195,15 +195,26 @@ function parseTypePrimary(
   if (ctx.isKeywordSeq(KW.RESULT_OF)) {
     const resultToks = consumeKeywordSequence(ctx, KW.RESULT_OF);
     const ok = parseType(ctx, error);
-    if (!(ctx.isKeyword(KW.OR) || ctx.isKeyword(KW.AND))) {
-      Diagnostics.expectedKeyword('or/and', ctx.peek().start)
-        .withMessage("Expected 'or'/'and' in Result of")
-        .throw();
+
+    // Error type is optional - if not specified, defaults to Text
+    let err: Type;
+    let connectorTok: Token | null = null;
+
+    if (ctx.isKeyword(KW.OR) || ctx.isKeyword(KW.AND)) {
+      connectorTok = ctx.nextWord();
+      err = parseType(ctx, error);
+    } else {
+      // Default error type is Text
+      err = Node.TypeName('Text');
+      assignSpan(err, spanFromTokens(resultToks[resultToks.length - 1]!, resultToks[resultToks.length - 1]!));
     }
-    const connectorTok = ctx.nextWord();
-    const err = parseType(ctx, error);
+
     const node = Node.Result(ok, err);
-    assignSpan(node, spanFromSources(resultToks[0]!, ok, connectorTok, err));
+    if (connectorTok) {
+      assignSpan(node, spanFromSources(resultToks[0]!, ok, connectorTok, err));
+    } else {
+      assignSpan(node, spanFromSources(resultToks[0]!, ok));
+    }
     return node;
   }
 

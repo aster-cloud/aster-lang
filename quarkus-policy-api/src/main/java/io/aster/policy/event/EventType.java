@@ -6,5 +6,7 @@ package io.aster.policy.event;
 public enum EventType {
     POLICY_EVALUATION,
     POLICY_ROLLBACK,
-    POLICY_CREATED
+    POLICY_CREATED,
+    ORDER_SUBMITTED,
+    ORDER_STATUS_QUERIED
 }

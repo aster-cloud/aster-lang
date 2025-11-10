@@ -87,4 +87,15 @@ public class WorkflowEventEntity extends PanacheEntityBase {
     public static long countByWorkflowId(UUID workflowId) {
         return count("workflowId", workflowId);
     }
+
+    /**
+     * 判斷指定類型事件是否已存在
+     *
+     * @param workflowId workflow 唯一標識符
+     * @param eventType 事件類型
+     * @return true 表示已存在
+     */
+    public static boolean hasEvent(UUID workflowId, String eventType) {
+        return count("workflowId = ?1 AND eventType = ?2", workflowId, eventType) > 0;
+    }
 }

@@ -115,6 +115,86 @@ public record AuditEvent(
         );
     }
 
+    /**
+     * 创建订单提交事件。
+     */
+    public static AuditEvent orderSubmission(
+        String tenantId,
+        String workflowModule,
+        String workflowFunction,
+        String orderId,
+        String workflowId,
+        String performedBy,
+        boolean success,
+        Long executionTimeMs,
+        String errorMessage,
+        Map<String, Object> metadata
+    ) {
+        Map<String, Object> enriched = new HashMap<>();
+        if (metadata != null) {
+            enriched.putAll(metadata);
+        }
+        enriched.put("workflowId", workflowId);
+        enriched.put("orderId", orderId);
+
+        return new AuditEvent(
+            EventType.ORDER_SUBMITTED,
+            Instant.now(),
+            tenantId,
+            workflowModule,
+            workflowFunction,
+            orderId,
+            null,
+            null,
+            performedBy,
+            success,
+            executionTimeMs,
+            errorMessage,
+            sanitizeMetadata(enriched)
+        );
+    }
+
+    /**
+     * 创建订单状态查询事件。
+     */
+    public static AuditEvent orderStatusQuery(
+        String tenantId,
+        String workflowModule,
+        String workflowFunction,
+        String orderId,
+        String workflowId,
+        String performedBy,
+        String status,
+        boolean success,
+        Long executionTimeMs,
+        String errorMessage,
+        Map<String, Object> metadata
+    ) {
+        Map<String, Object> enriched = new HashMap<>();
+        if (metadata != null) {
+            enriched.putAll(metadata);
+        }
+        enriched.put("workflowId", workflowId);
+        enriched.put("orderId", orderId);
+        enriched.put("status", status);
+
+        return new AuditEvent(
+            EventType.ORDER_STATUS_QUERIED,
+            Instant.now(),
+            tenantId,
+            workflowModule,
+            workflowFunction,
+            orderId,
+            null,
+            null,
+            performedBy,
+            success,
+            executionTimeMs,
+            errorMessage,
+            sanitizeMetadata(enriched)
+        );
+    }
+
     private static Map<String, Object> sanitizeMetadata(Map<String, Object> metadata) {
         if (metadata == null || metadata.isEmpty()) {
             return Collections.emptyMap();

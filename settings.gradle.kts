@@ -62,3 +62,7 @@ project(":aster-finance").projectDir = file("aster-finance")
 // Phase 1: Policy common library
 include(":aster-policy-common")
 project(":aster-policy-common").projectDir = file("aster-policy-common")
+
+// Phase 2: E-commerce domain library
+include(":aster-ecommerce")
+project(":aster-ecommerce").projectDir = file("aster-ecommerce")

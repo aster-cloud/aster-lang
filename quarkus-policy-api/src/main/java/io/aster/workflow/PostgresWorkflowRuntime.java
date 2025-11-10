@@ -3,10 +3,14 @@ package io.aster.workflow;
 import aster.runtime.workflow.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
+import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,6 +37,9 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
 
     @Inject
     WorkflowMetrics metrics;
+
+    @ConfigProperty(name = "workflow.result-futures.ttl-hours", defaultValue = "24")
+    int ttlHours;
 
     // 内存中维护的结果 future，用于返回给调用方
     // 实际生产环境可能需要分布式缓存（如 Redis）或轮询机制
@@ -84,15 +91,17 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
             // 创建 workflow 状态（如果不存在）
             WorkflowStateEntity.getOrCreate(wfUuid);
 
-            // 追加 WorkflowStarted 事件
-            Map<String, Object> startPayload = Map.of(
-                    "metadata", serializeMetadata(metadata),
-                    "idempotencyKey", idempotencyKey != null ? idempotencyKey : ""
-            );
-            eventStore.appendEvent(workflowId, WorkflowEvent.Type.WORKFLOW_STARTED, startPayload);
-
-            // 记录指标
-            metrics.recordWorkflowStarted();
+            boolean alreadyStarted = WorkflowEventEntity.hasEvent(wfUuid, WorkflowEvent.Type.WORKFLOW_STARTED);
+            if (!alreadyStarted) {
+                Map<String, Object> startPayload = Map.of(
+                        "metadata", serializeMetadata(metadata),
+                        "idempotencyKey", idempotencyKey != null ? idempotencyKey : ""
+                );
+                eventStore.appendEvent(workflowId, WorkflowEvent.Type.WORKFLOW_STARTED, startPayload);
+                metrics.recordWorkflowStarted();
+            } else {
+                Log.debugf("Workflow %s already recorded WorkflowStarted event, skipping duplicate append", workflowId);
+            }
 
             Log.infof("Scheduled workflow %s with idempotency key %s", workflowId, idempotencyKey);
 
@@ -185,6 +194,38 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
      */
     public CompletableFuture<Object> getResultFuture(String workflowId) {
         return resultFutures.computeIfAbsent(workflowId, id -> new CompletableFuture<>());
+    }
+
+    /**
+     * 定时清理过期的 resultFutures
+     *
+     * 防止内存泄漏：清理超过 TTL 的 workflow 结果 future。
+     * 默认每小时执行一次，TTL 默认 24 小时。
+     */
+    @Scheduled(every = "1h")
+    void cleanupExpiredFutures() {
+        Instant threshold = Instant.now().minus(ttlHours, ChronoUnit.HOURS);
+        int removed = 0;
+
+        for (Map.Entry<String, CompletableFuture<Object>> entry : resultFutures.entrySet()) {
+            String workflowId = entry.getKey();
+            try {
+                Optional<WorkflowStateEntity> stateOpt = WorkflowStateEntity.findByWorkflowId(UUID.fromString(workflowId));
+
+                // 清理条件：workflow 不存在或已超过 TTL
+                if (stateOpt.isEmpty() || stateOpt.get().updatedAt.isBefore(threshold)) {
+                    resultFutures.remove(workflowId);
+                    removed++;
+                }
+            } catch (Exception e) {
+                Log.warnf(e, "Failed to check workflow %s during cleanup, skipping", workflowId);
+            }
+        }
+
+        if (removed > 0) {
+            Log.infof("Cleaned up %d expired workflow result futures", removed);
+            metrics.recordResultFuturesCleaned(removed);
+        }
     }
 
     // ==================== 私有辅助方法 ====================

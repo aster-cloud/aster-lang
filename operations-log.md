@@ -1,3 +1,119 @@
+# 2025-11-10 13:51 NZST 文档更新（Phase 2.3/2.4）
+
+**操作记录**:
+- 工具：sequential-thinking → 依据 AGENTS.md 完成文档任务前置思考。
+- 工具：code-index（set_project_path、find_files、search_code_advanced）→ 检索 README、OrderResource、Workflow DSL、AuditResource 代码，确认最新实现。
+- 工具：shell+sed/ls/date → 查看 README 段落、DSL 文件、测试与时间戳，创建 `aster-ecommerce/docs` 目录。
+- 工具：apply_patch → 更新 `aster-ecommerce/README.md`、新增 `docs/API.md`、`docs/WORKFLOWS.md`、`docs/QUICKSTART.md`，按照 Phase 2.4 状态写入内容。
+
+**观察**:
+- Phase 2.4 的 hybrid compilation 已在脚本与 README 中记录，需要同步 API/Workflow/Quickstart 以避免旧的“编译器阻塞”信息误导团队。
+- OrderResource 与 WorkflowAuditResource 已形成端到端闭环，文档中需突出幂等性、多租户与指标/审计要求。
+
+# 2025-11-10 10:48 NZST OrderResource 审查报告
+
+**操作记录**:
+- 工具：shell+cat/nl → 二次核对 `OrderMetrics`, `AuditEvent`, `AuditLog`、`OrderResourceTest`，确认审查证据与行号。
+- 工具：apply_patch → 更新 `.claude/review-report.md`，按 CODE_REVIEW_GUIDE 写入评分、五层法分析、致命问题与建议。
+- 工具：apply_patch → 在 `operations-log.md` 记录审查准备与报告阶段操作。
+
+**观察**:
+- 审计事件的 metadata 完全信任客户端输入，是本轮最严重的合规风险。
+- 订单指标设计与 PolicyMetrics 模式不一致，order 级 tag 将造成 Prometheus 时序飙升。
+
+# 2025-11-10 10:45 NZST OrderResource 审查准备
+
+**操作记录**:
+- 工具：sequential-thinking → 按 AGENTS.md 要求完成审查任务的前置思考。
+- 工具：code-index（set_project_path、find_files）→ 锁定 OrderResource 及相关 DTO/metrics/event/test 文件。
+- 工具：shell+cat/nl → 阅读 `OrderResource.java`、DTO、`OrderMetrics`, 审计事件扩展与测试，收集行号用于审查引用。
+- 工具：shell+cat → 查阅 `.claude/CODE_REVIEW_GUIDE.md`，确认 Linus 风格报告模板。
+
+**观察**:
+- OrderResource 使用 `UUID.nameUUIDFromBytes` 固定 workflowId，但 metrics/tag 与审计数据需重点关注高基数与 PII 暴露。
+- OrderMetrics 以订单号散列作为 tag，可能造成指标基数失控，需要在审查中单独指出。
+
+# 2025-11-10 10:35 NZST OrderResource REST API 实施
+
+**操作记录**:
+- 工具：sequential-thinking → 梳理 OrderResource 需求、确认参考资源和风险。
+- 工具：code-index（set_project_path + find_files）→ 锁定 PolicyEvaluationResource 等现有实现以复用多租户/审计模式。
+- 工具：apply_patch → 新增 `io.aster.ecommerce.rest` 目录、DTO（OrderRequest/OrderItem/OrderResponse/OrderStatusResponse）、OrderMetrics 以及 OrderResource 资源类，并扩展 `AuditEvent`/`EventType`。
+- 工具：apply_patch → 编写 `OrderResourceTest`，通过 QuarkusMock + TestProfile 定制禁用 Flyway/Scheduler，覆盖 6 个场景。
+- 工具：./gradlew :quarkus-policy-api:compileJava → 验证新增代码可编译。
+- 工具：./gradlew :quarkus-policy-api:test --tests io.aster.ecommerce.rest.OrderResourceTest → 运行定向测试，确保 REST API 行为正确。
+
+**观察**:
+- PostgresWorkflowRuntime 需要以租户+orderId 生成确定性 workflowId，避免多租户串扰且支撑幂等性。
+- Flyway 脚本依赖 PostgreSQL 分区语法，测试环境需通过 TestProfile 禁用相关 Bean（WorkflowScheduler/AuditEventListener）与数据库迁移以减少耦合。
+
+# 2025-11-10 10:20 NZST Phase 2.4 端到端验证
+
+**操作记录**:
+- 工具：npm run emit:class → 针对 ecommerce workflow + finance/healthcare/insurance DSL 批量编译，确认 workflow 分支触发 TS emitter 并成功产出类文件。
+- 工具：shell+ls → 检查 `build/jvm-classes/io/aster/ecommerce` 与 `build/jvm-classes/aster/truffle/runtime`，验证生成的 policy/workflow 以及必需 runtime 类均已写入。
+- 工具：npm run jar:jvm → 生成 `build/aster-out/aster.jar` 并同步 package-map。
+- 工具：./gradlew :quarkus-policy-api:compileJava → 运行完整 Quarkus 编译链，构建任务内再次调用新 emit-classfiles 逻辑确认无回归。
+
+**观察**:
+- `build/jvm-classes` 同时包含非 workflow 模块（由 Java emitter 生成）与 workflow 模块（TS emitter+javac），且额外编译的 `aster.truffle.runtime` 必需类随 jar:jvm 一并打包。
+- Gradle 在 `generateAsterJar` 中重复执行 emit:class，workflow 分支仍保持稳定，未对 policy DSL 造成影响。
+
+# 2025-11-10 10:15 NZST Phase 2.4 emit-classfiles 实作
+
+**操作记录**:
+- 工具：apply_patch → 修改 `scripts/emit-classfiles.ts`，引入 workflow 检测、TypeScript JVM emitter 集成与 `javac` 调用。
+- 工具：npm run build → 重新编译 TypeScript 产出，刷新 `dist/scripts/emit-classfiles.js`。
+
+**观察**:
+- workflow 模块统一暂存后再一次性 `emitJava`+`javac`，确保 `build/jvm-classes` 能同时包含 workflow 与非 workflow 产物。
+- `javac` 调用增加 runtime 源文件以保持与 `scripts/javac-jvm.ts` 一致，后续可考虑使用 `@argfile` 优化命令长度。
+
+# 2025-11-10 10:08 NZST Phase 2.4 方案设计
+
+**操作记录**:
+- 工具：shell+cat → 撰写 `.claude/phase2.4-design.md`，整理混合编译方案、流程分支与风险。
+
+**观察**:
+- emit-classfiles 仅需在 `lowerModule` 之后判断 workflow，即可在单文件级别决定采用哪条发射路径。
+- 统一清理 `build/jvm-src`/`build/jvm-classes` 的策略必须集中在脚本顶部，避免多次 `javac` 覆盖非 workflow 产物。
+
+# 2025-11-10 10:05 NZST Phase 2.4 上下文收集
+
+**操作记录**:
+- 工具：sequential-thinking → 梳理 Phase 2.4 任务要求与执行步骤。
+- 工具：code-index（set_project_path + find_files）→ 定位 `scripts/emit-classfiles.ts`、`src/jvm/emitter.ts`、`scripts/javac-jvm.ts` 等文件。
+- 工具：shell+sed/nl → 阅读 `scripts/emit-classfiles.ts`、`src/jvm/emitter.ts`、`scripts/emit-jvm.ts`、`scripts/javac-jvm.ts`、`dist/scripts/*`，记录 emit 流程与 workflow 处理方式。
+- 工具：shell+cat → 新建 `.claude/phase2.4-context-analysis.json`，整理 emit-classfiles 流程、TS JVM emitter、javac 流程以及 workflow 检测方案。
+
+**观察**:
+- emit-classfiles 当前在 JSON 序列化后立刻把 payload 交给 Java emitter，检测点应放在 `const core = ...` 之后即可根据 workflow 分支。
+- TypeScript JVM emitter (`emitJava`) 已完整支持 workflow 并输出到 `build/jvm-src`，可直接复用。
+- `javac-jvm` 会清空 `build/jvm-classes` 后编译 runtime + 生成源码，多模块场景需在 emit-classfiles 中控制清理策略以保留现有 .class。
+
+# 2025-11-10 09:30 NZST DSL 语法修复执行
+
+**操作记录**:
+- 工具：shell+node → 调用 `dist/src/parser` 提供的 API 输出 diagnostics span，定位 `order-fulfillment.aster` 的 `compensate` 缩进问题。
+- 工具：apply_patch → 重写 workflow 块，令 `compensate` 与 `step` 对齐并补齐收尾 `.`。
+- 工具：node → 直接调用 `parse(lex(canonicalize()))` 验证修复文件通过解析。
+- 工具：npm run emit:class → 对 `quarkus-policy-api/src/main/resources/policies/ecommerce/*.aster` 进行批量编译验证。
+
+**观察**:
+- `order-fulfillment.aster` 解析已通过，但 `inventory-replenishment.aster`、`payment-compensation.aster` 仍因缺失终止 `.`/`compensate` 缩进触发 P005。
+- JVM emitter 仍不支持 workflow，`emit:class` 在解析阶段通过后会因为剩余文件报错，中断整批任务。
+
+# 2025-11-10 09:25 NZST DSL 编译调试初步调查
+
+**操作记录**:
+- 工具：sequential-thinking → 梳理 DSL 编译失败任务，确认需对比示例、定位 order-fulfillment 报错并验证语法。
+- 工具：shell+npm → 批量编译 `examples/workflow/*.aster`，记录全部失败。
+- 工具：shell+find → 枚举 `test/cnl/programs/generics/*.aster`，确认 emit:class 成功样例。
+
+**观察**:
+- workflow 示例均无法通过 `emit:class`，需参考其它目录里的成功样例。
+- `test/cnl/programs/generics` 下的多个 .aster 文件可成功触发 `emit-classfiles OK`，可用于语法对照。
+
 # 2025-11-10 05:10 NZST Phase 2.1.6 文档与优化
 
 **操作记录**:
@@ -5094,3 +5210,24 @@ List.map (1000 items) Heavy: 1.516680 ms
 - 工具：code-index.search → 查询 “Durable Execution”、“Phase 2.2”、“Panache”、“@Incoming”、“workflow_events” 等关键词，确认代码库现状与缺失。
 - 工具：shell（nl/sed/rg）→ 逐段阅读 DESIGN.md Phase 2.2 交付、LANGUAGE_REFERENCE.md 能力契约、WorkflowScheduler/WorkflowNode/AsyncTaskRegistry、src/jvm/emitter.ts、quarkus-policy-api/build.gradle.kts、application.properties、PolicyEvaluationResource、AuditEvent/AuditEventListener/AuditLog/PolicyMetrics/PolicyManagementService/PolicyEvaluationService/AuditLogResource、WorkflowSchedulerTest 等文件。
 - 摘要：完成 Phase 2.2 初步方案的代码对照审查取证，收集事件处理、持久化、调度器、指标、测试基线与设计缺口，准备生成 `.claude/phase2.2-reflection.json` 审查报告。
+- 2025-11-10 09:18 NZDT Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理 Result-of Text with IO 修复任务分阶段执行要点（上下文收集→实现→验证）。
+- 工具：code-index.set_project_path → 绑定 /Users/rpang/IdeaProjects/aster-lang 并触发文件索引。
+- 工具：code-index.build_deep_index → 构建深度索引以检索 parser/type/ast 代码。
+- 工具：shell（sed/nl/rg）→ 读取 src/parser/decl-parser.ts、src/parser/type-parser.ts、src/ast.ts、examples/workflow/linear-order.aster 以定位 parseFuncDecl/parseEffectList/AST 结构与错误现场。
+- 工具：shell（cat > .claude/context-parser-analysis.json）→ 写入 Stage 1 上下文分析报告。
+- 工具：apply_patch → 在 src/parser/decl-parser.ts 的返回类型解析后注入 `with Effect` 解析逻辑并复用 parseEffectList。
+- 工具：shell（npm run build）→ TypeScript 编译 + PEG 生成通过。
+- 工具：shell（npm run emit:class examples/workflow/linear-order.aster）→ 失败，DiagnosticError: Unknown statement（workflow 末尾孤立 '.'）。
+- 工具：shell（npm run emit:class quarkus-policy-api/src/main/resources/policies/ecommerce/*.aster）→ 失败，DiagnosticError: Timeout must specify time unit 'seconds'（policy timeout 使用 minutes）。
+- 工具：sequential-thinking__sequentialthinking → OrderResource 审计/指标修复任务清点风险与执行顺序。
+- 工具：code-index.find_files → 快速定位 OrderResource、OrderMetrics、PolicyEvaluationResource/PolicyMetrics 所在路径。
+- 工具：shell（sed -n '1,260p' quarkus-policy-api/src/main/java/io/aster/ecommerce/rest/OrderResource.java）→ 解析 publishOrderSubmissionEvent 元数据写入流程与指标调用方式。
+- 工具：apply_patch（OrderResource.java）→ 引入审计元数据白名单、保留字段与按租户记录指标。
+- 工具：apply_patch（OrderMetrics.java）→ 移除 order tag，统一 operation/status/tenant 维度并添加 success 标记。
+- 工具：apply_patch（OrderResourceTest.java & TestAuditEventRecorder.java）→ 注入审计事件监听、补充失败场景与白名单验证测试。
+- 工具：shell（./gradlew :quarkus-policy-api:compileJava）→ 通过，确认编译与 Aster emit 流程正常。
+- 工具：shell（./gradlew :quarkus-policy-api:test --tests io.aster.ecommerce.rest.OrderResourceTest）→ 通过，新增测试覆盖失败路径与审计约束。
+- 工具：apply_patch（docs/testing.md）→ 记录本次编译与测试结果。
+- 工具：shell（cat > .claude/orderresource-fix-report.md）→ 生成 OrderResource 修复报告，汇总改动与验证方式。
+- 2025-11-10 10:55 NZDT Codex

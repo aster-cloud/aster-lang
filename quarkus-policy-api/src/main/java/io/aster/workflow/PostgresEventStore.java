@@ -7,6 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,6 +28,9 @@ public class PostgresEventStore implements EventStore {
 
     @Inject
     ObjectMapper objectMapper;
+
+    @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgresql")
+    String dbKind;
 
     /**
      * 追加事件到 workflow 事件流
@@ -79,9 +83,11 @@ public class PostgresEventStore implements EventStore {
             state.persist();
 
             // 发送 PostgreSQL NOTIFY 通知调度器
-            em.createNativeQuery("NOTIFY workflow_events, :workflow_id")
-                    .setParameter("workflow_id", workflowId)
-                    .executeUpdate();
+            if (supportsNotify()) {
+                em.createNativeQuery("NOTIFY workflow_events, :workflow_id")
+                        .setParameter("workflow_id", workflowId)
+                        .executeUpdate();
+            }
 
             Log.debugf("Appended event %s (seq=%d) for workflow %s", eventType, nextSeq, workflowId);
             return nextSeq;
@@ -258,5 +264,9 @@ public class PostgresEventStore implements EventStore {
                 entity.snapshotSeq,
                 deserializePayload(entity.snapshot)
         );
+    }
+
+    private boolean supportsNotify() {
+        return !"h2".equalsIgnoreCase(dbKind);
     }
 }

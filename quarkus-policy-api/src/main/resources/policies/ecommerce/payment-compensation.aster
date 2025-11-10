@@ -1,0 +1,33 @@
+This module is io.aster.ecommerce.payment_compensation.
+
+// 支付失败补偿 Workflow
+//
+// 演示 Saga 补偿模式的失败恢复流程。
+// 当 attempt_payment 失败时，自动按 LIFO 顺序执行补偿逻辑。
+
+To processFailedPayment, produce Result of Text with IO. It performs io:
+
+  workflow:
+    step prepare_order:
+      // 准备订单数据
+      return ok of "order prepared".
+
+    compensate:
+      // 标记订单为失败状态
+      return ok of "order marked as failed".
+
+    step attempt_payment:
+      // 模拟支付失败
+      return err of "insufficient funds".
+
+    compensate:
+      // 尝试退款（如果之前扣款成功）
+      return ok of "payment refund attempted".
+
+    step send_failure_notification:
+      // 此步骤不会执行，因为 attempt_payment 返回 err
+      return ok of "notification sent".
+
+    timeout: 180 seconds.
+
+  .
