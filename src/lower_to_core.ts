@@ -263,7 +263,10 @@ function lowerStmt(s: Statement): import('./types.js').Core.Statement {
 }
 
 function lowerWorkflow(stmt: WorkflowStmt): import('./types.js').Core.Workflow {
-  const steps = stmt.steps.map(lowerStep);
+  const steps = stmt.steps.map((step, index) => {
+    const predecessor = index > 0 ? stmt.steps[index - 1] : null;
+    return lowerStep(step, predecessor ? predecessor.name : null);
+  });
   const effectCaps = mergeCapabilitySets(steps.map(step => step.effectCaps));
   const retry = stmt.retry
     ? { maxAttempts: stmt.retry.maxAttempts, backoff: stmt.retry.backoff }
@@ -273,14 +276,21 @@ function lowerWorkflow(stmt: WorkflowStmt): import('./types.js').Core.Workflow {
   return withOrigin(workflow, stmt);
 }
 
-function lowerStep(stmt: StepStmt): import('./types.js').Core.Step {
+function lowerStep(stmt: StepStmt, prevStep: string | null): import('./types.js').Core.Step {
   const body = lowerBlock(stmt.body);
   const compensate = stmt.compensate ? lowerBlock(stmt.compensate) : undefined;
   const effectCaps = mergeCapabilitySets([
     collectCapabilitiesFromBlock(body),
     ...(compensate ? [collectCapabilitiesFromBlock(compensate)] : []),
   ]);
-  const step = Core.Step(stmt.name, body, effectCaps, compensate);
+  // 如果未显式声明依赖，则自动串行依赖前一节点以保持旧语义
+  const dependencies =
+    stmt.dependencies && stmt.dependencies.length > 0
+      ? stmt.dependencies
+      : prevStep
+        ? [prevStep]
+        : [];
+  const step = Core.Step(stmt.name, body, effectCaps, compensate, dependencies);
   return withOrigin(step, stmt);
 }
 

@@ -321,19 +321,14 @@ function emitWorkflowStatement(
 ): string {
   const wfId = helpers.workflowCounter++;
   const base = `__workflow${wfId}`;
-  const timeoutLiteral = workflow.timeout ? `${workflow.timeout.milliseconds}L` : '60000L';
   const lines: string[] = [];
   lines.push(`${indent}{`);
   lines.push(
     `${indent}  var ${base}Registry = new aster.truffle.runtime.AsyncTaskRegistry();`
   );
   lines.push(
-    `${indent}  var ${base}Graph = new aster.truffle.runtime.DependencyGraph();`
-  );
-  lines.push(
     `${indent}  var ${base}Scheduler = new aster.truffle.runtime.WorkflowScheduler(${base}Registry);`
   );
-  lines.push(`${indent}  long ${base}TimeoutMs = ${timeoutLiteral};`);
   if (workflow.retry) {
     lines.push(
       `${indent}  // retry 未在 JVM emitter MVP 中实现：maxAttempts=${workflow.retry.maxAttempts}, backoff=${workflow.retry.backoff}`
@@ -342,6 +337,9 @@ function emitWorkflowStatement(
   workflow.steps.forEach((step, index) => {
     const supplierVar = `${base}Step${index}`;
     const compensateVar = step.compensate ? `${base}Compensate${index}` : null;
+    // 根据 DSL 声明为当前任务构造依赖集合
+    const dependencies = step.dependencies ?? [];
+    const depsLiteral = workflowDependencyLiteral(dependencies);
     lines.push(`${indent}  java.util.function.Supplier<Object> ${supplierVar} = () -> {`);
     lines.push(emitBlock(step.body, locals, helpers, `${indent}    `));
     lines.push(`${indent}  };`);
@@ -350,7 +348,9 @@ function emitWorkflowStatement(
       lines.push(emitBlock(step.compensate, locals, helpers, `${indent}    `));
       lines.push(`${indent}  };`);
     }
-    lines.push(`${indent}  ${base}Registry.registerTask("${step.name}", () -> {`);
+    lines.push(
+      `${indent}  ${base}Registry.registerTaskWithDependencies("${step.name}", () -> {`
+    );
     lines.push(`${indent}    try {`);
     lines.push(`${indent}      Object result = ${supplierVar}.get();`);
     lines.push(`${indent}      ${base}Registry.setResult("${step.name}", result);`);
@@ -367,20 +367,15 @@ function emitWorkflowStatement(
       `${indent}      throw new RuntimeException("workflow step failed: ${step.name}", t);`
     );
     lines.push(`${indent}    }`);
-    lines.push(`${indent}  });`);
-    const deps =
-      index === 0
-        ? 'java.util.Collections.emptySet()'
-        : workflowDependencyLiteral([workflow.steps[index - 1]!.name]);
-    lines.push(`${indent}  ${base}Graph.addTask("${step.name}", ${deps});`);
+    lines.push(`${indent}    return null;`);
+    lines.push(`${indent}  }, ${depsLiteral});`);
   });
-  lines.push(`${indent}  ${base}Scheduler.registerWorkflow(${base}Graph);`);
-  lines.push(`${indent}  ${base}Scheduler.executeUntilComplete(${base}TimeoutMs);`);
+  lines.push(`${indent}  ${base}Scheduler.executeUntilComplete();`);
   lines.push(`${indent}}\n`);
   return lines.join('\n');
 }
 
-function workflowDependencyLiteral(stepNames: string[]): string {
+function workflowDependencyLiteral(stepNames: readonly string[]): string {
   if (stepNames.length === 0) return 'java.util.Collections.emptySet()';
   const items = stepNames.map(name => JSON.stringify(name)).join(', ');
   return `new java.util.LinkedHashSet<>(java.util.Arrays.asList(${items}))`;

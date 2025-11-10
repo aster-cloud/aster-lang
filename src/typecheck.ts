@@ -64,8 +64,29 @@ function formatType(type: Core.Type | undefined | null): string {
   return TypeSystem.format(normalizeType(type));
 }
 
+function isWorkflowType(type: Core.Type): type is Core.TypeApp {
+  return type.kind === 'TypeApp' && type.base === 'Workflow' && type.args.length >= 1;
+}
+
+function unwrapWorkflowResult(type: Core.Type): Core.Type {
+  if (isWorkflowType(type)) {
+    return normalizeType(type.args[0] as Core.Type);
+  }
+  return type;
+}
+
 function typesEqual(a: Core.Type | undefined | null, b: Core.Type | undefined | null, strict = false): boolean {
-  return TypeSystem.equals(normalizeType(a), normalizeType(b), strict);
+  const left = normalizeType(a);
+  const right = normalizeType(b);
+
+  if (isWorkflowType(left) && !isWorkflowType(right)) {
+    return typesEqual(unwrapWorkflowResult(left), right, strict);
+  }
+  if (!isWorkflowType(left) && isWorkflowType(right)) {
+    return typesEqual(left, unwrapWorkflowResult(right), strict);
+  }
+
+  return TypeSystem.equals(left, right, strict);
 }
 
 function originToSpan(origin: Origin | undefined): Span | undefined {
@@ -780,6 +801,7 @@ function typecheckWorkflow(context: TypecheckWalkerContext, workflow: Core.Workf
   for (const step of workflow.steps) {
     resultType = typecheckStep(context, step, stepEffects);
   }
+  checkWorkflowDependencies(workflow, context.diagnostics);
   validateWorkflowMetadata(workflow, context.diagnostics);
   const effectType = workflowEffectType(context, workflow, stepEffects);
   return {
@@ -870,6 +892,66 @@ function workflowEffectType(
   if (hasIOCap) return IO_EFFECT_TYPE;
   if (hasCpuCap) return CPU_EFFECT_TYPE;
   return PURE_EFFECT_TYPE;
+}
+
+/**
+ * 校验 workflow 中的步骤依赖，确保命名有效且无环。
+ */
+function checkWorkflowDependencies(workflow: Core.Workflow, diagnostics: DiagnosticBuilder): void {
+  if (workflow.steps.length === 0) return;
+
+  const stepMap = new Map<string, Core.Step>();
+  const stepSpans = new Map<string, Span | undefined>();
+  for (const step of workflow.steps) {
+    stepMap.set(step.name, step);
+    stepSpans.set(step.name, originToSpan(step.origin));
+  }
+
+  for (const step of workflow.steps) {
+    for (const dep of step.dependencies ?? []) {
+      if (!stepMap.has(dep)) {
+        diagnostics.error(ErrorCode.WORKFLOW_UNKNOWN_STEP_DEPENDENCY, originToSpan(step.origin), {
+          step: step.name,
+          dependency: dep,
+        });
+      }
+    }
+  }
+
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const reportedCycles = new Set<string>();
+
+  const dfs = (node: string, path: string[]): void => {
+    if (visiting.has(node)) {
+      const cycleNodes = [...path, node];
+      const cycleString = cycleNodes.join(' -> ');
+      if (!reportedCycles.has(cycleString)) {
+        diagnostics.error(
+          ErrorCode.WORKFLOW_CIRCULAR_DEPENDENCY,
+          stepSpans.get(node) ?? originToSpan(workflow.origin),
+          { cycle: cycleString }
+        );
+        reportedCycles.add(cycleString);
+      }
+      return;
+    }
+    if (visited.has(node)) return;
+    visiting.add(node);
+    const deps = stepMap.get(node)?.dependencies ?? [];
+    for (const dep of deps) {
+      if (!stepMap.has(dep)) continue; // 未知依赖已在前面报错
+      dfs(dep, [...path, node]);
+    }
+    visiting.delete(node);
+    visited.add(node);
+  };
+
+  for (const step of workflow.steps) {
+    if (!visited.has(step.name)) {
+      dfs(step.name, []);
+    }
+  }
 }
 
 function validateWorkflowMetadata(workflow: Core.Workflow, diagnostics: DiagnosticBuilder): void {

@@ -213,6 +213,8 @@ export const KW = {
   WHEN: 'when',
   WORKFLOW: 'workflow',
   STEP: 'step',
+  DEPENDS: 'depends',
+  ON: 'on',
   COMPENSATE: 'compensate',
   RETRY: 'retry',
   TIMEOUT: 'timeout',

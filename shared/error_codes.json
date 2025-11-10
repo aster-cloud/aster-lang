@@ -195,6 +195,20 @@
     "message": "Compensate block for step '{step}' in function '{func}' introduces new capability {capability} that does not appear in the main step body.",
     "help": "Compensate 只能重复主体已使用的能力；如需额外调用，请将相同行为移至主体或在主体中声明该 capability。"
   },
+  "WORKFLOW_UNKNOWN_STEP_DEPENDENCY": {
+    "code": "E029",
+    "category": "scope",
+    "severity": "error",
+    "message": "Workflow step '{step}' depends on undefined step '{dependency}'.",
+    "help": "仅引用当前 workflow 中已声明的步骤名称，或修正依赖拼写。"
+  },
+  "WORKFLOW_CIRCULAR_DEPENDENCY": {
+    "code": "E030",
+    "category": "type",
+    "severity": "error",
+    "message": "Workflow contains circular step dependency: {cycle}",
+    "help": "移除或重构循环依赖，确保步骤可拓扑排序执行。"
+  },
   "DUPLICATE_IMPORT_ALIAS": {
     "code": "E100",
     "category": "scope",

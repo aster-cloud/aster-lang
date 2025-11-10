@@ -1,6 +1,10 @@
 package aster.runtime.workflow;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Workflow 事件
@@ -98,6 +102,67 @@ public class WorkflowEvent {
     public String toString() {
         return String.format("WorkflowEvent{seq=%d, workflowId='%s', type='%s', occurredAt=%s}",
                 sequence, workflowId, eventType, occurredAt);
+    }
+
+    /**
+     * 创建 StepStarted 事件
+     *
+     * 统一标准 payload，确保包含 stepId、dependencies、status 与 startedAt，便于审计与重放。
+     */
+    public static WorkflowEvent stepStarted(String workflowId, String stepId, List<String> dependencies) {
+        Instant now = Instant.now();
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("stepId", stepId);
+        payload.put("dependencies", normalizeDependencies(dependencies));
+        payload.put("status", "STARTED");
+        payload.put("startedAt", now.toString());
+
+        return new WorkflowEvent(0L, workflowId, Type.STEP_STARTED, payload, now);
+    }
+
+    /**
+     * 创建 StepCompleted 事件
+     *
+     * 记录步骤完成时间、依赖与结果，便于重放 DAG。
+     */
+    public static WorkflowEvent stepCompleted(String workflowId, String stepId, List<String> dependencies, Object result) {
+        Instant now = Instant.now();
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("stepId", stepId);
+        payload.put("dependencies", normalizeDependencies(dependencies));
+        payload.put("status", "COMPLETED");
+        payload.put("completedAt", now.toString());
+        if (result != null) {
+            payload.put("result", result);
+        }
+
+        return new WorkflowEvent(0L, workflowId, Type.STEP_COMPLETED, payload, now);
+    }
+
+    /**
+     * 创建 StepFailed 事件
+     *
+     * 记录失败原因与依赖，便于补偿与审计。
+     */
+    public static WorkflowEvent stepFailed(String workflowId, String stepId, List<String> dependencies, String error) {
+        Instant now = Instant.now();
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("stepId", stepId);
+        payload.put("dependencies", normalizeDependencies(dependencies));
+        payload.put("status", "FAILED");
+        payload.put("completedAt", now.toString());
+        if (error != null && !error.isEmpty()) {
+            payload.put("error", error);
+        }
+
+        return new WorkflowEvent(0L, workflowId, Type.STEP_FAILED, payload, now);
+    }
+
+    private static List<String> normalizeDependencies(List<String> dependencies) {
+        if (dependencies == null || dependencies.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return List.copyOf(dependencies);
     }
 
     /**

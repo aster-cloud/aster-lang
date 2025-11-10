@@ -412,6 +412,30 @@ function parseStep(
   const stepTok = ctx.peek();
   expectKeyword(ctx, error, KW.STEP, "Expected 'step'");
   const name = parseIdent(ctx, error);
+  const dependencies: string[] = [];
+  if (ctx.isKeyword(KW.DEPENDS)) {
+    ctx.nextWord();
+    expectKeyword(ctx, error, KW.ON, "Expected 'on' after 'depends'");
+    if (!ctx.at(TokenKind.LBRACKET)) error("Expected '[' after 'depends on'");
+    ctx.next();
+    if (!ctx.at(TokenKind.RBRACKET)) {
+      while (true) {
+        if (!ctx.at(TokenKind.STRING)) error('Expected string dependency name');
+        const depTok = ctx.next();
+        dependencies.push(depTok.value as string);
+        if (ctx.at(TokenKind.COMMA)) {
+          ctx.next();
+          continue;
+        }
+        if (ctx.at(TokenKind.RBRACKET)) {
+          break;
+        }
+        error("Expected ',' or ']' after dependency name");
+      }
+    }
+    if (!ctx.at(TokenKind.RBRACKET)) error("Expected ']' to close dependency list");
+    ctx.next();
+  }
   if (!ctx.at(TokenKind.COLON)) error("Expected ':' after step name");
   ctx.next();
   expectNewline(ctx, error);
@@ -426,7 +450,7 @@ function parseStep(
     compensate = parseBlock(ctx, error);
     ctx.consumeNewlines();
   }
-  const step = Node.Step(name, body, compensate);
+  const step = Node.Step(name, body, compensate, dependencies);
   const endTok = lastConsumedToken(ctx);
   assignSpan(step, spanFromTokens(stepTok, endTok));
   return step;

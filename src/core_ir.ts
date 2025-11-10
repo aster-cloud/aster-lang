@@ -97,11 +97,13 @@ export const Core = {
     name: string,
     body: CoreTypes.Block,
     effectCaps: readonly import('./types.js').CapabilityKind[],
-    compensate?: CoreTypes.Block
+    compensate?: CoreTypes.Block,
+    dependencies: readonly string[] = []
   ): CoreTypes.Step => ({
     kind: 'step',
     name,
     body,
+    dependencies,
     effectCaps: [...effectCaps],
     ...(compensate ? { compensate } : {}),
   }),

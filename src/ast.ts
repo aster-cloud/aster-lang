@@ -117,10 +117,16 @@ export const Node = {
     ...(timeout !== undefined ? { timeout } : {}),
     span: createEmptySpan(),
   }),
-  Step: (name: string, body: AST.Block, compensate?: AST.Block): AST.StepStmt => ({
+  Step: (
+    name: string,
+    body: AST.Block,
+    compensate?: AST.Block,
+    dependencies: readonly string[] = []
+  ): AST.StepStmt => ({
     kind: 'step',
     name,
     body,
+    dependencies,
     ...(compensate !== undefined ? { compensate } : {}),
     span: createEmptySpan(),
   }),

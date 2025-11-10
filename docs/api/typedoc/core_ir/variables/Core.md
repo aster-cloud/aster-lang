@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -320,7 +320,7 @@ readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md
 
 ### Step()
 
-> **Step**: (`name`, `body`, `effectCaps`, `compensate?`) => [`Step`](../../types/namespaces/Core/interfaces/Step.md)
+> **Step**: (`name`, `body`, `effectCaps`, `compensate?`, `dependencies`) => [`Step`](../../types/namespaces/Core/interfaces/Step.md)
 
 #### Parameters
 
@@ -339,6 +339,10 @@ readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md
 ##### compensate?
 
 [`Block`](../../types/namespaces/Core/interfaces/Block.md)
+
+##### dependencies?
+
+readonly `string`[] = `[]`
 
 #### Returns
 

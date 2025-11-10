@@ -4,7 +4,7 @@
 
 # Enumeration: ErrorCode
 
-Defined in: [error\_codes.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L8)
+Defined in: [error\_codes.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L8)
 
 ## Enumeration Members
 
@@ -12,7 +12,7 @@ Defined in: [error\_codes.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > **TYPE\_MISMATCH**: `"E001"`
 
-Defined in: [error\_codes.ts:9](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L9)
+Defined in: [error\_codes.ts:9](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L9)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [error\_codes.ts:9](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > **TYPE\_MISMATCH\_ASSIGN**: `"E002"`
 
-Defined in: [error\_codes.ts:10](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L10)
+Defined in: [error\_codes.ts:10](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L10)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [error\_codes.ts:10](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **RETURN\_TYPE\_MISMATCH**: `"E003"`
 
-Defined in: [error\_codes.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L11)
+Defined in: [error\_codes.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L11)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [error\_codes.ts:11](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **TYPE\_VAR\_UNDECLARED**: `"E004"`
 
-Defined in: [error\_codes.ts:12](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L12)
+Defined in: [error\_codes.ts:12](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L12)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [error\_codes.ts:12](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **TYPE\_PARAM\_UNUSED**: `"E005"`
 
-Defined in: [error\_codes.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L13)
+Defined in: [error\_codes.ts:13](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L13)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [error\_codes.ts:13](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **TYPEVAR\_LIKE\_UNDECLARED**: `"E006"`
 
-Defined in: [error\_codes.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L14)
+Defined in: [error\_codes.ts:14](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L14)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [error\_codes.ts:14](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **TYPEVAR\_INCONSISTENT**: `"E007"`
 
-Defined in: [error\_codes.ts:15](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L15)
+Defined in: [error\_codes.ts:15](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L15)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [error\_codes.ts:15](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **IF\_BRANCH\_MISMATCH**: `"E008"`
 
-Defined in: [error\_codes.ts:16](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L16)
+Defined in: [error\_codes.ts:16](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L16)
 
 ***
 
@@ -76,7 +76,7 @@ Defined in: [error\_codes.ts:16](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **MATCH\_BRANCH\_MISMATCH**: `"E009"`
 
-Defined in: [error\_codes.ts:17](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L17)
+Defined in: [error\_codes.ts:17](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L17)
 
 ***
 
@@ -84,7 +84,7 @@ Defined in: [error\_codes.ts:17](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **INTEGER\_PATTERN\_TYPE**: `"E010"`
 
-Defined in: [error\_codes.ts:18](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L18)
+Defined in: [error\_codes.ts:18](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L18)
 
 ***
 
@@ -92,7 +92,7 @@ Defined in: [error\_codes.ts:18](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **UNKNOWN\_FIELD**: `"E011"`
 
-Defined in: [error\_codes.ts:19](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L19)
+Defined in: [error\_codes.ts:19](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L19)
 
 ***
 
@@ -100,7 +100,7 @@ Defined in: [error\_codes.ts:19](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **FIELD\_TYPE\_MISMATCH**: `"E012"`
 
-Defined in: [error\_codes.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L20)
+Defined in: [error\_codes.ts:20](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L20)
 
 ***
 
@@ -108,7 +108,7 @@ Defined in: [error\_codes.ts:20](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **MISSING\_REQUIRED\_FIELD**: `"E013"`
 
-Defined in: [error\_codes.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L21)
+Defined in: [error\_codes.ts:21](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L21)
 
 ***
 
@@ -116,7 +116,7 @@ Defined in: [error\_codes.ts:21](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **NOT\_CALL\_ARITY**: `"E014"`
 
-Defined in: [error\_codes.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L22)
+Defined in: [error\_codes.ts:22](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L22)
 
 ***
 
@@ -124,7 +124,7 @@ Defined in: [error\_codes.ts:22](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **AWAIT\_TYPE**: `"E015"`
 
-Defined in: [error\_codes.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L23)
+Defined in: [error\_codes.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L23)
 
 ***
 
@@ -132,7 +132,7 @@ Defined in: [error\_codes.ts:23](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **DUPLICATE\_ENUM\_CASE**: `"E016"`
 
-Defined in: [error\_codes.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L24)
+Defined in: [error\_codes.ts:24](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L24)
 
 ***
 
@@ -140,7 +140,7 @@ Defined in: [error\_codes.ts:24](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **NON\_EXHAUSTIVE\_MAYBE**: `"E017"`
 
-Defined in: [error\_codes.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L25)
+Defined in: [error\_codes.ts:25](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L25)
 
 ***
 
@@ -148,7 +148,7 @@ Defined in: [error\_codes.ts:25](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **NON\_EXHAUSTIVE\_ENUM**: `"E018"`
 
-Defined in: [error\_codes.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L26)
+Defined in: [error\_codes.ts:26](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L26)
 
 ***
 
@@ -156,7 +156,7 @@ Defined in: [error\_codes.ts:26](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **AMBIGUOUS\_INTEROP\_NUMERIC**: `"E019"`
 
-Defined in: [error\_codes.ts:27](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L27)
+Defined in: [error\_codes.ts:27](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L27)
 
 ***
 
@@ -164,7 +164,7 @@ Defined in: [error\_codes.ts:27](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **LIST\_ELEMENT\_TYPE\_MISMATCH**: `"E020"`
 
-Defined in: [error\_codes.ts:28](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L28)
+Defined in: [error\_codes.ts:28](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L28)
 
 ***
 
@@ -172,7 +172,7 @@ Defined in: [error\_codes.ts:28](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **OPTIONAL\_EXPECTED**: `"E021"`
 
-Defined in: [error\_codes.ts:29](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L29)
+Defined in: [error\_codes.ts:29](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L29)
 
 ***
 
@@ -180,7 +180,7 @@ Defined in: [error\_codes.ts:29](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **WORKFLOW\_COMPENSATE\_TYPE**: `"E022"`
 
-Defined in: [error\_codes.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L30)
+Defined in: [error\_codes.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L30)
 
 ***
 
@@ -188,7 +188,7 @@ Defined in: [error\_codes.ts:30](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **WORKFLOW\_COMPENSATE\_MISSING**: `"E023"`
 
-Defined in: [error\_codes.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L31)
+Defined in: [error\_codes.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L31)
 
 ***
 
@@ -196,7 +196,7 @@ Defined in: [error\_codes.ts:31](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **WORKFLOW\_RETRY\_INVALID**: `"E024"`
 
-Defined in: [error\_codes.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L32)
+Defined in: [error\_codes.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L32)
 
 ***
 
@@ -204,7 +204,7 @@ Defined in: [error\_codes.ts:32](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **WORKFLOW\_TIMEOUT\_INVALID**: `"E025"`
 
-Defined in: [error\_codes.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L33)
+Defined in: [error\_codes.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L33)
 
 ***
 
@@ -212,7 +212,7 @@ Defined in: [error\_codes.ts:33](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **WORKFLOW\_MISSING\_IO\_EFFECT**: `"E026"`
 
-Defined in: [error\_codes.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L34)
+Defined in: [error\_codes.ts:34](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L34)
 
 ***
 
@@ -220,7 +220,7 @@ Defined in: [error\_codes.ts:34](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **WORKFLOW\_UNDECLARED\_CAPABILITY**: `"E027"`
 
-Defined in: [error\_codes.ts:35](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L35)
+Defined in: [error\_codes.ts:35](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L35)
 
 ***
 
@@ -228,7 +228,23 @@ Defined in: [error\_codes.ts:35](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **COMPENSATE\_NEW\_CAPABILITY**: `"E028"`
 
-Defined in: [error\_codes.ts:36](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L36)
+Defined in: [error\_codes.ts:36](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L36)
+
+***
+
+### WORKFLOW\_UNKNOWN\_STEP\_DEPENDENCY
+
+> **WORKFLOW\_UNKNOWN\_STEP\_DEPENDENCY**: `"E029"`
+
+Defined in: [error\_codes.ts:37](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L37)
+
+***
+
+### WORKFLOW\_CIRCULAR\_DEPENDENCY
+
+> **WORKFLOW\_CIRCULAR\_DEPENDENCY**: `"E030"`
+
+Defined in: [error\_codes.ts:38](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L38)
 
 ***
 
@@ -236,7 +252,7 @@ Defined in: [error\_codes.ts:36](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **DUPLICATE\_IMPORT\_ALIAS**: `"E100"`
 
-Defined in: [error\_codes.ts:37](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L37)
+Defined in: [error\_codes.ts:39](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L39)
 
 ***
 
@@ -244,7 +260,7 @@ Defined in: [error\_codes.ts:37](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **UNDEFINED\_VARIABLE**: `"E101"`
 
-Defined in: [error\_codes.ts:38](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L38)
+Defined in: [error\_codes.ts:40](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L40)
 
 ***
 
@@ -252,7 +268,7 @@ Defined in: [error\_codes.ts:38](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_MISSING\_IO**: `"E200"`
 
-Defined in: [error\_codes.ts:39](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L39)
+Defined in: [error\_codes.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L41)
 
 ***
 
@@ -260,7 +276,7 @@ Defined in: [error\_codes.ts:39](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_MISSING\_CPU**: `"E201"`
 
-Defined in: [error\_codes.ts:40](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L40)
+Defined in: [error\_codes.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L42)
 
 ***
 
@@ -268,7 +284,7 @@ Defined in: [error\_codes.ts:40](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_SUPERFLUOUS\_IO\_CPU\_ONLY**: `"E202"`
 
-Defined in: [error\_codes.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L41)
+Defined in: [error\_codes.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L43)
 
 ***
 
@@ -276,7 +292,7 @@ Defined in: [error\_codes.ts:41](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_SUPERFLUOUS\_IO**: `"E203"`
 
-Defined in: [error\_codes.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L42)
+Defined in: [error\_codes.ts:44](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L44)
 
 ***
 
@@ -284,7 +300,7 @@ Defined in: [error\_codes.ts:42](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_SUPERFLUOUS\_CPU**: `"E204"`
 
-Defined in: [error\_codes.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L43)
+Defined in: [error\_codes.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L45)
 
 ***
 
@@ -292,7 +308,7 @@ Defined in: [error\_codes.ts:43](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_INFER\_MISSING\_IO**: `"E205"`
 
-Defined in: [error\_codes.ts:44](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L44)
+Defined in: [error\_codes.ts:46](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L46)
 
 ***
 
@@ -300,7 +316,7 @@ Defined in: [error\_codes.ts:44](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_INFER\_MISSING\_CPU**: `"E206"`
 
-Defined in: [error\_codes.ts:45](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L45)
+Defined in: [error\_codes.ts:47](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L47)
 
 ***
 
@@ -308,7 +324,7 @@ Defined in: [error\_codes.ts:45](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_INFER\_REDUNDANT\_IO**: `"E207"`
 
-Defined in: [error\_codes.ts:46](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L46)
+Defined in: [error\_codes.ts:48](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L48)
 
 ***
 
@@ -316,7 +332,7 @@ Defined in: [error\_codes.ts:46](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_INFER\_REDUNDANT\_CPU**: `"E208"`
 
-Defined in: [error\_codes.ts:47](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L47)
+Defined in: [error\_codes.ts:49](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L49)
 
 ***
 
@@ -324,7 +340,7 @@ Defined in: [error\_codes.ts:47](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_INFER\_REDUNDANT\_CPU\_WITH\_IO**: `"E209"`
 
-Defined in: [error\_codes.ts:48](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L48)
+Defined in: [error\_codes.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L50)
 
 ***
 
@@ -332,7 +348,7 @@ Defined in: [error\_codes.ts:48](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **CAPABILITY\_NOT\_ALLOWED**: `"E300"`
 
-Defined in: [error\_codes.ts:49](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L49)
+Defined in: [error\_codes.ts:51](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L51)
 
 ***
 
@@ -340,7 +356,7 @@ Defined in: [error\_codes.ts:49](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_CAP\_MISSING**: `"E301"`
 
-Defined in: [error\_codes.ts:50](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L50)
+Defined in: [error\_codes.ts:52](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L52)
 
 ***
 
@@ -348,7 +364,7 @@ Defined in: [error\_codes.ts:50](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **EFF\_CAP\_SUPERFLUOUS**: `"E302"`
 
-Defined in: [error\_codes.ts:51](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L51)
+Defined in: [error\_codes.ts:53](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L53)
 
 ***
 
@@ -356,7 +372,7 @@ Defined in: [error\_codes.ts:51](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **PII\_HTTP\_UNENCRYPTED**: `"E400"`
 
-Defined in: [error\_codes.ts:52](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L52)
+Defined in: [error\_codes.ts:54](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L54)
 
 ***
 
@@ -364,7 +380,7 @@ Defined in: [error\_codes.ts:52](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **PII\_ANNOTATION\_MISSING**: `"E401"`
 
-Defined in: [error\_codes.ts:53](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L53)
+Defined in: [error\_codes.ts:55](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L55)
 
 ***
 
@@ -372,7 +388,7 @@ Defined in: [error\_codes.ts:53](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **PII\_SENSITIVITY\_MISMATCH**: `"E402"`
 
-Defined in: [error\_codes.ts:54](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L54)
+Defined in: [error\_codes.ts:56](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L56)
 
 ***
 
@@ -380,7 +396,7 @@ Defined in: [error\_codes.ts:54](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **ASYNC\_START\_NOT\_WAITED**: `"E500"`
 
-Defined in: [error\_codes.ts:55](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L55)
+Defined in: [error\_codes.ts:57](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L57)
 
 ***
 
@@ -388,7 +404,7 @@ Defined in: [error\_codes.ts:55](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **ASYNC\_WAIT\_NOT\_STARTED**: `"E501"`
 
-Defined in: [error\_codes.ts:56](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L56)
+Defined in: [error\_codes.ts:58](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L58)
 
 ***
 
@@ -396,7 +412,7 @@ Defined in: [error\_codes.ts:56](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **ASYNC\_DUPLICATE\_START**: `"E502"`
 
-Defined in: [error\_codes.ts:57](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L57)
+Defined in: [error\_codes.ts:59](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L59)
 
 ***
 
@@ -404,7 +420,7 @@ Defined in: [error\_codes.ts:57](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **ASYNC\_DUPLICATE\_WAIT**: `"E503"`
 
-Defined in: [error\_codes.ts:58](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L58)
+Defined in: [error\_codes.ts:60](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L60)
 
 ***
 
@@ -412,4 +428,4 @@ Defined in: [error\_codes.ts:58](https://github.com/wontlost-ltd/aster-lang/blob
 
 > **ASYNC\_WAIT\_BEFORE\_START**: `"E504"`
 
-Defined in: [error\_codes.ts:59](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/error_codes.ts#L59)
+Defined in: [error\_codes.ts:61](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/error_codes.ts#L61)

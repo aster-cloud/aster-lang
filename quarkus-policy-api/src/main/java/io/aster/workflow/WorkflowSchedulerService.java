@@ -193,10 +193,18 @@ public class WorkflowSchedulerService {
                 return;
             }
 
+            String previousStatus = state.status;
+
             // 加锁
             state.lockOwner = workerId;
             state.lockExpiresAt = Instant.now().plusSeconds(60);
-            state.status = "RUNNING";
+            if ("COMPENSATING".equals(previousStatus) || "COMPENSATED".equals(previousStatus)
+                    || "COMPENSATION_FAILED".equals(previousStatus)) {
+                // 保持补偿相关状态，避免被并发 worker 误改回 RUNNING
+                state.status = previousStatus;
+            } else {
+                state.status = "RUNNING";
+            }
             state.persist();
 
             Log.infof("Processing workflow %s (worker=%s)", workflowId, workerId);
@@ -211,7 +219,7 @@ public class WorkflowSchedulerService {
                     .anyMatch(e -> "WorkflowFailed".equals(e.getEventType()));
             boolean stepFailed = events.stream()
                     .anyMatch(e -> "StepFailed".equals(e.getEventType()));
-            boolean compensating = "COMPENSATING".equals(state.status);
+            boolean compensating = "COMPENSATING".equals(previousStatus);
             boolean compensationFailed = compensationExecutor.hasCompensationFailure(events);
             boolean allCompensationsCompleted = compensationExecutor.areAllCompensationsCompleted(events);
 
@@ -240,7 +248,7 @@ public class WorkflowSchedulerService {
             }
 
             // 处理补偿完成
-            if (compensating && allCompensationsCompleted) {
+            if (allCompensationsCompleted) {
                 state.status = "COMPENSATED";
                 state.lockOwner = null;
                 state.lockExpiresAt = null;

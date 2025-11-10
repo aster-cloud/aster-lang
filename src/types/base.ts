@@ -231,6 +231,7 @@ export interface BaseStep<S = Span | Origin, Block = unknown> extends BaseNode<S
   readonly kind: 'step';
   readonly name: string;
   readonly body: Block;
+  readonly dependencies: readonly string[];
   readonly compensate?: Block;
 }
 

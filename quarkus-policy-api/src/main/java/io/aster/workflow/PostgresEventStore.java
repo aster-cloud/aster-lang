@@ -61,13 +61,14 @@ public class PostgresEventStore implements EventStore {
                 return existing.get().sequence;
             }
 
-            // 获取下一个序列号
-            long nextSeq = WorkflowEventEntity.getLastSequence(wfId) + 1;
+            // 使用数据库 BIGSERIAL 序列生成全局递增序号，保证并发写入无冲突
+            long nextSeq = nextSequenceValue();
 
             // 创建事件实体
             WorkflowEventEntity event = new WorkflowEventEntity();
             event.workflowId = wfId;
             event.sequence = nextSeq;
+            event.seq = nextSeq;
             event.eventType = eventType;
             event.payload = serializePayload(payload);
             event.occurredAt = Instant.now();
@@ -268,5 +269,28 @@ public class PostgresEventStore implements EventStore {
 
     private boolean supportsNotify() {
         return !"h2".equalsIgnoreCase(dbKind);
+    }
+
+    /**
+     * 获取 workflow_events.seq 的下一个值
+     *
+     * 通过数据库序列生成器保证全局递增且线程安全，避免 getLastSequence()+1 带来的并发冲突。
+     */
+    private long nextSequenceValue() {
+        String sql = "SELECT nextval(pg_get_serial_sequence('workflow_events', 'seq'))";
+        if ("h2".equalsIgnoreCase(dbKind)) {
+            ensureH2Sequence();
+            sql = "SELECT nextval('workflow_events_seq_seq')";
+        }
+        Number value = (Number) em.createNativeQuery(sql).getSingleResult();
+        return value.longValue();
+    }
+
+    /**
+     * H2 环境下显式创建 workflow_events 序列，避免并发测试中重复定义
+     */
+    private void ensureH2Sequence() {
+        em.createNativeQuery("CREATE SEQUENCE IF NOT EXISTS workflow_events_seq_seq START WITH 1")
+                .executeUpdate();
     }
 }

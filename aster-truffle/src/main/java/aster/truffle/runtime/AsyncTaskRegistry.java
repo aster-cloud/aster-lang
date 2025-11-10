@@ -1,55 +1,82 @@
 package aster.truffle.runtime;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 异步任务注册表 - 管理所有异步任务的生命周期、状态和结果
+ * 异步任务注册表 - 负责任务注册、状态跟踪与调度
  *
- * Phase 1 实现：单线程协作式调度
- * - 任务按注册顺序存入队列
- * - executeNext() 方法显式调度下一个 PENDING 任务
- * - 无真实并发，简化调试和测试
+ * Phase 2.0 之前：
+ * - 依赖 LinkedList 顺序执行，无法并行
  *
- * Phase 2 扩展：依赖管理
- * - 支持任务依赖声明
- * - 依赖感知调度
- * - 任务取消和错误传播
+ * Phase 2.2：
+ * - 基于 CompletableFuture + ExecutorService 的依赖感知并发调度
+ * - 维持 TaskState API，保证 Await/Wait 节点向后兼容
+ * - 暴露 registerTaskWithDependencies 支撑 Workflow emitter
  */
 public final class AsyncTaskRegistry {
-  // 任务存储：task_id -> TaskState
+  private static final long DEFAULT_TTL_MILLIS = 60_000L;
+
+  // 任务状态存储：task_id -> TaskState
   private final ConcurrentHashMap<String, TaskState> tasks = new ConcurrentHashMap<>();
+  // 调度信息存储：task_id -> TaskInfo
+  private final ConcurrentHashMap<String, TaskInfo> taskInfos = new ConcurrentHashMap<>();
+  // 依赖图：内部自管理，避免依赖外部 WorkflowScheduler
+  private final DependencyGraph dependencyGraph = new DependencyGraph();
+  // 剩余待完成任务计数
+  private final AtomicInteger remainingTasks = new AtomicInteger();
+  // 线程池（默认 CPU 核数，可配置），size=1 时即单线程回退模式
+  private final ExecutorService executor;
+  private final boolean singleThreadMode;
+  // graph 同步锁，DependencyGraph 非线程安全
+  private final Object graphLock = new Object();
 
-  // Phase 1: 任务队列（FIFO 调度）
-  private final LinkedList<String> pendingQueue = new LinkedList<>();
+  /**
+   * 并发调度需要的任务元数据
+   */
+  private static final class TaskInfo {
+    final String taskId;
+    final Callable<?> callable;
+    final Set<String> dependencies;
+    final CompletableFuture<Object> future = new CompletableFuture<>();
+    final AtomicBoolean submitted = new AtomicBoolean(false);
 
-  // Phase 2: 依赖存储：task_id -> 依赖的 task_id 集合
-  private final Map<String, Set<String>> dependencies = new HashMap<>();
-
-  // 任务状态枚举
-  public enum TaskStatus {
-    PENDING,    // 任务已注册，尚未开始执行
-    RUNNING,    // 任务正在执行中
-    COMPLETED,  // 任务成功完成，结果已存储
-    FAILED,     // 任务执行失败，异常已存储
-    CANCELLED   // Phase 2: 任务已取消（错误传播时使用）
+    TaskInfo(String taskId, Callable<?> callable, Set<String> dependencies) {
+      this.taskId = taskId;
+      this.callable = callable;
+      this.dependencies = Collections.unmodifiableSet(new LinkedHashSet<>(dependencies));
+    }
   }
 
   /**
-   * 任务状态封装
+   * 任务状态封装（保持 Phase 1 API）
    */
   public static final class TaskState {
     final String taskId;
-    final Runnable taskBody;              // 任务执行体
     final AtomicReference<TaskStatus> status;
-    volatile Object result;                // 任务结果（COMPLETED 时）
-    volatile Throwable exception;          // 任务异常（FAILED 时）
-    final long createdAt;                 // 创建时间戳（用于 TTL）
+    volatile Object result;
+    volatile Throwable exception;
+    final long createdAt;
 
-    TaskState(String taskId, Runnable taskBody) {
+    TaskState(String taskId) {
       this.taskId = taskId;
-      this.taskBody = taskBody;
       this.status = new AtomicReference<>(TaskStatus.PENDING);
       this.createdAt = System.currentTimeMillis();
     }
@@ -72,69 +99,75 @@ public final class AsyncTaskRegistry {
   }
 
   /**
-   * 注册新任务到注册表
-   *
-   * @param taskId 任务唯一标识符（由 AsterContext.generateTaskId() 生成）
-   * @param taskBody 任务执行体
-   * @return 任务 ID
+   * 任务状态枚举
+   */
+  public enum TaskStatus {
+    PENDING,
+    RUNNING,
+    COMPLETED,
+    FAILED,
+    CANCELLED
+  }
+
+  public AsyncTaskRegistry() {
+    this(Runtime.getRuntime().availableProcessors());
+  }
+
+  public AsyncTaskRegistry(int threadPoolSize) {
+    int normalizedSize = Math.max(1, threadPoolSize);
+    this.executor = Executors.newFixedThreadPool(normalizedSize);
+    this.singleThreadMode = normalizedSize == 1;
+  }
+
+  /**
+   * 注册无依赖任务（兼容 StartNode 用途）
    */
   public String registerTask(String taskId, Runnable taskBody) {
-    TaskState state = new TaskState(taskId, taskBody);
-    tasks.put(taskId, state);
-    pendingQueue.add(taskId);
+    Objects.requireNonNull(taskId, "taskId");
+    Objects.requireNonNull(taskBody, "taskBody");
+
+    Callable<Object> callable = () -> {
+      taskBody.run();
+      return null;
+    };
+    registerInternal(taskId, callable, Collections.emptySet());
     return taskId;
   }
 
   /**
-   * 获取任务状态对象（用于 AwaitNode/WaitNode）
-   *
-   * @param taskId 任务 ID
-   * @return TaskState 对象，如果任务不存在返回 null
+   * 新的依赖感知注册接口：Workflow emitter 使用
+   */
+  public String registerTaskWithDependencies(
+      String taskId, Callable<?> callable, Set<String> dependencies) {
+    Objects.requireNonNull(taskId, "taskId");
+    Objects.requireNonNull(callable, "callable");
+    Set<String> deps = (dependencies == null) ? Collections.emptySet() : new LinkedHashSet<>(dependencies);
+    registerInternal(taskId, callable, deps);
+    return taskId;
+  }
+
+  /**
+   * 返回任务状态（供 Await/Wait Node 轮询）
    */
   public TaskState getTaskState(String taskId) {
     return tasks.get(taskId);
   }
 
-  /**
-   * 获取任务状态
-   *
-   * @param taskId 任务 ID
-   * @return 任务状态，如果任务不存在返回 null
-   */
   public TaskStatus getStatus(String taskId) {
     TaskState state = tasks.get(taskId);
     return state != null ? state.status.get() : null;
   }
 
-  /**
-   * 检查任务是否已完成
-   *
-   * @param taskId 任务 ID
-   * @return true 如果任务状态为 COMPLETED
-   */
   public boolean isCompleted(String taskId) {
     TaskStatus status = getStatus(taskId);
     return status == TaskStatus.COMPLETED;
   }
 
-  /**
-   * 检查任务是否失败
-   *
-   * @param taskId 任务 ID
-   * @return true 如果任务状态为 FAILED
-   */
   public boolean isFailed(String taskId) {
     TaskStatus status = getStatus(taskId);
     return status == TaskStatus.FAILED;
   }
 
-  /**
-   * 获取任务结果（仅在 COMPLETED 状态）
-   *
-   * @param taskId 任务 ID
-   * @return 任务结果
-   * @throws RuntimeException 如果任务未完成或已失败
-   */
   public Object getResult(String taskId) {
     TaskState state = tasks.get(taskId);
     if (state == null) {
@@ -151,60 +184,71 @@ public final class AsyncTaskRegistry {
     }
   }
 
-  /**
-   * 获取任务异常（仅在 FAILED 状态）
-   *
-   * @param taskId 任务 ID
-   * @return 任务异常，如果任务未失败返回 null
-   */
   public Throwable getException(String taskId) {
     TaskState state = tasks.get(taskId);
     return state != null ? state.exception : null;
   }
 
   /**
-   * Phase 1: 执行队列中下一个 PENDING 任务
-   *
-   * 协作式调度 - 调用方需要在适当位置主动调用此方法：
-   * - AwaitNode.executeGeneric() 调用前
-   * - WaitNode.executeGeneric() 轮询循环中
-   * - 循环末尾、条件分支前等
+   * Phase 1 兼容：显式执行一个就绪任务（串行 fallback）
    */
   public void executeNext() {
-    if (pendingQueue.isEmpty()) {
+    String nextTaskId = nextReadyTaskId();
+    if (nextTaskId == null) {
       return;
     }
-
-    String taskId = pendingQueue.poll();
-    if (taskId == null) {
+    TaskInfo info = taskInfos.get(nextTaskId);
+    if (info == null) {
       return;
     }
+    // 单线程模式直接在调用线程执行；多线程模式下也允许显式拉起一个任务
+    runTaskInline(info);
+  }
 
-    TaskState state = tasks.get(taskId);
-    if (state == null) {
-      return;
-    }
+  /**
+   * 并发调度主入口：按依赖拓扑批量调度所有任务
+   */
+  public void executeUntilComplete() {
+    while (remainingTasks.get() > 0) {
+      List<String> readyTasks = snapshotReadyTasks();
+      if (readyTasks.isEmpty()) {
+        Optional<TaskState> failed =
+            tasks.values().stream().filter(state -> state.getStatus() == TaskStatus.FAILED).findFirst();
+        if (failed.isPresent()) {
+          throw new RuntimeException("Task failed: " + failed.get().taskId, failed.get().exception);
+        }
+        throw new IllegalStateException("Deadlock detected: no ready tasks but graph still has nodes");
+      }
 
-    // CAS 状态转换：PENDING -> RUNNING
-    if (!state.status.compareAndSet(TaskStatus.PENDING, TaskStatus.RUNNING)) {
-      return;
-    }
+      List<CompletableFuture<Object>> batchFutures = new ArrayList<>(readyTasks.size());
+      for (String taskId : readyTasks) {
+        TaskInfo info = taskInfos.get(taskId);
+        if (info == null) {
+          continue;
+        }
+        if (canSchedule(taskId)) {
+          batchFutures.add(submitTask(info));
+        }
+      }
 
-    try {
-      state.taskBody.run();
-      // 注意：result 需要在 taskBody 中通过 setResult() 设置
-      state.status.set(TaskStatus.COMPLETED);
-    } catch (Throwable t) {
-      state.exception = t;
-      state.status.set(TaskStatus.FAILED);
+      if (batchFutures.isEmpty()) {
+        // 所有 ready 节点都处于非 PENDING 状态，说明等待上轮运行结束
+        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+        continue;
+      }
+
+      CompletableFuture<Void> barrier =
+          CompletableFuture.allOf(batchFutures.toArray(new CompletableFuture[0]));
+      try {
+        barrier.join();
+      } catch (CompletionException ex) {
+        throw unwrapCompletion(ex);
+      }
     }
   }
 
   /**
-   * 设置任务结果（由任务执行体内部调用）
-   *
-   * @param taskId 任务 ID
-   * @param result 任务结果
+   * 设置任务执行结果（StartNode/Workflow step 共用）
    */
   public void setResult(String taskId, Object result) {
     TaskState state = tasks.get(taskId);
@@ -213,119 +257,229 @@ public final class AsyncTaskRegistry {
     }
   }
 
-  /**
-   * 移除指定任务
-   *
-   * @param taskId 任务 ID
-   */
   public void removeTask(String taskId) {
     tasks.remove(taskId);
+    taskInfos.remove(taskId);
   }
 
-  /**
-   * 垃圾回收 - 清理已完成/失败的过期任务
-   *
-   * TTL-based GC：移除超过 60 秒的终态任务
-   */
   public void gc() {
     long now = System.currentTimeMillis();
-    long ttl = 60_000;  // 60 seconds
-
     tasks.entrySet().removeIf(entry -> {
       TaskState state = entry.getValue();
       TaskStatus status = state.status.get();
-
-      return (status == TaskStatus.COMPLETED || status == TaskStatus.FAILED)
-          && (now - state.createdAt > ttl);
+      boolean expired = now - state.createdAt > DEFAULT_TTL_MILLIS;
+      if ((status == TaskStatus.COMPLETED || status == TaskStatus.FAILED) && expired) {
+        taskInfos.remove(state.taskId);
+        return true;
+      }
+      return false;
     });
   }
 
-  /**
-   * 获取当前任务数量（用于调试和监控）
-   *
-   * @return 任务总数
-   */
   public int getTaskCount() {
     return tasks.size();
   }
 
-  /**
-   * 获取待执行任务数量（用于调试和监控）
-   *
-   * @return 队列中待执行任务数
-   */
   public int getPendingCount() {
-    return pendingQueue.size();
-  }
-
-  // ========== Phase 2: 依赖管理方法 ==========
-
-  /**
-   * 注册带依赖的任务
-   *
-   * @param taskId 任务唯一标识符
-   * @param taskBody 任务执行体
-   * @param deps 依赖的任务 ID 集合（可为 null 或空）
-   * @return 任务 ID
-   */
-  public String registerTaskWithDependencies(String taskId, Runnable taskBody, Set<String> deps) {
-    // 复用现有注册逻辑
-    registerTask(taskId, taskBody);
-
-    // 存储依赖关系
-    if (deps != null && !deps.isEmpty()) {
-      dependencies.put(taskId, new HashSet<>(deps));
+    int pending = 0;
+    for (TaskState state : tasks.values()) {
+      if (state.getStatus() == TaskStatus.PENDING) {
+        pending++;
+      }
     }
-
-    return taskId;
+    return pending;
   }
 
-  /**
-   * 检查任务的依赖是否已满足
-   *
-   * @param taskId 任务 ID
-   * @return true 如果所有依赖任务都已完成，或无依赖
-   */
   public boolean isDependencySatisfied(String taskId) {
-    Set<String> deps = dependencies.get(taskId);
-
-    // 无依赖或依赖集合为空
-    if (deps == null || deps.isEmpty()) {
+    TaskInfo info = taskInfos.get(taskId);
+    if (info == null || info.dependencies.isEmpty()) {
       return true;
     }
 
-    // 检查所有依赖任务是否已完成
-    return deps.stream().allMatch(this::isCompleted);
+    for (String dep : info.dependencies) {
+      if (!isCompleted(dep)) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  /**
-   * 取消任务（用于错误传播）
-   *
-   * @param taskId 任务 ID
-   */
   public void cancelTask(String taskId) {
     TaskState state = tasks.get(taskId);
-    if (state == null) {
+    TaskInfo info = taskInfos.get(taskId);
+    if (state == null || info == null) {
       return;
     }
-
-    TaskStatus currentStatus = state.status.get();
-
-    // 只能取消 PENDING 状态的任务
-    if (currentStatus == TaskStatus.PENDING) {
-      state.status.set(TaskStatus.CANCELLED);
-      pendingQueue.remove(taskId);
+    if (state.status.compareAndSet(TaskStatus.PENDING, TaskStatus.CANCELLED)) {
+      info.future.cancel(true);
+      remainingTasks.decrementAndGet();
+      synchronized (graphLock) {
+        dependencyGraph.markCompleted(taskId);
+      }
     }
   }
 
-  /**
-   * 检查任务是否已取消
-   *
-   * @param taskId 任务 ID
-   * @return true 如果任务状态为 CANCELLED
-   */
   public boolean isCancelled(String taskId) {
     TaskStatus status = getStatus(taskId);
     return status == TaskStatus.CANCELLED;
+  }
+
+  /**
+   * 关闭线程池，释放资源
+   */
+  public void shutdown() {
+    executor.shutdown();
+    try {
+      if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+        executor.shutdownNow();
+      }
+    } catch (InterruptedException e) {
+      executor.shutdownNow();
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  // ========= 内部工具方法 =========
+
+  private void registerInternal(String taskId, Callable<?> callable, Set<String> deps) {
+    if (tasks.putIfAbsent(taskId, new TaskState(taskId)) != null) {
+      throw new IllegalArgumentException("Task already exists: " + taskId);
+    }
+
+    TaskInfo info = new TaskInfo(taskId, callable, deps);
+    taskInfos.put(taskId, info);
+    remainingTasks.incrementAndGet();
+
+    synchronized (graphLock) {
+      dependencyGraph.addTask(taskId, deps);
+    }
+  }
+
+  private List<String> snapshotReadyTasks() {
+    synchronized (graphLock) {
+      return dependencyGraph.getReadyTasks();
+    }
+  }
+
+  private String nextReadyTaskId() {
+    List<String> ready = snapshotReadyTasks();
+    for (String taskId : ready) {
+      if (canSchedule(taskId)) {
+        return taskId;
+      }
+    }
+    return null;
+  }
+
+  private boolean canSchedule(String taskId) {
+    TaskState state = tasks.get(taskId);
+    return state != null && state.status.get() == TaskStatus.PENDING;
+  }
+
+  private CompletableFuture<Object> submitTask(TaskInfo info) {
+    if (!info.submitted.compareAndSet(false, true)) {
+      return info.future;
+    }
+    executor.submit(() -> runTask(info));
+    return info.future;
+  }
+
+  private void runTaskInline(TaskInfo info) {
+    if (!info.submitted.compareAndSet(false, true)) {
+      return;
+    }
+    if (singleThreadMode) {
+      runTask(info);
+    } else {
+      // 在多线程模式下，同步执行仍运行于调用线程，适合旧节点的协作式调用
+      runTask(info);
+    }
+  }
+
+  /**
+   * 核心执行逻辑：更新状态、写回依赖图、完成 future
+   */
+  private void runTask(TaskInfo info) {
+    TaskState state = tasks.get(info.taskId);
+    if (state == null) {
+      info.future.completeExceptionally(new IllegalStateException("Unknown task: " + info.taskId));
+      remainingTasks.decrementAndGet();
+      return;
+    }
+
+    if (!state.status.compareAndSet(TaskStatus.PENDING, TaskStatus.RUNNING)) {
+      if (state.status.get() == TaskStatus.CANCELLED) {
+        info.future.cancel(false);
+        remainingTasks.decrementAndGet();
+      }
+      return;
+    }
+
+    try {
+      Object callResult = info.callable.call();
+      if (callResult != null && state.result == null) {
+        state.result = callResult;
+      }
+      state.status.set(TaskStatus.COMPLETED);
+      info.future.complete(state.result);
+      synchronized (graphLock) {
+        dependencyGraph.markCompleted(info.taskId);
+      }
+    } catch (Throwable t) {
+      state.exception = t;
+      state.status.set(TaskStatus.FAILED);
+      info.future.completeExceptionally(t);
+      // 取消所有依赖于失败任务的下游任务
+      cancelDownstreamTasks(info.taskId);
+    } finally {
+      remainingTasks.decrementAndGet();
+    }
+  }
+
+  /**
+   * 取消所有直接或间接依赖于指定任务的下游任务
+   */
+  private void cancelDownstreamTasks(String failedTaskId) {
+    for (Map.Entry<String, TaskInfo> entry : taskInfos.entrySet()) {
+      String taskId = entry.getKey();
+      TaskInfo info = entry.getValue();
+
+      // 检查此任务是否依赖于失败的任务（直接或间接）
+      if (dependsOnFailedTask(taskId, failedTaskId)) {
+        cancelTask(taskId);
+      }
+    }
+  }
+
+  /**
+   * 检查 taskId 是否直接或间接依赖于 failedTaskId
+   */
+  private boolean dependsOnFailedTask(String taskId, String failedTaskId) {
+    TaskInfo info = taskInfos.get(taskId);
+    if (info == null || info.dependencies.isEmpty()) {
+      return false;
+    }
+
+    // 直接依赖
+    if (info.dependencies.contains(failedTaskId)) {
+      return true;
+    }
+
+    // 间接依赖：递归检查
+    for (String dep : info.dependencies) {
+      if (dependsOnFailedTask(dep, failedTaskId)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private RuntimeException unwrapCompletion(CompletionException ex) {
+    Throwable cause = ex.getCause();
+    if (cause instanceof RuntimeException) {
+      return (RuntimeException) cause;
+    }
+    return new RuntimeException("Async task execution failed", cause);
   }
 }

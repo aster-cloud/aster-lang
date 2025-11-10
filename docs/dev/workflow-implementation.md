@@ -1,6 +1,6 @@
 # Workflow 实现细节
 
-*最后更新：2025-11-10 05:08 NZST · 执行者：Codex*
+*最后更新：2025-11-10 18:08 NZST · 执行者：Codex*
 
 本文面向编译器与运行时贡献者，概述 Phase 2.1 Workflow 语言特性的实现方式，涵盖 parser、Core IR、类型/效果系统以及 JVM runtime。
 
@@ -35,7 +35,10 @@
   2. 循环解析 `step`，最少 1 个，存入 `StepStmt[]`。
   3. 解析可选 `retry` 与 `timeout`，复用公共错误处理器。
   4. 验证 `DEDENT`，结尾调用 `expectPeriodEnd`。
-- `parseStep` 构造 `Node.Step`，在检测到 `compensate:` 时再解析一个 `Block` 并附加。
+- `parseStep` 负责：
+  - 捕获 `step <identifier>`，可选 `depends on ["a", "b"]` 子句；依赖列表必须是字符串数组，解析出 `string[]` 写入 AST。
+  - 构造 `Node.Step`，在检测到 `compensate:` 时再解析一个 `Block` 并附加。
+  - 若显式依赖缺失或语法错误，直接抛出 `error("Expected '[' after 'depends on'")`（`src/parser/expr-stmt-parser.ts:419`），确保诊断精确到语法位置。
 
 ### 关键字与缩进管理
 - Parser 使用 `kwParts` 将多词关键字拆分为 token 序列；Phase 2.1.6 引入常量缓存（如 `WAIT_FOR_PARTS`、`MAX_ATTEMPTS_PARTS`）以避免频繁分配。
@@ -54,7 +57,8 @@
   - `effectCaps: CapabilityKind[]`
   - `retry?: RetryPolicy`
   - `timeout?: Timeout`
-- Step 结构包含：`name`, `body: Core.Block`, `effectCaps`, 可选 `compensate`。
+  - `dependencies: Map<string, string[]>`（Phase 2.4 新增：保留 AST 层的显式依赖）
+- Step 结构包含：`name`, `body: Core.Block`, `effectCaps`, 可选 `compensate`, `dependsOn: string[]`。
 
 ### 降级逻辑（AST → Core）
 - `lower_to_core.ts` 中的 `lowerWorkflow`/`lowerStep`：
@@ -111,20 +115,29 @@
 
 ### JVM Emitter
 - `src/jvm/emitter.ts` 的 `emitWorkflowStatement`：
-  1. 为每个 Workflow 创建 `AsyncTaskRegistry`、`DependencyGraph`、`WorkflowScheduler`。
+  1. 为每个 Workflow 创建 `AsyncTaskRegistry` 与 `WorkflowScheduler`。
   2. 为每个 step 生成 `java.util.function.Supplier<Object>`，并在注册时附带补偿逻辑。
-  3. 缺省使用线性依赖（step i 依赖 i-1），`workflowDependencyLiteral` 为未来显式依赖预留接口。
-  4. Retry 信息目前以注释形式保留，Timeout 转换为毫秒并传入 `executeUntilComplete`。
+  3. 将 `Core.Step.dependsOn` 降级为 Java `Map<String, Set<String>>`，通过 `workflowDependencyLiteral` 传入 `WorkflowNode`。
+  4. 缺省情况下（缺失显式依赖）自动填充 `prevStep -> currentStep` 关系，确保旧语法仍串行执行。
+  5. Retry 信息目前以注释形式保留；timeout 仅在调用方保留毫秒值，Scheduler 直接调用 `executeUntilComplete()`。
 
 ### WorkflowNode 接口
 - `aster-truffle/src/main/java/aster/truffle/nodes/WorkflowNode.java` 构成运行时入口：
   - 构造函数接收 `Env`, `Node[] taskExprs`, `String[] taskNames`, `Map<String, Set<String>> dependencies`, `timeoutMs`。
-  - `execute` 中按顺序启动所有 step，构造依赖图，注册到 `WorkflowScheduler`，并收集结果数组返回。
+  - `execute` 中为每个 step 捕获 Frame 与 effect 权限，直接调用 `AsyncTaskRegistry.registerTaskWithDependencies`，由 `WorkflowScheduler` 驱动执行并收集结果。
 
 ### AsyncTaskRegistry/DependencyGraph/WorkflowScheduler
-- **AsyncTaskRegistry**：维护任务状态、结果、异常，Phase 2.1 使用协作式调度（单线程）。
-- **DependencyGraph**：管理任务依赖关系，检测循环，计算就绪任务集合。
-- **WorkflowScheduler**：轮询就绪任务并执行，处理 fail-fast、取消与全局 timeout。
-- Workflow emitter 生成的 Java 代码直接调用这些组件，确保语言层 workflow 与 runtime 设施一致。
+- **AsyncTaskRegistry**：
+  - 使用 `CompletableFuture` + `ExecutorService`（线程池大小默认等于 CPU 核心）批量并发执行就绪任务，必要时退化为单线程。
+  - `registerTaskWithDependencies` 把依赖信息写入内部 `DependencyGraph`，并维护 `remainingTasks` 计数。
+  - `executeUntilComplete` 循环提取 `readyQueue`，若无任务可调度则执行失败/死锁检测：
+    - 存在失败任务 → 直接抛出其异常。
+    - 无失败但无就绪节点 → 抛出 `IllegalStateException("Deadlock detected")`。
+  - 成功完成的 step 会把结果写回 `TaskState` 并推送到补偿堆栈，失败时通过 `CompletableFuture` 传播，上层再触发 LIFO 补偿。
+- **DependencyGraph**：
+  - `addTask` 在注册阶段执行 DFS 循环检测（`hasCycleDFS`），阻止环路写入。
+  - `markCompleted` 负责递减依赖计数并把新就绪节点放入 `readyQueue`，保持声明顺序。
+- **WorkflowScheduler**：充当 AsyncTaskRegistry 的 thin wrapper，仅暴露 `executeUntilComplete()` 与少量过渡 API，用于 Start/Await 节点兼容。
+- Workflow emitter 与 WorkflowNode 直接注册任务至 AsyncTaskRegistry，并通过 WorkflowScheduler 一次性驱动完成；整个调度栈无需外部 DependencyGraph 或自定义线程管理。
 
 该实现路径确保从语法到 runtime 的闭环：Parser 生成带 span 的 AST，降级为携带 capability 元数据的 Core IR，Typechecker/Effect inference 负责静态验证，JVM emitter/WorkflowNode 则将抽象语义映射到 AsyncTaskRegistry + DependencyGraph + WorkflowScheduler 的执行模型。

@@ -27,6 +27,9 @@ public class WorkflowEventEntity extends PanacheEntityBase {
     @Column(nullable = false)
     public Long sequence;
 
+    @Column(name = "seq", nullable = false)
+    public Long seq;
+
     @Column(name = "event_type", nullable = false, length = 64)
     public String eventType;
 
@@ -63,19 +66,6 @@ public class WorkflowEventEntity extends PanacheEntityBase {
         }
         return find("workflowId = ?1 AND idempotencyKey = ?2", workflowId, idempotencyKey)
                 .firstResultOptional();
-    }
-
-    /**
-     * 获取 workflow 的最后事件序列号
-     *
-     * @param workflowId workflow 唯一标识符
-     * @return 最后序列号，如果不存在则返回 0
-     */
-    public static long getLastSequence(UUID workflowId) {
-        Long lastSeq = find("SELECT MAX(sequence) FROM WorkflowEventEntity WHERE workflowId = ?1", workflowId)
-                .project(Long.class)
-                .firstResult();
-        return lastSeq != null ? lastSeq : 0L;
     }
 
     /**

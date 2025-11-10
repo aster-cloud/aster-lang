@@ -2,6 +2,18 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-10 PostgresEventStore H2 兼容验证
+- 日期：2025-11-10 18:03 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:test --tests WorkflowConcurrencyIntegrationTest` → 通过（修复 `nextSequenceValue()` 的 H2/PG 兼容逻辑并避免调度器覆盖补偿状态后，WorkflowConcurrencyIntegrationTest 的并发补偿与串行回归场景全部成功）。
+
+## 2025-11-10 depends on DSL 编译器链路测试
+- 日期：2025-11-10 16:27 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm test -- depends-on.test.ts` → 通过（依次执行 fmt:examples/build/unit/integration/golden/property，新增编译器测试覆盖 parser→AST→Core IR→TypeChecker→JVM Emitter 的 depends on 语义，全部场景成功）。
+
 ## 2025-11-10 OrderResource REST API 验证
 - 日期：2025-11-10 10:35 NZST
 - 执行者：Codex
@@ -407,3 +419,9 @@ protected int readInt(VirtualFrame frame) throws FrameSlotTypeException {
 - 指令与结果：
   - `./gradlew :quarkus-policy-api:compileJava` → 通过；重新触发 policy emit workflow，生成最新 classfiles 后编译成功，无新增告警。
   - `./gradlew :quarkus-policy-api:test --tests io.aster.ecommerce.rest.OrderResourceTest` → 通过；包含新增失败路径与审计校验用例，确认审计元数据白名单与指标低基数策略工作正常。
+
+## 2025-11-10 Workflow Event Dependencies 扩展验证
+- 日期：2025-11-10 17:20 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:compileJava` → 通过；验证 WorkflowEvent 标准化 payload、PostgresEventStore 序列生成与 Flyway 迁移脚本在编译期无回归，生成的 Aster classfiles 与 Java 模块均成功编译。

@@ -1,3 +1,95 @@
+# 2025-11-10 18:03 NZDT PostgresEventStore H2 兼容修复
+
+**操作记录**:
+- 工具：sequential-thinking → 评估 `nextSequenceValue()` 的双数据库兼容策略及风险。
+- 工具：plan（update_plan）→ 规划读取上下文、修改实现、执行测试的三步操作。
+- 工具：code-index（set_project_path/build_deep_index/get_file_summary）→ 定位 `PostgresEventStore` 与 `WorkflowSchedulerService` 关键逻辑。
+- 工具：apply_patch → 调整 H2/PG 序列查询、引入 H2 序列自动创建、修复调度器补偿状态机。
+- 工具：shell+`./gradlew :quarkus-policy-api:test --tests WorkflowConcurrencyIntegrationTest` → 首次运行捕获 H2 序列缺失与补偿状态回归问题；修复后再次运行通过。
+
+**观察**:
+- H2 测试 Flyway 脚本未内建 `workflow_events_seq_seq`，需在运行时 `CREATE SEQUENCE IF NOT EXISTS` 确保 `nextval` 可用。
+- `WorkflowSchedulerService` 每次强制写入 `RUNNING` 会被后台线程覆盖补偿状态，导致 `WorkflowConcurrencyIntegrationTest` 永远停留在 `COMPENSATING`，仅在补偿完成时直接跳转 `COMPENSATED` 才能规避并发影响。
+
+# 2025-11-10 17:46 NZST Runtime 并发集成测试
+
+**操作记录**:
+- 工具：sequential-thinking → 梳理 Runtime 并发/补偿测试目标与风险，输出 6 条思考记录。
+- 工具：plan（update_plan）→ 规划上下文收集、测试实现、验证三阶段并跟踪状态。
+- 工具：code-index（set_project_path/build_deep_index/find_files/search_code_advanced/get_file_summary）→ 读取 PostgresWorkflowRuntime/EventStore/SagaCompensationExecutor/迁移脚本等上下文。
+- 工具：shell+sed → 查看相关 Java/SQL 文件与测试配置。
+- 工具：apply_patch → 新增 `quarkus-policy-api/src/test/java/io/aster/workflow/WorkflowConcurrencyIntegrationTest.java`，实现并发 fan-out、事件序列、补偿 LIFO 与串行向后兼容场景。
+- 工具：shell+`./gradlew :quarkus-policy-api:test --tests WorkflowConcurrencyIntegrationTest` → 执行目标测试，构建通过（伴随既有 policy 元数据警告，未影响结果）。
+
+**观察**:
+- SagaCompensationExecutor 依赖 StepCompleted 事件中的 `completedAt` 与 `hasCompensation`，测试需确保 payload 按 LIFO 顺序生成。
+- WorkflowSchedulerService 通过 `processWorkflow` 统筹失败传播与补偿执行，测试直接调用可验证状态机转换与 runtime future 完成。
+
+# 2025-11-10 17:38 NZDT Workflow 类型比较修复
+
+**操作记录**:
+- 工具：sequential-thinking → 分析 DAG 测试失败原因与排查步骤。
+- 工具：code-index（set_project_path/find_files/search_code_advanced）→ 定位 depends-on 测试与 `src/typecheck.ts` 的 workflow 校验段落。
+- 工具：shell+node → 通过 `node --test dist/test/compiler/depends-on.test.js` 与临时脚本还原 `test.compiler.depends.dag` 的 `E003 RETURN_TYPE_MISMATCH` 诊断。
+- 工具：apply_patch → 在 `typesEqual` 中识别 Workflow TypeApp 并解包 result 类型，与非 Workflow 类型比较时保持等价。
+- 工具：shell+`npm run build && node --test dist/test/compiler/depends-on.test.js` → 验证 7/7 子测试恢复通过且构建成功。
+
+**观察**:
+- Workflow TypeApp 之前会与 Result 声明直接比较导致 RETURN_TYPE_MISMATCH，合法 DAG 被误判失败。
+- 新的 Workflow 解包逻辑让返回类型比较与 DSL 语义一致，同时保留 Workflow ↔ Workflow 的效果列校验。
+
+# 2025-11-10 16:58 NZDT WorkflowScheduler 去除依赖图
+
+**操作记录**:
+- 工具：sequential-thinking → 明确移除 WorkflowScheduler 依赖图、副作用分析与受影响调用列表。
+- 工具：apply_patch → 更新 `WorkflowScheduler.java`，删除 `DependencyGraph` 字段与 `registerWorkflow`，新增 `executeUntilComplete()` 包装。
+- 工具：apply_patch → 重写 `WorkflowNode.java` 以直接调用 `registerTaskWithDependencies`，同步修改 `src/jvm/emitter.ts`、`ExecutionTestSuite`、`WorkflowSchedulerTest`、`docs/dev/workflow-implementation.md`。
+- 工具：shell+sed → 校验受影响文件与 NZDT 时间戳。
+- 工具：shell+./gradlew :aster-truffle:test --tests aster.truffle.runtime.WorkflowSchedulerTest → 验证调度器单测通过（Truffle guard 相关警告与既有状态一致）。
+
+**观察**:
+- AsyncTaskRegistry 已内建依赖图，因此 WorkflowScheduler 只需驱动执行并统一错误包装；外部 DependencyGraph 属于冗余状态。
+- WorkflowNode 现捕获 Frame/effect 后直接注册依赖，避免 StartNode + Scheduler 双图同步的复杂度；timeout 语义需在后续工作流调用方统一实现。
+
+# 2025-11-10 16:27 NZDT AsyncTaskRegistry 构建与验证
+
+**操作记录**:
+- 工具：shell+./gradlew :aster-truffle:build → 首两次受 120s/240s 超时限制中断，提升超时时间至 600s 后构建+测试通过（含大量性能基准输出）。
+
+**观察**:
+- Gradle 警告来自 Truffle guard 注解与 JDK 受限 API，非本次改动引入；所有 AsyncTaskRegistry/DependencyGraph/WorkflowScheduler 单测通过，确认并发行为未破坏既有场景。
+
+# 2025-11-10 16:27 NZDT 并发重构报告
+
+**操作记录**:
+- 工具：apply_patch → 新建 `.claude/task5-asyncregistry-report.md`，记录修改摘要、核心代码、构建结果、并发模型与 Task6 建议。
+
+**观察**:
+- 报告内含波次调度设计与 fail-fast 说明，便于主 AI 评估下一阶段 Scheduler 协同策略。
+
+# 2025-11-10 16:14 NZDT AsyncTaskRegistry 并行调度实现
+
+**操作记录**:
+- 工具：apply_patch → 删除旧版串行实现并写入新的 CompletableFuture/ExecutorService 调度结构。
+- 工具：apply_patch → 调整 import（LockSupport 等）及任务依赖、线程池、TaskInfo 数据结构。
+- 工具：shell+sed → 复查 `AsyncTaskRegistry.java` 内容确保状态 API、依赖方法与注释更新。
+
+**观察**:
+- TaskState API 继续服务 Await/Wait Node，而新的 TaskInfo + 依赖图确保 workflow emitter 可直接触发并发。
+- cancelTask 现会更新依赖图并完成 future，避免死锁；executeUntilComplete 将以失败任务的异常 fail-fast。
+
+# 2025-11-10 16:08 NZDT AsyncTaskRegistry 并发调度重构启动
+
+**操作记录**:
+- 工具：sequential-thinking → 依据 AGENTS.md 要求完成任务背景、风险与步骤推演。
+- 工具：code-index（set_project_path、find_files、search_code_advanced）→ 设置项目根目录并定位 AsyncTaskRegistry 与相关引用。
+- 工具：shell+sed → 阅读 `aster-truffle/src/main/java/aster/truffle/runtime/AsyncTaskRegistry.java` 现有实现获取串行调度逻辑。
+- 工具：shell+date → 获取 NZDT 时间戳以用于操作记录与后续文档。
+
+**观察**:
+- 当前 AsyncTaskRegistry 仍为单线程 FIFO 队列，仅少量 Phase 2 依赖方法，缺失真正的依赖图调度与线程池管理。
+- DependencyGraph 已在其他模块引用，后续需确认其线程安全特性或在注册/执行阶段添加同步。
+
 # 2025-11-10 13:51 NZST 文档更新（Phase 2.3/2.4）
 
 **操作记录**:
@@ -5231,3 +5323,51 @@ List.map (1000 items) Heavy: 1.516680 ms
 - 工具：apply_patch（docs/testing.md）→ 记录本次编译与测试结果。
 - 工具：shell（cat > .claude/orderresource-fix-report.md）→ 生成 OrderResource 修复报告，汇总改动与验证方式。
 - 2025-11-10 10:55 NZDT Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理 AST/Core IR dependencies 扩展范围与风险。
+- 工具：plan.update → 建立检查/实现/编译/报告四步执行计划。
+- 工具：code-index.set_project_path → 指向 /Users/rpang/IdeaProjects/aster-lang 并重建索引以便快速检索 AST/Core/Parser。
+- 工具：code-index.build_deep_index → 构建深度索引用于 src/ast.ts、src/types/base.ts 等文件定位。
+- 工具：code-index.get_file_summary/search → 提取 Node.Step、BaseStep、Core.Step、lower_to_core 与 parseStep 现状。
+- 工具：shell（sed/nl）→ 阅读相关文件片段确认依赖字段插入位置。
+- 工具：apply_patch（src/ast.ts/src/types/base.ts/src/core_ir.ts/src/lower_to_core.ts/src/parser/expr-stmt-parser.ts）→ 添加 dependencies 字段、透传逻辑与串行兜底。
+- 工具：shell（npx tsc -p tsconfig.json）→ 验证 TypeScript 编译通过。
+- 2025-11-10 15:50 NZDT Codex
+- 工具：sequential-thinking__sequentialthinking → DAG 校验任务拆解依赖检查与 DFS 循环检测风险。
+- 工具：plan.update → 建立“审阅现状→实现→报告”三步执行计划。
+- 工具：code-index.set_project_path → 绑定工作目录便于检索 diagnostics/typecheck 代码。
+- 工具：code-index.search → 检索 src/diagnostics.ts/error_codes.ts 中 workflow 相关条目，确认需新增错误码。
+- 工具：apply_patch（shared/error_codes.json）→ 添加 WORKFLOW_UNKNOWN_STEP_DEPENDENCY/WORKFLOW_CIRCULAR_DEPENDENCY 元数据。
+- 工具：shell（node --loader ts-node/esm scripts/generate_error_codes.ts）→ 重新生成 TypeScript/Java 错误码常量。
+- 工具：apply_patch（src/typecheck.ts）→ 注入 checkWorkflowDependencies 并调用，包含缺失依赖与 DFS 循环检测。
+- 工具：shell（npm run build）→ TypeScript 全量编译完成，PEG 生成通过。
+- 工具：shell（cat > .claude/task3-typechecker-report.md）→ 输出 TypeChecker DAG 校验实现报告（含修改片段、验证结果与后续建议）。
+- 2025-11-10 15:56 NZDT Codex
+- 2025-11-10 17:06 NZDT Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理事件模型扩展需求、数据库并发问题与依赖字段改动范围。
+- 工具：plan.update → 建立“收集上下文→实现→验证/文档”三步执行计划。
+- 工具：code-index.set_project_path & build_deep_index → 绑定工作目录并重建索引，便于检索 WorkflowEvent/PostgresEventStore。
+- 工具：shell（ls/sed/rg）→ 浏览 WorkflowEvent.java、WorkflowEventEntity.java、PostgresEventStore.java、迁移脚本目录等，确认现状与需改动位置。
+- 2025-11-10 17:20 NZDT Codex
+- 工具：apply_patch（docs/events/workflow-event.schema.json）→ 写入事件 payload JSON Schema 并标注日期/执行者。
+- 工具：apply_patch（quarkus-policy-api/src/main/resources/db/migration/V2.3.0__add_event_sequence.sql）→ 添加 Flyway 迁移脚本以引入 BIGSERIAL 列与索引。
+- 工具：apply_patch（WorkflowEventEntity.java, PostgresEventStore.java, WorkflowEvent.java）→ 挂载 seq 字段、使用数据库序列生成器并新增 Step 事件工厂构造依赖字段。
+- 工具：shell（./gradlew :quarkus-policy-api:compileJava）→ 验证新 schema/迁移/事件代码通过编译。
+- 工具：apply_patch（docs/testing.md, operations-log.md, .claude/task7-events-report.md）→ 记录验证结果、操作轨迹与任务报告。
+- 工具：sequential-thinking__sequentialthinking → 梳理 depends on 测试覆盖范围（解析、IR、类型检查、Emitter）并识别潜在风险。
+- 工具：shell（cat .claude/context-depends-on.json）→ 读取主 AI 提供的依赖语法上下文与已知风险。
+- 工具：code-index.set_project_path → 绑定工作目录并启用索引以便检索 parser/typecheck/emitter 代码。
+- 工具：apply_patch（test/compiler/depends-on.test.ts）→ 编写 DSL/编译器端到端单元测试覆盖 DAG/并发/循环/未知依赖与 JVM 输出。
+- 工具：shell（npm test -- depends-on.test.ts）→ 通过，执行 fmt:examples/build/unit/integration/golden/property，验证新增测试全部通过。
+- 工具：apply_patch（docs/testing.md）→ 记录本次 depends on 测试指令与结果。
+- 2025-11-10 16:27 NZST Codex
+- 2025-11-10 18:08 NZST Codex
+- 工具：sequential-thinking__sequentialthinking → 梳理文档/示例/架构更新范围与依赖，确认并发语法的重点描述。
+- 工具：plan.update → 建立“扫描现有文档→更新语言/架构描述→新增示例”三步执行计划。
+- 工具：code-index.set_project_path/find_files → 绑定仓库并快速定位 `docs/language/workflow.md` 及示例目录。
+- 工具：shell（sed/rg/ls）→ 阅读 `LANGUAGE_REFERENCE.md`、`docs/dev/workflow-implementation.md`、`WorkflowNode.java` 以提炼运行时设计细节。
+- 工具：apply_patch（docs/language/workflow.md, LANGUAGE_REFERENCE.md, docs/dev/workflow-implementation.md, README.md）→ 记录 `depends on` 语法、并发执行模型、CompletableFuture+ExecutorService 技术选型与循环/死锁限制。
+- 工具：shell（mkdir/cat）→ 新建 `quarkus-policy-api/src/main/resources/policies/examples/` 并写入 fan-out、diamond、串行兼容三个 workflow 示例。
+- 2025-11-10 18:13 NZST Codex
+- 工具：sequential-thinking__sequentialthinking → 确认需移除示例文件 `//` 注释并使用自然语言语句替换，评估编译风险与验证步骤。
+- 工具：apply_patch（quarkus-policy-api/src/main/resources/policies/examples/fanout-concurrent.aster, diamond-merge.aster, serial-compatible.aster）→ 将 `//` 注释改写为 CNL 语法可接受的独立说明语句，避免 Unknown statement 错误。
+- 工具：shell（./gradlew :quarkus-policy-api:compileJava）→ 运行失败，emit-classfiles 报 Unexpected character '模'。

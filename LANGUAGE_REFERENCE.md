@@ -135,16 +135,28 @@ workflow Fulfill(o: Order) uses [Sql, Http, Email, Time] {
 ### 8.1 Steps
 Each `step` is a transactional unit with an optional retry policy. On replay, recorded decisions are honored.
 
-### 8.2 Retry policies
+### 8.2 Depends On（显式依赖语法）
+> *所有新增内容均采用简体中文描述，方便运行团队直接复用。*
+
+- 使用 `step transport depends on ["reserve", "charge"] { ... }` 声明该步骤必须等待 `reserve` 与 `charge` 完成。
+- 编译器在构建 Core IR 时会把依赖写入 DAG，并在类型检查阶段验证依赖目标已存在；引用不存在的 step 会触发 `E029`。
+- 若省略 `depends on`，编译器会自动依赖上一个 step，以保持旧 workflow 串行语义，便于向后兼容。
+- 运行时采用 `AsyncTaskRegistry` + `DependencyGraph` + `WorkflowScheduler`：
+  - `DependencyGraph.addTask` 在注册阶段即完成环路检测，出现循环立即以 `IllegalArgumentException` 终止编译输出。
+  - `AsyncTaskRegistry.executeUntilComplete` 基于 `CompletableFuture` + `ExecutorService` 批量提交就绪节点；线程池大小默认等于 CPU 核心。
+  - 若剩余任务但没有就绪节点（例如外部停滞或设计缺陷），调度器会抛出 `IllegalStateException("Deadlock detected")`，主调方可捕获并记录。
+- 补偿逻辑仍然遵循 LIFO：完成的步骤会按真实完成顺序推入补偿栈，失败时按逆序执行 `compensate`，即便在并行场景也不会打乱。
+
+### 8.3 Retry policies
 `retry(max=N, backoff=exp(X)|fixed(X), jitter=?true)`
 
-### 8.3 Compensation
+### 8.4 Compensation
 `compensate stepName` invokes the registered compensation handler for that step (if any).
 
-### 8.4 Timers
+### 8.5 Timers
 `await Time.after(3d)` creates a durable timer. Timers are coalesced by the runtime where possible.
 
-### 8.5 Signals & Queries (v0.2+)
+### 8.6 Signals & Queries (v0.2+)
 Planned additions for external event injection (`signal`) and read-only inspection (`query`).
 
 ## 9. Determinism Contract

@@ -1,6 +1,6 @@
 # Workflow 语法指南
 
-*最后更新：2025-11-10 05:07 NZST · 执行者：Codex*
+*最后更新：2025-11-10 18:08 NZST · 执行者：Codex*
 
 Workflow 语法以 CNL（Controlled Natural Language）描述可补偿、可观测的业务流程。本指南面向策略作者与运营人员，覆盖关键字规则、配置块写法、完整示例与最佳实践。
 
@@ -39,10 +39,28 @@ To processOrder with input: Order, produce Result of Receipt with IO. It perform
 ```
 
 ### Step 定义与命名
-- `step <identifier>:` 定义顺序执行的步骤，建议使用蛇形（`reserve_inventory`）或语义化短语（`charge_payment`）。
+- `step <identifier>:` 定义步骤，建议使用蛇形（`reserve_inventory`）或语义化短语（`charge_payment`）。
+- 通过 `step foo depends on ["bar", "baz"]:` 显式声明依赖，编译器会构建 DAG 并在运行时并发执行所有依赖已满足的步骤。
+- 若省略 `depends on`，编译器会自动依赖上一个步骤，保持现有串行语义以便向后兼容。
 - Step 块内部可使用所有常规语句（`Let`, `Return`, `Match`, `start/await` 等）。
 - Step 的执行结果为最后一条语句的返回值；通常返回 `Result` 用于表达成功/失败。
-- Workflow 默认按声明顺序推导依赖关系；Phase 2.1 尚未提供显式 `depends on` 语法，所有 Step 串行执行。
+
+#### 显式依赖与并发执行
+- 编译器在解析 `depends on ["step_a", "step_b"]` 时会对名称执行静态校验，若引用未声明的 step，则触发 **E029(WORKFLOW_UNKNOWN_STEP_DEPENDENCY)**。
+- 所有步骤会被映射到 `AsyncTaskRegistry` 的依赖图中：缺失依赖的节点立即进入 `ready` 队列，其他节点在依赖完成后自动解锁。
+- 运行时使用 `CompletableFuture` + `ExecutorService`（线程池大小等于 CPU 核数，最小为 1）批量提交就绪任务；完全独立的步骤会并发执行。
+- 若依赖图存在回路，解析阶段直接报错；运行时若检测到“无就绪节点但仍有未完成任务”，会抛出 `IllegalStateException("Deadlock detected")` 并终止 workflow。
+
+#### 补偿堆栈（LIFO）
+- AsyncTaskRegistry 按步骤完成顺序推入补偿堆栈；当某步骤失败时，会以 LIFO 顺序触发已完成步骤的 `compensate`，保证最新副作用最先撤销。
+- 在并发场景中，同一批次的步骤完成顺序仍由线程池执行顺序决定，因此补偿顺序与真实提交顺序一致，不需显式声明优先级。
+
+### 并发执行模型与限制
+- **依赖图构建**：parser 把每个 `step` 的显式/隐式依赖写入 Core IR，运行时在 `AsyncTaskRegistry` 内部构建 `DependencyGraph`。图节点使用 `LinkedHashSet` 保序，便于复现源程序声明顺序。
+- **调度实现**：`WorkflowScheduler` 仅包装 `AsyncTaskRegistry.executeUntilComplete()`，真正的并发调度靠 `CompletableFuture.allOf` + 固定线程池（`ExecutorService`）批量提交就绪任务。
+- **循环检测**：DependencyGraph 在 `addTask` 时执行 DFS 检测环路，发现时立即抛出 `IllegalArgumentException("Circular dependency detected ...")`。
+- **死锁检测**：若仍有任务未完成但没有就绪节点，`executeUntilComplete` 会抛出 `IllegalStateException("Deadlock detected ...")`，并把已捕获的失败任务一并输送到调用方。
+- **缺省串行兼容**：线程池大小为 1 时，调度器自动退化为串行执行；无 `depends on` 的旧 workflow 与 Phase 2.0 的行为保持一致。
 
 ### Compensate 块语义
 - `compensate:` 可选，但一旦步骤执行了 IO/Capability，将触发 **E023(WORKFLOW_COMPENSATE_MISSING)** 警告。
@@ -150,6 +168,11 @@ To capturePayment, produce Result of Receipt with IO. It performs io with Http:
 ```
 - Retry 对整个 workflow 生效，compiler 确保 `max attempts` 与 `backoff` 均已填写。
 - Phase 2.1 JVM emitter以注释保留策略，后续 runtime 将据此包装 `WorkflowScheduler` 调用。
+
+### 并发模式示例
+- **Fan-out 模式**（`quarkus-policy-api/src/main/resources/policies/examples/fanout-concurrent.aster`）：`init_context` 完成后，`enrich_customer` 与 `enrich_order` 并发执行，`consolidate` 依赖两者汇总结果，演示通过 `depends on ["init_context"]` 解锁多个并行节点。
+- **Diamond 模式**（`quarkus-policy-api/src/main/resources/policies/examples/diamond-merge.aster`）：`init_payload` → 两条并行分支（`score_risk` / `fetch_offer`）→ `join_insights` → `finalize`，展示显式依赖在复杂拓扑中的可读性，并结合 `timeout` 参数。
+- **串行兼容模式**（`quarkus-policy-api/src/main/resources/policies/examples/serial-compatible.aster`）：未写 `depends on` 的 workflow 仍按声明顺序执行，以便迁移旧流程时无需一次性改完所有步骤。
 
 ## 最佳实践
 

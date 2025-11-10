@@ -3,13 +3,17 @@ package aster.truffle.nodes;
 import aster.truffle.AsterLanguage;
 import aster.truffle.AsterContext;
 import aster.truffle.runtime.AsyncTaskRegistry;
-import aster.truffle.runtime.DependencyGraph;
 import aster.truffle.runtime.WorkflowScheduler;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
 
 /**
  * WorkflowNode - 工作流编排节点
@@ -74,44 +78,60 @@ public final class WorkflowNode extends Node {
   public Object execute(VirtualFrame frame) {
     Profiler.inc("workflow");
 
-    // 获取上下文
     AsterContext context = AsterLanguage.getContext();
+    if (!context.isEffectAllowed("Async")) {
+      throw new RuntimeException("workflow requires Async effect");
+    }
     AsyncTaskRegistry registry = context.getAsyncRegistry();
     WorkflowScheduler scheduler = new WorkflowScheduler(registry);
-    DependencyGraph graph = new DependencyGraph();
 
-    // 1. 创建所有任务并记录 name -> taskId 映射
-    Map<String, String> nameToId = new HashMap<>();
+    Map<String, String> nameToId = new LinkedHashMap<>();
+    MaterializedFrame[] capturedFrames = new MaterializedFrame[taskExprs.length];
+    Set<String>[] effectSnapshots = new Set[taskExprs.length];
+
+    // 1. 为所有任务生成 task_id 并捕获执行上下文
     for (int i = 0; i < taskExprs.length; i++) {
-      // 为每个任务表达式创建 StartNode
-      StartNode startNode = new StartNode(env, taskNames[i], taskExprs[i]);
-      // 执行 StartNode 并获取 task_id
-      String taskId = (String) startNode.execute(frame);
+      Profiler.inc("start");
+      MaterializedFrame materializedFrame = frame.materialize();
+      Set<String> capturedEffects = context.getAllowedEffects();
+      String taskId = context.generateTaskId();
+
       nameToId.put(taskNames[i], taskId);
+      if (taskNames[i] != null) {
+        env.set(taskNames[i], taskId);
+      }
+      capturedFrames[i] = materializedFrame;
+      effectSnapshots[i] = capturedEffects;
     }
 
-    // 2. 构建依赖图（将任务名转换为 task_id）
-    for (String name : taskNames) {
-      String taskId = nameToId.get(name);
-      Set<String> depNames = dependencies.get(name);
+    // 2. 注册任务并声明依赖关系
+    for (int i = 0; i < taskExprs.length; i++) {
+      Node expr = taskExprs[i];
+      String stepName = taskNames[i];
+      String taskId = nameToId.get(stepName);
+      MaterializedFrame materializedFrame = capturedFrames[i];
+      Set<String> capturedEffects = effectSnapshots[i];
 
-      // 将依赖任务名转换为 task_id
-      Set<String> depIds;
-      if (depNames == null || depNames.isEmpty()) {
-        depIds = Collections.emptySet();
-      } else {
-        depIds = depNames.stream()
-            .map(nameToId::get)
-            .collect(Collectors.toSet());
-      }
+      Callable<Object> callable = () -> {
+        Set<String> previousEffects = context.getAllowedEffects();
+        try {
+          context.setAllowedEffects(capturedEffects);
+          return Exec.exec(expr, materializedFrame);
+        } catch (RuntimeException ex) {
+          throw ex;
+        } catch (Throwable t) {
+          throw new RuntimeException("workflow step failed: " + stepName, t);
+        } finally {
+          context.setAllowedEffects(previousEffects);
+        }
+      };
 
-      // 添加任务到依赖图
-      graph.addTask(taskId, depIds);
+      Set<String> depIds = resolveDependencyIds(stepName, nameToId);
+      registry.registerTaskWithDependencies(taskId, callable, depIds);
     }
 
     // 3. 执行工作流
-    scheduler.registerWorkflow(graph);
-    scheduler.executeUntilComplete(timeoutMs);
+    scheduler.executeUntilComplete();
 
     // 4. 收集结果
     Object[] results = new Object[taskNames.length];
@@ -121,5 +141,21 @@ public final class WorkflowNode extends Node {
     }
 
     return results;
+  }
+
+  private Set<String> resolveDependencyIds(String name, Map<String, String> nameToId) {
+    Set<String> depNames = dependencies.get(name);
+    if (depNames == null || depNames.isEmpty()) {
+      return Collections.emptySet();
+    }
+    LinkedHashSet<String> ids = new LinkedHashSet<>();
+    for (String dep : depNames) {
+      String taskId = nameToId.get(dep);
+      if (taskId == null) {
+        throw new RuntimeException("Unknown workflow dependency: " + dep);
+      }
+      ids.add(taskId);
+    }
+    return ids;
   }
 }

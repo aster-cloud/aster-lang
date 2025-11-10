@@ -180,6 +180,14 @@ Interop strict nullability (non-blocking CI smoke):
 npm run verify:asm:nullstrict   # see test/cnl/examples/null_strict_core.json
 ```
 
+## Workflow 并发特性（Phase 2.4）
+
+- 语言新增 `step foo depends on ["bar", "baz"]` 语法，编译器会在 Core IR 中写入显式依赖图；未声明依赖时自动回退为串行执行，兼容旧 Workflow。
+- 运行时以 `AsyncTaskRegistry` + `CompletableFuture` + `ExecutorService` 调度就绪步骤，`WorkflowScheduler` 仅负责触发 `executeUntilComplete()` 并传播异常。
+- `DependencyGraph.addTask` 自带 DFS 循环检测；调度期间若无就绪节点但仍有未完成任务，则抛出 `IllegalStateException("Deadlock detected")`，便于运行团队快速定位设计问题。
+- 补偿逻辑使用 LIFO 栈记录完成顺序，即便在并发 fan-out/diamond 模式中也能按真实提交顺序撤销副作用。
+- 示例位于 `quarkus-policy-api/src/main/resources/policies/examples/`：涵盖 fan-out、diamond、串行兼容三类模式，可直接用于演示或回归测试。
+
 ### Lambda Syntax & Verification
 
 Lambda functions are supported in two CNL forms:

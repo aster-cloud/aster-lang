@@ -1,0 +1,38 @@
+This module is policies.examples.diamond_merge.
+
+To runDiamondWorkflow, produce Result of Text with IO. It performs io with Http and Sql:
+
+  workflow:
+    step init_payload:
+      return ok of "init ready".
+
+    compensate:
+      return ok of "init reverted".
+
+    step score_risk depends on ["init_payload"]:
+      return ok of "risk scored".
+
+    compensate:
+      return ok of "risk scoring reverted".
+
+    step fetch_offer depends on ["init_payload"]:
+      return ok of "offer fetched".
+
+    compensate:
+      return ok of "offer fetch reverted".
+
+    step join_insights depends on ["score_risk", "fetch_offer"]:
+      return ok of "insights merged".
+
+    compensate:
+      return ok of "insights merge reverted".
+
+    step finalize depends on ["join_insights"]:
+      return ok of "finalized".
+
+    compensate:
+      return ok of "finalize reverted".
+
+    timeout: 120 seconds.
+
+  .

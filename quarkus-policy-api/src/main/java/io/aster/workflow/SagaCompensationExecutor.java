@@ -6,6 +6,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -48,10 +49,15 @@ public class SagaCompensationExecutor {
 
             // 过滤出失败 step 之前完成的 step
             int failedStepSeq = findStepSequence(events, failedStepId);
+            // 并发补偿遵循 LIFO：先比较完成时间，再用序列号打破平局
+            Comparator<CompletedStep> compensationOrder = Comparator
+                    .comparing(CompletedStep::getCompletedAt, Comparator.reverseOrder())
+                    .thenComparing(CompletedStep::getSequence, Comparator.reverseOrder());
+
             List<CompletedStep> stepsToCompensate = completedSteps.stream()
-                    .filter(s -> s.sequence < failedStepSeq)
+                    .filter(s -> s.getSequence() < failedStepSeq)
                     .filter(CompletedStep::hasCompensation)
-                    .sorted(Comparator.comparing(CompletedStep::getSequence).reversed()) // 逆序
+                    .sorted(compensationOrder)
                     .collect(Collectors.toList());
 
             Log.infof("Found %d steps to compensate for workflow %s", stepsToCompensate.size(), workflowId);
@@ -59,9 +65,9 @@ public class SagaCompensationExecutor {
             // 为每个 step 调度补偿
             for (CompletedStep step : stepsToCompensate) {
                 Map<String, Object> compensationPayload = Map.of(
-                        "stepId", step.stepId,
-                        "stepSequence", step.sequence,
-                        "originalResult", step.result != null ? step.result : "",
+                        "stepId", step.getStepId(),
+                        "stepSequence", step.getSequence(),
+                        "originalResult", step.getResult() != null ? step.getResult() : "",
                         "reason", "Step " + failedStepId + " failed: " + error.getMessage()
                 );
 
@@ -71,7 +77,7 @@ public class SagaCompensationExecutor {
                         compensationPayload
                 );
 
-                Log.debugf("Scheduled compensation for step %s in workflow %s", step.stepId, workflowId);
+                Log.debugf("Scheduled compensation for step %s in workflow %s", step.getStepId(), workflowId);
             }
 
             // 记录 workflow 进入补偿状态
@@ -173,30 +179,50 @@ public class SagaCompensationExecutor {
      * 从事件流中提取已完成的 step
      */
     private List<CompletedStep> extractCompletedSteps(List<WorkflowEvent> events) {
-        Map<String, CompletedStep> steps = new HashMap<>();
+        Map<String, StepMetadata> startedSteps = new HashMap<>();
+        List<CompletedStep> completedSteps = new ArrayList<>();
         int sequence = 0;
 
         for (WorkflowEvent event : events) {
-            if ("StepStarted".equals(event.getEventType())) {
+            if (WorkflowEvent.Type.STEP_STARTED.equals(event.getEventType())) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> payload = (Map<String, Object>) event.getPayload();
                 String stepId = (String) payload.get("stepId");
-                steps.put(stepId, new CompletedStep(stepId, sequence++, null, false));
-            } else if ("StepCompleted".equals(event.getEventType())) {
+                if (stepId == null) {
+                    continue;
+                }
+                List<String> dependencies = extractDependencies(payload.get("dependencies"));
+                startedSteps.put(stepId, new StepMetadata(sequence++, dependencies));
+            } else if (WorkflowEvent.Type.STEP_COMPLETED.equals(event.getEventType())) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> payload = (Map<String, Object>) event.getPayload();
                 String stepId = (String) payload.get("stepId");
+                if (stepId == null) {
+                    continue;
+                }
+
+                StepMetadata metadata = startedSteps.get(stepId);
+                int resolvedSequence = metadata != null ? metadata.sequence() : sequence++;
+                List<String> dependencies = extractDependencies(payload.get("dependencies"));
+                if (dependencies.isEmpty() && metadata != null) {
+                    dependencies = metadata.dependencies();
+                }
+                Instant completedAt = parseCompletedAt(payload.get("completedAt"), event.getOccurredAt());
                 Object result = payload.get("result");
                 boolean hasCompensation = Boolean.TRUE.equals(payload.get("hasCompensation"));
 
-                if (steps.containsKey(stepId)) {
-                    CompletedStep step = steps.get(stepId);
-                    steps.put(stepId, new CompletedStep(stepId, step.sequence, result, hasCompensation));
-                }
+                completedSteps.add(new CompletedStep(
+                        stepId,
+                        dependencies,
+                        completedAt,
+                        resolvedSequence,
+                        result,
+                        hasCompensation
+                ));
             }
         }
 
-        return new ArrayList<>(steps.values());
+        return completedSteps;
     }
 
     /**
@@ -223,24 +249,75 @@ public class SagaCompensationExecutor {
      */
     private static class CompletedStep {
         final String stepId;
+        final List<String> dependencies;
+        final Instant completedAt;
         final int sequence;
         final Object result;
         final boolean hasCompensation;
 
-        CompletedStep(String stepId, int sequence, Object result, boolean hasCompensation) {
+        CompletedStep(String stepId,
+                      List<String> dependencies,
+                      Instant completedAt,
+                      int sequence,
+                      Object result,
+                      boolean hasCompensation) {
             this.stepId = stepId;
+            this.dependencies = dependencies == null ? Collections.emptyList() : List.copyOf(dependencies);
+            this.completedAt = completedAt;
             this.sequence = sequence;
             this.result = result;
             this.hasCompensation = hasCompensation;
+        }
+
+        String getStepId() {
+            return stepId;
+        }
+
+        List<String> getDependencies() {
+            return dependencies;
+        }
+
+        Instant getCompletedAt() {
+            return completedAt;
         }
 
         int getSequence() {
             return sequence;
         }
 
+        Object getResult() {
+            return result;
+        }
+
         boolean hasCompensation() {
             return hasCompensation;
         }
+    }
+
+    private record StepMetadata(int sequence, List<String> dependencies) {
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> extractDependencies(Object rawDependencies) {
+        if (rawDependencies instanceof List<?> rawList) {
+            List<String> resolved = rawList.stream()
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .collect(Collectors.toList());
+            return resolved.isEmpty() ? Collections.emptyList() : List.copyOf(resolved);
+        }
+        return Collections.emptyList();
+    }
+
+    private static Instant parseCompletedAt(Object rawCompletedAt, Instant fallback) {
+        if (rawCompletedAt instanceof String completedAtStr && !completedAtStr.isEmpty()) {
+            try {
+                return Instant.parse(completedAtStr);
+            } catch (Exception ignored) {
+                // 回退至事件时间，兼容旧事件
+            }
+        }
+        return fallback != null ? fallback : Instant.EPOCH;
     }
 
     /**

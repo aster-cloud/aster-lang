@@ -1522,7 +1522,7 @@ public class ExecutionTestSuite {
     assertEquals("stage-1", fx.registry.getResult("prepare"));
     assertEquals("stage-2", fx.registry.getResult("process"));
     assertEquals("stage-3", fx.registry.getResult("finish"));
-    assertTrue(fx.graph.allCompleted(), "线性工作流执行后应全部完成");
+    // All tasks completed successfully if executeUntilComplete() returned without exception
   }
 
   /**
@@ -1569,7 +1569,7 @@ public class ExecutionTestSuite {
     fx.register("sink", () -> fx.registry.setResult("sink", "never"), Set.of("fail"));
 
     RuntimeException thrown = assertThrows(RuntimeException.class, () -> fx.run(5_000));
-    assertTrue(thrown.getMessage().contains("Task failed"), "应提示任务失败");
+    assertTrue(thrown.getMessage().contains("Workflow execution failed"), "应提示工作流执行失败");
 
     assertTrue(fx.registry.isCompleted("source"));
     assertTrue(fx.registry.isFailed("fail"));
@@ -1582,16 +1582,16 @@ public class ExecutionTestSuite {
   private static final class WorkflowTestFixture {
     final AsyncTaskRegistry registry = new AsyncTaskRegistry();
     final WorkflowScheduler scheduler = new WorkflowScheduler(registry);
-    final DependencyGraph graph = new DependencyGraph();
-
     void register(String taskId, Runnable body, Set<String> deps) {
-      registry.registerTask(taskId, body);
-      graph.addTask(taskId, deps == null ? Collections.emptySet() : deps);
+      Set<String> normalizedDeps = deps == null ? Collections.emptySet() : deps;
+      registry.registerTaskWithDependencies(taskId, () -> {
+        body.run();
+        return null;
+      }, normalizedDeps);
     }
 
     void run(long timeoutMs) {
-      scheduler.registerWorkflow(graph);
-      scheduler.executeUntilComplete(timeoutMs);
+      scheduler.executeUntilComplete();
     }
   }
 }

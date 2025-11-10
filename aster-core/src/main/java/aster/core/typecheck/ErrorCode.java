@@ -37,6 +37,8 @@ public enum ErrorCode {
   WORKFLOW_MISSING_IO_EFFECT("E026", Category.EFFECT, Severity.ERROR, "Workflow '%s' must declare @io effect before using a 'workflow' block.", "在函数 '{func}' 的头部添加 `It performs io ...`（可同时声明 capability），否则编译器拒绝 workflow 语句。"),
   WORKFLOW_UNDECLARED_CAPABILITY("E027", Category.CAPABILITY, Severity.ERROR, "Workflow '%s' step '%s' uses capability %s that is not declared on the function header.", "在 `It performs io with ...` 中列出 {capability}（例如 Http、Sql、Secrets），或调整 step 代码避免调用未授权能力。"),
   COMPENSATE_NEW_CAPABILITY("E028", Category.CAPABILITY, Severity.ERROR, "Compensate block for step '%s' in function '%s' introduces new capability %s that does not appear in the main step body.", "Compensate 只能重复主体已使用的能力；如需额外调用，请将相同行为移至主体或在主体中声明该 capability。"),
+  WORKFLOW_UNKNOWN_STEP_DEPENDENCY("E029", Category.SCOPE, Severity.ERROR, "Workflow step '%s' depends on undefined step '%s'.", "仅引用当前 workflow 中已声明的步骤名称，或修正依赖拼写。"),
+  WORKFLOW_CIRCULAR_DEPENDENCY("E030", Category.TYPE, Severity.ERROR, "Workflow contains circular step dependency: %s", "移除或重构循环依赖，确保步骤可拓扑排序执行。"),
   DUPLICATE_IMPORT_ALIAS("E100", Category.SCOPE, Severity.WARNING, "Duplicate import alias '%s'.", "为不同的导入使用唯一别名，避免覆盖。"),
   UNDEFINED_VARIABLE("E101", Category.SCOPE, Severity.ERROR, "Undefined variable: %s", "在使用变量前先声明并初始化。"),
   EFF_MISSING_IO("E200", Category.EFFECT, Severity.ERROR, "Function '%s' may perform I/O but is missing @io effect.", "为具有 IO 行为的函数声明 @io 效果。"),

@@ -1,0 +1,30 @@
+This module is policies.examples.fanout_concurrent.
+
+To evaluateFanoutWorkflow, produce Result of Text with IO. It performs io with Http and Sql:
+
+  workflow:
+    step init_context:
+      return ok of "init completed".
+
+    compensate:
+      return ok of "init rolled back".
+
+    step enrich_customer depends on ["init_context"]:
+      return ok of "customer enriched".
+
+    compensate:
+      return ok of "customer enrichment reverted".
+
+    step enrich_order depends on ["init_context"]:
+      return ok of "order enriched".
+
+    compensate:
+      return ok of "order enrichment reverted".
+
+    step consolidate depends on ["enrich_customer", "enrich_order"]:
+      return ok of "consolidated payload".
+
+    compensate:
+      return ok of "consolidated payload discarded".
+
+  .

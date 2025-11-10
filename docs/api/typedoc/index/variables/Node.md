@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/8e7741ab305219c4b2df3c1661d37343186d5d42/src/ast.ts#L11)
+Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/4bba3cc1455514643f915b45d24b39e31caea9a6/src/ast.ts#L11)
 
 ## Type Declaration
 
@@ -302,7 +302,7 @@ readonly [`StepStmt`](../../types/interfaces/StepStmt.md)[]
 
 ### Step()
 
-> **Step**: (`name`, `body`, `compensate?`) => [`StepStmt`](../../types/interfaces/StepStmt.md)
+> **Step**: (`name`, `body`, `compensate?`, `dependencies`) => [`StepStmt`](../../types/interfaces/StepStmt.md)
 
 #### Parameters
 
@@ -317,6 +317,10 @@ readonly [`StepStmt`](../../types/interfaces/StepStmt.md)[]
 ##### compensate?
 
 [`Block`](../../types/interfaces/Block.md)
+
+##### dependencies?
+
+readonly `string`[] = `[]`
 
 #### Returns
 
