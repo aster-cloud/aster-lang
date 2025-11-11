@@ -1,6 +1,6 @@
 package io.aster.audit.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -16,7 +16,11 @@ import java.util.List;
  */
 @Entity
 @Table(name = "anomaly_actions")
-public class AnomalyActionEntity extends PanacheEntity {
+public class AnomalyActionEntity extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long id;
 
     /**
      * 关联的异常报告 ID

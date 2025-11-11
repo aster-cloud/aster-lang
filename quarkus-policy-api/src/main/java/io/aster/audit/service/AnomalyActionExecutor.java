@@ -18,6 +18,7 @@ import org.jboss.logging.Logger;
 import java.io.StringReader;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 /**
  * 异常响应动作执行器（Phase 3.7）
@@ -94,37 +95,74 @@ public class AnomalyActionExecutor {
             // 3. 记录原始执行结果
             String originalStatus = originalWorkflow.status;
             Long originalDurationMs = originalWorkflow.durationMs;
+            String originalErrorMessage = originalWorkflow.errorMessage;
 
-            // 4. 调用 WorkflowSchedulerService.processWorkflow 触发 Replay
-            // 注意：这里简化实现，实际应该进入 Replay 模式
-            // 真实实现需要 WorkflowSchedulerService 支持 Replay 模式
-            workflowScheduler.processWorkflow(workflowId.toString());
+            LOG.infof("开始 Replay 验证: workflowId=%s, originalStatus=%s, originalDurationMs=%d",
+                workflowId, originalStatus, originalDurationMs);
 
-            // 5. 查询 Replay 后的结果（简化：假设 processWorkflow 更新了状态）
-            WorkflowStateEntity replayWorkflow = WorkflowStateEntity.findByWorkflowId(workflowId)
-                .orElse(originalWorkflow);
+            // 4. Phase 3.8: 调用 WorkflowSchedulerService.replayWorkflow() 触发 Replay
+            return workflowScheduler.replayWorkflow(workflowId)
+                .onItem().transformToUni(replayWorkflow -> {
+                    LOG.infof("Replay 完成: workflowId=%s, replayStatus=%s, replayDurationMs=%d",
+                        workflowId, replayWorkflow.status, replayWorkflow.durationMs);
 
-            // 6. 比对结果
-            boolean anomalyReproduced = compareResults(originalStatus, replayWorkflow.status);
+                    // 5. 比对结果
+                    boolean anomalyReproduced = compareResults(
+                        originalStatus, replayWorkflow.status,
+                        originalErrorMessage, replayWorkflow.errorMessage,
+                        originalDurationMs, replayWorkflow.durationMs
+                    );
 
-            // 7. 构建验证结果
-            VerificationResult result = new VerificationResult(
-                true,  // replaySucceeded
-                anomalyReproduced,
-                workflowId.toString(),
-                Instant.now(),
-                originalDurationMs,
-                replayWorkflow.durationMs
-            );
+                    // 6. 构建验证结果
+                    VerificationResult result = new VerificationResult(
+                        true,  // replaySucceeded
+                        anomalyReproduced,
+                        workflowId.toString(),
+                        Instant.now(),
+                        originalDurationMs,
+                        replayWorkflow.durationMs
+                    );
 
-            // 8. 记录验证结果到 anomaly_reports
-            anomalyWorkflowService.recordVerificationResult(action.anomalyId, result)
-                .await().indefinitely();
-
-            return Uni.createFrom().item(result);
+                    // 7. 记录验证结果到 anomaly_reports（响应式）
+                    return anomalyWorkflowService.recordVerificationResult(action.anomalyId, result)
+                        .replaceWith(result);
+                })
+                .onFailure(IllegalStateException.class).recoverWithUni(e -> {
+                    // Clock_times 缺失，无法 replay
+                    LOG.warnf("Replay 验证失败（clock_times 缺失）: %s", e.getMessage());
+                    VerificationResult result = new VerificationResult(
+                        false,  // replaySucceeded
+                        null,   // anomalyReproduced (无法判断)
+                        workflowId.toString(),
+                        Instant.now(),
+                        originalDurationMs,
+                        null    // replayDurationMs (未执行)
+                    );
+                    // 即使失败也要记录结果（响应式）
+                    return anomalyWorkflowService.recordVerificationResult(action.anomalyId, result)
+                        .replaceWith(result);
+                })
+                .onFailure(TimeoutException.class).recoverWithUni(e -> {
+                    // Replay 超时
+                    LOG.errorf("Replay 验证超时: workflowId=%s", workflowId);
+                    VerificationResult result = new VerificationResult(
+                        false,  // replaySucceeded
+                        null,   // anomalyReproduced (无法判断)
+                        workflowId.toString(),
+                        Instant.now(),
+                        originalDurationMs,
+                        null    // replayDurationMs (未执行)
+                    );
+                    // 即使超时也要记录结果（响应式）
+                    return anomalyWorkflowService.recordVerificationResult(action.anomalyId, result)
+                        .replaceWith(result);
+                })
+                .onFailure().invoke(e -> {
+                    LOG.errorf(e, "Replay 验证失败: action=%d, workflowId=%s", action.id, workflowId);
+                });
 
         } catch (Exception e) {
-            LOG.errorf(e, "Replay 验证失败: action=%d", action.id);
+            LOG.errorf(e, "Replay 验证准备失败: action=%d", action.id);
             return Uni.createFrom().failure(e);
         }
     }
@@ -182,21 +220,51 @@ public class AnomalyActionExecutor {
     }
 
     /**
-     * 比对原始执行与 Replay 结果
+     * 比对原始执行与 Replay 结果（Phase 3.8 增强）
      *
      * 判断异常是否在 Replay 中重现：
      * - 如果原始和 Replay 都失败（status=FAILED）→ 异常重现
      * - 如果原始失败但 Replay 成功 → 异常未重现（可能是瞬态问题）
      * - 其他情况 → 异常未重现
      *
-     * @param originalStatus 原始执行状态
-     * @param replayStatus   Replay 执行状态
+     * Phase 3.8 增强：
+     * - 比对错误消息（如果都失败，记录错误消息是否一致）
+     * - 比对持续时间（允许 10% 误差）
+     *
+     * @param originalStatus       原始执行状态
+     * @param replayStatus         Replay 执行状态
+     * @param originalErrorMessage 原始错误消息
+     * @param replayErrorMessage   Replay 错误消息
+     * @param originalDurationMs   原始持续时间
+     * @param replayDurationMs     Replay 持续时间
      * @return true 表示异常重现
      */
-    private boolean compareResults(String originalStatus, String replayStatus) {
+    private boolean compareResults(String originalStatus, String replayStatus,
+                                    String originalErrorMessage, String replayErrorMessage,
+                                    Long originalDurationMs, Long replayDurationMs) {
+        // 1. 状态比对（主要判断标准）
         if ("FAILED".equals(originalStatus) && "FAILED".equals(replayStatus)) {
+            // 2. 错误消息比对（辅助判断）
+            if (originalErrorMessage != null && replayErrorMessage != null) {
+                if (!originalErrorMessage.equals(replayErrorMessage)) {
+                    LOG.warnf("异常重现但错误消息不同 - 原始: %s, Replay: %s",
+                        originalErrorMessage, replayErrorMessage);
+                }
+            }
+
+            // 3. 持续时间比对（允许 10% 误差）
+            if (originalDurationMs != null && replayDurationMs != null) {
+                long diff = Math.abs(replayDurationMs - originalDurationMs);
+                double diffPercent = (double) diff / originalDurationMs * 100;
+                if (diffPercent > 10) {
+                    LOG.warnf("持续时间差异较大 - 原始: %dms, Replay: %dms, 差异: %.1f%%",
+                        originalDurationMs, replayDurationMs, diffPercent);
+                }
+            }
+
             return true;  // 异常重现
         }
+
         return false;  // 异常未重现或无法判断
     }
 

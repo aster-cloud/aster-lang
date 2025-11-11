@@ -1,3 +1,35 @@
+# 2025-11-11 16:26 NZDT Phase 3.8 上下文收集（step1）
+
+**操作记录**:
+- 工具：code-index（set_project_path、search_code_advanced: “submitVerificationAction”/“executeReplayVerification”/“clock_times”）→ 快速定位 Phase 3.8 涉及的 service 与 workflow 代码入口。
+- 工具：shell（rg/nl/sed/cat/ls/TZ=Pacific/Auckland date/python）→ 阅读 AnomalyWorkflowService、AnomalyActionExecutor、scheduler、workflow runtime/state、SQL 迁移与测试文件，生成 `.claude/context-phase3.8-initial.json` 并校验内容。
+
+**观察**:
+- `.claude/context-phase3.8-initial.json` 已填入当前问题、数据流、replay 机制、测试与数据结构，满足 Phase 3.8 第一步“结构化快速扫描”的格式。
+
+# 2025-11-11 16:03 NZDT Phase 3.8 上下文收集启动
+
+**操作记录**:
+- 工具：sequential-thinking（4 次）→ 理解 Phase 3.8 任务范围、列出文件遍历与资料整理步骤。
+- 工具：plan（update_plan）→ 记录“读取关键代码/测试/数据结构 → 汇总输出 JSON”三阶段计划。
+- 工具：shell（ls / sed）→ 确认仓库根目录文件与 `operations-log.md` 现有格式。
+- 工具：shell（TZ=Pacific/Auckland date）→ 记录当下 NZ 时间以用于日志。
+
+**观察**:
+- Phase 3.8 仍处于上下文收集阶段，后续需要在 `.claude/context-phase3.8-initial.json` 输出结构化信息。
+
+# 2025-11-11 15:50 NZDT Phase 3 下一阶段调研
+
+**操作记录**:
+- 工具：sequential-thinking（2 次）→ 梳理任务目标、列出信息收集与分析步骤。
+- 工具：code-index（set_project_path + search_code_advanced 多次）→ 检索 “Phase 3.8/Phase 4/roadmap/next steps” 关键词，并定位 Phase 3.1-3.7 相关文档与代码。
+- 工具：shell（ls / sed / nl / rg）→ 查看 README、ROADMAP_SUMMARY、.claude/*phase3*.md、docs/workstreams/P4-0 & phase7 日志、quarkus-policy-api 关键类（PolicyEvaluationResource、PolicyVersionService、WorkflowStateEntity、Anomaly* 服务与 Scheduler、PostgresWorkflowRuntime 等）。
+- 工具：shell（TZ=Pacific/Auckland date）→ 记录当前 NZ 时间，用于报告与日志时间戳。
+
+**观察**:
+- 仓库存在 `ROADMAP_SUMMARY.md`、README Roadmap、小写 `.claude/context-next-phase.json`、`docs/workstreams/P4-*` 与 `phase7` 目录等规划材料，但未发现任何 Phase 3.8 相关文件。
+- Phase 3.1-3.7 主要围绕策略版本追踪、审计 API/分析、异步异常检测、回滚接口、workflow replay、异常响应 outbox；当前异常动作 payload 未填充 workflowId/targetVersion，Replay 执行路径仍使用占位逻辑。
+
 # 2025-11-11 12:59 NZDT PolicyEvaluation 测试修复
 
 **操作记录**:

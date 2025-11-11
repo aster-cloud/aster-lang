@@ -1,6 +1,7 @@
 package io.aster.audit.dto;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * 异常检测报告 DTO（Phase 3.3）
@@ -35,4 +36,7 @@ public class AnomalyReportDTO {
 
     /** 建议措施 */
     public String recommendation;
+
+    /** 代表性失败 workflow 实例 ID（Phase 3.8）*/
+    public UUID sampleWorkflowId;
 }

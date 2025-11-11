@@ -14,6 +14,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -124,21 +125,28 @@ public class PolicyAnalyticsService {
     public List<AnomalyReportDTO> detectAnomalies(double threshold, int days) {
         List<AnomalyReportDTO> anomalies = new ArrayList<>();
 
-        // 2.1 高失败率检测
+        // 2.1 高失败率检测（Phase 3.8 扩展：捕获 sampleWorkflowId）
         String failureRateExpr = "CAST(SUM(CASE WHEN ws.status = 'FAILED' THEN 1 ELSE 0 END) AS DOUBLE PRECISION) / NULLIF(COUNT(*), 0)";
         String sqlHighFailure = String.format("""
             SELECT
                 pv.id, pv.policy_id,
                 COUNT(*) AS total_count,
                 SUM(CASE WHEN ws.status = 'FAILED' THEN 1 ELSE 0 END) AS failed_count,
-                %s AS failure_rate
+                %s AS failure_rate,
+                (SELECT workflow_id
+                 FROM workflow_state
+                 WHERE policy_version_id = pv.id
+                   AND status = 'FAILED'
+                   AND started_at >= NOW() - INTERVAL '%d days'
+                 ORDER BY started_at DESC
+                 LIMIT 1) AS sample_workflow_id
             FROM workflow_state ws
             JOIN policy_versions pv ON ws.policy_version_id = pv.id
             WHERE ws.started_at >= NOW() - INTERVAL '%d days'
             GROUP BY pv.id, pv.policy_id
             HAVING %s > ?1
             ORDER BY failure_rate DESC
-            """, failureRateExpr, days, failureRateExpr);
+            """, failureRateExpr, days, days, failureRateExpr);
 
         @SuppressWarnings("unchecked")
         List<Object[]> highFailureResults = em.createNativeQuery(sqlHighFailure)
@@ -153,6 +161,17 @@ public class PolicyAnalyticsService {
             anomaly.metricValue = ((Number) row[4]).doubleValue();
             anomaly.threshold = threshold;
             anomaly.detectedAt = Instant.now();
+
+            // Phase 3.8: 捕获代表性失败 workflow ID
+            if (row[5] != null) {
+                // PostgreSQL UUID 列可能返回 UUID 对象或 String，需兼容处理
+                Object sampleWorkflowIdObj = row[5];
+                if (sampleWorkflowIdObj instanceof UUID) {
+                    anomaly.sampleWorkflowId = (UUID) sampleWorkflowIdObj;
+                } else if (sampleWorkflowIdObj instanceof String) {
+                    anomaly.sampleWorkflowId = UUID.fromString((String) sampleWorkflowIdObj);
+                }
+            }
 
             // 计算严重程度
             if (anomaly.metricValue >= 0.5) {
@@ -176,9 +195,17 @@ public class PolicyAnalyticsService {
             anomalies.add(anomaly);
         }
 
-        // 2.2 僵尸版本检测
+        // 2.2 僵尸版本检测（Phase 3.8 扩展：捕获 sampleWorkflowId）
         String sqlZombieVersions = String.format("""
-            SELECT pv.id, pv.policy_id, MAX(ws.started_at) AS last_used_at
+            SELECT
+                pv.id, pv.policy_id,
+                MAX(ws.started_at) AS last_used_at,
+                (SELECT workflow_id
+                 FROM workflow_state
+                 WHERE policy_version_id = pv.id
+                   AND status = 'FAILED'
+                 ORDER BY started_at DESC
+                 LIMIT 1) AS sample_workflow_id
             FROM policy_versions pv
             LEFT JOIN workflow_state ws ON pv.id = ws.policy_version_id
             GROUP BY pv.id, pv.policy_id
@@ -196,6 +223,17 @@ public class PolicyAnalyticsService {
             anomaly.policyId = (String) row[1];
             anomaly.severity = "INFO";
             anomaly.detectedAt = Instant.now();
+
+            // Phase 3.8: 捕获代表性失败 workflow ID（如果存在）
+            if (row[3] != null) {
+                // PostgreSQL UUID 列可能返回 UUID 对象或 String，需兼容处理
+                Object sampleWorkflowIdObj = row[3];
+                if (sampleWorkflowIdObj instanceof UUID) {
+                    anomaly.sampleWorkflowId = (UUID) sampleWorkflowIdObj;
+                } else if (sampleWorkflowIdObj instanceof String) {
+                    anomaly.sampleWorkflowId = UUID.fromString((String) sampleWorkflowIdObj);
+                }
+            }
 
             java.sql.Timestamp lastUsedTimestamp = (java.sql.Timestamp) row[2];
             if (lastUsedTimestamp != null) {

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -13,6 +14,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
@@ -429,5 +431,63 @@ public class WorkflowSchedulerService {
      */
     public CompletableFuture<Object> getResultFuture(String workflowId) {
         return workflowRuntime.getResultFuture(workflowId);
+    }
+
+    /**
+     * Replay workflow（Phase 3.8）
+     *
+     * 显式 replay 语义，用于异常验证场景。与 processWorkflow() 的区别：
+     * - 验证 clock_times 必须存在（否则无法 replay）
+     * - 重置状态为 READY 触发重新执行
+     * - 返回 Uni 支持响应式调用
+     * - 超时控制（5分钟）
+     *
+     * 注意：clock_times 加载逻辑已在 processWorkflow() 中实现（Phase 3.6），
+     * 此方法复用该机制，无需重复实现。
+     *
+     * @param workflowId workflow 唯一标识符
+     * @return 重放后的 workflow 状态
+     * @throws IllegalArgumentException  Workflow 不存在
+     * @throws IllegalStateException     缺少 clock_times，无法 replay
+     * @throws TimeoutException          Replay 执行超时
+     */
+    @Transactional
+    public Uni<WorkflowStateEntity> replayWorkflow(UUID workflowId) {
+        // 1. 查询 workflow 状态
+        Optional<WorkflowStateEntity> stateOpt = WorkflowStateEntity.findByWorkflowId(workflowId);
+        if (stateOpt.isEmpty()) {
+            return Uni.createFrom().failure(
+                new IllegalArgumentException("Workflow 不存在: " + workflowId)
+            );
+        }
+
+        WorkflowStateEntity state = stateOpt.get();
+
+        // 2. 验证 clock_times 存在
+        if (state.clockTimes == null || state.clockTimes.isBlank()) {
+            return Uni.createFrom().failure(new IllegalStateException(
+                "Workflow " + workflowId + " 没有 clock_times，无法 replay"
+            ));
+        }
+
+        Log.infof("开始 replay workflow %s，clock_times 长度: %d",
+            workflowId, state.clockTimes.length());
+
+        // 3. 重置状态为 READY（准备重放）
+        state.status = "READY";
+        state.persist();
+
+        // 4. 异步调用 processWorkflow（clock_times 会自动加载）
+        return Uni.createFrom().item(() -> {
+            try {
+                processWorkflow(workflowId.toString());
+                // 重新查询最新状态
+                return WorkflowStateEntity.findByWorkflowId(workflowId).orElse(state);
+            } catch (Exception e) {
+                throw new RuntimeException("Replay 执行失败: " + e.getMessage(), e);
+            }
+        })
+        .ifNoItem().after(Duration.ofMinutes(5))  // 超时控制
+        .failWith(() -> new TimeoutException("Replay 超时: " + workflowId));
     }
 }

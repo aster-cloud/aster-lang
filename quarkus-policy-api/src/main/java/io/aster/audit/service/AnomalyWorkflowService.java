@@ -4,10 +4,12 @@ import io.aster.audit.entity.AnomalyActionEntity;
 import io.aster.audit.entity.AnomalyReportEntity;
 import io.aster.audit.rest.model.VerificationResult;
 import io.aster.policy.event.AuditEvent;
+import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.json.Json;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 
@@ -48,12 +50,24 @@ public class AnomalyWorkflowService {
         anomaly.status = "VERIFYING";
         anomaly.persist();
 
+        // Phase 3.8: 构建 payload（从 sampleWorkflowId 提取）
+        String payload = null;
+        if (anomaly.sampleWorkflowId != null) {
+            payload = Json.createObjectBuilder()
+                .add("workflowId", anomaly.sampleWorkflowId.toString())
+                .build()
+                .toString();
+            Log.infof("提交验证动作: anomalyId=%d, workflowId=%s", anomalyId, anomaly.sampleWorkflowId);
+        } else {
+            Log.warnf("异常报告 %d 缺少 sampleWorkflowId，验证动作将创建但可能无法执行 Replay", anomalyId);
+        }
+
         // 创建验证动作
         AnomalyActionEntity action = new AnomalyActionEntity();
         action.anomalyId = anomalyId;
         action.actionType = "VERIFY_REPLAY";
         action.status = "PENDING";
-        action.payload = null;  // Payload 由 Executor 填充
+        action.payload = payload;  // Phase 3.8: 填充 payload
         action.createdAt = Instant.now();
         action.persist();
 

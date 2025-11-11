@@ -4,7 +4,7 @@
 
 # Enumeration: Effect
 
-Defined in: [config/semantic.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/2b787d0632f54e12e5d73672527a6dad5f0766ce/src/config/semantic.ts#L30)
+Defined in: [config/semantic.ts:30](https://github.com/wontlost-ltd/aster-lang/blob/b644d6c321624e121720bf50b6e25f7b32263b9d/src/config/semantic.ts#L30)
 
 效果类型枚举。
 
@@ -19,7 +19,7 @@ Aster 支持三种效果：
 
 > **IO**: `"IO"`
 
-Defined in: [config/semantic.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/2b787d0632f54e12e5d73672527a6dad5f0766ce/src/config/semantic.ts#L31)
+Defined in: [config/semantic.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/b644d6c321624e121720bf50b6e25f7b32263b9d/src/config/semantic.ts#L31)
 
 ***
 
@@ -27,7 +27,7 @@ Defined in: [config/semantic.ts:31](https://github.com/wontlost-ltd/aster-lang/b
 
 > **CPU**: `"CPU"`
 
-Defined in: [config/semantic.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/2b787d0632f54e12e5d73672527a6dad5f0766ce/src/config/semantic.ts#L32)
+Defined in: [config/semantic.ts:32](https://github.com/wontlost-ltd/aster-lang/blob/b644d6c321624e121720bf50b6e25f7b32263b9d/src/config/semantic.ts#L32)
 
 ***
 
@@ -35,4 +35,4 @@ Defined in: [config/semantic.ts:32](https://github.com/wontlost-ltd/aster-lang/b
 
 > **PURE**: `"PURE"`
 
-Defined in: [config/semantic.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/2b787d0632f54e12e5d73672527a6dad5f0766ce/src/config/semantic.ts#L33)
+Defined in: [config/semantic.ts:33](https://github.com/wontlost-ltd/aster-lang/blob/b644d6c321624e121720bf50b6e25f7b32263b9d/src/config/semantic.ts#L33)

@@ -3,6 +3,7 @@ package io.aster.audit.service;
 import io.aster.audit.entity.AnomalyActionEntity;
 import io.aster.audit.entity.AnomalyReportEntity;
 import io.aster.audit.rest.model.VerificationResult;
+import io.aster.policy.entity.PolicyVersion;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -11,16 +12,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * AnomalyWorkflowService 单元测试（Phase 3.7）
+ * AnomalyWorkflowService 单元测试（Phase 3.7, Phase 3.8 扩展）
  *
  * 验证异常状态机编排逻辑：
  * - 提交验证动作
  * - 更新异常状态
  * - 记录验证结果
+ * - Phase 3.8: payload 构建逻辑（有/无 sampleWorkflowId）
  */
 @QuarkusTest
 class AnomalyWorkflowServiceTest {
@@ -29,15 +32,31 @@ class AnomalyWorkflowServiceTest {
     AnomalyWorkflowService service;
 
     private Long testAnomalyId;
+    private Long testVersionId;
+    private String testPolicyId;
 
     @BeforeEach
     @Transactional
     void setUp() {
+        // 创建测试策略版本
+        testPolicyId = "test-policy-" + UUID.randomUUID();
+        PolicyVersion version = new PolicyVersion();
+        version.policyId = testPolicyId;
+        version.version = Instant.now().toEpochMilli();
+        version.moduleName = "test.module";
+        version.functionName = "testFunction";
+        version.content = "test content";
+        version.active = true;
+        version.createdAt = Instant.now();
+        version.persist();
+
+        testVersionId = version.id;
+
         // 创建测试异常报告
         AnomalyReportEntity anomaly = new AnomalyReportEntity();
         anomaly.anomalyType = "HIGH_FAILURE_RATE";
-        anomaly.versionId = 1L;
-        anomaly.policyId = "test-policy";
+        anomaly.versionId = testVersionId;
+        anomaly.policyId = testPolicyId;
         anomaly.severity = "CRITICAL";
         anomaly.status = "PENDING";
         anomaly.description = "Test anomaly";
@@ -56,6 +75,7 @@ class AnomalyWorkflowServiceTest {
         // 清理测试数据
         AnomalyActionEntity.delete("anomalyId = ?1", testAnomalyId);
         AnomalyReportEntity.deleteById(testAnomalyId);
+        PolicyVersion.deleteById(testVersionId);
     }
 
     @Test
@@ -154,5 +174,99 @@ class AnomalyWorkflowServiceTest {
         assertTrue(anomaly.verificationResult.contains("test-workflow-id"));
         assertTrue(anomaly.verificationResult.contains("\"replaySucceeded\":true"));
         assertTrue(anomaly.verificationResult.contains("\"anomalyReproduced\":true"));
+    }
+
+    /**
+     * Phase 3.8: 测试 payload 构建 - 有 sampleWorkflowId 的情况
+     *
+     * 验证：
+     * 1. payload 正确构建为 JSON 格式
+     * 2. payload 包含正确的 workflowId
+     */
+    @Test
+    @Transactional
+    void testSubmitVerificationAction_WithSampleWorkflowId_PayloadBuilt() {
+        // 设置 sampleWorkflowId
+        UUID sampleWorkflowId = UUID.randomUUID();
+        AnomalyReportEntity anomaly = AnomalyReportEntity.findById(testAnomalyId);
+        anomaly.sampleWorkflowId = sampleWorkflowId;
+        anomaly.persist();
+
+        // 执行提交验证动作
+        Long actionId = service.submitVerificationAction(testAnomalyId)
+            .await().indefinitely();
+
+        // 验证 payload 构建成功
+        AnomalyActionEntity action = AnomalyActionEntity.findById(actionId);
+        assertNotNull(action.payload, "payload 应该被构建");
+        assertTrue(action.payload.contains("workflowId"), "payload 应包含 workflowId 字段");
+        assertTrue(action.payload.contains(sampleWorkflowId.toString()),
+            "payload 应包含正确的 workflow ID");
+        assertTrue(action.payload.startsWith("{") && action.payload.endsWith("}"),
+            "payload 应该是有效的 JSON");
+    }
+
+    /**
+     * Phase 3.8: 测试 payload 构建 - 无 sampleWorkflowId 的情况（降级策略）
+     *
+     * 验证：
+     * 1. 缺少 sampleWorkflowId 时 payload 为 null
+     * 2. 动作仍然被创建（优雅降级）
+     * 3. 状态正确更新为 VERIFYING
+     */
+    @Test
+    @Transactional
+    void testSubmitVerificationAction_WithoutSampleWorkflowId_GracefulDegradation() {
+        // 确保 sampleWorkflowId 为 null
+        AnomalyReportEntity anomaly = AnomalyReportEntity.findById(testAnomalyId);
+        anomaly.sampleWorkflowId = null;
+        anomaly.persist();
+
+        // 执行提交验证动作（应该成功，不抛出异常）
+        Long actionId = service.submitVerificationAction(testAnomalyId)
+            .await().indefinitely();
+
+        // 验证动作仍然被创建
+        assertNotNull(actionId);
+
+        // 验证 payload 为 null（优雅降级）
+        AnomalyActionEntity action = AnomalyActionEntity.findById(actionId);
+        assertNull(action.payload, "缺少 sampleWorkflowId 时 payload 应为 null");
+
+        // 验证状态仍然更新为 VERIFYING
+        anomaly = AnomalyReportEntity.findById(testAnomalyId);
+        assertEquals("VERIFYING", anomaly.status);
+    }
+
+    /**
+     * Phase 3.8: 测试 payload JSON 格式正确性
+     *
+     * 验证 payload 是有效的 JSON 并可以被解析
+     */
+    @Test
+    @Transactional
+    void testSubmitVerificationAction_PayloadJsonFormat() {
+        // 设置 sampleWorkflowId
+        UUID sampleWorkflowId = UUID.randomUUID();
+        AnomalyReportEntity anomaly = AnomalyReportEntity.findById(testAnomalyId);
+        anomaly.sampleWorkflowId = sampleWorkflowId;
+        anomaly.persist();
+
+        // 执行提交验证动作
+        Long actionId = service.submitVerificationAction(testAnomalyId)
+            .await().indefinitely();
+
+        // 获取 payload
+        AnomalyActionEntity action = AnomalyActionEntity.findById(actionId);
+        String payload = action.payload;
+
+        // 验证 JSON 格式（使用简单的字符串检查）
+        assertNotNull(payload);
+        assertTrue(payload.matches("\\{.*\"workflowId\"\\s*:\\s*\"[a-f0-9\\-]+\".*\\}"),
+            "payload 应该是有效的 JSON，包含 workflowId 字段和 UUID 值");
+
+        // 验证可以提取 workflowId
+        assertTrue(payload.contains(sampleWorkflowId.toString()),
+            "payload 应包含正确的 UUID 字符串");
     }
 }

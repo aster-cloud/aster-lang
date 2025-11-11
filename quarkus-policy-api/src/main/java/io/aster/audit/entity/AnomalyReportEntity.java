@@ -7,6 +7,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 异常检测报告实体（Phase 3.4 / Phase 3.7 扩展）
@@ -88,6 +89,15 @@ public class AnomalyReportEntity extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "verification_result", columnDefinition = "jsonb")
     public String verificationResult;
+
+    // ==================== Phase 3.8 扩展字段 ====================
+
+    /**
+     * 代表性失败 workflow 实例 ID（Phase 3.8）
+     * 从异常检测阶段捕获，用于 Replay 验证时提供具体的 workflow 实例
+     */
+    @Column(name = "sample_workflow_id")
+    public UUID sampleWorkflowId;
 
     // ==================== Panache Active Record 查询方法 ====================
 

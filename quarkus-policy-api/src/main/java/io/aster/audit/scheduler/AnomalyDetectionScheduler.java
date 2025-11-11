@@ -85,6 +85,7 @@ public class AnomalyDetectionScheduler {
                 entity.description = dto.description;
                 entity.recommendation = dto.recommendation;
                 entity.detectedAt = dto.detectedAt;
+                entity.sampleWorkflowId = dto.sampleWorkflowId;  // Phase 3.8: 写入代表性 workflow ID
                 entity.persist();
 
                 // Phase 3.7: 对 CRITICAL 异常自动提交验证动作
