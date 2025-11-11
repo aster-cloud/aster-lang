@@ -2,12 +2,19 @@ package io.aster.audit.rest;
 
 import io.aster.audit.dto.*;
 import io.aster.audit.entity.AnomalyReportEntity;
+import io.aster.audit.rest.model.AnomalyActionResponse;
+import io.aster.audit.rest.model.AnomalyDetailResponse;
+import io.aster.audit.rest.model.AnomalyStatusUpdateRequest;
+import io.aster.audit.service.AnomalyWorkflowService;
 import io.aster.audit.service.PolicyAnalyticsService;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.smallrye.common.annotation.Blocking;
+import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -17,12 +24,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 策略分析 REST 控制器（Phase 3.3）
+ * 策略分析 REST 控制器（Phase 3.3, Phase 3.7）
  *
  * 提供实时审计仪表板 API：
  * - 聚合统计（按时间粒度聚合版本使用情况）
  * - 异常检测（高失败率、僵尸版本）
  * - 版本对比（对比两个版本的性能指标）
+ *
+ * Phase 3.7 扩展 - 异常管理 API：
+ * - GET /api/audit/anomalies/{id} - 获取异常详情（含验证结果）
+ * - POST /api/audit/anomalies/{id}/actions/verify - 手动触发验证
+ * - PATCH /api/audit/anomalies/{id}/status - 更新异常状态
  */
 @Path("/api/audit")
 @Produces(MediaType.APPLICATION_JSON)
@@ -30,6 +42,9 @@ public class PolicyAnalyticsResource {
 
     @Inject
     PolicyAnalyticsService analyticsService;
+
+    @Inject
+    AnomalyWorkflowService workflowService;
 
     /**
      * 获取版本使用统计（按时间粒度聚合）
@@ -194,5 +209,102 @@ public class PolicyAnalyticsResource {
         }
 
         return analyticsService.compareVersions(versionAId, versionBId, days);
+    }
+
+    // ==================== Phase 3.7: 异常管理 API ====================
+
+    /**
+     * 获取异常详情（含验证结果）
+     *
+     * GET /api/audit/anomalies/{id}
+     *
+     * @param id 异常报告 ID
+     * @return 异常详情，包含验证结果和处置状态
+     */
+    @GET
+    @Path("/anomalies/{id}")
+    @Blocking
+    public Response getAnomalyDetail(@PathParam("id") Long id) {
+        // 查询异常实体
+        AnomalyReportEntity entity = AnomalyReportEntity.findById(id);
+
+        if (entity == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity("Anomaly not found: id=" + id)
+                .build();
+        }
+
+        // 映射到 DetailResponse
+        AnomalyDetailResponse response = new AnomalyDetailResponse(
+            entity.id,
+            entity.anomalyType,
+            entity.severity,
+            entity.status,
+            entity.description,
+            entity.recommendation,
+            entity.verificationResult,
+            entity.detectedAt,
+            entity.resolvedAt
+        );
+
+        return Response.ok(response).build();
+    }
+
+    /**
+     * 手动触发异常验证
+     *
+     * POST /api/audit/anomalies/{id}/actions/verify
+     *
+     * 提交验证动作到队列，由 AnomalyActionScheduler 异步执行。
+     *
+     * @param id 异常报告 ID
+     * @return 验证动作响应（含动作 ID）
+     */
+    @POST
+    @Path("/anomalies/{id}/actions/verify")
+    public Uni<Response> triggerVerification(@PathParam("id") Long id) {
+        return workflowService.submitVerificationAction(id)
+            .onItem().transform(actionId -> {
+                AnomalyActionResponse response = new AnomalyActionResponse(
+                    actionId,
+                    "VERIFY_REPLAY",
+                    "验证动作已提交到队列"
+                );
+                return Response.accepted(response).build();
+            })
+            .onFailure().recoverWithItem(failure -> {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(failure.getMessage())
+                    .build();
+            });
+    }
+
+    /**
+     * 更新异常状态
+     *
+     * PATCH /api/audit/anomalies/{id}/status
+     *
+     * 支持的状态转换：
+     * - PENDING → DISMISSED
+     * - VERIFIED → RESOLVED
+     * - VERIFIED → DISMISSED
+     *
+     * @param id      异常报告 ID
+     * @param request 状态更新请求（包含新状态和备注）
+     * @return 204 No Content（成功）或 400/404（失败）
+     */
+    @PATCH
+    @Path("/anomalies/{id}/status")
+    public Uni<Response> updateAnomalyStatus(
+        @PathParam("id") Long id,
+        @Valid AnomalyStatusUpdateRequest request
+    ) {
+        return workflowService.updateStatus(id, request.status(), request.notes())
+            .onItem().transform(success -> Response.noContent().build())
+            .onFailure().recoverWithItem(failure -> {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(failure.getMessage())
+                    .build();
+            });
     }
 }

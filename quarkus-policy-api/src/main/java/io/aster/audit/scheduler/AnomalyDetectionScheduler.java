@@ -2,6 +2,7 @@ package io.aster.audit.scheduler;
 
 import io.aster.audit.dto.AnomalyReportDTO;
 import io.aster.audit.entity.AnomalyReportEntity;
+import io.aster.audit.service.AnomalyWorkflowService;
 import io.aster.audit.service.PolicyAnalyticsService;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
@@ -13,10 +14,15 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.List;
 
 /**
- * 异常检测定时任务（Phase 3.4）
+ * 异常检测定时任务（Phase 3.4, Phase 3.7）
  *
  * 每小时执行一次异常检测，将结果持久化到 anomaly_reports 表。
  * 自动清理 30 天前的历史记录，避免数据膨胀。
+ *
+ * Phase 3.7 扩展：
+ * - CRITICAL 异常自动提交验证动作到 anomaly_actions 队列
+ * - 异步提交（subscribe().with()），不阻塞检测任务
+ * - 提交失败不影响检测任务继续执行
  *
  * 特性：
  * - 并发控制：SKIP 模式避免任务重叠
@@ -29,6 +35,9 @@ public class AnomalyDetectionScheduler {
 
     @Inject
     PolicyAnalyticsService analyticsService;
+
+    @Inject
+    AnomalyWorkflowService workflowService;
 
     @ConfigProperty(name = "anomaly.detection.threshold", defaultValue = "0.10")
     double threshold;
@@ -77,6 +86,15 @@ public class AnomalyDetectionScheduler {
                 entity.recommendation = dto.recommendation;
                 entity.detectedAt = dto.detectedAt;
                 entity.persist();
+
+                // Phase 3.7: 对 CRITICAL 异常自动提交验证动作
+                if ("CRITICAL".equals(entity.severity)) {
+                    workflowService.submitVerificationAction(entity.id)
+                        .subscribe().with(
+                            actionId -> Log.infof("异常 %d 已提交验证动作 %d", entity.id, actionId),
+                            failure -> Log.errorf(failure, "异常 %d 提交验证动作失败", entity.id)
+                        );
+                }
             }
 
             Log.infof("异常检测任务执行完成，持久化了 %d 条记录", anomalies.size());

@@ -9,6 +9,7 @@ import java.util.Map;
  * 审计事件 - 不可变事件对象
  *
  * 用于在业务操作完成后发布，由 AuditEventListener 异步处理并持久化。
+ * Phase 3.7 扩展：添加异常响应相关字段（anomalyId, actionType, oldStatus, newStatus）
  */
 public record AuditEvent(
     EventType eventType,
@@ -23,7 +24,13 @@ public record AuditEvent(
     boolean success,
     Long executionTimeMs,
     String errorMessage,
-    Map<String, Object> metadata
+    Map<String, Object> metadata,
+
+    // Phase 3.7: 异常响应自动化字段
+    Long anomalyId,      // 异常报告 ID
+    String actionType,   // 动作类型（VERIFY_REPLAY, AUTO_ROLLBACK）
+    String oldStatus,    // 变更前状态
+    String newStatus     // 变更后状态
 ) {
     /**
      * 创建策略评估事件。
@@ -51,7 +58,8 @@ public record AuditEvent(
             success,
             executionTimeMs,
             errorMessage,
-            sanitizeMetadata(metadata)
+            sanitizeMetadata(metadata),
+            null, null, null, null  // Phase 3.7 fields
         );
     }
 
@@ -80,7 +88,8 @@ public record AuditEvent(
             true,
             null,
             null,
-            buildRollbackMetadata(policyId, fromVersion, targetVersion, reason)
+            buildRollbackMetadata(policyId, fromVersion, targetVersion, reason),
+            null, null, null, null  // Phase 3.7 fields
         );
     }
 
@@ -111,7 +120,8 @@ public record AuditEvent(
             true,
             null,
             null,
-            metadata
+            metadata,
+            null, null, null, null  // Phase 3.7 fields
         );
     }
 
@@ -150,7 +160,8 @@ public record AuditEvent(
             success,
             executionTimeMs,
             errorMessage,
-            sanitizeMetadata(enriched)
+            sanitizeMetadata(enriched),
+            null, null, null, null  // Phase 3.7 fields
         );
     }
 
@@ -191,7 +202,136 @@ public record AuditEvent(
             success,
             executionTimeMs,
             errorMessage,
-            sanitizeMetadata(enriched)
+            sanitizeMetadata(enriched),
+            null, null, null, null  // Phase 3.7 fields
+        );
+    }
+
+    // ==================== Phase 3.7: 异常响应自动化事件 ====================
+
+    /**
+     * 创建异常验证事件（Phase 3.7）
+     *
+     * @param policyId   策略 ID
+     * @param anomalyId  异常报告 ID
+     * @param actionType 动作类型（VERIFY_REPLAY, AUTO_ROLLBACK）
+     * @return 异常验证事件
+     */
+    public static AuditEvent anomalyVerification(
+        String policyId,
+        Long anomalyId,
+        String actionType
+    ) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("anomalyId", anomalyId);
+        metadata.put("actionType", actionType);
+
+        return new AuditEvent(
+            EventType.ANOMALY_VERIFICATION,
+            Instant.now(),
+            null,  // tenantId
+            null,  // policyModule
+            null,  // policyFunction
+            policyId,
+            null,  // fromVersion
+            null,  // toVersion
+            "SYSTEM",  // performedBy (自动化系统)
+            true,
+            null,  // executionTimeMs
+            null,  // errorMessage
+            Collections.unmodifiableMap(metadata),
+            anomalyId,
+            actionType,
+            null,  // oldStatus
+            null   // newStatus
+        );
+    }
+
+    /**
+     * 创建异常状态变更事件（Phase 3.7）
+     *
+     * @param policyId  策略 ID
+     * @param anomalyId 异常报告 ID
+     * @param oldStatus 变更前状态
+     * @param newStatus 变更后状态
+     * @param notes     变更备注
+     * @return 异常状态变更事件
+     */
+    public static AuditEvent anomalyStatusChange(
+        String policyId,
+        Long anomalyId,
+        String oldStatus,
+        String newStatus,
+        String notes
+    ) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("anomalyId", anomalyId);
+        metadata.put("oldStatus", oldStatus);
+        metadata.put("newStatus", newStatus);
+        if (notes != null && !notes.isBlank()) {
+            metadata.put("notes", notes);
+        }
+
+        return new AuditEvent(
+            EventType.ANOMALY_STATUS_CHANGE,
+            Instant.now(),
+            null,  // tenantId
+            null,  // policyModule
+            null,  // policyFunction
+            policyId,
+            null,  // fromVersion
+            null,  // toVersion
+            "SYSTEM",  // performedBy
+            true,
+            null,  // executionTimeMs
+            null,  // errorMessage
+            Collections.unmodifiableMap(metadata),
+            anomalyId,
+            null,  // actionType
+            oldStatus,
+            newStatus
+        );
+    }
+
+    /**
+     * 创建异常自动回滚事件（Phase 3.7）
+     *
+     * @param policyId    策略 ID
+     * @param anomalyId   异常报告 ID
+     * @param fromVersion 回滚前版本
+     * @param toVersion   回滚目标版本
+     * @return 异常自动回滚事件
+     */
+    public static AuditEvent anomalyAutoRollback(
+        String policyId,
+        Long anomalyId,
+        Long fromVersion,
+        Long toVersion
+    ) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("anomalyId", anomalyId);
+        metadata.put("actionType", "AUTO_ROLLBACK");
+        metadata.put("fromVersion", fromVersion);
+        metadata.put("toVersion", toVersion);
+
+        return new AuditEvent(
+            EventType.ANOMALY_AUTO_ROLLBACK,
+            Instant.now(),
+            null,  // tenantId
+            null,  // policyModule
+            null,  // policyFunction
+            policyId,
+            fromVersion,
+            toVersion,
+            "SYSTEM",  // performedBy (自动化系统)
+            true,
+            null,  // executionTimeMs
+            null,  // errorMessage
+            Collections.unmodifiableMap(metadata),
+            anomalyId,
+            "AUTO_ROLLBACK",
+            null,  // oldStatus
+            null   // newStatus
         );
     }
 

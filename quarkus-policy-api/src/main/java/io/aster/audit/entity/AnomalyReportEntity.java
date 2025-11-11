@@ -2,15 +2,17 @@ package io.aster.audit.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
- * 异常检测报告实体（Phase 3.4）
+ * 异常检测报告实体（Phase 3.4 / Phase 3.7 扩展）
  *
  * 用于存储定时任务生成的异常检测结果，支持异步化异常检测。
- * 减少 API 实时计算开销，提升响应速度。
+ * Phase 3.7 扩展：添加状态管理、指派、验证结果字段，支持异常响应自动化闭环。
  */
 @Entity
 @Table(name = "anomaly_reports")
@@ -49,6 +51,43 @@ public class AnomalyReportEntity extends PanacheEntityBase {
 
     @Column(name = "created_at")
     public Instant createdAt = Instant.now();
+
+    // ==================== Phase 3.7 扩展字段 ====================
+
+    /**
+     * 异常状态（Phase 3.7）
+     * 状态机：PENDING → VERIFYING → VERIFIED → RESOLVED/DISMISSED
+     */
+    @Column(name = "status", nullable = false, length = 32)
+    public String status = "PENDING";
+
+    /**
+     * 指派给的用户 ID 或团队（Phase 3.7）
+     */
+    @Column(name = "assigned_to", length = 255)
+    public String assignedTo;
+
+    /**
+     * 异常解决时间（Phase 3.7）
+     */
+    @Column(name = "resolved_at")
+    public Instant resolvedAt;
+
+    /**
+     * 解决说明或处置备注（Phase 3.7）
+     */
+    @Column(name = "resolution_notes", columnDefinition = "TEXT")
+    public String resolutionNotes;
+
+    /**
+     * Replay 验证结果（Phase 3.7）
+     * JSONB 结构：{ "replaySucceeded": true, "anomalyReproduced": false, "workflowId": "wf-123",
+     *              "replayedAt": "2025-11-11T10:00:00Z", "originalDurationMs": 150, "replayDurationMs": 148 }
+     * 用于记录 Workflow Replay 验证异常的结果
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "verification_result", columnDefinition = "jsonb")
+    public String verificationResult;
 
     // ==================== Panache Active Record 查询方法 ====================
 
