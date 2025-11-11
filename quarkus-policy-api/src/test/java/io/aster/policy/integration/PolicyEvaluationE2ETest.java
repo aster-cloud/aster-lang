@@ -101,7 +101,7 @@ class PolicyEvaluationE2ETest {
                     },
                     {
                         "age": 35,
-                        "creditScore": 750,
+                        "creditScore": 720,
                         "annualIncome": 100000,
                         "monthlyDebt": 1500,
                         "yearsEmployed": 10
@@ -326,39 +326,45 @@ class PolicyEvaluationE2ETest {
     void test9_batchEvaluation() {
         String batchContext = """
             {
-                "policyModule": "aster.finance.loan",
-                "policyFunction": "evaluateLoanEligibility",
-                "contexts": [
-                    [
-                        {
-                            "applicantId": "APP001",
-                            "amount": 30000,
-                            "termMonths": 24,
-                            "purpose": "Car"
-                        },
-                        {
-                            "age": 30,
-                            "creditScore": 700,
-                            "annualIncome": 60000,
-                            "monthlyDebt": 1000,
-                            "yearsEmployed": 3
-                        }
-                    ],
-                    [
-                        {
-                            "applicantId": "APP002",
-                            "amount": 50000,
-                            "termMonths": 36,
-                            "purpose": "Home"
-                        },
-                        {
-                            "age": 40,
-                            "creditScore": 600,
-                            "annualIncome": 80000,
-                            "monthlyDebt": 2000,
-                            "yearsEmployed": 10
-                        }
-                    ]
+                "requests": [
+                    {
+                        "policyModule": "aster.finance.loan",
+                        "policyFunction": "evaluateLoanEligibility",
+                        "context": [
+                            {
+                                "applicantId": "APP001",
+                                "amount": 30000,
+                                "termMonths": 24,
+                                "purpose": "Car"
+                            },
+                            {
+                                "age": 30,
+                                "creditScore": 700,
+                                "annualIncome": 60000,
+                                "monthlyDebt": 1000,
+                                "yearsEmployed": 3
+                            }
+                        ]
+                    },
+                    {
+                        "policyModule": "aster.finance.loan",
+                        "policyFunction": "evaluateLoanEligibility",
+                        "context": [
+                            {
+                                "applicantId": "APP002",
+                                "amount": 50000,
+                                "termMonths": 36,
+                                "purpose": "Home"
+                            },
+                            {
+                                "age": 40,
+                                "creditScore": 600,
+                                "annualIncome": 80000,
+                                "monthlyDebt": 2000,
+                                "yearsEmployed": 10
+                            }
+                        ]
+                    }
                 ]
             }
             """;
@@ -371,8 +377,11 @@ class PolicyEvaluationE2ETest {
             .post("/api/policies/evaluate/batch")
             .then()
             .statusCode(200)
-            .body("size()", equalTo(2))
-            .body("[0].result.approved", equalTo(true))
-            .body("[1].result.approved", equalTo(false)); // Credit below 650
+            .body("results", hasSize(2))
+            .body("results[0].result.approved", equalTo(true))
+            .body("results[1].result.approved", equalTo(false)) // Credit below 650
+            .body("successCount", equalTo(2))
+            .body("failureCount", equalTo(0))
+            .body("totalExecutionTimeMs", greaterThanOrEqualTo(0));
     }
 }

@@ -107,8 +107,8 @@ public class OrderResource {
             orderMetrics.recordOrderSubmission(tenantId, duration, true);
             incrementApiCounter("submit", "success");
             publishOrderSubmissionEvent(tenantId, performedBy, request, workflowId, duration, null);
-            LOG.infof("订单 %s 调度完成，workflowId=%s", request.orderId(), handle.getWorkflowId());
-            return OrderResponse.success(request.orderId(), handle.getWorkflowId());
+            LOG.infof("订单 %s 调度完成，workflowId=%s", request.orderId(), workflowId);
+            return OrderResponse.success(request.orderId(), workflowId);
         })
         .onFailure().recoverWithItem(throwable -> {
             long duration = System.currentTimeMillis() - startTime;

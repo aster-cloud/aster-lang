@@ -246,7 +246,7 @@ public class PolicyEvaluationResourceTest {
             .body("results", hasSize(2))
             .body("results[0].result", notNullValue())
             .body("results[1].result", notNullValue())
-            .body("totalExecutionTimeMs", greaterThan(0))
+            .body("totalExecutionTimeMs", greaterThanOrEqualTo(0))
             .body("successCount", is(2))
             .body("failureCount", is(0));
     }

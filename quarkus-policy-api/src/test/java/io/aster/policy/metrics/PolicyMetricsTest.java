@@ -25,6 +25,7 @@ class PolicyMetricsTest {
     void setUp() {
         // 重置缓存统计
         policyMetrics.resetCacheStats();
+        policyMetrics.resetEvaluationMetrics("aster.finance.loan", "evaluateLoanEligibility");
     }
 
     @Test

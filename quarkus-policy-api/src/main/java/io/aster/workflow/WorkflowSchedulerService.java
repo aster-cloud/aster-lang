@@ -2,6 +2,7 @@ package io.aster.workflow;
 
 import aster.runtime.workflow.WorkflowEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -147,19 +148,21 @@ public class WorkflowSchedulerService {
     @Transactional
     @SuppressWarnings("unchecked")
     public List<WorkflowStateEntity> findReadyWorkflows(int limit) {
-        StringBuilder query = new StringBuilder(
-                "SELECT w FROM WorkflowStateEntity w " +
-                "WHERE w.status IN ('READY', 'RUNNING') " +
-                "AND (w.lockExpiresAt IS NULL OR w.lockExpiresAt < :now) " +
-                "ORDER BY w.createdAt"
+        // 使用原生 SQL 查询以支持 PostgreSQL 的 FOR UPDATE SKIP LOCKED 语法
+        StringBuilder sql = new StringBuilder(
+                "SELECT * FROM workflow_state " +
+                "WHERE status IN ('READY', 'RUNNING') " +
+                "AND (lock_expires_at IS NULL OR lock_expires_at < :now) " +
+                "ORDER BY created_at"
         );
         if (supportsSkipLocked()) {
-            query.append(" FOR UPDATE SKIP LOCKED");
+            sql.append(" FOR UPDATE SKIP LOCKED");
         }
+        sql.append(" LIMIT :limit");
 
-        return entityManager.createQuery(query.toString())
+        return entityManager.createNativeQuery(sql.toString(), WorkflowStateEntity.class)
         .setParameter("now", Instant.now())
-        .setMaxResults(limit)
+        .setParameter("limit", limit)
         .getResultList();
     }
 
@@ -174,6 +177,8 @@ public class WorkflowSchedulerService {
      */
     @Transactional
     public void processWorkflow(String workflowId) {
+        // Phase 3.6: 设置 ThreadLocal 上下文传递 workflowId
+        PostgresWorkflowRuntime.setCurrentWorkflowId(workflowId);
         try {
             UUID wfUuid = UUID.fromString(workflowId);
 
@@ -185,6 +190,20 @@ public class WorkflowSchedulerService {
             }
 
             WorkflowStateEntity state = stateOpt.get();
+
+            // Phase 3.6: 加载并激活 replay 模式
+            if (state.clockTimes != null && !state.clockTimes.isBlank()) {
+                ClockTimesSnapshot snapshot = deserializeClockTimes(state.clockTimes);
+                if (snapshot != null && !snapshot.recordedTimes.isEmpty()) {
+                    Object clockObj = workflowRuntime.getClock();
+                    if (clockObj instanceof ReplayDeterministicClock) {
+                        ReplayDeterministicClock clock = (ReplayDeterministicClock) clockObj;
+                        clock.enterReplayMode(snapshot.recordedTimes);
+                        Log.infof("Workflow %s entered replay mode with %d recorded times",
+                                workflowId, snapshot.recordedTimes.size());
+                    }
+                }
+            }
 
             // 检查是否已被其他 worker 处理
             if (state.lockOwner != null && state.lockExpiresAt != null &&
@@ -317,6 +336,34 @@ public class WorkflowSchedulerService {
             } catch (Exception ex) {
                 Log.errorf(ex, "Failed to release lock for workflow %s", workflowId);
             }
+        } finally {
+            // Phase 3.6: 清理 ThreadLocal 上下文防止内存泄漏
+            PostgresWorkflowRuntime.clearCurrentWorkflowId();
+        }
+    }
+
+    /**
+     * 反序列化 clock_times JSONB 字符串（Phase 3.6）
+     *
+     * 从持久化的 JSONB 数据恢复 ClockTimesSnapshot。
+     * 反序列化失败时返回 null，不阻塞 workflow 处理。
+     *
+     * @param clockTimesJson JSONB 字符串
+     * @return ClockTimesSnapshot 实例，失败时返回 null
+     */
+    private ClockTimesSnapshot deserializeClockTimes(String clockTimesJson) {
+        if (clockTimesJson == null || clockTimesJson.isBlank()) {
+            return null;
+        }
+        try {
+            // 创建独立的 ObjectMapper 并注册 JavaTimeModule
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+
+            return mapper.readValue(clockTimesJson, ClockTimesSnapshot.class);
+        } catch (Exception e) {
+            Log.warnf(e, "Failed to deserialize clock_times, workflow will proceed without replay mode");
+            return null; // 反序列化失败降级为非 replay 模式
         }
     }
 

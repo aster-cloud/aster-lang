@@ -92,8 +92,8 @@ public class PostgresEventStore implements EventStore {
 
             // 发送 PostgreSQL NOTIFY 通知调度器
             if (supportsNotify()) {
-                em.createNativeQuery("NOTIFY workflow_events, :workflow_id")
-                        .setParameter("workflow_id", workflowId)
+                // NOTIFY 不支持参数绑定，使用字符串格式化
+                em.createNativeQuery(String.format("NOTIFY workflow_events, '%s'", workflowId))
                         .executeUpdate();
             }
 

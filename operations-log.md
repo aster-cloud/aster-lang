@@ -1,3 +1,31 @@
+# 2025-11-11 12:59 NZDT PolicyEvaluation 测试修复
+
+**操作记录**:
+- 工具：sequential-thinking → 归纳 7 个失败测试的根因假设、拆解 interest rate 与 batch API 两条排查路径。
+- 工具：plan（update_plan）→ 记录上下文读取、逻辑修复、批量评估与全量测试 5 步计划。
+- 工具：code-index（set_project_path/build_deep_index/get_file_summary）→ 初始化索引并提取 `PolicyEvaluationE2ETest` 结构，辅助定位失配断言。
+- 工具：shell+`./gradlew :quarkus-policy-api:test --tests io.aster.policy.integration.PolicyEvaluationE2ETest` → 复现 4 个 E2E 失败；同理运行 `PolicyMetricsTest`、`PolicyEvaluationResourceTest` 收集当前行为。
+- 工具：apply_patch → 修改 `PolicyEvaluationE2ETest`（高信用分样本改 720、批量请求改 requests 数组并验证 `results` 对象）、`PolicyMetrics.resetEvaluationMetrics()` 与测试 `setUp()` 清理计量器。
+- 工具：shell+`./gradlew :quarkus-policy-api:test --tests ...`（E2E、Metrics、OrderWorkflowIntegrationTest）→ 验证单独场景；最终执行 `./gradlew :quarkus-policy-api:test`（262 项）确认全部通过。
+
+**观察**:
+- 策略利率区间逻辑未变；E2E 用例仍使用 750 信用分但期待 670-739 档位，导致 4 个断言集体失败。
+- 批量评估端点已切换为 `BatchEvaluationRequest.requests` 结构并返回 `BatchEvaluationResponse`，旧版 `contexts` 负载被 Bean Validation 拒绝。
+- PolicyMetrics 缺少评估指标重置手段，上一阶段集成测试留下的 meter 使 `shouldRecordEvaluationMetrics` 在全量套件中统计值大于 1。
+
+# 2025-11-11 12:40 NZDT OrderWorkflowIntegrationTest workflowId 修复
+
+**操作记录**:
+- 工具：sequential-thinking → 解析 OrderWorkflowIntegrationTest 失败现象、锁定 submitOrder 与 workflowRuntime.schedule 检查步骤。
+- 工具：shell+sed/rg → 阅读 OrderWorkflowIntegrationTest、OrderResource、WorkflowEventEntity 与 H2 迁移脚本，确认响应字段与 schema 差异。
+- 工具：shell+`./gradlew :quarkus-policy-api:test --tests io.aster.ecommerce.integration.OrderWorkflowIntegrationTest` → 复现失败，抓取 RestAssured 抛出的 workflowId null 与 H2 缺失 `seq` 列异常。
+- 工具：apply_patch → 更新 OrderResource 成功响应直接回传预先计算的 workflowId，并在 `src/test/resources/db/h2` 新增 `V2.3.0__add_event_sequence.sql`（seq 列 + 索引）。
+- 工具：shell+`./gradlew :quarkus-policy-api:test --tests io.aster.ecommerce.integration.OrderWorkflowIntegrationTest` → 重新执行整套测试，4/4 用例通过。
+
+**观察**:
+- workflowRuntime.schedule 在幂等性检查阶段查询 workflow_events.seq，H2 迁移缺列导致 SQLGrammarException，触发 submitOrder 错误分支返回 null workflowId。
+- 补齐 H2 迁移并直接回传 determinisitic workflowId 后，事件存储可写入 WorkflowStarted，REST 响应稳定包含 workflowId，幂等性测试也能成功命中重复调度路径。
+
 # 2025-11-11 00:04 NZDT PolicyAnalyticsResourceTest Flyway 故障分析阶段0
 
 **操作记录**:
@@ -5480,3 +5508,25 @@ List.map (1000 items) Heavy: 1.516680 ms
 - H2 兼容脚本迁移至独立路径后，可通过 TestProfile 精确切换 PostgreSQL/生产 schema，避免类路径冲突。
 - JSONB 字段先前因缺少 JDBC 类型声明导致 `character varying`→`jsonb` 绑定失败，新注解后 Hibernate 以原生 JSON 类型持久化。
 - PolicyAnalyticsService 在 PostgreSQL 下需避免 HAVING 中引用别名，并兼容 `DATE_TRUNC` 返回的 Instant/OffsetDateTime 类型，否则会触发 `column failure_rate does not exist` 与 `ClassCastException`。
+# 2025-11-11 09:00 NZDT Phase 3.6 Workflow Replay 初始扫描
+
+**操作记录**:
+- 工具：sequential-thinking → 完成任务理解与步骤规划。
+- 工具：code-index.find_files / shell+sed → 定位 ReplayDeterministicClock、PostgresWorkflowRuntime、WorkflowSchedulerService、WorkflowStateEntity 关键代码与行号。
+- 工具：rg → 搜索 enterReplayMode/JSONB 字段/Flyway V3.* 模式，确认尚无重放集成。
+- 工具：shell → 查看 WorkflowConcurrencyIntegrationTest、PolicyVersionTrackingTest、OrderWorkflowIntegrationTest 测试结构。
+- 工具：shell → 生成 `.claude/context-phase3.6-initial.json` 并记录 NZST 时间戳。
+
+**观察**:
+- Runtime 每次 new ReplayDeterministicClock，scheduler 恢复路径未触发 enterReplayMode，WorkflowStateEntity 也缺少 clockTimes 字段。
+- 现有 JSONB/迁移/测试样板可直接复用，但缺失针对 ReplayDeterministicClock 的持久化与测试覆盖，需要在后续 Phase 3.6 实战中补齐。
+# 2025-11-11 09:09 NZDT Phase 3.6 Workflow Replay 审查
+
+**操作记录**:
+- 工具：sequential-thinking → 对设计审查任务进行推理拆解。
+- 工具：shell/rg/code-index → 复核 ReplayDeterministicClock、WorkflowStateEntity、PostgresWorkflowRuntime、WorkflowSchedulerService、Flyway 迁移与测试代码行号。
+- 工具：shell → 生成 `.claude/context-phase3.6-reflection.json` 并校验内容。
+
+**观察**:
+- ReplayDeterministicClock 仅在实现文件出现，WorkflowRuntime SPI 仍为无参 getClock，若直接改签名将波及 aster-runtime 与内存实现。
+- workflow_state 已存在 snapshot JSONB，可复用序列化逻辑；新增 clock_times 需处理 Hibernate JSON 类型、旧数据兼容与缓存生命周期。

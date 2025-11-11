@@ -4,7 +4,7 @@
 
 # Interface: TypePii
 
-Defined in: [types.ts:372](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types.ts#L372)
+Defined in: [types.ts:372](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types.ts#L372)
 
 PII 类型标注（AST 层）
 语法：@pii(L2, email) Text
@@ -19,7 +19,7 @@ PII 类型标注（AST 层）
 
 > `readonly` **kind**: `"TypePii"`
 
-Defined in: [types.ts:373](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types.ts#L373)
+Defined in: [types.ts:373](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types.ts#L373)
 
 #### Overrides
 
@@ -31,7 +31,7 @@ Defined in: [types.ts:373](https://github.com/wontlost-ltd/aster-lang/blob/3875b
 
 > `readonly` **baseType**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:374](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types.ts#L374)
+Defined in: [types.ts:374](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types.ts#L374)
 
 ***
 
@@ -39,7 +39,7 @@ Defined in: [types.ts:374](https://github.com/wontlost-ltd/aster-lang/blob/3875b
 
 > `readonly` **sensitivity**: [`PiiSensitivityLevel`](../type-aliases/PiiSensitivityLevel.md)
 
-Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types.ts#L375)
+Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types.ts#L375)
 
 ***
 
@@ -47,7 +47,7 @@ Defined in: [types.ts:375](https://github.com/wontlost-ltd/aster-lang/blob/3875b
 
 > `readonly` **category**: [`PiiDataCategory`](../type-aliases/PiiDataCategory.md)
 
-Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types.ts#L376)
+Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types.ts#L376)
 
 ***
 
@@ -55,7 +55,7 @@ Defined in: [types.ts:376](https://github.com/wontlost-ltd/aster-lang/blob/3875b
 
 > **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:377](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types.ts#L377)
+Defined in: [types.ts:377](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types.ts#L377)
 
 #### Overrides
 
@@ -67,7 +67,7 @@ Defined in: [types.ts:377](https://github.com/wontlost-ltd/aster-lang/blob/3875b
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -79,7 +79,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/3
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types/base.ts#L43)
 
 #### Inherited from
 

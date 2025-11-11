@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -220,4 +221,52 @@ public class PolicyMetrics {
         long total,
         double hitRatio
     ) {}
+
+    /**
+     * 重置指定策略的评估指标（测试专用）
+     *
+     * @param module 策略模块
+     * @param function 策略函数
+     */
+    public void resetEvaluationMetrics(String module, String function) {
+        removeMeter(registry.find("policy_evaluation_duration_seconds")
+            .tag("module", module)
+            .tag("function", function)
+            .tag("status", "success")
+            .timer());
+
+        removeMeter(registry.find("policy_evaluation_duration_seconds")
+            .tag("module", module)
+            .tag("function", function)
+            .tag("status", "error")
+            .timer());
+
+        removeMeter(registry.find("policy_evaluation_total")
+            .tag("module", module)
+            .tag("function", function)
+            .tag("status", "success")
+            .counter());
+
+        removeMeter(registry.find("policy_evaluation_total")
+            .tag("module", module)
+            .tag("function", function)
+            .tag("status", "error")
+            .counter());
+
+        removeMeter(registry.find("policy_evaluation_errors_total")
+            .tag("module", module)
+            .tag("function", function)
+            .counter());
+
+        policyModuleUsage.computeIfPresent(module, (k, v) -> {
+            v.set(0);
+            return v;
+        });
+    }
+
+    private void removeMeter(Meter meter) {
+        if (meter != null) {
+            registry.remove(meter);
+        }
+    }
 }

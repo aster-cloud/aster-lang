@@ -4,7 +4,7 @@
 
 # Interface: BaseField\<T\>
 
-Defined in: [types/base.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types/base.ts#L73)
+Defined in: [types/base.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types/base.ts#L73)
 
 字段基础接口。
 
@@ -27,7 +27,7 @@ Defined in: [types/base.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/3
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types/base.ts#L74)
+Defined in: [types/base.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types/base.ts#L74)
 
 ***
 
@@ -35,4 +35,4 @@ Defined in: [types/base.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/3
 
 > `readonly` **type**: `T`
 
-Defined in: [types/base.ts:75](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types/base.ts#L75)
+Defined in: [types/base.ts:75](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types/base.ts#L75)

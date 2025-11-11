@@ -1,8 +1,11 @@
 package io.aster.workflow;
 
+import aster.runtime.workflow.DeterministicClock;
 import aster.runtime.workflow.ExecutionHandle;
 import aster.runtime.workflow.WorkflowEvent;
 import aster.runtime.workflow.WorkflowMetadata;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -24,6 +27,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Runtime 层集成测试：验证 DAG 并发执行、事件序列一致性与补偿逻辑。
@@ -297,5 +302,122 @@ class WorkflowConcurrencyIntegrationTest {
 
     private void appendWorkflowCompleted(String workflowId, Object result) {
         eventStore.appendEvent(workflowId, WorkflowEvent.Type.WORKFLOW_COMPLETED, result);
+    }
+
+    /**
+     * Phase 3.6: 测试 Workflow Replay 完整场景
+     *
+     * 验证 clock_times 持久化与 WorkflowSchedulerService 的 replay 恢复逻辑。
+     */
+    @Test
+    @Transactional
+    void testWorkflowReplayWithDeterministicClock() throws Exception {
+        String workflowId = UUID.randomUUID().toString();
+        UUID wfUuid = UUID.fromString(workflowId);
+
+        // 创建 workflow 状态
+        WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfUuid);
+        state.status = "RUNNING";
+        state.persist();
+
+        // 模拟首次执行：手动创建 clock 并记录时间
+        PostgresWorkflowRuntime.setCurrentWorkflowId(workflowId);
+        try {
+            ReplayDeterministicClock clock = new ReplayDeterministicClock();
+            Instant t1 = Instant.parse("2025-01-10T08:00:00Z");
+            Instant t2 = Instant.parse("2025-01-10T08:00:01Z");
+            Instant t3 = Instant.parse("2025-01-10T08:00:02Z");
+
+            clock.recordTimeDecision(t1);
+            clock.recordTimeDecision(t2);
+            clock.recordTimeDecision(t3);
+
+            List<Instant> firstRunTimes = clock.getRecordedTimes();
+            assertThat(firstRunTimes).hasSize(3);
+
+            // 模拟 completeWorkflow 持久化 clock_times
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            ClockTimesSnapshot snapshot = new ClockTimesSnapshot(firstRunTimes, 0, false);
+            state.clockTimes = mapper.writeValueAsString(snapshot);
+            state.status = "COMPLETED";
+            state.persist();
+
+            // 验证 clock_times 已持久化
+            state = findState(workflowId);
+            assertNotNull(state.clockTimes, "clock_times should be persisted");
+
+            // 反序列化验证
+            ClockTimesSnapshot persisted = mapper.readValue(state.clockTimes, ClockTimesSnapshot.class);
+            assertThat(persisted.recordedTimes).hasSize(3);
+            assertThat(persisted.recordedTimes.get(0)).isEqualTo(t1);
+            assertThat(persisted.recordedTimes.get(1)).isEqualTo(t2);
+            assertThat(persisted.recordedTimes.get(2)).isEqualTo(t3);
+            assertThat(persisted.replayMode).isFalse();
+            assertThat(persisted.replayIndex).isEqualTo(0);
+
+            // 模拟故障恢复场景：重置状态为 RUNNING（模拟 crash 后恢复）
+            state.status = "RUNNING";
+            state.lockOwner = null;
+            state.lockExpiresAt = null;
+            state.persist();
+
+            // 验证 WorkflowSchedulerService 能正确加载 clock_times
+            // processWorkflow 会调用 deserializeClockTimes 并激活 replay 模式
+            PostgresWorkflowRuntime.clearCurrentWorkflowId();
+
+            // 追加完成事件，让 processWorkflow 能完成
+            appendWorkflowCompleted(workflowId, Map.of("result", "replay-ok"));
+
+            // 调用 processWorkflow（会加载 clock_times 并激活 replay）
+            schedulerService.processWorkflow(workflowId);
+
+            // 验证 workflow 完成且 clock_times 未被修改
+            state = findState(workflowId);
+            assertThat(state.status).isEqualTo("COMPLETED");
+            assertThat(state.clockTimes).isNotNull();
+
+        } finally {
+            PostgresWorkflowRuntime.clearCurrentWorkflowId();
+        }
+    }
+
+    /**
+     * Phase 3.6: 测试旧 workflow 降级场景
+     *
+     * 验证无 clock_times 的旧 workflow 能正常处理，不报错。
+     */
+    @Test
+    @Transactional
+    void testOldWorkflowWithoutClockTimesDegrades() throws Exception {
+        // 创建旧 workflow（无 clock_times）
+        String workflowId = UUID.randomUUID().toString();
+        WorkflowStateEntity state = new WorkflowStateEntity();
+        state.workflowId = UUID.fromString(workflowId);
+        state.status = "RUNNING";
+        state.lastEventSeq = 0L;
+        state.clockTimes = null; // 模拟旧数据
+        state.createdAt = Instant.now();
+        state.updatedAt = Instant.now();
+        state.persist();
+
+        // 追加一个简单的 workflow 完成事件
+        appendWorkflowCompleted(workflowId, Map.of("result", "old-workflow-ok"));
+
+        PostgresWorkflowRuntime.setCurrentWorkflowId(workflowId);
+        try {
+            // 处理应不报错（降级为 live clock）
+            assertDoesNotThrow(() -> schedulerService.processWorkflow(workflowId));
+
+            // 验证 workflow 正常完成
+            state = findState(workflowId);
+            assertThat(state.status).isEqualTo("COMPLETED");
+
+            // 验证 clock_times 仍为 null（旧 workflow 不写入 clock_times）
+            // 注意：如果 getClock() 被调用，可能会写入新的 clock_times
+            // 这里我们主要验证不报错和正常完成
+        } finally {
+            PostgresWorkflowRuntime.clearCurrentWorkflowId();
+        }
     }
 }

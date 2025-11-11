@@ -6,4 +6,4 @@
 
 > **CoreNode** = [`BaseNode`](../../../base/interfaces/BaseNode.md)\<[`Origin`](../../../interfaces/Origin.md)\>
 
-Defined in: [types.ts:419](https://github.com/wontlost-ltd/aster-lang/blob/3875b263f60d4a4862bc2349e02db9d22be4056b/src/types.ts#L419)
+Defined in: [types.ts:419](https://github.com/wontlost-ltd/aster-lang/blob/3fcb2e3cbadc78c9b553141ad532d86964542285/src/types.ts#L419)
