@@ -7,6 +7,7 @@ import io.aster.ecommerce.metrics.OrderMetrics;
 import io.aster.policy.event.AuditEvent;
 import io.aster.workflow.PostgresEventStore;
 import io.aster.workflow.PostgresWorkflowRuntime;
+import io.aster.workflow.WorkflowSchedulerService;
 import jakarta.inject.Inject;
 import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -47,6 +48,7 @@ class OrderResourceTest {
     PostgresWorkflowRuntime workflowRuntime;
     PostgresEventStore eventStore;
     OrderMetrics orderMetrics;
+    WorkflowSchedulerService workflowSchedulerService;
     @Inject
     TestAuditEventRecorder auditEventRecorder;
 
@@ -55,10 +57,12 @@ class OrderResourceTest {
         workflowRuntime = Mockito.mock(PostgresWorkflowRuntime.class);
         eventStore = Mockito.mock(PostgresEventStore.class);
         orderMetrics = Mockito.mock(OrderMetrics.class);
+        workflowSchedulerService = Mockito.mock(WorkflowSchedulerService.class);
 
         QuarkusMock.installMockForType(workflowRuntime, PostgresWorkflowRuntime.class);
         QuarkusMock.installMockForType(eventStore, PostgresEventStore.class);
         QuarkusMock.installMockForType(orderMetrics, OrderMetrics.class);
+        QuarkusMock.installMockForType(workflowSchedulerService, WorkflowSchedulerService.class);
 
         Mockito.when(workflowRuntime.schedule(Mockito.anyString(), Mockito.anyString(), Mockito.any()))
             .thenAnswer(invocation -> {
@@ -365,7 +369,7 @@ class OrderResourceTest {
             return Map.of(
                 "quarkus.flyway.migrate-at-start", "false",
                 "quarkus.flyway.clean-at-start", "false",
-                "quarkus.arc.exclude-types", "io.aster.workflow.WorkflowSchedulerService,io.aster.policy.event.AuditEventListener"
+                "quarkus.arc.exclude-types", "io.aster.policy.event.AuditEventListener"
             );
         }
     }
