@@ -20,8 +20,9 @@ export default defineConfig({
   },
   vite: {
     build: {
-      // 增加 chunk size warning 阈值到 2000kb 以避免大型文档库的警告
-      chunkSizeWarningLimit: 2000,
+      // 增加 chunk size warning 阈值到 4000kb 以避免大型文档库的警告
+      // Phase 3.8 添加了大量详细文档，增加阈值以避免警告
+      chunkSizeWarningLimit: 4000,
     },
   },
   themeConfig: {
