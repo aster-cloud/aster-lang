@@ -53,7 +53,7 @@ public class WorkflowSchedulerService {
     private ScheduledExecutorService timerPollingService;
     private volatile boolean running = false;
 
-    // Worker 标识符
+    // Worker 标识符：调度器级别标识，不处于 workflow 上下文，保持 UUID 随机值即可
     private final String workerId = UUID.randomUUID().toString().substring(0, 8);
 
     /**
@@ -180,7 +180,9 @@ public class WorkflowSchedulerService {
     @Transactional
     public void processWorkflow(String workflowId) {
         // Phase 3.6: 设置 ThreadLocal 上下文传递 workflowId
-        PostgresWorkflowRuntime.setCurrentWorkflowId(workflowId);
+        workflowRuntime.setCurrentWorkflowId(workflowId);
+        DeterminismContext context = new DeterminismContext();
+        workflowRuntime.setDeterminismContext(context);
         try {
             UUID wfUuid = UUID.fromString(workflowId);
 
@@ -195,15 +197,14 @@ public class WorkflowSchedulerService {
 
             // Phase 3.6: 加载并激活 replay 模式
             if (state.clockTimes != null && !state.clockTimes.isBlank()) {
-                ClockTimesSnapshot snapshot = deserializeClockTimes(state.clockTimes);
-                if (snapshot != null && !snapshot.recordedTimes.isEmpty()) {
-                    Object clockObj = workflowRuntime.getClock();
-                    if (clockObj instanceof ReplayDeterministicClock) {
-                        ReplayDeterministicClock clock = (ReplayDeterministicClock) clockObj;
-                        clock.enterReplayMode(snapshot.recordedTimes);
-                        Log.infof("Workflow %s entered replay mode with %d recorded times",
-                                workflowId, snapshot.recordedTimes.size());
-                    }
+                DeterminismSnapshot snapshot = deserializeDeterminismSnapshot(state.clockTimes);
+                if (snapshot != null) {
+                    snapshot.applyTo(context.clock(), context.uuid(), context.random());
+                    int clockCount = snapshot.getClockTimes() != null
+                            ? snapshot.getClockTimes().size()
+                            : 0;
+                    Log.infof("Workflow %s entered replay mode with %d clock decisions",
+                            workflowId, clockCount);
                 }
             }
 
@@ -340,32 +341,28 @@ public class WorkflowSchedulerService {
             }
         } finally {
             // Phase 3.6: 清理 ThreadLocal 上下文防止内存泄漏
-            PostgresWorkflowRuntime.clearCurrentWorkflowId();
+            workflowRuntime.clearDeterminismContext();
+            workflowRuntime.clearCurrentWorkflowId();
         }
     }
 
     /**
-     * 反序列化 clock_times JSONB 字符串（Phase 3.6）
+     * 反序列化 clock_times JSONB 字符串（Phase 0 Task 1.3）
      *
-     * 从持久化的 JSONB 数据恢复 ClockTimesSnapshot。
-     * 反序列化失败时返回 null，不阻塞 workflow 处理。
-     *
-     * @param clockTimesJson JSONB 字符串
-     * @return ClockTimesSnapshot 实例，失败时返回 null
+     * @param clockTimesJson JSON 文本
+     * @return DeterminismSnapshot 实例或 null
      */
-    private ClockTimesSnapshot deserializeClockTimes(String clockTimesJson) {
+    private DeterminismSnapshot deserializeDeterminismSnapshot(String clockTimesJson) {
         if (clockTimesJson == null || clockTimesJson.isBlank()) {
             return null;
         }
         try {
-            // 创建独立的 ObjectMapper 并注册 JavaTimeModule
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
-
-            return mapper.readValue(clockTimesJson, ClockTimesSnapshot.class);
+            return mapper.readValue(clockTimesJson, DeterminismSnapshot.class);
         } catch (Exception e) {
-            Log.warnf(e, "Failed to deserialize clock_times, workflow will proceed without replay mode");
-            return null; // 反序列化失败降级为非 replay 模式
+            Log.warnf(e, "Failed to deserialize DeterminismSnapshot, degrading to non-replay mode");
+            return null;
         }
     }
 

@@ -94,3 +94,8 @@
 - 2025-11-08 15:53 NZST｜工具：shell（nl）｜动作：标注 `.claude/phase2-task2.3-report.md` 行号｜摘要：方便报告引用。
 - 2025-11-08 15:53 NZST｜工具：shell（nl）｜动作：标注 verification.md 行号｜摘要：记录验证文档段落位置。
 - 2025-11-08 15:53 NZST｜工具：apply_patch｜动作：记录本次写操作｜摘要：为上述行号查询写入日志。
+- 2025-11-12 03:30 NZST｜工具：sequential-thinking｜动作：IdempotencyIntegrationTest 失败诊断思考｜摘要：梳理 GraphQL 初始化异常→幂等 Guard 行为→阻塞/异步上下文的潜在冲突。
+- 2025-11-12 03:32 NZST｜工具：shell（gradlew）｜动作：复现单测失败｜摘要：执行 `./gradlew :quarkus-policy-api:test --tests io.aster.audit.IdempotencyIntegrationTest` 捕捉 GraphQL 启动错误与 409 响应日志。
+- 2025-11-12 03:38 NZST｜工具：apply_patch｜动作：修复 GraphQL/REST 幂等流程｜摘要：为 GraphQL mutation 注入 SmallRye Context unwrap、在 InboxGuard 新增阻塞版 tryAcquire、REST/执行器切换阻塞 Guard、同步更新测试与配置输出错误信息。
+- 2025-11-12 03:43 NZST｜工具：shell（gradlew）｜动作：单项验证｜摘要：执行 `./gradlew :quarkus-policy-api:test --tests io.aster.audit.IdempotencyIntegrationTest.testUpdateAnomalyStatusIdempotency` 确认 REST 幂等路径恢复 204。
+- 2025-11-12 03:45 NZST｜工具：shell（gradlew）｜动作：运行全部 10 个 IdempotencyIntegrationTest｜摘要：`./gradlew :quarkus-policy-api:test --tests io.aster.audit.IdempotencyIntegrationTest` 全部通过，验证 10 场景幂等行为与 GraphQL 错误信息。

@@ -12,6 +12,8 @@ import io.aster.policy.api.model.PolicyEvaluationResult;
 import io.aster.policy.api.model.PolicyValidationResult;
 import io.aster.policy.api.model.StepResult;
 import io.aster.validation.metadata.ConstructorMetadataCache;
+import io.aster.workflow.DeterminismContext;
+import io.aster.workflow.PostgresWorkflowRuntime;
 import io.aster.validation.metadata.PolicyMetadata;
 import io.aster.validation.metadata.PolicyMetadataLoader;
 import io.quarkus.cache.Cache;
@@ -50,6 +52,9 @@ public class PolicyEvaluationService {
 
     @Inject
     ConstructorMetadataCache constructorMetadataCache;
+
+    @Inject
+    PostgresWorkflowRuntime workflowRuntime;
 
     private static final Logger LOG = Logger.getLogger(PolicyEvaluationService.class);
 
@@ -114,7 +119,11 @@ public class PolicyEvaluationService {
 
         return Uni.createFrom().item(() -> {
             try {
-                long startTime = System.nanoTime();
+                DeterminismContext context = resolveDeterminismContext();
+                boolean deterministicTiming = context != null;
+                long startMarker = deterministicTiming
+                    ? context.random().nextLong("PolicyEvaluationService:start")
+                    : System.nanoTime();
 
                 // 获取策略元数据（委托给加载器处理缓存）
                 PolicyMetadata metadata = loadPolicyMetadata(cacheKey.getPolicyModule(), cacheKey.getPolicyFunction());
@@ -124,7 +133,10 @@ public class PolicyEvaluationService {
 
                 // 使用MethodHandle调用策略 (比reflection快2-3倍)
                 Object result = metadata.invoke(args);
-                long durationNanos = System.nanoTime() - startTime;
+                long endMarker = deterministicTiming
+                    ? context.random().nextLong("PolicyEvaluationService:end")
+                    : System.nanoTime();
+                long durationNanos = endMarker - startMarker;
 
                 // 构建结果
                 return new PolicyEvaluationResult(
@@ -230,6 +242,17 @@ public class PolicyEvaluationService {
             original.getExecutionTimeMs(),
             fromCache
         );
+    }
+
+    /**
+     * 根据当前 workflow 上下文决定是否启用确定性随机计时
+     */
+    private DeterminismContext resolveDeterminismContext() {
+        try {
+            return workflowRuntime != null ? workflowRuntime.getDeterminismContext() : null;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     /**

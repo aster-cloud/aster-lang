@@ -2,6 +2,13 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-11 Phase 0 Task 1.5 非确定性修复验证
+- 日期：2025-11-11 23:40 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :aster-runtime:build` → 通过（迁移 DeterminismContext/Replay 到 runtime 模块并更换 java.util.logging 后，构建无误）。
+  - `./gradlew :quarkus-policy-api:test --tests io.aster.workflow.NonDeterminismSourceTest --rerun-tasks` → 通过（5/5，覆盖 PolicyStorage UUID、PolicyEvaluation 计时、generateIdempotencyKey、InMemoryRuntime、grep 校验；此前缺少 org.jboss.logging 导致 emit-classfiles 失败，已改用 java.util.logging 并重跑成功）。
+
 ## 2025-11-10 PostgresEventStore H2 兼容验证
 - 日期：2025-11-10 18:03 NZDT
 - 执行者：Codex

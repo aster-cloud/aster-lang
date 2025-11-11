@@ -38,9 +38,12 @@ dependencies {
 
     // GraphQL支持
     implementation("io.quarkus:quarkus-smallrye-graphql")
+    implementation("commons-codec:commons-codec:1.17.1")
 
-    // Persistence - Hibernate Panache + PostgreSQL + Flyway
+    // Persistence - Hibernate Panache + PostgreSQL + Flyway + Reactive Inbox
     implementation("io.quarkus:quarkus-hibernate-orm-panache")
+    implementation("io.quarkus:quarkus-hibernate-reactive-panache")
+    implementation("io.quarkus:quarkus-reactive-pg-client")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("io.quarkus:quarkus-flyway")
 
@@ -56,6 +59,7 @@ dependencies {
     // 测试依赖
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.quarkus:quarkus-junit5-mockito")
+    testImplementation("io.quarkus:quarkus-test-vertx")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.smallrye.reactive:smallrye-mutiny-vertx-junit5")
     testImplementation("org.assertj:assertj-core:3.26.0")
@@ -79,6 +83,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
 }
 
 // 确保在编译前生成Aster JAR（包含loan policy + creditcard + healthcare + insurance + lending）

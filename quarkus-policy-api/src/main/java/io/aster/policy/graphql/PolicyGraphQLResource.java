@@ -1,5 +1,6 @@
 package io.aster.policy.graphql;
 
+import io.aster.audit.inbox.InboxGuard;
 import io.aster.policy.api.CacheManagementService;
 import io.aster.policy.api.CacheManagementService.CacheOperationResult;
 import io.aster.policy.api.PolicyManagementService;
@@ -12,11 +13,13 @@ import io.aster.policy.graphql.types.LifeInsuranceTypes;
 import io.aster.policy.graphql.types.LoanTypes;
 import io.aster.policy.graphql.types.PolicyTypes;
 import io.aster.policy.graphql.types.PersonalLendingTypes;
+import io.smallrye.graphql.api.Context;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.core.Context;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
+import graphql.GraphQLContext;
+import graphql.GraphQLException;
 import org.eclipse.microprofile.graphql.Description;
 import org.eclipse.microprofile.graphql.GraphQLApi;
 import org.eclipse.microprofile.graphql.Mutation;
@@ -41,7 +44,10 @@ public class PolicyGraphQLResource {
     @Inject
     CacheManagementService cacheManagementService;
 
-    @Context
+    @Inject
+    InboxGuard inboxGuard;
+
+    @jakarta.ws.rs.core.Context
     RoutingContext routingContext;
 
     private String tenantId() {
@@ -221,12 +227,45 @@ public class PolicyGraphQLResource {
     }
 
     @Mutation("createPolicy")
-   @Description("创建策略 / Create policy")
+    @Description("创建策略 / Create policy")
     public Uni<PolicyTypes.Policy> createPolicy(
             @NonNull @Description("策略输入 / Policy payload")
-            PolicyTypes.PolicyInput input
-   ) {
-        return policyManagementService.createPolicy(tenantId(), input);
+            PolicyTypes.PolicyInput input,
+            Context graphQLContext
+    ) {
+        GraphQLContext graphqlJavaContext = null;
+        if (graphQLContext != null) {
+            try {
+                graphqlJavaContext = graphQLContext.unwrap(GraphQLContext.class);
+            } catch (RuntimeException ignored) {
+                graphqlJavaContext = null;
+            }
+        }
+
+        String idempotencyKey = extractHeader(graphqlJavaContext, "Idempotency-Key");
+        if ((idempotencyKey == null || idempotencyKey.isBlank()) && routingContext != null && routingContext.request() != null) {
+            idempotencyKey = routingContext.request().getHeader("Idempotency-Key");
+        }
+        String tenantFromHeader = extractHeader(graphqlJavaContext, "X-Tenant-Id");
+        String effectiveTenantId = (tenantFromHeader == null || tenantFromHeader.isBlank())
+            ? tenantId()
+            : tenantFromHeader;
+
+        final String resolvedIdempotencyKey = idempotencyKey;
+
+        if (resolvedIdempotencyKey == null || resolvedIdempotencyKey.isBlank()) {
+            return policyManagementService.createPolicy(effectiveTenantId, input);
+        }
+
+        return inboxGuard.tryAcquire(resolvedIdempotencyKey, "CREATE_POLICY", effectiveTenantId)
+            .flatMap(acquired -> {
+                if (!acquired) {
+                    return Uni.createFrom().failure(
+                        new GraphQLException("Duplicate request: " + resolvedIdempotencyKey)
+                    );
+                }
+                return policyManagementService.createPolicy(effectiveTenantId, input);
+            });
     }
 
     @Mutation("updatePolicy")
@@ -267,5 +306,16 @@ public class PolicyGraphQLResource {
             String policyFunction
     ) {
         return cacheManagementService.invalidateTenantCache(tenantId(), policyModule, policyFunction);
+    }
+
+    private String extractHeader(GraphQLContext context, String headerName) {
+        if (context == null || headerName == null) {
+            return null;
+        }
+        Object value = context.getOrDefault(headerName, null);
+        if (value instanceof String str) {
+            return str;
+        }
+        return null;
     }
 }

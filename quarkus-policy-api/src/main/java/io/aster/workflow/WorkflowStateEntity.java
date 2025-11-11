@@ -104,9 +104,9 @@ public class WorkflowStateEntity extends PanacheEntityBase {
     public String errorMessage;
 
     /**
-     * ReplayDeterministicClock 时间决策序列（Phase 3.6）
-     * JSONB 结构：{ "recordedTimes": ["2025-01-10T08:00:00Z", ...], "replayIndex": 0, "replayMode": false, "version": 1 }
-     * 用于确定性时间重放，支持审计合规场景
+     * 确定性决策快照（Phase 0 Task 1.3）
+     * JSONB 结构：{ "clockTimes": [...], "uuids": [...], "randoms": {"source": [...] } }
+     * 兼容旧结构 recordedTimes/replayIndex/replayMode/version
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "clock_times", columnDefinition = "jsonb")

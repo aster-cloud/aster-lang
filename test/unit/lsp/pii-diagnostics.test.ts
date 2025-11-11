@@ -1,7 +1,9 @@
 import { before, after, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { DiagnosticSeverity } from 'vscode-languageserver/node.js';
 import type { Core, Origin } from '../../../src/types.js';
 import { checkPiiFlow } from '../../../src/lsp/pii_diagnostics.js';
+import { config, resetConfig } from '../../../src/lsp/config.js';
 
 let piiDiagnosticsModule: typeof import('../../../src/lsp/pii_diagnostics.js') | null = null;
 let originalActiveContext: unknown = null;
@@ -106,6 +108,110 @@ describe('PII Diagnostics', () => {
       };
       const diagnostics = checkPiiFlow(emptyModule);
       assert.strictEqual(diagnostics.length, 0);
+    });
+
+    it('默认模式下 PII 泄漏应为 Warning', () => {
+      // 确保默认配置（非严格模式）
+      resetConfig({ strictPiiMode: false });
+
+      const stringType: Core.TypeName = { kind: 'TypeName', name: 'String' };
+      const piiType: Core.PiiType = {
+        kind: 'PiiType',
+        baseType: stringType,
+        sensitivity: 'L2',
+        category: 'name',
+      };
+      const httpCallWithPii: Core.Call = {
+        kind: 'Call',
+        target: makeName('Http.post'),
+        args: [makeName('piiData')],
+        origin: makeOrigin('http-call'),
+      };
+
+      const func = makeFunc({
+        name: 'leakPii',
+        params: [{ name: 'piiData', type: piiType, annotations: [] }],
+        body: makeBlock([makeReturn(httpCallWithPii)]),
+      });
+
+      const module: Core.Module = {
+        kind: 'Module',
+        name: 'TestModule',
+        decls: [func],
+      };
+
+      const diagnostics = checkPiiFlow(module);
+      assert.strictEqual(diagnostics.length, 1);
+      assert.strictEqual(diagnostics[0]?.severity, DiagnosticSeverity.Warning);
+      assert.ok(diagnostics[0]?.message.includes('PII data transmitted over HTTP'));
+    });
+
+    it('--strict-pii 模式下 PII 泄漏应为 Error', () => {
+      // 启用严格模式
+      resetConfig({ strictPiiMode: true });
+
+      const stringType: Core.TypeName = { kind: 'TypeName', name: 'String' };
+      const piiType: Core.PiiType = {
+        kind: 'PiiType',
+        baseType: stringType,
+        sensitivity: 'L2',
+        category: 'name',
+      };
+      const httpCallWithPii: Core.Call = {
+        kind: 'Call',
+        target: makeName('Http.post'),
+        args: [makeName('piiData')],
+        origin: makeOrigin('http-call'),
+      };
+
+      const func = makeFunc({
+        name: 'leakPii',
+        params: [{ name: 'piiData', type: piiType, annotations: [] }],
+        body: makeBlock([makeReturn(httpCallWithPii)]),
+      });
+
+      const module: Core.Module = {
+        kind: 'Module',
+        name: 'TestModule',
+        decls: [func],
+      };
+
+      const diagnostics = checkPiiFlow(module);
+      assert.strictEqual(diagnostics.length, 1);
+      assert.strictEqual(diagnostics[0]?.severity, DiagnosticSeverity.Error);
+      assert.ok(diagnostics[0]?.message.includes('PII data transmitted over HTTP'));
+
+      // 恢复默认配置
+      resetConfig({ strictPiiMode: false });
+    });
+
+    it('无 PII 泄漏时不应产生诊断', () => {
+      resetConfig({ strictPiiMode: true });
+
+      const stringType: Core.TypeName = { kind: 'TypeName', name: 'String' };
+      const httpCallWithoutPii: Core.Call = {
+        kind: 'Call',
+        target: makeName('Http.post'),
+        args: [makeName('safeData')],
+        origin: makeOrigin('http-call'),
+      };
+
+      const func = makeFunc({
+        name: 'noLeak',
+        params: [{ name: 'safeData', type: stringType, annotations: [] }],
+        body: makeBlock([makeReturn(httpCallWithoutPii)]),
+      });
+
+      const module: Core.Module = {
+        kind: 'Module',
+        name: 'TestModule',
+        decls: [func],
+      };
+
+      const diagnostics = checkPiiFlow(module);
+      assert.strictEqual(diagnostics.length, 0);
+
+      resetConfig({ strictPiiMode: false });
     });
   });
 });

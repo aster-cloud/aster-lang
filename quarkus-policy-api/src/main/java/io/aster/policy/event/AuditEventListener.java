@@ -8,6 +8,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.apache.commons.codec.digest.DigestUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +36,11 @@ public class AuditEventListener {
             AuditLog log = new AuditLog();
             log.eventType = event.eventType().name();
             log.timestamp = event.timestamp();
-            log.tenantId = redact(event.tenantId());
+            String tenant = event.tenantId();
+            if (tenant == null || tenant.isBlank()) {
+                tenant = "system";
+            }
+            log.tenantId = redact(tenant);
             log.policyModule = redact(event.policyModule());
             log.policyFunction = redact(event.policyFunction());
             log.policyId = redact(event.policyId());
@@ -48,13 +53,17 @@ public class AuditEventListener {
             log.reason = extractReason(event.metadata());
             log.metadata = serializeMetadata(event.metadata());
 
+            // 计算哈希链（Phase 0 Task 3.2）
+            computeHashChain(log);
+
             log.persist();
 
             Log.debugf(
-                "Audit event persisted: type=%s, tenant=%s, module=%s",
+                "Audit event persisted: type=%s, tenant=%s, module=%s, hash=%s",
                 event.eventType(),
                 event.tenantId(),
-                event.policyModule()
+                event.policyModule(),
+                log.currentHash
             );
         } catch (Exception e) {
             Log.errorf(
@@ -114,6 +123,50 @@ public class AuditEventListener {
         } catch (Exception e) {
             Log.errorf(e, "Failed to serialize metadata");
             return "{\"error\":\"serialization_failed\"}";
+        }
+    }
+
+    /**
+     * 计算审计记录的哈希链（Phase 0 Task 3.2）
+     *
+     * 实现 per-tenant 哈希链，避免全局竞争。
+     * 每条记录包含：
+     * - prevHash: 前一条记录的哈希值（genesis block 为 null）
+     * - currentHash: 当前记录的哈希值
+     *
+     * 哈希计算规则：SHA256(prev_hash + event_type + timestamp + tenant_id + policy_module + policy_function + success)
+     */
+    private void computeHashChain(AuditLog log) {
+        try {
+            // 查询该租户的最新哈希值（per-tenant chain）
+            String prevHash = AuditLog.findLatestHash(log.tenantId);
+            log.prevHash = prevHash;
+
+            // 计算当前哈希
+            StringBuilder content = new StringBuilder();
+            if (prevHash != null) {
+                content.append(prevHash);
+            }
+            content.append(log.eventType != null ? log.eventType : "");
+            content.append(log.timestamp != null ? log.timestamp.toString() : "");
+            content.append(log.tenantId != null ? log.tenantId : "");
+            content.append(log.policyModule != null ? log.policyModule : "");
+            content.append(log.policyFunction != null ? log.policyFunction : "");
+            content.append(log.success != null ? log.success.toString() : "");
+
+            log.currentHash = DigestUtils.sha256Hex(content.toString());
+
+            Log.debugf(
+                "Hash chain computed: tenant=%s, prevHash=%s, currentHash=%s",
+                log.tenantId,
+                prevHash != null ? prevHash.substring(0, 8) + "..." : "null",
+                log.currentHash.substring(0, 8) + "..."
+            );
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to compute hash chain for tenant=%s", log.tenantId);
+            // 哈希计算失败不影响审计记录持久化
+            log.prevHash = null;
+            log.currentHash = null;
         }
     }
 }

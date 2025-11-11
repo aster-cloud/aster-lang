@@ -43,6 +43,10 @@ public class PolicyRollbackResourceTest {
     @BeforeEach
     @Transactional
     void setUp() {
+        // 清理旧数据
+        PolicyVersion.delete("policyId", testPolicyId);
+        AuditLog.delete("policyId", testPolicyId);
+
         // 创建 3 个测试版本
         v1 = policyVersionService.createVersion(
             testPolicyId,

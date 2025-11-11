@@ -1,6 +1,9 @@
 package io.aster.policy.service;
 
+import io.aster.workflow.DeterminismContext;
+import io.aster.workflow.PostgresWorkflowRuntime;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -19,6 +22,9 @@ import java.util.concurrent.ConcurrentMap;
  */
 @ApplicationScoped
 public class PolicyStorageService {
+
+    @Inject
+    PostgresWorkflowRuntime workflowRuntime;
 
     private final ConcurrentMap<String, ConcurrentMap<String, PolicyDocument>> store = new ConcurrentHashMap<>();
 
@@ -73,7 +79,21 @@ public class PolicyStorageService {
         if (document.getId() != null && !document.getId().isBlank()) {
             return document;
         }
-        return document.withId(UUID.randomUUID().toString());
+        return document.withId(generateDeterministicId());
+    }
+
+    /**
+     * 生成确定性的策略 ID
+     *
+     * workflow replay 模式下必须复用 DeterminismContext 的 UUID 门面，
+     * 否则相同输入在重放时会产生全新的策略 ID。
+     */
+    private String generateDeterministicId() {
+        DeterminismContext context = workflowRuntime != null ? workflowRuntime.getDeterminismContext() : null;
+        if (context != null) {
+            return context.uuid().randomUUID().toString();
+        }
+        return UUID.randomUUID().toString();
     }
 
     private ConcurrentMap<String, PolicyDocument> tenantStore(String tenantId) {

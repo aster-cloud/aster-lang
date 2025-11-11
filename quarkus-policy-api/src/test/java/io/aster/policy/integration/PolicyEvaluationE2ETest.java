@@ -199,6 +199,13 @@ class PolicyEvaluationE2ETest {
             .then()
             .statusCode(200);
 
+        // 等待事务提交完成（异步审计日志记录）
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         // 验证审计日志隔离
         List<AuditLog> tenantALogs = AuditLog.findByTenant(TENANT_A);
         List<AuditLog> tenantBLogs = AuditLog.findByTenant(TENANT_B);

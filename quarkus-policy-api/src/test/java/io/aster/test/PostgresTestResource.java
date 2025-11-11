@@ -24,8 +24,15 @@ public class PostgresTestResource implements QuarkusTestResourceLifecycleManager
     @Override
     public Map<String, String> start() {
         postgres.start();
+        String reactiveUrl = String.format(
+            "postgresql://%s:%d/%s",
+            postgres.getHost(),
+            postgres.getMappedPort(5432),
+            postgres.getDatabaseName()
+        );
         return Map.of(
             "quarkus.datasource.jdbc.url", postgres.getJdbcUrl(),
+            "quarkus.datasource.reactive.url", reactiveUrl,
             "quarkus.datasource.username", postgres.getUsername(),
             "quarkus.datasource.password", postgres.getPassword(),
             "quarkus.datasource.db-kind", "postgresql"

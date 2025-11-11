@@ -3,6 +3,7 @@ package io.aster.audit.integration;
 import io.aster.audit.dto.AnomalyReportDTO;
 import io.aster.audit.entity.AnomalyActionEntity;
 import io.aster.audit.entity.AnomalyReportEntity;
+import io.aster.audit.outbox.OutboxStatus;
 import io.aster.audit.rest.model.VerificationResult;
 import io.aster.audit.service.AnomalyActionExecutor;
 import io.aster.audit.service.AnomalyWorkflowService;
@@ -255,7 +256,7 @@ class AnomalyReplayVerificationIntegrationTest {
         AnomalyActionEntity action = new AnomalyActionEntity();
         action.anomalyId = anomaly.id;
         action.actionType = "VERIFY_REPLAY";
-        action.status = "PENDING";
+        action.status = OutboxStatus.PENDING;
         action.payload = String.format("{\"workflowId\":\"%s\"}", workflowId);
         action.createdAt = Instant.now();
         action.persist();

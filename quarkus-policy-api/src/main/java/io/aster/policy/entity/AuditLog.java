@@ -130,6 +130,20 @@ public class AuditLog extends PanacheEntityBase {
     @Column(name = "user_agent", length = 500)
     public String userAgent;
 
+    /**
+     * 前一条审计记录的哈希值（SHA256 hex，用于构建防篡改链）
+     * NULL 表示该租户的第一条记录（genesis block）
+     */
+    @Column(name = "prev_hash", length = 64)
+    public String prevHash;
+
+    /**
+     * 当前记录的哈希值（SHA256 hex）
+     * 计算规则：SHA256(prev_hash + event_type + timestamp + tenant_id + policy_module + policy_function + success)
+     */
+    @Column(name = "current_hash", length = 64)
+    public String currentHash;
+
     // Constructors
     public AuditLog() {
     }
@@ -162,5 +176,15 @@ public class AuditLog extends PanacheEntityBase {
     public static java.util.List<AuditLog> findByTimeRange(Instant startTime, Instant endTime, String tenantId) {
         return list("timestamp >= ?1 and timestamp <= ?2 and tenantId = ?3 order by timestamp desc",
             startTime, endTime, tenantId);
+    }
+
+    /**
+     * 查询指定租户的最新哈希值（用于构建哈希链）
+     * 返回 NULL 表示该租户的第一条记录（genesis block）
+     */
+    public static String findLatestHash(String tenantId) {
+        AuditLog log = find("tenantId = ?1 and currentHash is not null order by timestamp desc, id desc", tenantId)
+            .firstResult();
+        return log != null ? log.currentHash : null;
     }
 }

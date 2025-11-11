@@ -1,3 +1,41 @@
+# 2025-11-12 02:11 NZDT PolicyGraphQLResource 幂等键 final 修复
+
+**操作记录**:
+- 工具：sequential-thinking（1 次）→ 明确编译错误根因及采用 final 代理变量的修复策略。
+- 工具：code-index（set_project_path/build_deep_index/get_file_summary）→ 初始化索引并定位 `createPolicy` 方法周边代码。
+- 工具：shell（sed/TZ=Pacific/Auckland date）→ 查看 220-280 行代码并记录日志时间。
+- 工具：apply_patch → 引入 `resolvedIdempotencyKey` final 变量并更新 lambda 中的引用。
+
+**观察**:
+- `idempotencyKey` 在回退读取 Vert.x 请求头后会被重新赋值，导致 lambda 捕获变量不再是有效 final，编译报错。
+- 通过 final 代理变量包裹最终值即可满足 lambda 要求且不影响幂等性逻辑。
+
+# 2025-11-12 02:05 NZDT PolicyGraphQLResource @Context 修复
+
+**操作记录**:
+- 工具：sequential-thinking（2 次）→ 梳理 GraphQL `@Context` 注解缺失导致的编译错误修复策略与验证计划。
+- 工具：code-index（set_project_path/find_files/search_code_advanced）→ 初始化索引并定位 `PolicyGraphQLResource` 中 `DataFetchingEnvironment` 参数所在行。
+- 工具：shell（sed/rg）→ 查看 210-260 行代码片段确认仅此处使用 `@org.eclipse.microprofile.graphql.Context`。
+- 工具：apply_patch → 去除 `createPolicy` 形参上的 `@Context` 注解，保留原有 `GraphQLContext` 读取逻辑。
+- 工具：shell（mvn/gradlew）→ 先运行 `mvn -pl quarkus-policy-api test` 验证编译但因模块采用 Gradle 失败，随后执行 `./gradlew :quarkus-policy-api:build` 全量构建并通过。
+
+**观察**:
+- `quarkus-policy-api` 模块完全由 Gradle 管理，Maven 命令无法找到模块需改用 `./gradlew`.
+- 移除注解后 `GraphQLContext` 仍可从 `DataFetchingEnvironment` 获取，同时保留备用的 Vert.x header 读取逻辑确保幂等键补救路径。
+
+# 2025-11-12 01:09 NZDT Phase 0 Task 2.2 InboxGuard 实现
+
+**操作记录**:
+- 工具：sequential-thinking → 分析幂等性需求、确认需要 InboxEvent.tryInsert + 清理机制并列出实现/测试步骤。
+- 工具：plan（update_plan）→ 记录“收集上下文 → 实现服务与配置 → 编写/执行测试 → 更新日志”四步计划并多次更新状态。
+- 工具：code-index（set_project_path/find_files/search_code_advanced）→ 定位 InboxEvent、TestResource、迁移脚本，确认实体结构与 Postgres Testcontainers 设置。
+- 工具：apply_patch → 新增 `InboxGuard` 服务（含租户级组合键与 @WithTransaction cleanup）、更新 `application.properties`、创建 `InboxGuardTest`（reactive helper + 五个场景）。
+- 工具：shell（sed/ls/TZ=Pacific/Auckland date/gradlew）→ 查看现有配置、运行 `./gradlew :quarkus-policy-api:test --tests io.aster.audit.inbox.InboxGuardTest` 多次直至 5/5 用例通过，并记录 NZ 时间。
+
+**观察**:
+- InboxEvent 主键仅包含 idempotency_key，测试需要租户隔离，因此在 InboxGuard 中组合 tenantId:Key 以维持独立命名空间。
+- Scheduled cleanup 需 @WithTransaction 才能在定时器上下文创建 reactive session；测试期间同时确认 pg-client 直接写入/查询更稳定，避免 Panache session 限制。
+
 # 2025-11-11 16:26 NZDT Phase 3.8 上下文收集（step1）
 
 **操作记录**:
@@ -5562,3 +5600,25 @@ List.map (1000 items) Heavy: 1.516680 ms
 **观察**:
 - ReplayDeterministicClock 仅在实现文件出现，WorkflowRuntime SPI 仍为无参 getClock，若直接改签名将波及 aster-runtime 与内存实现。
 - workflow_state 已存在 snapshot JSONB，可复用序列化逻辑；新增 clock_times 需处理 Hibernate JSON 类型、旧数据兼容与缓存生命周期。
+# 2025-11-12 00:53 NZDT Phase 0 Task 2.1 Inbox 去重实现
+
+**操作记录**:
+- 工具：sequential-thinking → 拆解任务范围，确认需补齐迁移、实体、测试与日志。
+- 工具：code-index + shell → 检索现有 Flyway 脚本与 Panache 实体风格，确定 V4.0.0 版本号可用。
+- 工具：apply_patch → 新增 `quarkus-policy-api/src/main/resources/db/migration/V4.0.0__create_inbox_events.sql`，创建 inbox_events 表、索引与注释。
+- 工具：apply_patch → 新建 `io/aster/audit/inbox/InboxEvent.java`，实现 tryInsert/cleanupOldEvents/exists 并启用 JSONB 映射。
+- 工具：apply_patch → 更新 `build.gradle.kts`，引入 `quarkus-hibernate-reactive-panache`、`quarkus-reactive-pg-client` 与测试 vertx 依赖，同时补充 reactive datasource 配置与 TestResource。
+- 工具：apply_patch → 编写 `InboxEventTest`，实现插入/重复/TTL/并发 4 个用例，封装 Vert.x 上下文 helper。
+- 工具：./gradlew :quarkus-policy-api:test --tests io.aster.audit.inbox.InboxEventTest → 反复调试 reactive 会话上下文与幂等异常捕获，最终测试通过。
+
+**观察**:
+- Hibernate Reactive 默认要求 Vert.x duplicated context；测试需主动创建安全上下文并使用 PgPool 清理表数据。
+- UNIQUE 约束在 reactive 提交阶段才抛出 SQLException，需在 tryInsert 中包裹 Panache.withTransaction 并对 ConstraintViolationException/SQLState 23505 双重兜底。
+# 2025-11-12 02:14 NZST IdempotencyIntegrationTest Uni<Long> 修复
+
+**操作记录**:
+- 工具：sequential-thinking → 分析 InboxEvent.count() 返回 Uni<Long> 导致类型不匹配的原因与同步等待方案。
+- 工具：apply_patch → 在 `quarkus-policy-api/src/test/java/io/aster/audit/IdempotencyIntegrationTest.java` 的 `inboxCount()` 中追加 `.await().indefinitely()`，确保测试获取 long。
+
+**观察**:
+- InboxEvent.count() 属于 reactive Panache API，如需同步值需阻塞等待；测试环境使用事务方法时若直接返回 long 会触发编译错误。

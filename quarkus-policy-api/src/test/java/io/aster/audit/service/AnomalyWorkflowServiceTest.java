@@ -2,6 +2,7 @@ package io.aster.audit.service;
 
 import io.aster.audit.entity.AnomalyActionEntity;
 import io.aster.audit.entity.AnomalyReportEntity;
+import io.aster.audit.outbox.OutboxStatus;
 import io.aster.audit.rest.model.VerificationResult;
 import io.aster.policy.entity.PolicyVersion;
 import io.quarkus.test.junit.QuarkusTest;
@@ -97,7 +98,7 @@ class AnomalyWorkflowServiceTest {
         assertNotNull(action);
         assertEquals(testAnomalyId, action.anomalyId);
         assertEquals("VERIFY_REPLAY", action.actionType);
-        assertEquals("PENDING", action.status);
+        assertEquals(OutboxStatus.PENDING, action.status);
     }
 
     @Test

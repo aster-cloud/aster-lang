@@ -1,7 +1,8 @@
 package io.aster.audit.service;
 
-import io.aster.audit.entity.AnomalyActionEntity;
 import io.aster.audit.entity.AnomalyReportEntity;
+import io.aster.audit.entity.AnomalyActionEntity;
+import io.aster.audit.outbox.OutboxStatus;
 import io.aster.audit.rest.model.VerificationResult;
 import io.aster.policy.event.AuditEvent;
 import io.quarkus.logging.Log;
@@ -66,8 +67,9 @@ public class AnomalyWorkflowService {
         AnomalyActionEntity action = new AnomalyActionEntity();
         action.anomalyId = anomalyId;
         action.actionType = "VERIFY_REPLAY";
-        action.status = "PENDING";
+        action.status = OutboxStatus.PENDING;
         action.payload = payload;  // Phase 3.8: 填充 payload
+        action.tenantId = resolveOutboxTenant(anomalyId);
         action.createdAt = Instant.now();
         action.persist();
 
@@ -79,6 +81,13 @@ public class AnomalyWorkflowService {
         ));
 
         return Uni.createFrom().item(action.id);
+    }
+
+    private String resolveOutboxTenant(Long anomalyId) {
+        if (anomalyId == null) {
+            return null;
+        }
+        return "ANOMALY-" + anomalyId;
     }
 
     /**

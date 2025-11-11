@@ -2,6 +2,7 @@ package io.aster.audit.rest;
 
 import io.aster.audit.dto.*;
 import io.aster.audit.entity.AnomalyReportEntity;
+import io.aster.audit.inbox.InboxGuard;
 import io.aster.audit.rest.model.AnomalyActionResponse;
 import io.aster.audit.rest.model.AnomalyDetailResponse;
 import io.aster.audit.rest.model.AnomalyStatusUpdateRequest;
@@ -21,6 +22,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +47,9 @@ public class PolicyAnalyticsResource {
 
     @Inject
     AnomalyWorkflowService workflowService;
+
+    @Inject
+    InboxGuard inboxGuard;
 
     /**
      * 获取版本使用统计（按时间粒度聚合）
@@ -295,10 +300,31 @@ public class PolicyAnalyticsResource {
      */
     @PATCH
     @Path("/anomalies/{id}/status")
+    @Blocking
     public Uni<Response> updateAnomalyStatus(
         @PathParam("id") Long id,
+        @HeaderParam("Idempotency-Key") String idempotencyKey,
+        @HeaderParam("X-Tenant-Id") String tenantId,
         @Valid AnomalyStatusUpdateRequest request
     ) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            return performUpdateAnomalyStatus(id, request);
+        }
+        boolean acquired = inboxGuard.tryAcquireBlocking(idempotencyKey, "UPDATE_ANOMALY_STATUS", tenantId);
+        if (!acquired) {
+            return Uni.createFrom().item(
+                Response.status(Response.Status.CONFLICT)
+                    .entity(Map.of(
+                        "error", "Duplicate request",
+                        "idempotencyKey", idempotencyKey
+                    ))
+                    .build()
+            );
+        }
+        return performUpdateAnomalyStatus(id, request);
+    }
+
+    private Uni<Response> performUpdateAnomalyStatus(Long id, AnomalyStatusUpdateRequest request) {
         return workflowService.updateStatus(id, request.status(), request.notes())
             .onItem().transform(success -> Response.noContent().build())
             .onFailure().recoverWithItem(failure -> {

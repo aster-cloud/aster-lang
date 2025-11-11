@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.apache.commons.codec.digest.DigestUtils;
 
 import java.time.Instant;
 import java.util.List;
@@ -51,8 +52,10 @@ public class PostgresEventStore implements EventStore {
         try {
             UUID wfId = UUID.fromString(workflowId);
 
-            // 生成幂等性键（基于 workflow ID + 事件类型 + 时间戳）
-            String idempotencyKey = generateIdempotencyKey(workflowId, eventType);
+            String serializedPayload = serializePayload(payload);
+
+            // 生成幂等性键（基于 workflow ID + 事件类型 + payload 哈希）
+            String idempotencyKey = generateIdempotencyKey(workflowId, eventType, serializedPayload);
 
             // 检查幂等性：如果事件已存在，返回现有序列号
             Optional<WorkflowEventEntity> existing = WorkflowEventEntity.findByIdempotencyKey(wfId, idempotencyKey);
@@ -70,7 +73,7 @@ public class PostgresEventStore implements EventStore {
             event.sequence = nextSeq;
             event.seq = nextSeq;
             event.eventType = eventType;
-            event.payload = serializePayload(payload);
+            event.payload = serializedPayload;
             event.occurredAt = Instant.now();
             event.idempotencyKey = idempotencyKey;
 
@@ -179,14 +182,16 @@ public class PostgresEventStore implements EventStore {
     // ==================== 私有辅助方法 ====================
 
     /**
-     * 生成幂等性键
-     *
-     * 基于 workflow ID + 事件类型 + 纳秒时间戳生成唯一键。
-     * 注意：这个实现假设同一 workflow 在同一纳秒内不会发出相同类型的事件。
-     * 更严格的实现可能需要包含事件内容的哈希。
+     * 基于 workflow ID + 事件类型 + payload 哈希 生成幂等键，确保 replay 稳定性。
      */
-    private String generateIdempotencyKey(String workflowId, String eventType) {
-        return String.format("%s:%s:%d", workflowId, eventType, System.nanoTime());
+    private String generateIdempotencyKey(String workflowId, String eventType, String payloadJson) {
+        String payloadHash = DigestUtils.sha256Hex(payloadJson != null ? payloadJson : "");
+        return String.format(
+                "%s:%s:%s",
+                workflowId,
+                eventType,
+                payloadHash.substring(0, Math.min(16, payloadHash.length()))
+        );
     }
 
     /**

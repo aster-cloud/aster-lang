@@ -53,16 +53,16 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
     private final Map<String, CompletableFuture<Object>> resultFutures = new ConcurrentHashMap<>();
 
     /**
-     * Clock 缓存（Phase 3.6）
-     * 维护 workflowId → ReplayDeterministicClock 映射，确保同一 workflow 使用同一 clock 实例
-     */
-    private final Map<String, ReplayDeterministicClock> clocks = new ConcurrentHashMap<>();
-
-    /**
-     * ThreadLocal 传递当前 workflowId（Phase 3.6）
-     * 用于在不改变 WorkflowRuntime 接口签名的情况下传递上下文
+     * ThreadLocal 传递当前 workflowId 与 DeterminismContext，避免跨线程污染。
      */
     private static final ThreadLocal<String> currentWorkflowId = new ThreadLocal<>();
+    private static final ThreadLocal<DeterminismContext> determinismCache = new ThreadLocal<>();
+
+    /**
+     * 全局默认确定性上下文（非 replay 模式）。
+     * 当未显式绑定 workflow 时退化到该上下文。
+     */
+    private final DeterminismContext globalDeterminismContext = new DeterminismContext();
 
     /**
      * 调度 workflow 执行
@@ -79,6 +79,9 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
     @Transactional
     @Override
     public ExecutionHandle schedule(String workflowId, String idempotencyKey, WorkflowMetadata metadata) {
+        DeterminismContext context = new DeterminismContext();
+        setCurrentWorkflowId(workflowId);
+        setDeterminismContext(context);
         try {
             UUID wfUuid = UUID.fromString(workflowId);
 
@@ -142,6 +145,9 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
         } catch (Exception e) {
             Log.errorf(e, "Failed to schedule workflow %s", workflowId);
             throw new RuntimeException("Failed to schedule workflow", e);
+        } finally {
+            clearDeterminismContext();
+            clearCurrentWorkflowId();
         }
     }
 
@@ -150,33 +156,55 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
      *
      * @param workflowId workflow 唯一标识符
      */
-    public static void setCurrentWorkflowId(String workflowId) {
+    public void setCurrentWorkflowId(String workflowId) {
         currentWorkflowId.set(workflowId);
     }
 
     /**
      * 清除当前线程的 workflowId 上下文（Phase 3.6）
      */
-    public static void clearCurrentWorkflowId() {
+    public void clearCurrentWorkflowId() {
         currentWorkflowId.remove();
     }
 
     /**
-     * 获取确定性时钟（Phase 3.6 改造）
+     * 为当前线程绑定 DeterminismContext。
      *
-     * 从 ThreadLocal 获取 workflowId，返回对应的缓存 clock 实例。
-     * 如果没有设置 workflowId，降级为非缓存模式（创建新实例）。
+     * @param context 确定性上下文
+     */
+    public void setDeterminismContext(DeterminismContext context) {
+        determinismCache.set(context);
+    }
+
+    /**
+     * 清理当前线程绑定的 DeterminismContext。
+     */
+    public void clearDeterminismContext() {
+        determinismCache.remove();
+    }
+
+    /**
+     * 获取当前线程绑定的确定性上下文。
+     *
+     * @return 当无上下文绑定时返回全局默认上下文
+     */
+    public DeterminismContext getDeterminismContext() {
+        DeterminismContext context = determinismCache.get();
+        if (context == null) {
+            return globalDeterminismContext;
+        }
+        return context;
+    }
+
+    /**
+     * 兼容旧接口：返回 DeterminismContext 提供的时钟实例。
      *
      * @return 确定性时钟实例
      */
     @Override
+    @Deprecated
     public DeterministicClock getClock() {
-        String workflowId = currentWorkflowId.get();
-        if (workflowId == null) {
-            // 降级为非缓存模式
-            return new ReplayDeterministicClock();
-        }
-        return clocks.computeIfAbsent(workflowId, id -> new ReplayDeterministicClock());
+        return getDeterminismContext().clock();
     }
 
     /**
@@ -199,8 +227,6 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
         Log.info("Shutting down PostgresWorkflowRuntime");
         resultFutures.values().forEach(future -> future.cancel(true));
         resultFutures.clear();
-        // Phase 3.6: 清理所有 clock 缓存
-        clocks.clear();
     }
 
     /**
@@ -213,26 +239,17 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
      * @param result 执行结果
      */
     public void completeWorkflow(String workflowId, Object result) {
-        // Phase 3.6: 持久化 clock_times
-        ReplayDeterministicClock clock = clocks.remove(workflowId);
-        if (clock != null) {
-            try {
-                Optional<WorkflowStateEntity> stateOpt = WorkflowStateEntity.findByWorkflowId(UUID.fromString(workflowId));
-                if (stateOpt.isPresent()) {
-                    WorkflowStateEntity state = stateOpt.get();
-                    state.clockTimes = serializeClockTimes(clock);
-                    state.persist();
-                }
-            } catch (Exception e) {
-                Log.warnf(e, "Failed to persist clock_times for workflow %s, continuing", workflowId);
-            }
-        }
+        DeterminismContext context = determinismCache.get();
+        persistDeterminismSnapshot(workflowId, context);
 
         // 原有 resultFutures 处理逻辑
         CompletableFuture<Object> future = resultFutures.remove(workflowId);
         if (future != null) {
             future.complete(result);
         }
+
+        clearDeterminismContext();
+        clearCurrentWorkflowId();
     }
 
     /**
@@ -245,26 +262,17 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
      * @param error 失败原因
      */
     public void failWorkflow(String workflowId, Throwable error) {
-        // Phase 3.6: 持久化 clock_times（与 completeWorkflow 相同逻辑）
-        ReplayDeterministicClock clock = clocks.remove(workflowId);
-        if (clock != null) {
-            try {
-                Optional<WorkflowStateEntity> stateOpt = WorkflowStateEntity.findByWorkflowId(UUID.fromString(workflowId));
-                if (stateOpt.isPresent()) {
-                    WorkflowStateEntity state = stateOpt.get();
-                    state.clockTimes = serializeClockTimes(clock);
-                    state.persist();
-                }
-            } catch (Exception e) {
-                Log.warnf(e, "Failed to persist clock_times for workflow %s, continuing", workflowId);
-            }
-        }
+        DeterminismContext context = determinismCache.get();
+        persistDeterminismSnapshot(workflowId, context);
 
         // 原有 resultFutures 处理逻辑
         CompletableFuture<Object> future = resultFutures.remove(workflowId);
         if (future != null) {
             future.completeExceptionally(error);
         }
+
+        clearDeterminismContext();
+        clearCurrentWorkflowId();
     }
 
     /**
@@ -287,7 +295,6 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
     void cleanupExpiredFutures() {
         Instant threshold = Instant.now().minus(ttlHours, ChronoUnit.HOURS);
         int removedFutures = 0;
-        int removedClocks = 0;
 
         // 清理 resultFutures
         for (Map.Entry<String, CompletableFuture<Object>> entry : resultFutures.entrySet()) {
@@ -305,30 +312,9 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
             }
         }
 
-        // Phase 3.6: 清理 clock 缓存
-        for (Map.Entry<String, ReplayDeterministicClock> entry : clocks.entrySet()) {
-            String workflowId = entry.getKey();
-            try {
-                Optional<WorkflowStateEntity> stateOpt = WorkflowStateEntity.findByWorkflowId(UUID.fromString(workflowId));
-
-                // 清理条件：workflow 不存在、已完成、已失败或已超过 TTL
-                if (stateOpt.isEmpty() ||
-                    "COMPLETED".equals(stateOpt.get().status) ||
-                    "FAILED".equals(stateOpt.get().status) ||
-                    stateOpt.get().updatedAt.isBefore(threshold)) {
-                    clocks.remove(workflowId);
-                    removedClocks++;
-                }
-            } catch (Exception e) {
-                Log.warnf(e, "Failed to check workflow %s clock during cleanup, skipping", workflowId);
-            }
-        }
-
-        if (removedFutures > 0 || removedClocks > 0) {
-            Log.infof("Cleaned up %d expired workflow result futures and %d clock instances", removedFutures, removedClocks);
-            if (removedFutures > 0) {
-                metrics.recordResultFuturesCleaned(removedFutures);
-            }
+        if (removedFutures > 0) {
+            Log.infof("Cleaned up %d expired workflow result futures", removedFutures);
+            metrics.recordResultFuturesCleaned(removedFutures);
         }
     }
 
@@ -346,39 +332,57 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
     }
 
     /**
-     * 序列化 clock_times 为 JSONB 字符串（Phase 3.6）
+     * 持久化确定性快照。
      *
-     * 将 ReplayDeterministicClock 的时间决策序列持久化为 ClockTimesSnapshot。
-     * 序列化失败时返回 null，不阻塞 workflow 完成。
-     *
-     * @param clock 确定性时钟实例
-     * @return JSONB 字符串，失败时返回 null
+     * @param workflowId workflow 唯一标识符
+     * @param context 当前线程绑定的确定性上下文
      */
-    private String serializeClockTimes(ReplayDeterministicClock clock) {
-        if (clock == null) {
+    private void persistDeterminismSnapshot(String workflowId, DeterminismContext context) {
+        if (context == null) {
+            return;
+        }
+        try {
+            String snapshotJson = serializeDeterminismSnapshot(context);
+            if (snapshotJson == null) {
+                return;
+            }
+            Optional<WorkflowStateEntity> stateOpt = WorkflowStateEntity.findByWorkflowId(UUID.fromString(workflowId));
+            if (stateOpt.isPresent()) {
+                WorkflowStateEntity state = stateOpt.get();
+                state.clockTimes = snapshotJson;
+                state.persist();
+            }
+        } catch (Exception e) {
+            Log.warnf(e, "Failed to persist determinism snapshot for workflow %s, continuing", workflowId);
+        }
+    }
+
+    /**
+     * 序列化 DeterminismContext 为 JSONB 字符串（Phase 0 Task 1.4）
+     *
+     * @param context 确定性上下文
+     * @return JSONB 字符串，失败或无数据时返回 null
+     */
+    private String serializeDeterminismSnapshot(DeterminismContext context) {
+        if (context == null) {
             return null;
         }
         try {
-            List<Instant> recordedTimes = clock.getRecordedTimes();
-            if (recordedTimes.isEmpty()) {
-                return null; // 没有记录时间，无需持久化
+            DeterminismSnapshot snapshot = DeterminismSnapshot.from(
+                    context.clock(),
+                    context.uuid(),
+                    context.random()
+            );
+            if (snapshot.isEmpty()) {
+                return null;
             }
 
-            // 创建快照，replayIndex 重置为 0，replayMode 设为 false
-            ClockTimesSnapshot snapshot = new ClockTimesSnapshot(
-                recordedTimes,
-                0, // 持久化后总是从头重放
-                false // 持久化后退出 replay 模式
-            );
-
-            // 创建独立的 ObjectMapper 并注册 JavaTimeModule
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
-
             return mapper.writeValueAsString(snapshot);
         } catch (Exception e) {
-            Log.errorf(e, "Failed to serialize clock times, skipping persistence");
-            return null; // 序列化失败不影响 workflow 完成
+            Log.errorf(e, "Failed to serialize determinism snapshot, skipping persistence");
+            return null;
         }
     }
 

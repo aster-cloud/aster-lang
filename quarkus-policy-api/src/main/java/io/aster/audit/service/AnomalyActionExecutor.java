@@ -1,7 +1,9 @@
 package io.aster.audit.service;
 
 import io.aster.audit.entity.AnomalyActionEntity;
+import io.aster.audit.entity.AnomalyActionPayload;
 import io.aster.audit.entity.AnomalyReportEntity;
+import io.aster.audit.inbox.InboxGuard;
 import io.aster.audit.rest.model.VerificationResult;
 import io.aster.policy.entity.PolicyVersion;
 import io.aster.policy.service.PolicyVersionService;
@@ -10,12 +12,8 @@ import io.aster.workflow.WorkflowStateEntity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
-import java.io.StringReader;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -42,6 +40,9 @@ public class AnomalyActionExecutor {
     @Inject
     AnomalyWorkflowService anomalyWorkflowService;
 
+    @Inject
+    InboxGuard inboxGuard;
+
     /**
      * 执行 Replay 验证
      *
@@ -58,9 +59,20 @@ public class AnomalyActionExecutor {
      */
     @Transactional
     public Uni<VerificationResult> executeReplayVerification(AnomalyActionEntity action) {
+        String idempotencyKey = String.format("REPLAY_%s_%s", action.anomalyId, action.id);
+        boolean acquired = inboxGuard.tryAcquireBlocking(idempotencyKey, "VERIFY_REPLAY", resolveInboxTenant(action));
+        if (!acquired) {
+            LOG.infof("检测到重复 Replay 验证请求，跳过执行：%s", idempotencyKey);
+            return Uni.createFrom().nullItem();
+        }
+        AnomalyActionPayload payload = action.deserializePayload();
+        return performReplayVerification(action, payload);
+    }
+
+    private Uni<VerificationResult> performReplayVerification(AnomalyActionEntity action, AnomalyActionPayload payload) {
         try {
             // 1. 从 payload 提取 workflowId
-            UUID workflowId = extractWorkflowId(action.payload);
+            UUID workflowId = payload.workflowId();
             if (workflowId == null) {
                 return Uni.createFrom().failure(
                     new IllegalArgumentException("Payload 缺少 workflowId")
@@ -82,12 +94,12 @@ public class AnomalyActionExecutor {
                 LOG.warnf("Workflow %s 没有 clockTimes，降级为普通执行", workflowId);
                 // 对于没有 clockTimes 的旧 workflow，返回无法验证的结果
                 VerificationResult result = new VerificationResult(
-                    false,  // replaySucceeded
-                    null,   // anomalyReproduced (无法判断)
+                    false,
+                    null,
                     workflowId.toString(),
                     Instant.now(),
                     originalWorkflow.durationMs,
-                    null    // replayDurationMs (未执行)
+                    null
                 );
                 return Uni.createFrom().item(result);
             }
@@ -115,7 +127,7 @@ public class AnomalyActionExecutor {
 
                     // 6. 构建验证结果
                     VerificationResult result = new VerificationResult(
-                        true,  // replaySucceeded
+                        true,
                         anomalyReproduced,
                         workflowId.toString(),
                         Instant.now(),
@@ -128,32 +140,28 @@ public class AnomalyActionExecutor {
                         .replaceWith(result);
                 })
                 .onFailure(IllegalStateException.class).recoverWithUni(e -> {
-                    // Clock_times 缺失，无法 replay
                     LOG.warnf("Replay 验证失败（clock_times 缺失）: %s", e.getMessage());
                     VerificationResult result = new VerificationResult(
-                        false,  // replaySucceeded
-                        null,   // anomalyReproduced (无法判断)
+                        false,
+                        null,
                         workflowId.toString(),
                         Instant.now(),
                         originalDurationMs,
-                        null    // replayDurationMs (未执行)
+                        null
                     );
-                    // 即使失败也要记录结果（响应式）
                     return anomalyWorkflowService.recordVerificationResult(action.anomalyId, result)
                         .replaceWith(result);
                 })
                 .onFailure(TimeoutException.class).recoverWithUni(e -> {
-                    // Replay 超时
                     LOG.errorf("Replay 验证超时: workflowId=%s", workflowId);
                     VerificationResult result = new VerificationResult(
-                        false,  // replaySucceeded
-                        null,   // anomalyReproduced (无法判断)
+                        false,
+                        null,
                         workflowId.toString(),
                         Instant.now(),
                         originalDurationMs,
-                        null    // replayDurationMs (未执行)
+                        null
                     );
-                    // 即使超时也要记录结果（响应式）
                     return anomalyWorkflowService.recordVerificationResult(action.anomalyId, result)
                         .replaceWith(result);
                 })
@@ -181,8 +189,35 @@ public class AnomalyActionExecutor {
      */
     @Transactional
     public Uni<Boolean> executeAutoRollback(AnomalyActionEntity action) {
+        String idempotencyKey = String.format("ROLLBACK_%s_%s", action.anomalyId, action.id);
+        boolean acquired = inboxGuard.tryAcquireBlocking(idempotencyKey, "AUTO_ROLLBACK", resolveInboxTenant(action));
+        if (!acquired) {
+            LOG.infof("检测到重复自动回滚请求，跳过执行：%s", idempotencyKey);
+            return Uni.createFrom().item(Boolean.TRUE);
+        }
+        AnomalyActionPayload payload = action.deserializePayload();
+        return performAutoRollback(action, payload);
+    }
+
+    /**
+     * 由于动作实体尚未持久化租户信息，这里使用异常 ID 派生命名空间，
+     * 保证 InboxGuard 在重复动作去重时具备最小隔离度。
+     */
+    private String resolveInboxTenant(AnomalyActionEntity action) {
+        if (action == null) {
+            return null;
+        }
+        if (action.tenantId != null && !action.tenantId.isBlank()) {
+            return action.tenantId;
+        }
+        if (action.anomalyId == null) {
+            return null;
+        }
+        return "ANOMALY-" + action.anomalyId;
+    }
+
+    private Uni<Boolean> performAutoRollback(AnomalyActionEntity action, AnomalyActionPayload payload) {
         try {
-            // 1. 查询异常报告
             AnomalyReportEntity anomaly = AnomalyReportEntity.findById(action.anomalyId);
             if (anomaly == null) {
                 return Uni.createFrom().failure(
@@ -190,19 +225,16 @@ public class AnomalyActionExecutor {
                 );
             }
 
-            // 2. 从 payload 提取 targetVersion
-            Long targetVersion = extractTargetVersion(action.payload);
+            Long targetVersion = payload.targetVersion();
             if (targetVersion == null) {
                 return Uni.createFrom().failure(
                     new IllegalArgumentException("Payload 缺少 targetVersion")
                 );
             }
 
-            // 3. 获取当前活跃版本
             PolicyVersion currentVersion = policyVersionService.getActiveVersion(anomaly.policyId);
             Long fromVersion = currentVersion != null ? currentVersion.version : null;
 
-            // 4. 调用 PolicyVersionService.rollbackToVersion
             policyVersionService.rollbackToVersion(anomaly.policyId, targetVersion);
 
             LOG.infof("异常 %d 触发自动回滚: %s from %d to %d",
@@ -268,38 +300,4 @@ public class AnomalyActionExecutor {
         return false;  // 异常未重现或无法判断
     }
 
-    /**
-     * 从 JSON payload 提取 workflowId
-     */
-    private UUID extractWorkflowId(String payload) {
-        if (payload == null || payload.isBlank()) {
-            return null;
-        }
-        try {
-            JsonReader reader = Json.createReader(new StringReader(payload));
-            JsonObject json = reader.readObject();
-            String workflowIdStr = json.getString("workflowId", null);
-            return workflowIdStr != null ? UUID.fromString(workflowIdStr) : null;
-        } catch (Exception e) {
-            LOG.warnf("解析 payload 失败: %s", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 从 JSON payload 提取 targetVersion
-     */
-    private Long extractTargetVersion(String payload) {
-        if (payload == null || payload.isBlank()) {
-            return null;
-        }
-        try {
-            JsonReader reader = Json.createReader(new StringReader(payload));
-            JsonObject json = reader.readObject();
-            return json.getJsonNumber("targetVersion").longValue();
-        } catch (Exception e) {
-            LOG.warnf("解析 payload 失败: %s", e.getMessage());
-            return null;
-        }
-    }
 }

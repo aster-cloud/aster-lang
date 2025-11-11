@@ -1,5 +1,7 @@
 package aster.runtime.workflow;
 
+import io.aster.workflow.DeterminismContext;
+
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -16,7 +18,7 @@ public class InMemoryWorkflowRuntime implements WorkflowRuntime {
     private final Map<String, WorkflowExecutionState> executions = new ConcurrentHashMap<>();
     private final Map<String, String> idempotencyKeys = new ConcurrentHashMap<>();
     private final InMemoryEventStore eventStore = new InMemoryEventStore();
-    private final InMemoryDeterministicClock clock = new InMemoryDeterministicClock();
+    private final DeterminismContext context = new DeterminismContext();
 
     /**
      * 调度 workflow 执行
@@ -57,13 +59,23 @@ public class InMemoryWorkflowRuntime implements WorkflowRuntime {
     }
 
     /**
-     * 获取确定性时钟
+     * 获取确定性上下文（Phase 0 Task 1.5）
      *
-     * @return 时钟实例
+     * @return 确定性上下文实例
      */
+    public DeterminismContext getDeterminismContext() {
+        return context;
+    }
+
+    /**
+     * 兼容旧接口：返回 DeterminismContext 内部的时钟
+     *
+     * @return 确定性时钟实例
+     */
+    @Deprecated
     @Override
     public DeterministicClock getClock() {
-        return clock;
+        return context.clock();
     }
 
     /**

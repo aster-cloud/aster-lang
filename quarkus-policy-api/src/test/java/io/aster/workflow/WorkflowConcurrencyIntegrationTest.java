@@ -321,7 +321,7 @@ class WorkflowConcurrencyIntegrationTest {
         state.persist();
 
         // 模拟首次执行：手动创建 clock 并记录时间
-        PostgresWorkflowRuntime.setCurrentWorkflowId(workflowId);
+        workflowRuntime.setCurrentWorkflowId(workflowId);
         try {
             ReplayDeterministicClock clock = new ReplayDeterministicClock();
             Instant t1 = Instant.parse("2025-01-10T08:00:00Z");
@@ -338,7 +338,7 @@ class WorkflowConcurrencyIntegrationTest {
             // 模拟 completeWorkflow 持久化 clock_times
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
-            ClockTimesSnapshot snapshot = new ClockTimesSnapshot(firstRunTimes, 0, false);
+            DeterminismSnapshot snapshot = DeterminismSnapshot.from(clock, null, null);
             state.clockTimes = mapper.writeValueAsString(snapshot);
             state.status = "COMPLETED";
             state.persist();
@@ -348,13 +348,11 @@ class WorkflowConcurrencyIntegrationTest {
             assertNotNull(state.clockTimes, "clock_times should be persisted");
 
             // 反序列化验证
-            ClockTimesSnapshot persisted = mapper.readValue(state.clockTimes, ClockTimesSnapshot.class);
-            assertThat(persisted.recordedTimes).hasSize(3);
-            assertThat(persisted.recordedTimes.get(0)).isEqualTo(t1);
-            assertThat(persisted.recordedTimes.get(1)).isEqualTo(t2);
-            assertThat(persisted.recordedTimes.get(2)).isEqualTo(t3);
-            assertThat(persisted.replayMode).isFalse();
-            assertThat(persisted.replayIndex).isEqualTo(0);
+            DeterminismSnapshot persisted = mapper.readValue(state.clockTimes, DeterminismSnapshot.class);
+            assertThat(persisted.getClockTimes()).hasSize(3);
+            assertThat(persisted.getClockTimes().get(0)).isEqualTo(t1.toString());
+            assertThat(persisted.getClockTimes().get(1)).isEqualTo(t2.toString());
+            assertThat(persisted.getClockTimes().get(2)).isEqualTo(t3.toString());
 
             // 模拟故障恢复场景：重置状态为 RUNNING（模拟 crash 后恢复）
             state.status = "RUNNING";
@@ -364,7 +362,7 @@ class WorkflowConcurrencyIntegrationTest {
 
             // 验证 WorkflowSchedulerService 能正确加载 clock_times
             // processWorkflow 会调用 deserializeClockTimes 并激活 replay 模式
-            PostgresWorkflowRuntime.clearCurrentWorkflowId();
+            workflowRuntime.clearCurrentWorkflowId();
 
             // 追加完成事件，让 processWorkflow 能完成
             appendWorkflowCompleted(workflowId, Map.of("result", "replay-ok"));
@@ -378,7 +376,7 @@ class WorkflowConcurrencyIntegrationTest {
             assertThat(state.clockTimes).isNotNull();
 
         } finally {
-            PostgresWorkflowRuntime.clearCurrentWorkflowId();
+            workflowRuntime.clearCurrentWorkflowId();
         }
     }
 
@@ -404,7 +402,7 @@ class WorkflowConcurrencyIntegrationTest {
         // 追加一个简单的 workflow 完成事件
         appendWorkflowCompleted(workflowId, Map.of("result", "old-workflow-ok"));
 
-        PostgresWorkflowRuntime.setCurrentWorkflowId(workflowId);
+        workflowRuntime.setCurrentWorkflowId(workflowId);
         try {
             // 处理应不报错（降级为 live clock）
             assertDoesNotThrow(() -> schedulerService.processWorkflow(workflowId));
@@ -417,7 +415,7 @@ class WorkflowConcurrencyIntegrationTest {
             // 注意：如果 getClock() 被调用，可能会写入新的 clock_times
             // 这里我们主要验证不报错和正常完成
         } finally {
-            PostgresWorkflowRuntime.clearCurrentWorkflowId();
+            workflowRuntime.clearCurrentWorkflowId();
         }
     }
 }

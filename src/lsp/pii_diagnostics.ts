@@ -3,6 +3,7 @@ import { DiagnosticSeverity } from 'vscode-languageserver/node.js';
 import type { Core, Origin, Span } from '../types.js';
 import { Effect } from '../types.js';
 import { DefaultCoreVisitor } from '../visitor.js';
+import { config } from './config.js';
 
 // 使用 Map 记录变量是否带有 PII 污染
 type VarState = { tainted: boolean };
@@ -153,7 +154,7 @@ class PiiVisitor extends DefaultCoreVisitor<Env> {
     if (expr.kind === 'Call') {
       if (hasEffect(expr.target, 'IO[Http]') && expr.args.some(arg => evaluateWithEnv(arg, env))) {
         this.diagnostics.push({
-          severity: DiagnosticSeverity.Warning,
+          severity: config.strictPiiMode ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
           range: originToRange((expr as { origin?: Origin }).origin),
           message: 'PII data transmitted over HTTP without encryption',
           source: 'aster-pii',

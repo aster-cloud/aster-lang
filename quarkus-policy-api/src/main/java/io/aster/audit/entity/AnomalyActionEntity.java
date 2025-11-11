@@ -1,11 +1,19 @@
 package io.aster.audit.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import java.time.Instant;
+import io.aster.audit.outbox.GenericOutboxEntity;
+import io.aster.audit.outbox.OutboxStatus;
+import io.quarkus.logging.Log;
+import io.quarkus.panache.common.Page;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+
+import java.io.StringReader;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 异常响应动作实体（Phase 3.7）
@@ -16,11 +24,7 @@ import java.util.List;
  */
 @Entity
 @Table(name = "anomaly_actions")
-public class AnomalyActionEntity extends PanacheEntityBase {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long id;
+public class AnomalyActionEntity extends GenericOutboxEntity<AnomalyActionPayload> {
 
     /**
      * 关联的异常报告 ID
@@ -34,45 +38,6 @@ public class AnomalyActionEntity extends PanacheEntityBase {
     @Column(name = "action_type", nullable = false, length = 32)
     public String actionType;
 
-    /**
-     * 动作状态：PENDING, RUNNING, DONE, FAILED
-     */
-    @Column(name = "status", nullable = false, length = 16)
-    public String status = "PENDING";
-
-    /**
-     * 动作参数 JSON
-     * 结构：{ "workflowId": "wf-123", "targetVersion": 5 }
-     * VERIFY_REPLAY 需要 workflowId，AUTO_ROLLBACK 需要 targetVersion
-     */
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload", columnDefinition = "jsonb")
-    public String payload;
-
-    /**
-     * 执行失败时的错误信息
-     */
-    @Column(name = "error_message", columnDefinition = "TEXT")
-    public String errorMessage;
-
-    /**
-     * 动作创建时间（提交到队列）
-     */
-    @Column(name = "created_at", nullable = false)
-    public Instant createdAt = Instant.now();
-
-    /**
-     * 开始执行时间
-     */
-    @Column(name = "started_at")
-    public Instant startedAt;
-
-    /**
-     * 完成时间（成功或失败）
-     */
-    @Column(name = "completed_at")
-    public Instant completedAt;
-
     // ==================== Panache Active Record 查询方法 ====================
 
     /**
@@ -82,8 +47,8 @@ public class AnomalyActionEntity extends PanacheEntityBase {
      * @return 待处理动作列表
      */
     public static List<AnomalyActionEntity> findPendingActions(int limit) {
-        return find("status = 'PENDING' ORDER BY created_at ASC")
-            .page(0, limit)
+        return find("status = ?1 ORDER BY createdAt ASC", OutboxStatus.PENDING)
+            .page(Page.ofSize(limit))
             .list();
     }
 
@@ -94,7 +59,7 @@ public class AnomalyActionEntity extends PanacheEntityBase {
      * @return 动作列表，按创建时间降序排列
      */
     public static List<AnomalyActionEntity> findByAnomalyId(Long anomalyId) {
-        return find("anomaly_id = ?1 ORDER BY created_at DESC", anomalyId).list();
+        return find("anomalyId = ?1 ORDER BY createdAt DESC", anomalyId).list();
     }
 
     /**
@@ -103,7 +68,7 @@ public class AnomalyActionEntity extends PanacheEntityBase {
      * @return 正在执行的动作列表
      */
     public static List<AnomalyActionEntity> findRunningActions() {
-        return find("status = 'RUNNING' ORDER BY started_at ASC").list();
+        return find("status = ?1 ORDER BY startedAt ASC", OutboxStatus.RUNNING).list();
     }
 
     /**
@@ -112,6 +77,31 @@ public class AnomalyActionEntity extends PanacheEntityBase {
      * @return 待处理动作数
      */
     public static long countPending() {
-        return count("status = 'PENDING'");
+        return count("status = ?1", OutboxStatus.PENDING);
+    }
+
+    @Override
+    public String getEventType() {
+        return actionType;
+    }
+
+    @Override
+    public AnomalyActionPayload deserializePayload() {
+        if (payload == null || payload.isBlank()) {
+            return new AnomalyActionPayload(null, null);
+        }
+        try (JsonReader reader = Json.createReader(new StringReader(payload))) {
+            JsonObject json = reader.readObject();
+            UUID workflowId = json.containsKey("workflowId") && !json.isNull("workflowId")
+                ? UUID.fromString(json.getString("workflowId"))
+                : null;
+            Long targetVersion = json.containsKey("targetVersion") && !json.isNull("targetVersion")
+                ? json.getJsonNumber("targetVersion").longValue()
+                : null;
+            return new AnomalyActionPayload(workflowId, targetVersion);
+        } catch (Exception e) {
+            Log.warnf("解析异常动作 payload 失败: action=%s, error=%s", id, e.getMessage());
+            return new AnomalyActionPayload(null, null);
+        }
     }
 }
