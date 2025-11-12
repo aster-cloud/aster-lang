@@ -513,13 +513,13 @@ jobs:
           script: |
             const body = `## 🚀 Policy API Performance
 
-| Metric | Value | Target |
-|--------|-------|--------|
-| Image Size | ${process.env.IMAGE_SIZE} | <120 MB |
-| Startup Time | ${process.env.STARTUP_TIME}s | <0.15 s |
-| Build Time | ${process.env.BUILD_TIME}s | n/a |
+              | Metric | Value | Target |
+              |--------|-------|--------|
+              | Image Size | ${process.env.IMAGE_SIZE} | <120 MB |
+              | Startup Time | ${process.env.STARTUP_TIME}s | <0.15 s |
+              | Build Time | ${process.env.BUILD_TIME}s | n/a |
 
-`;
+            `;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
