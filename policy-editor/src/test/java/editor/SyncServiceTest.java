@@ -2,6 +2,7 @@ package editor;
 
 import editor.service.PolicyService;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
@@ -15,6 +16,7 @@ import java.nio.file.Paths;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
+@TestProfile(GraphQLTestProfile.class)
 public class SyncServiceTest {
 
     @Inject PolicyService policyService;

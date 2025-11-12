@@ -460,7 +460,7 @@ public class CallEmitter {
       if (dot > 0 && currentPkg != null) {
         String cls = name.substring(0, dot);
         String method = name.substring(dot + 1);
-        String ownerInternal = cls.contains(".") ? cls.replace('.', '/') : toInternal(currentPkg, cls);
+        String ownerInternal = Main.resolveTypeInternalName(currentPkg, cls);
 
         if (Objects.equals(name, "AuthRepo.verify") && argsSize(call, 2)) {
           for (CoreModel.Expr arg : call.args) {
@@ -586,7 +586,7 @@ public class CallEmitter {
             } else if (BuiltinTypes.isStringType(tn.name)) {
               paramDesc = "Ljava/lang/String;";
             } else {
-              String internal = tn.name.contains(".") ? tn.name.replace('.', '/') : toInternal(currentPkg, tn.name);
+              String internal = Main.resolveTypeInternalName(currentPkg, tn.name);
               paramDesc = internalDesc(internal);
             }
           } else if (param.type instanceof CoreModel.ListT) {
@@ -613,7 +613,7 @@ public class CallEmitter {
           } else if (BuiltinTypes.isStringType(rtn.name)) {
             retDesc = "Ljava/lang/String;";
           } else {
-            String internal = rtn.name.contains(".") ? rtn.name.replace('.', '/') : toInternal(currentPkg, rtn.name);
+            String internal = Main.resolveTypeInternalName(currentPkg, rtn.name);
             retDesc = internalDesc(internal);
           }
         } else if (funcSchema.ret instanceof CoreModel.ListT) {

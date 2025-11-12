@@ -368,18 +368,33 @@ public final class BaseTypeChecker {
   private Type checkAwait(CoreModel.Await await, VisitorContext ctx) {
     var awaitedType = typeOfExpr(await.expr, ctx);
 
+    // First try direct type matching
     if (awaitedType instanceof CoreModel.Maybe maybe) {
       return maybe.type;
     } else if (awaitedType instanceof CoreModel.Result result) {
       return result.ok;
-    } else {
-      diagnostics.warning(
-        ErrorCode.AWAIT_TYPE,
-        Optional.ofNullable(await.origin),
-        Map.of("type", TypeSystem.format(awaitedType))
-      );
-      return TypeSystem.unknown();
     }
+
+    // Try expanding type aliases
+    var normalized = TypeSystem.expand(awaitedType, ctx.getTypeAliases());
+    if (normalized instanceof CoreModel.Maybe maybe) {
+      return maybe.type;
+    } else if (normalized instanceof CoreModel.Result result) {
+      return result.ok;
+    }
+
+    // Try TypeApp-based matching (for aliased types)
+    var unwrapped = unwrapAwaitable(normalized);
+    if (unwrapped.isPresent()) {
+      return unwrapped.get();
+    }
+
+    diagnostics.warning(
+      ErrorCode.AWAIT_TYPE,
+      Optional.ofNullable(await.origin),
+      Map.of("type", TypeSystem.format(awaitedType))
+    );
+    return TypeSystem.unknown();
   }
 
   /**
@@ -455,6 +470,64 @@ public final class BaseTypeChecker {
     var type = new CoreModel.TypeName();
     type.name = name;
     return type;
+  }
+
+  /**
+   * 解包支持 await 的类型（Maybe / Option / Result 或其别名）。
+   */
+  private Optional<Type> unwrapAwaitable(Type type) {
+    if (type == null || TypeSystem.isUnknown(type)) {
+      return Optional.empty();
+    }
+
+    if (type instanceof CoreModel.Maybe maybe) {
+      return Optional.ofNullable(maybe.type);
+    }
+    if (type instanceof CoreModel.Option option) {
+      return Optional.ofNullable(option.type);
+    }
+    if (type instanceof CoreModel.Result result) {
+      return Optional.ofNullable(result.ok);
+    }
+    if (type instanceof CoreModel.TypeApp typeApp) {
+      return unwrapAwaitableFromTypeApp(typeApp);
+    }
+    return Optional.empty();
+  }
+
+  private Optional<Type> unwrapAwaitableFromTypeApp(CoreModel.TypeApp typeApp) {
+    if (typeApp.args == null || typeApp.args.isEmpty()) {
+      return Optional.empty();
+    }
+    if (isMaybeLike(typeApp.base)) {
+      return Optional.ofNullable(typeApp.args.get(0));
+    }
+    if (isResultLike(typeApp.base)) {
+      return Optional.ofNullable(typeApp.args.get(0));
+    }
+    return Optional.empty();
+  }
+
+  private boolean isMaybeLike(String baseName) {
+    return matchesSimpleName(baseName, "Maybe") || matchesSimpleName(baseName, "Option");
+  }
+
+  private boolean isResultLike(String baseName) {
+    return matchesSimpleName(baseName, "Result");
+  }
+
+  private boolean matchesSimpleName(String candidate, String expected) {
+    if (candidate == null || expected == null) {
+      return false;
+    }
+    if (candidate.equals(expected)) {
+      return true;
+    }
+    var idx = candidate.lastIndexOf('.');
+    if (idx < 0) {
+      return false;
+    }
+    return candidate.substring(idx + 1).equals(expected);
   }
 
   // ========== 别名展开辅助方法 ==========

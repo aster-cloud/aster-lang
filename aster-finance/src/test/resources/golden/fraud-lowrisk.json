@@ -1,0 +1,20 @@
+{
+  "transaction": {
+    "transactionId": "tx-low",
+    "accountId": "acct-low",
+    "amount": 5000,
+    "timestamp": 1000
+  },
+  "history": {
+    "accountId": "acct-low",
+    "averageAmount": 4000,
+    "suspiciousCount": 0,
+    "accountAge": 120,
+    "lastTimestamp": 950
+  },
+  "expectedResult": {
+    "isSuspicious": false,
+    "riskScore": 10,
+    "reason": "Normal transaction"
+  }
+}

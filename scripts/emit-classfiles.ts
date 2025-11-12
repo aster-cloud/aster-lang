@@ -9,6 +9,171 @@ import { lowerModule } from '../src/lower_to_core.js';
 import { emitJava } from '../src/jvm/emitter.js';
 import type { Core as CoreIR } from '../src/types.js';
 
+const FINANCE_DTO_PACKAGE = 'com.wontlost.aster.finance.dto';
+const FINANCE_DTO_DIR = path.resolve(
+  'aster-finance/src/main/java',
+  ...FINANCE_DTO_PACKAGE.split('.')
+);
+const FINANCE_DTO_MODULES = new Set([
+  'aster.finance.loan',
+  'aster.finance.creditcard',
+  'aster.finance.fraud',
+  'aster.finance.risk',
+  'aster.finance.personal_lending',
+  'aster.finance.enterprise_lending',
+  'aster.insurance.life',
+  'aster.insurance.auto',
+  'aster.healthcare.eligibility',
+  'aster.healthcare.claims',
+]);
+let financeDtoInitialized = false;
+
+interface JavaTypeInfo {
+  readonly type: string;
+  readonly primitive: boolean;
+  readonly nullable: boolean;
+  readonly imports: Set<string>;
+}
+
+function shouldUseFinanceDto(moduleName: string | null | undefined): boolean {
+  return !!moduleName && FINANCE_DTO_MODULES.has(moduleName);
+}
+
+function ensureFinanceDtoDir(): void {
+  if (financeDtoInitialized) return;
+  fs.rmSync(FINANCE_DTO_DIR, { recursive: true, force: true });
+  fs.mkdirSync(FINANCE_DTO_DIR, { recursive: true });
+  financeDtoInitialized = true;
+}
+
+function generateFinanceDtos(core: CoreIR.Module): void {
+  if (!shouldUseFinanceDto(core.name)) return;
+  ensureFinanceDtoDir();
+  for (const decl of core.decls) {
+    if (decl.kind !== 'Data') continue;
+    const filePath = path.join(FINANCE_DTO_DIR, `${decl.name}.java`);
+    const content = renderFinanceDto(core.name ?? 'app', decl);
+    fs.writeFileSync(filePath, content, 'utf8');
+  }
+}
+
+function renderFinanceDto(moduleName: string, data: CoreIR.Data): string {
+  const imports = new Set<string>();
+  const fieldBlocks = data.fields.map((field, idx) => renderDtoField(field, idx === data.fields.length - 1, imports));
+  const importLines = [...imports].sort().map(i => `import ${i};`).join('\n');
+  const importSection = importLines ? `${importLines}\n\n` : '';
+  const doc = `/**\n * Aster DSL 自动生成 DTO：${data.name}（模块 ${moduleName}）。\n */`;
+  return `package ${FINANCE_DTO_PACKAGE};\n\n${importSection}${doc}\npublic record ${data.name}(\n${fieldBlocks.join('\n')}\n) {}\n`;
+}
+
+function renderDtoField(field: CoreIR.Field, isLast: boolean, imports: Set<string>): string {
+  const typeInfo = resolveJavaType(field.type);
+  typeInfo.imports.forEach(i => imports.add(i));
+  const annotations: string[] = [];
+  if (!typeInfo.primitive && !typeInfo.nullable) {
+    annotations.push('@NotNull');
+    imports.add('jakarta.validation.constraints.NotNull');
+  }
+  annotations.push(...renderFieldAnnotations(field, imports));
+  const lines = annotations.map(a => `  ${a}`);
+  const suffix = isLast ? '' : ',';
+  lines.push(`  ${typeInfo.type} ${field.name}${suffix}`);
+  return lines.join('\n');
+}
+
+function renderFieldAnnotations(field: CoreIR.Field, imports: Set<string>): string[] {
+  if (!field.annotations || field.annotations.length === 0) return [];
+  const result: string[] = [];
+  for (const ann of field.annotations) {
+    switch (ann.name) {
+      case 'Range': {
+        imports.add('io.aster.validation.constraints.Range');
+        const params = renderAnnotationParams(ann.params);
+        result.push(params ? `@Range(${params})` : '@Range');
+        break;
+      }
+      case 'NotEmpty': {
+        imports.add('io.aster.validation.constraints.NotEmpty');
+        result.push('@NotEmpty');
+        break;
+      }
+      case 'Pattern': {
+        imports.add('io.aster.validation.constraints.Pattern');
+        const params = renderAnnotationParams(ann.params);
+        result.push(params ? `@Pattern(${params})` : '@Pattern');
+        break;
+      }
+      default: {
+        result.push(`@${ann.name}`);
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function renderAnnotationParams(params: Readonly<Record<string, unknown>> | undefined): string {
+  if (!params || Object.keys(params).length === 0) return '';
+  return Object.entries(params)
+    .map(([key, value]) => `${key} = ${formatAnnotationValue(value)}`)
+    .join(', ');
+}
+
+function formatAnnotationValue(value: unknown): string {
+  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toString();
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  return `"${escapeJavaString(String(value))}"`;
+}
+
+function escapeJavaString(input: string): string {
+  return input.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function resolveJavaType(t: CoreIR.Type): JavaTypeInfo {
+  switch (t.kind) {
+    case 'TypeName':
+      return mapTypeName(t.name);
+    case 'List': {
+      const inner = resolveJavaType(t.type);
+      const imports = new Set(inner.imports);
+      imports.add('java.util.List');
+      return { type: `List<${inner.type}>`, primitive: false, nullable: inner.nullable, imports };
+    }
+    case 'Map': {
+      const key = resolveJavaType(t.key);
+      const val = resolveJavaType(t.val);
+      const imports = new Set([...key.imports, ...val.imports]);
+      imports.add('java.util.Map');
+      return { type: `Map<${key.type}, ${val.type}>`, primitive: false, nullable: key.nullable || val.nullable, imports };
+    }
+    case 'Maybe':
+    case 'Option': {
+      const inner = resolveJavaType(t.type);
+      return { type: inner.type, primitive: inner.primitive, nullable: true, imports: inner.imports };
+    }
+    default:
+      return { type: 'Object', primitive: false, nullable: false, imports: new Set() };
+  }
+}
+
+function mapTypeName(name: string): JavaTypeInfo {
+  switch (name) {
+    case 'Int':
+      return { type: 'int', primitive: true, nullable: false, imports: new Set() };
+    case 'Bool':
+      return { type: 'boolean', primitive: true, nullable: false, imports: new Set() };
+    case 'Long':
+      return { type: 'long', primitive: true, nullable: false, imports: new Set() };
+    case 'Double':
+      return { type: 'double', primitive: true, nullable: false, imports: new Set() };
+    case 'Text':
+    case 'Text?':
+      return { type: 'String', primitive: false, nullable: name.endsWith('?'), imports: new Set() };
+    default:
+      return { type: name, primitive: false, nullable: false, imports: new Set() };
+  }
+}
+
 function envWithGradle(): Record<string, string | undefined> {
   return {
     GRADLE_USER_HOME: path.resolve('build/.gradle'),
@@ -174,6 +339,10 @@ async function main(): Promise<void> {
     const core = lowerModule(parse(lex(canonicalize(src))));
     const payload = JSON.stringify(core);
     fs.writeFileSync('build/last-core.json', payload);
+
+    if (shouldUseFinanceDto(core.name)) {
+      generateFinanceDtos(core);
+    }
 
     if (containsWorkflow(core)) {
       workflowModules.push({ core, input });

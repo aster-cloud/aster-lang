@@ -1,0 +1,13 @@
+This module is aster.templates.wealth.riskprofiling.
+
+To evaluatePortfolioSuitability with investor is
+  Let conservativeProfile be investor.age is over 55 and investor.drawdownTolerance is "low".
+  Let aggressiveProfile be investor.age is under 40 and investor.drawdownTolerance is "high".
+  When conservativeProfile then
+    approve with message "70% 固收 + 30% 分红股".
+  When aggressiveProfile and investor.liquidityMonths is over 9 then
+    approve with message "60% 股票 + 30% 私募 + 10% 新兴资产".
+  When investor.complianceFlags is over 0 then
+    flag with message "需合规团队复核适当性".
+  Else
+    approve with message "50% 股票 + 40% 固收 + 10% 现金".

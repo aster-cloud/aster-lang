@@ -9,39 +9,29 @@ Define ClaimDecision with approved: Bool, reason: Text, approvedAmount: Int, den
 To processClaim with claim: Claim, provider: Provider, patientCoverage: Int, produce ClaimDecision:
   If not(provider.inNetwork),:
     Return ClaimDecision with approved = false, reason = "Provider not in network", approvedAmount = 0, denialCode = "OON", requiresReview = false.
-
   If >(claim.amount, 50000),:
     Return ClaimDecision with approved = false, reason = "Amount exceeds limit", approvedAmount = 0, denialCode = "LIMIT", requiresReview = true.
-
   If <(provider.qualityScore, 70),:
     Return ClaimDecision with approved = false, reason = "Provider quality score too low", approvedAmount = 0, denialCode = "QUALITY", requiresReview = true.
-
   Let approvedAmt be calculateClaimApproval(claim.amount, patientCoverage, provider.specialtyType).
-
   If =(approvedAmt, 0),:
     Return ClaimDecision with approved = false, reason = "Coverage exclusion", approvedAmount = 0, denialCode = "EXCLUDE", requiresReview = false.
-
   Return ClaimDecision with approved = true, reason = "Claim approved", approvedAmount = approvedAmt, denialCode = "", requiresReview = false.
 
 To calculateClaimApproval with claimAmount: Int, coverage: Int, specialty: Text, produce Int:
   Let baseApproval be *(claimAmount, coverage).
-
   If =(specialty, "Specialist"),:
     Let adjustedCoverage be -(coverage, 10).
     Return *(claimAmount, adjustedCoverage).
-
   If =(specialty, "Surgery"),:
     Let adjustedCoverage be +(coverage, 5).
     Return *(claimAmount, adjustedCoverage).
-
   Return baseApproval.
 
 To validateClaimDocumentation with claim: Claim, hasPreAuth: Bool, hasReferral: Bool, produce Bool:
   If >(claim.amount, 10000),:
     If not(hasPreAuth),:
       Return false.
-
   If not(hasReferral),:
     Return false.
-
   Return true.

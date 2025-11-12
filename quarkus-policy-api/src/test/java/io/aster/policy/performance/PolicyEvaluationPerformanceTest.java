@@ -1,7 +1,7 @@
 package io.aster.policy.performance;
 
-import aster.finance.loan.ApplicantProfile;
-import aster.finance.loan.LoanApplication;
+import com.wontlost.aster.finance.dto.loan.ApplicantProfile;
+import com.wontlost.aster.finance.dto.loan.LoanApplication;
 import io.aster.policy.api.PolicyEvaluationService;
 import io.aster.policy.api.model.PolicyEvaluationResult;
 import io.quarkus.test.junit.QuarkusTest;

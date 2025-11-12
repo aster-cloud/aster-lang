@@ -1,0 +1,13 @@
+This module is aster.templates.insurance.auto.usage.
+
+To evaluateTelematicsDiscount with telemetry is
+  Let smoothDriver be telemetry.harshBrakeEventsPer100km is under 2 and telemetry.avgNightDrivingRatio is under 0.25.
+  Let ecoFriendly be telemetry.idlePercentage is under 0.12 and telemetry.speedingEventsPer100km is under 1.
+  When smoothDriver and ecoFriendly then
+    approve with message "给予 30% 路况折扣".
+  When smoothDriver then
+    approve with message "给予 18% 折扣并记录正向积分".
+  When telemetry.speedingEventsPer100km is over 3 or telemetry.harshBrakeEventsPer100km is over 5 then
+    deny with message "暂不提供折扣，建议开启驾驶辅导".
+  Else
+    approve with message "维持保费不变".

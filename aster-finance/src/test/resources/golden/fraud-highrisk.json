@@ -1,0 +1,20 @@
+{
+  "transaction": {
+    "transactionId": "tx-high",
+    "accountId": "acct-high",
+    "amount": 2500000,
+    "timestamp": 3000
+  },
+  "history": {
+    "accountId": "acct-high",
+    "averageAmount": 50000,
+    "suspiciousCount": 1,
+    "accountAge": 60,
+    "lastTimestamp": 2800
+  },
+  "expectedResult": {
+    "isSuspicious": true,
+    "riskScore": 100,
+    "reason": "Extremely large transaction"
+  }
+}

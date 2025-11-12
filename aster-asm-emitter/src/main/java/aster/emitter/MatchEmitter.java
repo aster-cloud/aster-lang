@@ -106,9 +106,7 @@ public class MatchEmitter {
             return false;
         }
 
-        var enumInternal = enumOwner.contains(".")
-            ? enumOwner.replace('.', '/')
-            : Main.toInternal(emitCtx.getPkg(), enumOwner);
+        var enumInternal = Main.resolveTypeInternalName(emitCtx.getPkg(), enumOwner);
 
         mv.visitVarInsn(ALOAD, scrSlot);
         mv.visitTypeInsn(CHECKCAST, enumInternal);
@@ -504,9 +502,7 @@ public class MatchEmitter {
 
     private void emitPatCtor(MethodVisitor mv, CoreModel.Case caseItem, CoreModel.PatCtor pc, int scrSlot,
                             EmitContext emitCtx, ScopeStack scopeStack, List<FunctionEmitter.LV> lvars, Label lNext) throws IOException {
-        var targetInternal = pc.typeName.contains(".")
-            ? pc.typeName.replace('.', '/')
-            : Main.toInternal(emitCtx.getPkg(), pc.typeName);
+        var targetInternal = Main.resolveTypeInternalName(emitCtx.getPkg(), pc.typeName);
 
         mv.visitVarInsn(ALOAD, scrSlot);
         mv.visitTypeInsn(INSTANCEOF, targetInternal);
@@ -531,10 +527,10 @@ public class MatchEmitter {
 
                 mv.visitVarInsn(ALOAD, objSlot);
                 var field = data.fields.get(idx);
-                mv.visitFieldInsn(GETFIELD, targetInternal, field.name, Main.jDesc(emitCtx.getPkg(), field.type));
+                var fieldDesc = Main.jDesc(emitCtx.getPkg(), field.type);
+                Main.loadDataField(mv, targetInternal, field.name, fieldDesc);
 
                 int slot = emitCtx.nextSlot();
-                var fieldDesc = Main.jDesc(emitCtx.getPkg(), field.type);
                 var fieldKind = Main.kindForDescriptor(fieldDesc);
 
                 switch (fieldKind) {
@@ -578,9 +574,7 @@ public class MatchEmitter {
         scopeStack.pushScope();
 
         if (enumName != null) {
-            var enumInternal = enumName.contains(".")
-                ? enumName.replace('.', '/')
-                : Main.toInternal(emitCtx.getPkg(), enumName);
+            var enumInternal = Main.resolveTypeInternalName(emitCtx.getPkg(), enumName);
 
             mv.visitVarInsn(ALOAD, scrSlot);
             mv.visitFieldInsn(GETSTATIC, enumInternal, variant, Main.internalDesc(enumInternal));

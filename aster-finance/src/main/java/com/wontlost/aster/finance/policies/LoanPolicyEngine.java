@@ -1,11 +1,20 @@
 package com.wontlost.aster.finance.policies;
 
+import com.wontlost.aster.finance.dto.loan.ApplicantProfile;
+import com.wontlost.aster.finance.dto.loan.LoanDecision;
 import com.wontlost.aster.finance.entities.Customer;
 import com.wontlost.aster.finance.entities.LoanApplication;
+import com.wontlost.aster.finance.entities.LoanPurpose;
 import com.wontlost.aster.finance.types.CreditScore;
+import com.wontlost.aster.finance.types.Currency;
+import com.wontlost.aster.finance.types.Money;
 import com.wontlost.aster.finance.types.RiskLevel;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -38,6 +47,32 @@ public class LoanPolicyEngine {
      * 一般信用分数（<740）对应的年利率
      */
     private static final BigDecimal FAIR_RATE = new BigDecimal("0.10");
+
+    /**
+     * 使用共享 DTO 执行贷款资格评估。
+     */
+    public LoanDecision evaluateLoanEligibility(
+        com.wontlost.aster.finance.dto.loan.LoanApplication application,
+        ApplicantProfile applicant
+    ) {
+        Objects.requireNonNull(application, "LoanApplication DTO cannot be null");
+        Objects.requireNonNull(applicant, "ApplicantProfile DTO cannot be null");
+
+        LoanApplication domainApplication = mapDtoToDomain(application, applicant);
+        ApprovalDecision decision = approveLoan(domainApplication);
+        if (!decision.isApproved()) {
+            return new LoanDecision(false, decision.getReason(), 0, 0, 0);
+        }
+
+        int interestRateBps = toBasisPoints(calculateInterestRate(domainApplication.customer().creditScore()));
+        return new LoanDecision(
+            true,
+            decision.getReason(),
+            application.amount(),
+            interestRateBps,
+            application.termMonths()
+        );
+    }
 
     /**
      * 贷款审批决策
@@ -232,5 +267,55 @@ public class LoanPolicyEngine {
         RiskLevel riskLevel = assessRisk(application.customer().creditScore());
 
         return new LoanEvaluation(decision, interestRate, riskLevel);
+    }
+
+    private LoanApplication mapDtoToDomain(
+        com.wontlost.aster.finance.dto.loan.LoanApplication application,
+        ApplicantProfile profile
+    ) {
+        Customer customer = buildCustomer(application, profile);
+        return LoanApplication.builder()
+            .id(application.applicantId())
+            .customer(customer)
+            .requestedAmount(new Money(application.amount(), Currency.USD))
+            .termMonths(application.termMonths())
+            .purpose(resolvePurpose(application.purpose()))
+            .submittedAt(LocalDateTime.now())
+            .build();
+    }
+
+    private Customer buildCustomer(
+        com.wontlost.aster.finance.dto.loan.LoanApplication application,
+        ApplicantProfile profile
+    ) {
+        LocalDate birthDate = deriveBirthDate(profile.age());
+        return Customer.builder()
+            .id(application.applicantId())
+            .name(application.applicantId())
+            .dateOfBirth(birthDate)
+            .creditScore(new CreditScore(profile.creditScore()))
+            .annualIncome(new Money(profile.annualIncome(), Currency.USD))
+            .build();
+    }
+
+    private LocalDate deriveBirthDate(int age) {
+        if (age <= 0) {
+            return LocalDate.now();
+        }
+        return LocalDate.now().minusYears(age);
+    }
+
+    private LoanPurpose resolvePurpose(String purpose) {
+        if (purpose == null || purpose.isBlank()) {
+            return LoanPurpose.PERSONAL;
+        }
+        return Arrays.stream(LoanPurpose.values())
+            .filter(candidate -> candidate.name().equalsIgnoreCase(purpose))
+            .findFirst()
+            .orElse(LoanPurpose.PERSONAL);
+    }
+
+    private int toBasisPoints(BigDecimal rate) {
+        return rate.movePointRight(4).setScale(0, RoundingMode.HALF_UP).intValue();
     }
 }

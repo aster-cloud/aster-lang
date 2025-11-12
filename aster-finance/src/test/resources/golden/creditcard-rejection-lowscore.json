@@ -1,0 +1,29 @@
+{
+  "applicant": {
+    "applicantId": "low-score",
+    "age": 40,
+    "annualIncome": 90000,
+    "creditScore": 520,
+    "existingCreditCards": 1,
+    "monthlyRent": 1200,
+    "employmentStatus": "Full-time",
+    "yearsAtCurrentJob": 5
+  },
+  "history": {
+    "bankruptcyCount": 0,
+    "latePayments": 1,
+    "utilization": 35,
+    "accountAge": 30,
+    "hardInquiries": 1
+  },
+  "offer": {
+    "productType": "Starter",
+    "requestedLimit": 15000,
+    "hasRewards": false,
+    "annualFee": 49
+  },
+  "expectedDecision": {
+    "approved": false,
+    "reason": "Credit score too low"
+  }
+}

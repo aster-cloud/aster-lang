@@ -235,13 +235,12 @@ class TypeCheckerIntegrationTest {
       "test",
       List.of(createParam("m", createMaybeType(createTypeName("Int")))),
       createTypeName("Int"),
-      List.of(),
+      List.of("async"),  // await requires async effect
       createReturnStmt(awaitExpr)
     );
 
     var diagnostics = checker.typecheckModule(module);
-
-    assertTrue(diagnostics.isEmpty(), "Await Maybe<Int> should return Int");
+    assertTrue(diagnostics.isEmpty(), "Await Maybe<Int> should return Int with async effect");
   }
 
   @Test

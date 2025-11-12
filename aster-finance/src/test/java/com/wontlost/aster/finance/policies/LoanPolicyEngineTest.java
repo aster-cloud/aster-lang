@@ -1,5 +1,7 @@
 package com.wontlost.aster.finance.policies;
 
+import com.wontlost.aster.finance.dto.loan.ApplicantProfile;
+import com.wontlost.aster.finance.dto.loan.LoanDecision;
 import com.wontlost.aster.finance.entities.Customer;
 import com.wontlost.aster.finance.entities.LoanApplication;
 import com.wontlost.aster.finance.entities.LoanPurpose;
@@ -140,6 +142,19 @@ class LoanPolicyEngineTest {
         assertThatThrownBy(() -> engine.approveLoan(null))
             .isInstanceOf(NullPointerException.class)
             .hasMessageContaining("Loan application cannot be null");
+    }
+
+    @Test
+    void shouldEvaluateEligibilityUsingDto() {
+        com.wontlost.aster.finance.dto.loan.LoanApplication dtoApplication =
+            new com.wontlost.aster.finance.dto.loan.LoanApplication("D-001", 80_000, 120, "HOME");
+        ApplicantProfile profile = new ApplicantProfile(32, 720, 150_000, 2_000, 6);
+
+        LoanDecision decision = engine.evaluateLoanEligibility(dtoApplication, profile);
+
+        assertThat(decision.approved()).isTrue();
+        assertThat(decision.approvedAmount()).isEqualTo(80_000);
+        assertThat(decision.termMonths()).isEqualTo(120);
     }
 
     // ========== calculateInterestRate Tests ==========

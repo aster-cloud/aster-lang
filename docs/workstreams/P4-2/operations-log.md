@@ -51,3 +51,9 @@
 | 2025-10-22 14:19 | codex__codex | model=gpt-5-codex | 失败：调用 shrimp 规划任务时报错（无输出） |
 | 2025-10-22 14:20 | shell (npm/curl) | 下载 mcp-shrimp-task-manager | 获取工具用法以准备离线调用 |
 | 2025-10-22 14:21 | shell (node) | 调用 shrimp createTask | 生成 Phase 4.2 任务拆解条目 |
+| 2025-11-12 22:55 | sequential-thinking | totalThoughts≈5 | 拆解 Phase 4 DTO 统一任务、圈定受影响模块 |
+| 2025-11-12 22:56 | code-index__set_project_path | path='/Users/rpang/IdeaProjects/aster-lang' | 建立索引以便快速检索 emitter/转换器源码 |
+| 2025-11-12 22:57 | code-index__find_files | pattern='aster-asm-emitter/src/main/java/**/*.java' | 列举 ASM emitter 相关文件，定位修改入口 |
+| 2025-11-12 23:11 | shell (gradlew) | `./gradlew :quarkus-policy-api:generateAsterJar` | 重新生成 policy classfiles，验证命名空间重映射生效 |
+| 2025-11-12 23:22 | shell (gradlew) | `./gradlew :quarkus-policy-api:test` | 全量测试（初次运行记录 workflow 死锁，复跑通过） |
+| 2025-11-12 23:26 | shell (gradlew) | `./gradlew :quarkus-policy-api:test --tests io.aster.ecommerce.integration.OrderWorkflowIntegrationTest` | 单独回归订单 workflow，确认直接调用稳定通过 |

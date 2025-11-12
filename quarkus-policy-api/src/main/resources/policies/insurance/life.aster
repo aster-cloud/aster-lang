@@ -9,23 +9,17 @@ Define LifeQuote with approved: Bool, reason: Text, monthlyPremium: Int, coverag
 To generateLifeQuote with applicant: Applicant, request: PolicyRequest, produce LifeQuote:
   If <(applicant.age, 18),:
     Return LifeQuote with approved = false, reason = "Age below 18", monthlyPremium = 0, coverageAmount = 0, termYears = 0.
-
   If >(applicant.age, 80),:
     Return LifeQuote with approved = false, reason = "Age above 80", monthlyPremium = 0, coverageAmount = 0, termYears = 0.
-
   If <(applicant.healthScore, 40),:
     Return LifeQuote with approved = false, reason = "Health score too low", monthlyPremium = 0, coverageAmount = 0, termYears = 0.
-
   If >(request.coverageAmount, 5000000),:
     Return LifeQuote with approved = false, reason = "Coverage exceeds maximum", monthlyPremium = 0, coverageAmount = 0, termYears = 0.
-
   Let baseRate be calculateBaseRate(applicant.age, request.termYears).
   Let healthMultiplier be calculateHealthMultiplier(applicant).
   Let occupationMultiplier be calculateOccupationMultiplier(applicant.occupation).
-
   Let combinedMultiplier be *(healthMultiplier, occupationMultiplier).
   Let monthlyPremium be *(baseRate, combinedMultiplier).
-
   Return LifeQuote with approved = true, reason = "Quote approved", monthlyPremium = monthlyPremium, coverageAmount = request.coverageAmount, termYears = request.termYears.
 
 To calculateBaseRate with age: Int, termYears: Int, produce Int:
@@ -33,69 +27,51 @@ To calculateBaseRate with age: Int, termYears: Int, produce Int:
     If >(termYears, 20),:
       Return 50.
     Return 40.
-
   If <(age, 45),:
     If >(termYears, 20),:
       Return 75.
     Return 60.
-
   If <(age, 60),:
     If >(termYears, 20),:
       Return 120.
     Return 95.
-
   If >(termYears, 15),:
     Return 180.
   Return 150.
 
 To calculateHealthMultiplier with applicant: Applicant, produce Int:
   Let multiplier be 100.
-
   If applicant.smoker,:
     Let multiplier be +(multiplier, 100).
-
   If >(applicant.bmi, 30),:
     Let multiplier be +(multiplier, 40).
-
   If >(applicant.bmi, 35),:
     Let multiplier be +(multiplier, 30).
-
   If <(applicant.healthScore, 60),:
     Let multiplier be +(multiplier, 50).
-
   If >(applicant.healthScore, 85),:
     Let multiplier be -(multiplier, 20).
-
   Return multiplier.
 
 To calculateOccupationMultiplier with occupation: Text, produce Int:
   If =(occupation, "HighRisk"),:
     Return 150.
-
   If =(occupation, "ModerateRisk"),:
     Return 120.
-
   If =(occupation, "Office"),:
     Return 90.
-
   Return 100.
 
 To calculateRiskScore with applicant: Applicant, produce Int:
   Let riskScore be 0.
-
   If applicant.smoker,:
     Let riskScore be +(riskScore, 30).
-
   If >(applicant.bmi, 30),:
     Let riskScore be +(riskScore, 20).
-
   If <(applicant.healthScore, 60),:
     Let riskScore be +(riskScore, 25).
-
   If =(applicant.occupation, "HighRisk"),:
     Let riskScore be +(riskScore, 35).
-
   If >(applicant.age, 60),:
     Let riskScore be +(riskScore, 20).
-
   Return riskScore.

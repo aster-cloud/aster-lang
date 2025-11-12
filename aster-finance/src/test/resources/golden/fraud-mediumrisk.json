@@ -1,0 +1,20 @@
+{
+  "transaction": {
+    "transactionId": "tx-mid",
+    "accountId": "acct-mid",
+    "amount": 20000,
+    "timestamp": 2000
+  },
+  "history": {
+    "accountId": "acct-mid",
+    "averageAmount": 15000,
+    "suspiciousCount": 2,
+    "accountAge": 20,
+    "lastTimestamp": 1900
+  },
+  "expectedResult": {
+    "isSuspicious": true,
+    "riskScore": 70,
+    "reason": "New account risk"
+  }
+}

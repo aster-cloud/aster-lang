@@ -1,0 +1,13 @@
+This module is aster.templates.insurance.travel.screening.
+
+To evaluateTravelProtection with itinerary, traveler is
+  Let highRiskDestination be itinerary.countryRiskTier is "extreme" or itinerary.alertLevel is over 3.
+  Let medicalConcern be traveler.medicalFlagsCount is over 1 and itinerary.durationDays is over 21.
+  When highRiskDestination and medicalConcern then
+    flag with message "必须医生评估 + 安全通话".
+  When highRiskDestination then
+    approve with message "提供战区附加险，额外保费 40%".
+  When medicalConcern then
+    approve with message "附加医疗加速包 + 10% 保费".
+  Else
+    approve with message "标准旅行险，附送行李保障".

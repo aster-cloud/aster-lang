@@ -9,20 +9,15 @@ Define PolicyQuote with approved: Bool, reason: Text, monthlyPremium: Int, deduc
 To generateAutoQuote with driver: Driver, vehicle: Vehicle, coverageType: Text, produce PolicyQuote:
   If <(driver.age, 18),:
     Return PolicyQuote with approved = false, reason = "Driver under 18", monthlyPremium = 0, deductible = 0, coverageLimit = 0.
-
   If >(driver.accidentCount, 3),:
     Return PolicyQuote with approved = false, reason = "Too many accidents", monthlyPremium = 0, deductible = 0, coverageLimit = 0.
-
   If >(driver.violationCount, 5),:
     Return PolicyQuote with approved = false, reason = "Too many violations", monthlyPremium = 0, deductible = 0, coverageLimit = 0.
-
   Let basePremium be calculateBasePremium(driver, vehicle).
   Let riskMultiplier be calculateRiskMultiplier(driver, vehicle).
   Let finalPremium be *(basePremium, riskMultiplier).
-
   Let deductibleAmt be determineDeductible(coverageType, driver.creditScore).
   Let coverageAmt be determineCoverageLimit(coverageType, vehicle.value).
-
   Return PolicyQuote with approved = true, reason = "Quote approved", monthlyPremium = finalPremium, deductible = deductibleAmt, coverageLimit = coverageAmt.
 
 To calculateBasePremium with driver: Driver, vehicle: Vehicle, produce Int:
@@ -44,7 +39,6 @@ To calculateAgeFactor with age: Int, produce Int:
 To calculateVehicleFactor with vehicle: Vehicle, produce Int:
   Let currentYear be 2025.
   Let vehicleAge be -(currentYear, vehicle.year).
-
   If >(vehicleAge, 10),:
     Return 80.
   If >(vehicleAge, 5),:
@@ -53,21 +47,16 @@ To calculateVehicleFactor with vehicle: Vehicle, produce Int:
 
 To calculateRiskMultiplier with driver: Driver, vehicle: Vehicle, produce Int:
   Let baseMultiplier be 100.
-
   If >(driver.accidentCount, 0),:
     Let penalty be *(driver.accidentCount, 25).
     Let baseMultiplier be +(baseMultiplier, penalty).
-
   If >(driver.violationCount, 0),:
     Let penalty be *(driver.violationCount, 15).
     Let baseMultiplier be +(baseMultiplier, penalty).
-
   If <(driver.creditScore, 650),:
     Let baseMultiplier be +(baseMultiplier, 30).
-
   If >(vehicle.safetyRating, 8),:
     Let baseMultiplier be -(baseMultiplier, 10).
-
   Return baseMultiplier.
 
 To determineDeductible with coverageType: Text, creditScore: Int, produce Int:
@@ -75,22 +64,17 @@ To determineDeductible with coverageType: Text, creditScore: Int, produce Int:
     If >(creditScore, 750),:
       Return 250.
     Return 500.
-
   If =(coverageType, "Standard"),:
     If >(creditScore, 700),:
       Return 500.
     Return 1000.
-
   Return 2000.
 
 To determineCoverageLimit with coverageType: Text, vehicleValue: Int, produce Int:
   If =(coverageType, "Premium"),:
     Return 500000.
-
   If =(coverageType, "Standard"),:
     Return 250000.
-
   If >(vehicleValue, 30000),:
     Return 100000.
-
   Return 50000.

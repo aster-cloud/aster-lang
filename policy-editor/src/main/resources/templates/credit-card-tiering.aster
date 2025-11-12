@@ -1,0 +1,13 @@
+This module is aster.templates.creditcard.tiering.
+
+To evaluateCardUpgrade with profile, usage is
+  Let vipSpender be usage.annualSpend is over 20000 and usage.crossBorderRatio is under 0.35.
+  Let travelFan be usage.travelTransactions is over 8 and profile.airlineStatus is "gold".
+  When vipSpender and profile.riskScore is under 45 then
+    approve with message "升级至钛金卡并附赠机场服务".
+  When travelFan then
+    approve with message "升级至旅行卡，可返现 5%".
+  When profile.riskScore is over 65 or usage.chargebackCount is over 1 then
+    deny with message "当前风险较高，维持原额度".
+  Else
+    approve with message "维持原等级但调升信用额度 15%".

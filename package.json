@@ -289,6 +289,10 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@codingame/monaco-jsonrpc": "^0.4.1",
+    "monaco-editor": "^0.53.0",
+    "monaco-languageclient": "^10.2.0",
+    "reconnecting-websocket": "^4.4.0",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12"
   },

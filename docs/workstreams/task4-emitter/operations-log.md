@@ -29,3 +29,13 @@
 | 2025-11-10 16:05:45 NZDT | shell:cat > .claude/task4-emitter-report.md | 撰写任务报告 | 记录修改与验证结果 |
 | 2025-11-10 16:05:55 NZDT | shell:git status -sb | 查看当前改动 | 核实待提交文件 |
 | 2025-11-10 16:06:05 NZDT | update_plan | 计划完成 | 所有步骤均已完成 |
+| 2025-11-12 22:11:10 NZDT | sequential-thinking | thoughtNumber=6,totalThoughts=7 | 梳理 Phase 3 DSL emitter 修复范围、命令顺序与风险 |
+| 2025-11-12 22:12:05 NZDT | code-index:set_project_path | /Users/rpang/IdeaProjects/aster-lang | 重新初始化索引供 emitter 搜索 |
+| 2025-11-12 22:12:20 NZDT | code-index:build_deep_index | -- | 完成 1786 个文件的深度索引 |
+| 2025-11-12 22:13:02 NZDT | shell:cat /tmp/compile.log | 查看 generateAsterJar 日志 | 确认 `<(applicant.age,18)` 异常与失败阶段 |
+| 2025-11-12 22:16:30 NZDT | apply_patch | 修改 src/jvm/emitter.ts | 新增 `emitInfixCall`，映射 `<,>,<=,>=,+,-,*,/,=,!=` 为合法 Java 表达式 |
+| 2025-11-12 22:17:05 NZDT | shell:npm run build | 重新编译 TypeScript emitter | `tsc` + `dist/scripts/emit-classfiles.js` 更新完成 |
+| 2025-11-12 22:19:40 NZDT | shell:./gradlew :quarkus-policy-api:generateAsterJar | 触发 DSL 生成 | 任务成功，build/jvm-src 不再含 `<(` |
+| 2025-11-12 22:21:55 NZDT | shell:./gradlew :quarkus-policy-api:compileJava | 验证编译链 | 任务成功，generateAsterJar 依赖顺利完成 |
+| 2025-11-12 22:24:30 NZDT | shell:./gradlew :quarkus-policy-api:test | 执行测试 | 触发既有 REST/GraphQL 测试，PolicyTypeConverter 仍导致多项失败 |
+| 2025-11-12 22:26:40 NZDT | apply_patch | 更新 operations-log 与 .claude/task1-implementation-report | 记录 Phase 3 实施细节与测试结果 |

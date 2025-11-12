@@ -19,6 +19,11 @@ public final class Main {
   static boolean DIAG_OVERLOAD = true;
   static boolean NULL_STRICT = false;
   static final java.util.Map<String, boolean[]> NULL_POLICY_OVERRIDE = new java.util.LinkedHashMap<>();
+  private static final NamespaceMapping[] TYPE_NAMESPACES = new NamespaceMapping[] {
+    new NamespaceMapping("aster.finance", "com.wontlost.aster.finance.dto", true, true),
+    new NamespaceMapping("aster.insurance", "com.wontlost.aster.insurance.dto", false, false),
+    new NamespaceMapping("aster.healthcare", "com.wontlost.aster.healthcare.dto", false, false)
+  };
   record Ctx(
     Path outDir,
     ContextBuilder contextBuilder,
@@ -210,7 +215,7 @@ public final class Main {
 
   static void emitData(Ctx ctx, String pkg, CoreModel.Data d) throws IOException {
     var cw = AsmUtilities.createClassWriter();
-    var internal = toInternal(pkg, d.name);
+    var internal = definitionInternalName(pkg, d.name);
     cw.visit(V25, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
     addOriginAnnotation(cw, d.origin);
     cw.visitSource((d.name == null ? "Data" : d.name) + ".java", null);
@@ -320,7 +325,7 @@ public final class Main {
 
   static void emitEnum(Ctx ctx, String pkg, CoreModel.Enum en) throws IOException {
     var cw = new ClassWriter(0);
-    var internal = toInternal(pkg, en.name);
+    var internal = definitionInternalName(pkg, en.name);
     cw.visit(V25, ACC_PUBLIC | ACC_FINAL | ACC_ENUM, internal, null, "java/lang/Enum", null);
     addOriginAnnotation(cw, en.origin);
     cw.visitSource((en.name == null ? "Enum" : en.name) + ".java", null);
@@ -500,7 +505,7 @@ public final class Main {
                 if (en == null) en = en0; else if (!en.equals(en0)) { mixed = true; break; }
               }
               if (!mixed && en != null && ctx.hasEnumVariants(en)) {
-                var enumInternal = en.contains(".") ? en.replace('.', '/') : toInternal(pkg, en);
+                var enumInternal = resolveTypeInternalName(pkg, en);
                 // ord = ((Enum)__scrut).ordinal()
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(CHECKCAST, enumInternal);
@@ -740,7 +745,7 @@ public final class Main {
                 scopeStack.popScope();
                 mv.visitLabel(nextCase);
               } else if (c.pattern instanceof CoreModel.PatCtor pc) {
-                var targetInternal = pc.typeName.contains(".") ? pc.typeName.replace('.', '/') : toInternal(pkg, pc.typeName);
+                var targetInternal = resolveTypeInternalName(pkg, pc.typeName);
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(INSTANCEOF, targetInternal);
                 mv.visitJumpInsn(IFEQ, nextCase);
@@ -758,9 +763,9 @@ public final class Main {
                     if (bindName == null || bindName.isEmpty() || "_".equals(bindName)) continue;
                     mv.visitVarInsn(ALOAD, objSlot);
                     var f = data.fields.get(i2);
-                    mv.visitFieldInsn(GETFIELD, targetInternal, f.name, jDesc(pkg, f.type));
-                    int slot = nextSlot++;
                     var fieldDesc = jDesc(pkg, f.type);
+                    loadDataField(mv, targetInternal, f.name, fieldDesc);
+                    int slot = nextSlot++;
                     var fieldKind = kindForDescriptor(fieldDesc);
                     switch (fieldKind) {
                       case DOUBLE -> {
@@ -797,7 +802,7 @@ public final class Main {
                 var enumName = ctx.enumOwner(variant);
                 scopeStack.pushScope();
                 if (enumName != null) {
-                  var enumInternal = enumName.contains(".") ? enumName.replace('.', '/') : toInternal(pkg, enumName);
+                  var enumInternal = resolveTypeInternalName(pkg, enumName);
                   mv.visitVarInsn(ALOAD, scrSlot);
                   mv.visitFieldInsn(GETSTATIC, enumInternal, variant, internalDesc(enumInternal));
                   mv.visitJumpInsn(IF_ACMPNE, nextCase);
@@ -986,7 +991,7 @@ public final class Main {
 
     if (e instanceof CoreModel.Construct cons) {
       // new Type(args)
-      var internal = cons.typeName.contains(".") ? cons.typeName.replace('.', '/') : (currentPkg == null ? cons.typeName : toInternal(currentPkg, cons.typeName));
+      var internal = resolveTypeInternalName(currentPkg, cons.typeName);
       mv.visitTypeInsn(NEW, internal);
       mv.visitInsn(DUP);
 
@@ -1302,7 +1307,7 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
   static String resolveObjectDescriptor(CoreModel.Expr expr, String pkg, ScopeStack scopeStack, Ctx ctx) {
     if (expr instanceof CoreModel.StringE) return "Ljava/lang/String;";
     if (expr instanceof CoreModel.Construct cons) {
-      String internal = cons.typeName.contains(".") ? cons.typeName.replace('.', '/') : toInternal(pkg, cons.typeName);
+      String internal = resolveTypeInternalName(pkg, cons.typeName);
       return "L" + internal + ';';
     }
     if (expr instanceof CoreModel.Name name) {
@@ -1332,7 +1337,7 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
         if (BuiltinTypes.isStringType(rtn.name)) {
           return "Ljava/lang/String;";
         }
-        String internal = rtn.name.contains(".") ? rtn.name.replace('.', '/') : toInternal(pkg, rtn.name);
+        String internal = resolveTypeInternalName(pkg, rtn.name);
         return "L" + internal + ';';
       }
     }
@@ -1354,6 +1359,7 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
   private static CoreModel.Data lookupData(Ctx ctx, String ownerInternal) {
     if (ctx == null || ownerInternal == null || ownerInternal.isEmpty()) return null;
     String dotName = ownerInternal.replace('/', '.');
+    dotName = demapDotted(dotName);
     String current = dotName;
     while (current != null && !current.isEmpty()) {
       var data = ctx.lookupData(current);
@@ -1449,6 +1455,120 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     sb.append(")").append(javaTypeToDesc(m.getReturnType()));
     return sb.toString();
   }
+
+  static String resolveTypeInternalName(String pkg, String typeName) {
+    if (typeName == null || typeName.isEmpty()) return typeName;
+    if (typeName.indexOf('/') >= 0) {
+      return remapInternal(typeName);
+    }
+    String dotted = typeName.contains(".") ? typeName : joinPkg(pkg, typeName);
+    if (dotted == null || dotted.isEmpty()) dotted = typeName;
+    String remapped = remapDotted(dotted);
+    return remapped.contains(".") ? remapped.replace('.', '/') : remapped;
+  }
+
+  static String remapDotted(String dotted) {
+    if (dotted == null || dotted.isEmpty()) return dotted;
+    for (var ns : TYPE_NAMESPACES) {
+      if (dotted.equals(ns.sourcePrefix())) return ns.targetPrefix();
+      if (dotted.startsWith(ns.sourcePrefixDot())) {
+        return ns.targetPrefixDot() + dotted.substring(ns.sourcePrefixDot().length());
+      }
+    }
+    return dotted;
+  }
+
+  static String remapInternal(String internal) {
+    if (internal == null || internal.isEmpty()) return internal;
+    for (var ns : TYPE_NAMESPACES) {
+      if (ns.sourceInternalRoot().equals(internal)) return ns.targetInternalRoot();
+      if (internal.startsWith(ns.sourceInternalPrefix())) {
+        return ns.targetInternalPrefix() + internal.substring(ns.sourceInternalPrefix().length());
+      }
+    }
+    return internal;
+  }
+
+  static String demapDotted(String dotted) {
+    if (dotted == null || dotted.isEmpty()) return dotted;
+    for (var ns : TYPE_NAMESPACES) {
+      if (dotted.equals(ns.targetPrefix())) return ns.sourcePrefix();
+      if (dotted.startsWith(ns.targetPrefixDot())) {
+        return ns.sourcePrefixDot() + dotted.substring(ns.targetPrefixDot().length());
+      }
+    }
+    return dotted;
+  }
+
+  static String demapInternal(String internal) {
+    if (internal == null || internal.isEmpty()) return internal;
+    for (var ns : TYPE_NAMESPACES) {
+      if (ns.targetInternalRoot().equals(internal)) return ns.sourceInternalRoot();
+      if (internal.startsWith(ns.targetInternalPrefix())) {
+        return ns.sourceInternalPrefix() + internal.substring(ns.targetInternalPrefix().length());
+      }
+    }
+    return internal;
+  }
+
+  private static NamespaceMapping findNamespaceForPackage(String pkg) {
+    if (pkg == null || pkg.isEmpty()) return null;
+    for (var ns : TYPE_NAMESPACES) {
+      if (pkg.equals(ns.sourcePrefix()) || pkg.startsWith(ns.sourcePrefixDot())) return ns;
+    }
+    return null;
+  }
+
+  private static String joinPkg(String pkg, String name) {
+    if (name == null || name.isEmpty()) return name;
+    if (pkg == null || pkg.isEmpty()) return name;
+    return pkg + "." + name;
+  }
+
+  private static boolean shouldEmitRemapped(String pkg) {
+    var ns = findNamespaceForPackage(pkg);
+    return ns != null && !ns.externalProvider();
+  }
+
+  static String definitionInternalName(String pkg, String name) {
+    if (shouldEmitRemapped(pkg)) {
+      return resolveTypeInternalName(pkg, name);
+    }
+    return toInternal(pkg, name);
+  }
+
+  static void loadDataField(MethodVisitor mv, String ownerInternal, String fieldName, String fieldDesc) {
+    if (requiresAccessor(ownerInternal)) {
+      mv.visitMethodInsn(INVOKEVIRTUAL, ownerInternal, fieldName, "()" + fieldDesc, false);
+    } else {
+      mv.visitFieldInsn(GETFIELD, ownerInternal, fieldName, fieldDesc);
+    }
+  }
+
+  private static boolean requiresAccessor(String ownerInternal) {
+    if (ownerInternal == null || ownerInternal.isEmpty()) return false;
+    for (var ns : TYPE_NAMESPACES) {
+      if (ns.useAccessors() && ownerInternal.startsWith(ns.targetInternalPrefix())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private record NamespaceMapping(
+      String sourcePrefix,
+      String targetPrefix,
+      boolean externalProvider,
+      boolean useAccessors
+  ) {
+      String sourcePrefixDot() { return sourcePrefix + "."; }
+      String targetPrefixDot() { return targetPrefix + "."; }
+      String sourceInternalPrefix() { return sourcePrefix.replace('.', '/') + "/"; }
+      String targetInternalPrefix() { return targetPrefix.replace('.', '/') + "/"; }
+      String sourceInternalRoot() { return sourcePrefix.replace('.', '/'); }
+      String targetInternalRoot() { return targetPrefix.replace('.', '/'); }
+  }
+
   static String internalToPkg(String internal) {
     if (internal == null) return "";
     int i = internal.lastIndexOf('/');
@@ -1462,14 +1582,14 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
         case BuiltinTypes.INT -> "I";
         case BuiltinTypes.BOOL -> "Z";
         case BuiltinTypes.LONG -> "J";
-        case BuiltinTypes.DOUBLE -> "D";
-        case BuiltinTypes.NUMBER -> "Ljava/lang/Double;"; // Map primitive Number to boxed Double
-        default -> {
-          String internal = (tn.name.contains(".")) ? tn.name.replace('.', '/') : toInternal(pkg, tn.name);
-          yield "L" + internal + ';';
-        }
-      };
-    }
+      case BuiltinTypes.DOUBLE -> "D";
+      case BuiltinTypes.NUMBER -> "Ljava/lang/Double;"; // Map primitive Number to boxed Double
+      default -> {
+        String internal = resolveTypeInternalName(pkg, tn.name);
+        yield "L" + internal + ';';
+      }
+    };
+  }
     if (t instanceof CoreModel.ListT) return "Ljava/util/List;";
     if (t instanceof CoreModel.MapT) return "Ljava/util/Map;";
     if (t instanceof CoreModel.Result) return "Laster/runtime/Result;"; // erasure for now

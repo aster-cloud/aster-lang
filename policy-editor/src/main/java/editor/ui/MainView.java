@@ -32,6 +32,7 @@ import editor.model.Policy;
 import editor.model.EditorSettings;
 import editor.service.PolicyService;
 import editor.service.SettingsService;
+import editor.template.PolicyTemplateService;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -52,16 +53,19 @@ public class MainView extends AppLayout {
     private final Config config;
     private final SettingsService settingsService;
     private final SecurityIdentity identity;
+    private final PolicyTemplateService templateService;
 
     private transient GraphQLClient gql;
     private EditorSettings cachedSettings;
 
     @Inject
-    public MainView(PolicyService policyService, Config config, SettingsService settingsService, SecurityIdentity identity) {
+    public MainView(PolicyService policyService, Config config, SettingsService settingsService,
+                    SecurityIdentity identity, PolicyTemplateService templateService) {
         this.policyService = policyService;
         this.config = config;
         this.settingsService = settingsService;
         this.identity = identity;
+        this.templateService = templateService;
         // 顶部导航栏（标题 + 抽屉切换）
         DrawerToggle toggle = new DrawerToggle();
         H1 title = new H1("Policy Editor");
@@ -93,7 +97,7 @@ public class MainView extends AppLayout {
         // 视图内容
         VerticalLayout lifeContent = lifeQuoteForm();
         VerticalLayout loanContent = personalLoanForm();
-        AsterPolicyEditorView asterEditorContent = new AsterPolicyEditorView();
+        AsterPolicyEditorView asterEditorContent = new AsterPolicyEditorView(templateService);
         VerticalLayout policyContent = policyManageView();
         VerticalLayout syncContent = syncView();
         VerticalLayout auditContent = auditView();

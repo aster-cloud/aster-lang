@@ -1,8 +1,14 @@
+import java.io.File
+import org.gradle.api.GradleException
+
 plugins {
     id("java")
     // Using latest Quarkus 3.28.3 - testing Gradle 9.0 compatibility
     id("io.quarkus") version "3.28.3"
+    id("io.gatling.gradle") version "3.13.1"
 }
+
+extra["reportsDir"] = layout.buildDirectory.dir("reports/gatling").get().asFile
 
 repositories {
     mavenCentral()
@@ -30,8 +36,9 @@ dependencies {
     // Metrics
     implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
 
-    // Caching - Caffeine cache
+    // Caching - Caffeine cache + Redis for distributed invalidation
     implementation("io.quarkus:quarkus-cache")
+    implementation("io.quarkus:quarkus-redis-cache")
 
     // WebSocket support for Live Preview
     implementation("io.quarkus:quarkus-websockets")
@@ -54,6 +61,7 @@ dependencies {
     implementation(project(":aster-runtime"))
     implementation(project(":aster-validation"))
     implementation(project(":aster-policy-common"))
+    implementation(project(":aster-finance"))
     implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
 
     // 测试依赖
@@ -72,6 +80,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:1.19.3")
     testImplementation("org.testcontainers:postgresql:1.19.3")
     testImplementation("org.testcontainers:junit-jupiter:1.19.3")
+    testImplementation("com.redis:testcontainers-redis:2.0.1")
 }
 
 tasks.withType<JavaCompile>().configureEach {

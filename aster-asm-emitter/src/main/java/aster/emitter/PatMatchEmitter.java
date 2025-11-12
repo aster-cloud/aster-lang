@@ -98,11 +98,15 @@ final class PatMatchEmitter {
                 : "";
             boolean isOk = java.util.Objects.equals(pc.typeName, "Ok");
             boolean isErr = java.util.Objects.equals(pc.typeName, "Err");
-            String targetInternal = isOk ? "aster/runtime/Ok"
-                : (isErr ? "aster/runtime/Err"
-                    : (pc.typeName.contains(".")
-                        ? pc.typeName.replace('.', '/')
-                        : (pkgPath.isEmpty() ? pc.typeName : pkgPath + "/" + pc.typeName)));
+            String targetInternal;
+            if (isOk) {
+                targetInternal = "aster/runtime/Ok";
+            } else if (isErr) {
+                targetInternal = "aster/runtime/Err";
+            } else {
+                String defaultPkg = pkgPath.isEmpty() ? "" : pkgPath.replace('/', '.');
+                targetInternal = Main.resolveTypeInternalName(defaultPkg, pc.typeName);
+            }
 
             // 3.2 instanceof 检查和类型转换
             mv.visitVarInsn(ALOAD, valSlot);
@@ -126,7 +130,7 @@ final class PatMatchEmitter {
                 if (child != null) {
                     mv.visitVarInsn(ALOAD, objSlot);
                     String field = isOk ? "value" : "error";
-                    mv.visitFieldInsn(GETFIELD, targetInternal, field, "Ljava/lang/Object;");
+                    Main.loadDataField(mv, targetInternal, field, "Ljava/lang/Object;");
                     int sub = Main.nextLocal(env);
                     mv.visitVarInsn(ASTORE, sub);
                     // 递归调用
@@ -168,7 +172,7 @@ final class PatMatchEmitter {
                         if ("I".equals(fDesc)) {
                             // int 类型
                             mv.visitVarInsn(ALOAD, objSlot);
-                            mv.visitFieldInsn(GETFIELD, targetInternal, fieldName, fDesc);
+                            Main.loadDataField(mv, targetInternal, fieldName, fDesc);
                             int slotI = Main.nextLocal(env);
                             mv.visitVarInsn(ISTORE, slotI);
                             env.put(bind, slotI);
@@ -176,7 +180,7 @@ final class PatMatchEmitter {
                         } else if ("Z".equals(fDesc)) {
                             // boolean 类型
                             mv.visitVarInsn(ALOAD, objSlot);
-                            mv.visitFieldInsn(GETFIELD, targetInternal, fieldName, fDesc);
+                            Main.loadDataField(mv, targetInternal, fieldName, fDesc);
                             int slotZ = Main.nextLocal(env);
                             mv.visitVarInsn(ISTORE, slotZ);
                             env.put(bind, slotZ);
@@ -184,7 +188,7 @@ final class PatMatchEmitter {
                         } else {
                             // 对象类型
                             mv.visitVarInsn(ALOAD, objSlot);
-                            mv.visitFieldInsn(GETFIELD, targetInternal, fieldName, fDesc);
+                            Main.loadDataField(mv, targetInternal, fieldName, fDesc);
                             int slotO = Main.nextLocal(env);
                             mv.visitVarInsn(ASTORE, slotO);
                             env.put(bind, slotO);
@@ -193,7 +197,7 @@ final class PatMatchEmitter {
                 } else {
                     // 3.4.2 嵌套模式：原始类型 boxing 后递归
                     mv.visitVarInsn(ALOAD, objSlot);
-                    mv.visitFieldInsn(GETFIELD, targetInternal, fieldName, fDesc);
+                    Main.loadDataField(mv, targetInternal, fieldName, fDesc);
                     if ("I".equals(fDesc)) {
                         mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
                     } else if ("Z".equals(fDesc)) {

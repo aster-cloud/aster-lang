@@ -147,9 +147,8 @@ final class LambdaMatchEmitter {
                         String pkgPath = ownerInternal.contains("/")
                             ? ownerInternal.substring(0, ownerInternal.lastIndexOf('/'))
                             : "";
-                        String enumInternal = enumName.contains(".")
-                            ? enumName.replace('.', '/')
-                            : (pkgPath.isEmpty() ? enumName : pkgPath + "/" + enumName);
+                        String defaultPkg = pkgPath.isEmpty() ? "" : pkgPath.replace('/', '.');
+                        String enumInternal = Main.resolveTypeInternalName(defaultPkg, enumName);
 
                         mv.visitVarInsn(ALOAD, scr);
                         mv.visitFieldInsn(GETSTATIC, enumInternal, pn.name, Main.internalDesc(enumInternal));

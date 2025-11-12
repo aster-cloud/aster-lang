@@ -1,0 +1,20 @@
+This module is aster.templates.payments.fraud.
+
+To evaluatePaymentRisk with txn, customer is
+  Let recentDeviceChange be txn.deviceFingerprint != customer.lastDevice.
+  Let highVelocity be txn.countInLastHour is over 5 or txn.totalAmountInLastHour is over 4000.
+  Let geoMismatch be txn.country != customer.homeCountry and txn.countryRiskTier is "high".
+  Let riskyMerchant be txn.merchantCategory is \"gambling\" or txn.merchantCategory is \"crypto\" or txn.merchantCategory is \"giftcard\".
+  Let riskScore be 0.
+  When recentDeviceChange then
+    Let riskScore be riskScore + 25.
+  When highVelocity then
+    Let riskScore be riskScore + 35.
+  When geoMismatch then
+    Let riskScore be riskScore + 20.
+  When riskyMerchant then
+    Let riskScore be riskScore + 15.
+  When riskScore is over 60 then
+    flag with message "需 3DS + 人工复核".
+  Else
+    approve with message "风险可控，快速放行".

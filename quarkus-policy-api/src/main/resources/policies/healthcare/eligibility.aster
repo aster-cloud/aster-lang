@@ -9,15 +9,12 @@ Define EligibilityCheck with eligible: Bool, reason: Text, coveragePercent: Int,
 To checkServiceEligibility with patient: Patient, service: Service, produce EligibilityCheck:
   If not(patient.hasInsurance),:
     Return EligibilityCheck with eligible = false, reason = "No insurance coverage", coveragePercent = 0, estimatedCost = service.basePrice, requiresPreAuth = false.
-
   If <(patient.age, 18),:
     Let coverage be determineMinorCoverage(patient.insuranceType, service).
     Return EligibilityCheck with eligible = true, reason = "Minor coverage", coveragePercent = coverage, estimatedCost = calculatePatientCost(service.basePrice, coverage), requiresPreAuth = service.requiresPreAuth.
-
   If >(patient.age, 65),:
     Let coverage be determineSeniorCoverage(patient.insuranceType, service).
     Return EligibilityCheck with eligible = true, reason = "Senior coverage", coveragePercent = coverage, estimatedCost = calculatePatientCost(service.basePrice, coverage), requiresPreAuth = service.requiresPreAuth.
-
   Let coverage be determineStandardCoverage(patient.insuranceType, service, patient.chronicConditions).
   Return EligibilityCheck with eligible = true, reason = "Standard coverage", coveragePercent = coverage, estimatedCost = calculatePatientCost(service.basePrice, coverage), requiresPreAuth = service.requiresPreAuth.
 

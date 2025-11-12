@@ -2,6 +2,14 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-12 Phase 3 DSL Emitter & DTO 校验
+- 日期：2025-11-12 22:27 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:generateAsterJar` → 通过（TypeScript JVM emitter 输出的 workflow Java 源码全部转为合法中缀表达式，`build/jvm-src` 中未再出现 `<(…)`）。
+  - `./gradlew :quarkus-policy-api:compileJava` → 通过（`generateAsterJar` 作为前置任务执行成功，Quarkus 模块编译无语法错误）。
+  - `./gradlew :quarkus-policy-api:test` → 失败（`PolicyGraphQLResourceTest`、`PolicyEvaluationResourceTest`、`SimplePolicyE2ETest` 等 40+ 用例因 `PolicyTypeConverter` 抛出 “不支持的 DTO 类型：aster.finance.loan.LoanApplication” 而断言失败；详见 `quarkus-policy-api/build/test-results/test/TEST-*.xml`）。
+
 ## 2025-11-11 Phase 0 Task 1.5 非确定性修复验证
 - 日期：2025-11-11 23:40 NZDT
 - 执行者：Codex

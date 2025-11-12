@@ -6,10 +6,10 @@ import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Pre;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -17,10 +17,15 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServletRequest;
+import editor.template.PolicyTemplate;
+import editor.template.PolicyTemplateService;
+
+import jakarta.inject.Inject;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -38,21 +43,32 @@ import java.nio.charset.StandardCharsets;
  */
 @PageTitle("Aster Policy Editor")
 @Route("aster-editor")
+@JsModule("./src/components/monaco-editor-component.ts")
 public class AsterPolicyEditorView extends VerticalLayout {
 
     private static final long serialVersionUID = 1L;
     private static final int DEBOUNCE_MS = 300;
+    private static final String DEFAULT_POLICY_SNIPPET = """
+        This module is aster.finance.loan.
+
+        To evaluateLoanEligibility with applicant, history is
+          When applicant.creditScore is over 720 then
+            approve with message \"优先客户，建议极速放款\".
+        """;
 
     private final TextField moduleField;
     private final TextField functionField;
-    private final TextArea policyCodeArea;
+    private final Element monacoEditorElement;
     private final TextArea sampleInputArea;
+    private final TemplateSelector templateSelector;
     private final Div previewResultDiv;
     private final Div connectionStatusDiv;
 
     private String webSocketUrl;
+    private String policyCodeValue = DEFAULT_POLICY_SNIPPET.trim();
 
-    public AsterPolicyEditorView() {
+    @Inject
+    public AsterPolicyEditorView(PolicyTemplateService templateService) {
         setSizeFull();
         setPadding(true);
 
@@ -71,12 +87,39 @@ public class AsterPolicyEditorView extends VerticalLayout {
         HorizontalLayout headerLayout = new HorizontalLayout(moduleField, functionField);
         headerLayout.setAlignItems(Alignment.END);
 
-        // 策略代码编辑区
-        policyCodeArea = new TextArea("Policy Code (.aster)");
-        policyCodeArea.setPlaceholder("This module is aster.finance.loan.\n\nTo evaluateLoanEligibility with ...");
-        policyCodeArea.setWidth("100%");
-        policyCodeArea.setHeight("400px");
-        policyCodeArea.getStyle().set("font-family", "monospace");
+        templateSelector = new TemplateSelector(templateService);
+        templateSelector.setTemplateApplyListener(this::applyTemplate);
+
+        // 策略代码编辑区（Monaco）
+        monacoEditorElement = new Element("monaco-editor-component");
+        monacoEditorElement.setProperty("value", DEFAULT_POLICY_SNIPPET.trim());
+        monacoEditorElement.setProperty("theme", "vs-dark");
+        monacoEditorElement.setProperty("fontSize", 14);
+        monacoEditorElement.setProperty("minimap", true);
+        monacoEditorElement.setProperty("folding", true);
+        monacoEditorElement.addEventListener("monaco-value-changed", event -> {
+            policyCodeValue = event.getEventData().getString("event.detail.value");
+        }).addEventData("event.detail.value");
+
+        Span editorLabel = new Span("Policy Code (.aster)");
+        editorLabel.getStyle()
+            .set("font-weight", "600")
+            .set("font-size", "var(--lumo-font-size-m)");
+
+        Div monacoHost = new Div();
+        monacoHost.setWidth("100%");
+        monacoHost.setHeight("480px");
+        monacoHost.getStyle()
+            .set("border", "1px solid #ddd")
+            .set("border-radius", "4px")
+            .set("overflow", "hidden")
+            .set("background", "var(--lumo-base-color)");
+        monacoHost.getElement().appendChild(monacoEditorElement);
+
+        VerticalLayout codeLayout = new VerticalLayout(editorLabel, monacoHost);
+        codeLayout.setPadding(false);
+        codeLayout.setSpacing(false);
+        codeLayout.setWidthFull();
 
         // 示例输入配置
         sampleInputArea = new TextArea("Sample Input (JSON Array)");
@@ -86,7 +129,7 @@ public class AsterPolicyEditorView extends VerticalLayout {
         sampleInputArea.getStyle().set("font-family", "monospace");
 
         // 左侧编辑器
-        VerticalLayout editorLayout = new VerticalLayout(policyCodeArea, sampleInputArea);
+        VerticalLayout editorLayout = new VerticalLayout(templateSelector, codeLayout, sampleInputArea);
         editorLayout.setSizeFull();
         editorLayout.setPadding(false);
 
@@ -248,25 +291,25 @@ public class AsterPolicyEditorView extends VerticalLayout {
      * 设置防抖监听器
      */
     private void setupDebounce(UI ui) {
-        // 监听代码变化，触发防抖预览
+        // 监听输入组件变化，触发防抖预览
         String debounceScript = """
-            (function() {
+            (function(host, target) {
                 let debounceTimer = null;
 
-                $0.addEventListener('value-changed', function() {
+                target.addEventListener('value-changed', function() {
                     if (debounceTimer) {
                         clearTimeout(debounceTimer);
                     }
 
                     debounceTimer = setTimeout(function() {
-                        $0.$server.triggerPreview();
+                        host.$server.triggerPreview();
                     }, %d);
                 });
-            })();
+            })($0, $1);
             """.formatted(DEBOUNCE_MS);
 
-        ui.getPage().executeJs(debounceScript, policyCodeArea.getElement());
-        ui.getPage().executeJs(debounceScript, sampleInputArea.getElement());
+        ui.getPage().executeJs(debounceScript, getElement(), monacoEditorElement);
+        ui.getPage().executeJs(debounceScript, getElement(), sampleInputArea.getElement());
     }
 
     /**
@@ -353,7 +396,7 @@ public class AsterPolicyEditorView extends VerticalLayout {
      * 保存策略
      */
     private void savePolicy() {
-        String code = policyCodeArea.getValue();
+        String code = getPolicyCode();
 
         if (code == null || code.isBlank()) {
             Notification.show("策略代码不能为空", 2000, Notification.Position.TOP_CENTER)
@@ -370,7 +413,7 @@ public class AsterPolicyEditorView extends VerticalLayout {
      * 导出策略为 .aster 文件
      */
     private void exportPolicy() {
-        String code = policyCodeArea.getValue();
+        String code = getPolicyCode();
 
         if (code == null || code.isBlank()) {
             Notification.show("策略代码不能为空", 2000, Notification.Position.TOP_CENTER)
@@ -444,15 +487,9 @@ public class AsterPolicyEditorView extends VerticalLayout {
                 }
 
                 // 加载到编辑器
-                policyCodeArea.setValue(content);
+                updateEditorContent(content);
 
-                // 尝试从文件内容中提取 module 信息
-                // 格式: "This module is aster.finance.loan."
-                String firstLine = content.lines().findFirst().orElse("");
-                if (firstLine.startsWith("This module is ") && firstLine.endsWith(".")) {
-                    String moduleName = firstLine.substring("This module is ".length(), firstLine.length() - 1);
-                    moduleField.setValue(moduleName);
-                }
+                updateModuleFieldFromContent(content);
 
                 Notification.show("策略已导入: " + fileName, 2000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
@@ -468,9 +505,42 @@ public class AsterPolicyEditorView extends VerticalLayout {
      * 重置编辑器
      */
     private void resetEditor() {
-        policyCodeArea.clear();
+        updateEditorContent(DEFAULT_POLICY_SNIPPET.trim());
         sampleInputArea.setValue("[\n  {}\n]");
         previewResultDiv.setText("等待编辑以触发预览...");
         previewResultDiv.getStyle().set("background", "#f5f5f5");
+    }
+
+    private void applyTemplate(PolicyTemplate template) {
+        if (template == null) {
+            return;
+        }
+        updateEditorContent(template.content());
+        updateModuleFieldFromContent(template.content());
+        Notification.show("已应用模板: " + template.name(), 2000, Notification.Position.TOP_CENTER)
+            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    }
+
+    private String getPolicyCode() {
+        return policyCodeValue == null ? "" : policyCodeValue;
+    }
+
+    private void updateEditorContent(String content) {
+        policyCodeValue = (content == null) ? "" : content;
+        getUI().ifPresent(ui ->
+            monacoEditorElement.callJsFunction("setValue", policyCodeValue)
+        );
+    }
+
+    private void updateModuleFieldFromContent(String content) {
+        if (content == null || content.isBlank()) {
+            return;
+        }
+        String firstLine = content.lines().findFirst().orElse("");
+        String prefix = "This module is ";
+        if (firstLine.startsWith(prefix) && firstLine.endsWith(".")) {
+            String moduleName = firstLine.substring(prefix.length(), firstLine.length() - 1);
+            moduleField.setValue(moduleName);
+        }
     }
 }

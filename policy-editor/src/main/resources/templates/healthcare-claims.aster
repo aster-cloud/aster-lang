@@ -1,0 +1,14 @@
+This module is aster.templates.healthcare.claims.
+
+To evaluateClaimReview with claim, member is
+  Let highCostProcedure be claim.procedureCost is over 15000.
+  Let chronicCare be member.chronicConditionsCount is over 2.
+  Let outOfNetwork be claim.providerNetwork is "out".
+  When highCostProcedure and outOfNetwork then
+    flag with message "需医学审查 + 2 人复核".
+  When chronicCare and claim.procedureType is "maintenance" then
+    approve with message "走快速慢病套餐".
+  When claim.suspicionScore is over 70 then
+    deny with message "命中欺诈规则，封存记录".
+  Else
+    approve with message "常规放行，标准 SLA".

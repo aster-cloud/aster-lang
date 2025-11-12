@@ -241,9 +241,7 @@ public final class ExpressionEmitter {
   private void emitConstruct(CoreModel.Construct cons, MethodVisitor mv, ScopeStack scopeStack, String expectedDesc) {
     // Resolve package: use currentPkg if available, otherwise use module name from context
     String pkg = currentPkg != null ? currentPkg : context.module().name;
-    String internal = cons.typeName.contains(".")
-        ? cons.typeName.replace('.', '/')
-        : toInternal(pkg, cons.typeName);
+    String internal = Main.resolveTypeInternalName(pkg, cons.typeName);
     mv.visitTypeInsn(NEW, internal);
     mv.visitInsn(DUP);
 
@@ -310,10 +308,5 @@ public final class ExpressionEmitter {
     // 创建 LambdaEmitter 并执行
     LambdaEmitter lambdaEmitter = new LambdaEmitter(typeResolver, ctx, bodyEmitter);
     lambdaEmitter.emitLambda(mv, lam, currentPkg, baseEnv, scopeStack);
-  }
-
-  private static String toInternal(String pkg, String cls) {
-    if (pkg == null || pkg.isEmpty()) return cls;
-    return pkg.replace('.', '/') + "/" + cls;
   }
 }

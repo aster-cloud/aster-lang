@@ -153,9 +153,7 @@ final class NameEmitter {
     if (ctx == null) return false;
     var ownerName = ctx.enumOwner(name.name);
     if (ownerName == null) return false;
-    var ownerInternal = ownerName.contains(".")
-        ? ownerName.replace('.', '/')
-        : Main.toInternal(currentPkg, ownerName);
+    var ownerInternal = Main.resolveTypeInternalName(currentPkg, ownerName);
     mv.visitFieldInsn(GETSTATIC, ownerInternal, name.name, Main.internalDesc(ownerInternal));
     return true;
   }
@@ -182,7 +180,7 @@ final class NameEmitter {
         mv.visitVarInsn(ALOAD, baseSlot);
         String fieldDesc = resolveFieldDescriptor(ctx, currentPkg, ownerInternal, fieldName);
         if (fieldDesc == null) fieldDesc = "Ljava/lang/Object;";
-        mv.visitFieldInsn(GETFIELD, ownerInternal, fieldName, fieldDesc);
+        Main.loadDataField(mv, ownerInternal, fieldName, fieldDesc);
         emitTypeConversion(mv, fieldDesc, expectedDesc);
         return true;
       }
@@ -191,7 +189,7 @@ final class NameEmitter {
     if (currentPkg != null) {
       var cls = name.name.substring(0, dot);
       var constName = name.name.substring(dot + 1);
-      var owner = Main.toInternal(currentPkg, cls);
+      var owner = Main.resolveTypeInternalName(currentPkg, cls);
       mv.visitFieldInsn(GETSTATIC, owner, constName, Main.internalDesc(owner));
       return true;
     }

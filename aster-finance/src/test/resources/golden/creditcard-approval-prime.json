@@ -1,0 +1,34 @@
+{
+  "applicant": {
+    "applicantId": "prime-traveler",
+    "age": 32,
+    "annualIncome": 150000,
+    "creditScore": 790,
+    "existingCreditCards": 2,
+    "monthlyRent": 1800,
+    "employmentStatus": "Full-time",
+    "yearsAtCurrentJob": 7
+  },
+  "history": {
+    "bankruptcyCount": 0,
+    "latePayments": 0,
+    "utilization": 10,
+    "accountAge": 6,
+    "hardInquiries": 0
+  },
+  "offer": {
+    "productType": "Premium",
+    "requestedLimit": 40000,
+    "hasRewards": true,
+    "annualFee": 395
+  },
+  "expectedDecision": {
+    "approved": true,
+    "reason": "Approved",
+    "approvedLimit": 14000,
+    "interestRateAPR": 1599,
+    "monthlyFee": 0,
+    "requiresDeposit": true,
+    "depositAmount": 14000
+  }
+}

@@ -6,16 +6,25 @@ import io.aster.policy.api.PolicyCacheKey;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CaffeineCache;
+import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.redis.datasource.pubsub.PubSubCommands;
+import io.quarkus.redis.datasource.pubsub.PubSubCommands.RedisSubscriber;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.enterprise.inject.Instance;
 import org.jboss.logging.Logger;
+
+import io.vertx.core.json.JsonObject;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 
 /**
  * 策略缓存管理器，封装生命周期跟踪与租户索引。
@@ -24,16 +33,23 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PolicyCacheManager {
 
     private static final Logger LOG = Logger.getLogger(PolicyCacheManager.class);
+    private static final String INVALIDATION_CHANNEL = "policy-cache:invalidate";
 
     @Inject
     @CacheName("policy-results")
     Cache policyResultCache;
+
+    @Inject
+    Instance<RedisDataSource> redisDataSource;
 
     private CaffeineCache caffeineCacheDelegate;
 
     private com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, Boolean> cacheLifecycleTracker;
 
     private final ConcurrentHashMap<String, Set<PolicyCacheKey>> tenantCacheIndex = new ConcurrentHashMap<>();
+    private PubSubCommands<String> pubSubCommands;
+    private RedisSubscriber redisSubscriber;
+    private ExecutorService invalidationExecutor;
 
     @PostConstruct
     void initCacheLifecycleTracking() {
@@ -73,6 +89,8 @@ public class PolicyCacheManager {
                 }
             }
         }).build();
+
+        initRedisInvalidationChannel();
     }
 
     public Cache getPolicyResultCache() {
@@ -129,6 +147,27 @@ public class PolicyCacheManager {
         return null;
     }
 
+    private void initRedisInvalidationChannel() {
+        if (redisDataSource == null || redisDataSource.isUnsatisfied()) {
+            LOG.debug("RedisDataSource 未配置，跳过分布式缓存广播");
+            return;
+        }
+        try {
+            invalidationExecutor = Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "policy-cache-invalidation");
+                thread.setDaemon(true);
+                return thread;
+            });
+            pubSubCommands = redisDataSource.get().pubsub(String.class);
+            redisSubscriber = pubSubCommands.subscribe(INVALIDATION_CHANNEL, payload ->
+                invalidationExecutor.execute(() -> handleRemoteInvalidation(payload))
+            );
+            LOG.infof("Redis 分布式缓存失效通道已启用: %s", INVALIDATION_CHANNEL);
+        } catch (Exception e) {
+            LOG.warn("初始化 Redis 缓存失效订阅失败", e);
+        }
+    }
+
     public void registerCacheEntry(PolicyCacheKey key, String tenantId) {
         if (key == null) {
             return;
@@ -150,6 +189,7 @@ public class PolicyCacheManager {
             cacheLifecycleTracker.invalidate(key);
         }
         removeTrackedKey(key, tenantId);
+        publishInvalidation(key);
     }
 
     public boolean isCacheHit(PolicyCacheKey key) {
@@ -181,6 +221,7 @@ public class PolicyCacheManager {
                 cacheLifecycleTracker.invalidate(key);
             }
         }
+        publishInvalidation(normalizedTenant, null, null, null);
     }
 
     public void clearAllCache() {
@@ -210,5 +251,80 @@ public class PolicyCacheManager {
 
     private String normalizeTenant(String tenantId) {
         return tenantId == null || tenantId.isBlank() ? "default" : tenantId.trim();
+    }
+
+    private void handleRemoteInvalidation(String payload) {
+        if (payload == null || payload.isBlank()) {
+            return;
+        }
+        try {
+            JsonObject message = new JsonObject(payload);
+            String tenantId = normalizeTenant(message.getString("tenantId"));
+            String policyModule = message.getString("policyModule");
+            String policyFunction = message.getString("policyFunction");
+            Integer hash = message.containsKey("hash") ? message.getInteger("hash") : null;
+
+            if (policyModule == null && policyFunction == null && hash == null) {
+                tenantCacheIndex.remove(tenantId);
+                return;
+            }
+
+            Set<PolicyCacheKey> keys = tenantCacheIndex.get(tenantId);
+            if (keys == null || keys.isEmpty()) {
+                return;
+            }
+            keys.stream()
+                .filter(k -> matches(policyModule, k.getPolicyModule()))
+                .filter(k -> matches(policyFunction, k.getPolicyFunction()))
+                .filter(k -> hash == null || k.hashCode() == hash)
+                .forEach(k -> removeTrackedKey(k, tenantId));
+        } catch (Exception e) {
+            LOG.warnf(e, "解析 Redis 缓存失效消息失败: %s", payload);
+        }
+    }
+
+    private boolean matches(String pattern, String value) {
+        if (pattern == null) {
+            return true;
+        }
+        return pattern.equals(value);
+    }
+
+    private void publishInvalidation(PolicyCacheKey key) {
+        if (key == null) {
+            return;
+        }
+        publishInvalidation(key.getTenantId(), key.getPolicyModule(), key.getPolicyFunction(), key.hashCode());
+    }
+
+    private void publishInvalidation(String tenantId, String module, String function, Integer hash) {
+        if (pubSubCommands == null || tenantId == null) {
+            return;
+        }
+        try {
+            JsonObject json = new JsonObject()
+                .put("tenantId", normalizeTenant(tenantId))
+                .put("policyModule", module)
+                .put("policyFunction", function);
+            if (hash != null) {
+                json.put("hash", hash);
+            }
+            pubSubCommands.publish(INVALIDATION_CHANNEL, json.encode());
+        } catch (Exception e) {
+            LOG.debug("广播缓存失效消息失败", e);
+        }
+    }
+
+    @PreDestroy
+    void shutdownInvalidationChannel() {
+        if (redisSubscriber != null) {
+            try {
+                redisSubscriber.unsubscribe();
+            } catch (Exception ignored) {
+            }
+        }
+        if (invalidationExecutor != null) {
+            invalidationExecutor.shutdownNow();
+        }
     }
 }

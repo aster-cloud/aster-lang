@@ -1,28 +1,28 @@
 package io.aster.policy.api.testdata;
 
 import io.aster.validation.constraints.NotEmpty;
-import io.aster.validation.constraints.Pattern;
 import io.aster.validation.constraints.Range;
+import jakarta.validation.constraints.NotNull;
 
 /**
- * 带语义约束的贷款申请测试数据类型。
+ * 测试用贷款申请 DTO，携带基础约束以验证 PolicyTypeConverter 的语义校验。
  */
 public class LoanApplicationWithConstraints {
-
+    @NotNull
     @NotEmpty
     private final String applicantId;
 
-    @Range(min = 1000, max = 10000000)
-    private final Integer amount;
+    @Range(min = 1000, max = 5_000_000)
+    private final int amount;
 
-    @Range(min = 6, max = 360)
-    private final Integer termMonths;
+    @Range(min = 12, max = 360)
+    private final int termMonths;
 
+    @NotNull
     @NotEmpty
-    @Pattern(regexp = "^(home|car|education|business)$")
     private final String purpose;
 
-    public LoanApplicationWithConstraints(String applicantId, Integer amount, Integer termMonths, String purpose) {
+    public LoanApplicationWithConstraints(String applicantId, int amount, int termMonths, String purpose) {
         this.applicantId = applicantId;
         this.amount = amount;
         this.termMonths = termMonths;
@@ -33,11 +33,11 @@ public class LoanApplicationWithConstraints {
         return applicantId;
     }
 
-    public Integer getAmount() {
+    public int getAmount() {
         return amount;
     }
 
-    public Integer getTermMonths() {
+    public int getTermMonths() {
         return termMonths;
     }
 

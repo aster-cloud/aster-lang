@@ -150,13 +150,13 @@ final class TypeResolver {
   private CoreModel.Data findDataByDescriptor(String descriptor) {
     if (descriptor == null || descriptor.length() < 2 || descriptor.charAt(0) != 'L') return null;
     String internal = descriptor.substring(1, descriptor.length() - 1);
-    String dotName = internal.replace('/', '.');
+    String dotName = Main.demapDotted(internal.replace('/', '.'));
     return findDataByCandidateNames(dotName);
   }
 
   private CoreModel.Data findDataByTypeName(String typeName) {
     if (typeName == null || typeName.isEmpty()) return null;
-    String dotName = typeName.replace('/', '.');
+    String dotName = Main.demapDotted(typeName.replace('/', '.'));
     return findDataByCandidateNames(dotName);
   }
 
