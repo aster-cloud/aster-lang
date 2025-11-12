@@ -34,25 +34,48 @@ services:
 
   # PostgreSQL (用于 workflow 状态持久化)
   postgres:
-    image: postgres:16-alpine
-    container_name: aster-postgres
+    image: docker.io/bitnami/postgresql:latest
+    container_name: policy-api-postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
-      - POSTGRES_DB=aster
-      - POSTGRES_USER=aster
-      - POSTGRES_PASSWORD=aster_dev_password
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_DATABASE=aster_policy
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres-data:/bitnami/postgresql
     networks:
       - aster-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aster"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  policy-api:
+    image: ${POLICY_API_IMAGE:-aster/policy-api:test}
+    container_name: policy-api
+    ports:
+      - "8081:8080"
+    environment:
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://policy-api-postgres:5432/aster_policy
+      - QUARKUS_DATASOURCE_REACTIVE_URL=postgresql://policy-api-postgres:5432/aster_policy
+      - QUARKUS_DATASOURCE_USERNAME=postgres
+      - QUARKUS_DATASOURCE_PASSWORD=postgres
+      - QUARKUS_FLYWAY_MIGRATE_AT_START=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aster-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/q/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   # Redis (用于缓存和任务队列)
   redis:
@@ -80,10 +103,13 @@ services:
       - "9091:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
     networks:
       - aster-network
     restart: unless-stopped
@@ -98,9 +124,12 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
     networks:
       - aster-network
     restart: unless-stopped
@@ -108,6 +137,53 @@ services:
       - monitoring
     depends_on:
       - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: aster-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager-data:/alertmanager
+      - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - aster-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: aster-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@policy-api-postgres:5432/aster_policy?sslmode=disable"
+    networks:
+      - aster-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    depends_on:
+      - postgres
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: aster-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "redis:6379"
+    networks:
+      - aster-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    depends_on:
+      - redis
 
 networks:
   aster-network:
@@ -118,3 +194,4 @@ volumes:
   redis-data:
   prometheus-data:
   grafana-data:
+  alertmanager-data:

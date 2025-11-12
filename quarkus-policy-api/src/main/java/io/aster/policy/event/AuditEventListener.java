@@ -2,6 +2,7 @@ package io.aster.policy.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wontlost.aster.policy.PIIRedactor;
+import io.aster.monitoring.BusinessMetrics;
 import io.aster.policy.entity.AuditLog;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -23,6 +24,9 @@ public class AuditEventListener {
     private final PIIRedactor piiRedactor = new PIIRedactor();
     @Inject
     ObjectMapper objectMapper;
+
+    @Inject
+    BusinessMetrics businessMetrics;
 
     /**
      * 监听审计事件并持久化。
@@ -57,6 +61,7 @@ public class AuditEventListener {
             computeHashChain(log);
 
             log.persist();
+            businessMetrics.recordAuditLogWrite();
 
             Log.debugf(
                 "Audit event persisted: type=%s, tenant=%s, module=%s, hash=%s",

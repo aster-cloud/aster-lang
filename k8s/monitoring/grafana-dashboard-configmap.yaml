@@ -1,0 +1,316 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: aster-policy
+  labels:
+    app: grafana
+data:
+  policy-api.json: |
+    {
+      "uid": "policy-api-dashboard",
+      "title": "Policy API Observability",
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "JVM 内存与 GC",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "drawStyle": "line"
+              }
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "jvm_memory_used_bytes{area=\"heap\"}",
+              "legendFormat": "heap"
+            },
+            {
+              "refId": "B",
+              "expr": "jvm_memory_used_bytes{area=\"nonheap\"}",
+              "legendFormat": "non-heap"
+            },
+            {
+              "refId": "C",
+              "expr": "rate(jvm_gc_pause_seconds_sum[5m])",
+              "legendFormat": "gc pause",
+              "format": "time_series"
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "HTTP 请求率与延迟",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "rate(http_server_requests_seconds_count[5m])",
+              "legendFormat": "req/s"
+            },
+            {
+              "refId": "B",
+              "expr": "histogram_quantile(0.5, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
+              "legendFormat": "P50 latency",
+              "format": "time_series"
+            },
+            {
+              "refId": "C",
+              "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
+              "legendFormat": "P95 latency"
+            },
+            {
+              "refId": "D",
+              "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
+              "legendFormat": "P99 latency"
+            },
+            {
+              "refId": "E",
+              "expr": "rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])",
+              "legendFormat": "5xx"
+            },
+            {
+              "refId": "F",
+              "expr": "rate(http_server_requests_seconds_count{status=~\"4..\"}[5m])",
+              "legendFormat": "4xx"
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          }
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "数据库连接池",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "hikaricp_connections_active",
+              "legendFormat": "active"
+            },
+            {
+              "refId": "B",
+              "expr": "hikaricp_connections_idle",
+              "legendFormat": "idle"
+            },
+            {
+              "refId": "C",
+              "expr": "rate(hikaricp_connections_acquire_seconds_sum[5m]) / rate(hikaricp_connections_acquire_seconds_count[5m])",
+              "legendFormat": "acquire latency",
+              "unit": "s"
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          }
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "GraphQL 性能",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "histogram_quantile(0.95, sum(rate(application_graphql_query_duration_seconds_bucket[5m])) by (le,operation))",
+              "legendFormat": "{{operation}} P95"
+            },
+            {
+              "refId": "B",
+              "expr": "histogram_quantile(0.95, sum(rate(application_graphql_mutation_duration_seconds_bucket[5m])) by (le,operation))",
+              "legendFormat": "{{operation}} mutation P95"
+            },
+            {
+              "refId": "C",
+              "expr": "rate(application_graphql_errors_total[5m])",
+              "legendFormat": "errors"
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          }
+        },
+        {
+          "id": 5,
+          "type": "stat",
+          "title": "业务指标",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "increase(application_policy_evaluations_total[15m])",
+              "legendFormat": "Policy evaluations"
+            },
+            {
+              "refId": "B",
+              "expr": "increase(application_audit_log_writes_total[15m])",
+              "legendFormat": "Audit log writes"
+            },
+            {
+              "refId": "C",
+              "expr": "increase(application_workflow_executions_total[15m])",
+              "legendFormat": "Workflow executions"
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 16
+          }
+        },
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "PostgreSQL 活动",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "pg_up",
+              "legendFormat": "pg_up"
+            },
+            {
+              "refId": "B",
+              "expr": "rate(pg_stat_database_xact_commit{datname=\"aster_policy\"}[5m])",
+              "legendFormat": "commits/s"
+            },
+            {
+              "refId": "C",
+              "expr": "pg_database_size_bytes{datname=\"aster_policy\"}",
+              "legendFormat": "db size",
+              "instant": true
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 24
+          }
+        },
+        {
+          "id": 7,
+          "type": "timeseries",
+          "title": "Redis 运行状态",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "redis_connected_clients",
+              "legendFormat": "clients"
+            },
+            {
+              "refId": "B",
+              "expr": "rate(redis_commands_processed_total[5m])",
+              "legendFormat": "commands/s"
+            },
+            {
+              "refId": "C",
+              "expr": "redis_memory_used_bytes",
+              "legendFormat": "memory",
+              "unit": "bytes"
+            }
+          ],
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 24
+          }
+        }
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "instance",
+            "type": "query",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "refresh": 2,
+            "definition": "label_values(up{job=\"policy-api\"}, instance)",
+            "multi": true,
+            "includeAll": true
+          }
+        ]
+      }
+    }

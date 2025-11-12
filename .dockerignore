@@ -31,10 +31,7 @@ docs/
 *.md
 !README.md
 
-# Tests
-test/
-*.test.ts
-*.test.js
+# Tests (保留以支持 TypeScript 构建)
 
 # CI/CD
 .github/

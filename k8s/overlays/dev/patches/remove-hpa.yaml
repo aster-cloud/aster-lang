@@ -1,0 +1,6 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: policy-api-hpa
+  namespace: aster-policy
+$patch: delete

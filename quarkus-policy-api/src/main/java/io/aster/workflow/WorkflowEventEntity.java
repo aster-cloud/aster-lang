@@ -1,6 +1,7 @@
 package io.aster.workflow;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -15,6 +16,7 @@ import java.util.UUID;
  *
  * 持久化 workflow 执行事件到 PostgreSQL 分区表，支持事件溯源和状态重放。
  */
+@RegisterForReflection
 @Entity
 @Table(name = "workflow_events")
 public class WorkflowEventEntity extends PanacheEntityBase {

@@ -1,6 +1,7 @@
 package io.aster.workflow;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -14,6 +15,7 @@ import java.util.UUID;
  *
  * 支持 durable timers，用于延迟执行、超时检测和定时任务。
  */
+@RegisterForReflection
 @Entity
 @Table(name = "workflow_timers")
 public class WorkflowTimerEntity extends PanacheEntityBase {

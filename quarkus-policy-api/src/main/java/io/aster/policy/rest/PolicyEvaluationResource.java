@@ -1,5 +1,6 @@
 package io.aster.policy.rest;
 
+import io.aster.monitoring.BusinessMetrics;
 import io.aster.policy.api.PolicyEvaluationService;
 import io.aster.policy.api.model.BatchRequest;
 import io.aster.policy.event.AuditEvent;
@@ -7,6 +8,7 @@ import io.aster.policy.entity.PolicyVersion;
 import io.aster.policy.metrics.PolicyMetrics;
 import io.aster.policy.rest.model.*;
 import io.aster.policy.service.PolicyVersionService;
+import io.micrometer.core.instrument.Timer;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.event.Event;
@@ -43,6 +45,9 @@ public class PolicyEvaluationResource {
     PolicyMetrics policyMetrics;
 
     @Inject
+    BusinessMetrics businessMetrics;
+
+    @Inject
     PolicyVersionService versionService;
 
     @Inject
@@ -64,6 +69,7 @@ public class PolicyEvaluationResource {
         String tenantId = tenantId();
         String performedBy = performedBy();
         long startTime = System.currentTimeMillis();
+        Timer.Sample sample = businessMetrics.startPolicyEvaluation();
         Map<String, Object> metadata = buildEvaluationMetadata(request);
 
         LOG.infof("Evaluating policy: %s.%s for tenant %s", request.policyModule(), request.policyFunction(), tenantId);
@@ -79,6 +85,8 @@ public class PolicyEvaluationResource {
 
             // 记录指标（非阻塞）
             policyMetrics.recordEvaluation(request.policyModule(), request.policyFunction(), executionTime, true);
+            businessMetrics.recordPolicyEvaluation();
+            businessMetrics.endPolicyEvaluation(sample);
 
             // 记录业务指标（贷款批准/拒绝）
             if ("aster.finance.loan".equals(request.policyModule())) {
@@ -103,6 +111,7 @@ public class PolicyEvaluationResource {
 
             // 记录错误指标（非阻塞）
             policyMetrics.recordEvaluation(request.policyModule(), request.policyFunction(), executionTime, false);
+            businessMetrics.endPolicyEvaluation(sample);
 
             publishPolicyEvaluationEvent(
                 tenantId,
@@ -167,6 +176,7 @@ public class PolicyEvaluationResource {
                     if ("aster.finance.loan".equals(attempt.getPolicyModule())) {
                         recordLoanDecision(attempt.getResult().getResult());
                     }
+                    businessMetrics.recordPolicyEvaluation();
 
                     responses.add(EvaluationResponse.success(
                         attempt.getResult().getResult(),

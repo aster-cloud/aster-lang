@@ -6,7 +6,7 @@
 
 > **parse**(`tokens`): [`Module`](../../types/interfaces/Module.md)
 
-Defined in: [parser.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/a67c36a8e84e7e240a01c999dba43474d503b48b/src/parser.ts#L23)
+Defined in: [parser.ts:23](https://github.com/wontlost-ltd/aster-lang/blob/4868096da64d14fe24f9ace5ff431d987a4d0cc2/src/parser.ts#L23)
 
 解析标记流生成 AST
 

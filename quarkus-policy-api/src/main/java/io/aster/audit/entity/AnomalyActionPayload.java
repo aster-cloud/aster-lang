@@ -1,5 +1,6 @@
 package io.aster.audit.entity;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.UUID;
 
 /**
@@ -8,9 +9,9 @@ import java.util.UUID;
  * workflowId：Replay 验证使用
  * targetVersion：自动回滚使用
  */
+@RegisterForReflection
 public record AnomalyActionPayload(
     UUID workflowId,
     Long targetVersion
 ) {
 }
-

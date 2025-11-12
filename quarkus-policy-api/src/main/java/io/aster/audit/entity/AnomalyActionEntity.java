@@ -4,6 +4,7 @@ import io.aster.audit.outbox.GenericOutboxEntity;
 import io.aster.audit.outbox.OutboxStatus;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
@@ -22,6 +23,7 @@ import java.util.UUID;
  * 检测任务（AnomalyDetectionScheduler）只负责写入动作队列，
  * 独立的消费器（AnomalyActionScheduler）异步处理动作。
  */
+@RegisterForReflection
 @Entity
 @Table(name = "anomaly_actions")
 public class AnomalyActionEntity extends GenericOutboxEntity<AnomalyActionPayload> {

@@ -3,6 +3,7 @@ package io.aster.audit.inbox;
 import io.quarkus.hibernate.reactive.panache.Panache;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import io.quarkus.panache.common.Parameters;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.smallrye.mutiny.Uni;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,6 +22,7 @@ import java.sql.SQLException;
  * Inbox 事件实体
  * 用于 Inbox 模式的幂等性去重，防止重复处理同一事件
  */
+@RegisterForReflection
 @Entity
 @Table(name = "inbox_events")
 public class InboxEvent extends PanacheEntityBase {

@@ -3,6 +3,7 @@ package io.aster.workflow;
 import aster.runtime.workflow.WorkflowEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.aster.monitoring.BusinessMetrics;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -45,6 +46,9 @@ public class WorkflowSchedulerService {
 
     @Inject
     SagaCompensationExecutor compensationExecutor;
+
+    @Inject
+    BusinessMetrics businessMetrics;
 
     @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgresql")
     String dbKind;
@@ -277,6 +281,7 @@ public class WorkflowSchedulerService {
                 state.persist();
 
                 workflowRuntime.completeWorkflow(workflowId, null);
+                businessMetrics.recordWorkflowExecution();
                 Log.infof("All compensations completed for workflow %s", workflowId);
                 return;
             }
@@ -308,6 +313,7 @@ public class WorkflowSchedulerService {
                         .findFirst()
                         .orElse(null);
                 workflowRuntime.completeWorkflow(workflowId, result);
+                businessMetrics.recordWorkflowExecution();
 
                 Log.infof("Workflow %s completed", workflowId);
 

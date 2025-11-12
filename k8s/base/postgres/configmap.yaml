@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: aster-policy
+  labels:
+    app: postgres
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: aster-platform
+  annotations:
+    app.kubernetes.io/component: database
+    app.kubernetes.io/managed-by: kustomize
+data:
+  POSTGRESQL_DATABASE: aster_policy
+  POSTGRESQL_PORT_NUMBER: "5432"

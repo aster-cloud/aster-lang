@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-api
+  namespace: aster-policy
+  labels:
+    app: policy-api
+    app.kubernetes.io/name: policy-api
+    app.kubernetes.io/part-of: aster-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: policy-api
+  template:
+    metadata:
+      labels:
+        app: policy-api
+        app.kubernetes.io/name: policy-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+        - name: policy-api
+          image: ghcr.io/wontlost-ltd/policy-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: QUARKUS_DATASOURCE_JDBC_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: policy-api-config
+                  key: QUARKUS_DATASOURCE_JDBC_URL
+            - name: QUARKUS_DATASOURCE_REACTIVE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: policy-api-config
+                  key: QUARKUS_DATASOURCE_REACTIVE_URL
+            - name: QUARKUS_FLYWAY_MIGRATE_AT_START
+              valueFrom:
+                configMapKeyRef:
+                  name: policy-api-config
+                  key: QUARKUS_FLYWAY_MIGRATE_AT_START
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_USERNAME
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_PASSWORD
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          startupProbe:
+            httpGet:
+              path: /q/health/started
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

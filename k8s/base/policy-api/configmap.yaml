@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: policy-api-config
+  namespace: aster-policy
+  labels:
+    app: policy-api
+    app.kubernetes.io/name: policy-api
+    app.kubernetes.io/part-of: aster-platform
+  annotations:
+    app.kubernetes.io/component: api
+    app.kubernetes.io/managed-by: kustomize
+data:
+  QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/aster_policy
+  QUARKUS_DATASOURCE_REACTIVE_URL: postgresql://postgres:5432/aster_policy
+  QUARKUS_FLYWAY_MIGRATE_AT_START: "true"

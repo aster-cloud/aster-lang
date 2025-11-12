@@ -1,0 +1,37 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-exporter
+  namespace: aster-policy
+  labels:
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  namespaceSelector:
+    matchNames:
+      - aster-policy
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-exporter
+  namespace: aster-policy
+  labels:
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app: redis-exporter
+  namespaceSelector:
+    matchNames:
+      - aster-policy
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

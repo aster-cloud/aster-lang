@@ -1,3 +1,71 @@
+# 2025-11-12 09:32 NZDT Production Build Pipeline 结构化快速扫描
+
+**操作记录**:
+- 工具：code-index（find_files/search_code_advanced）→ 检索 quarkus-policy-api/build.gradle.kts、根 build.gradle.kts/settings.gradle.kts、Dockerfile(含 Dockerfile.truffle)、GitHub workflows、META-INF/native-image 目录与 db/migration 列表。
+- 工具：shell（sed/ls/cat/find/rg/env TZ=Pacific/Auckland date）→ 阅读相关 Gradle、Docker、workflow、application.properties、scripts/phase0-acceptance-test.sh、docker-compose.yml 以及 Flyway SQL，确认各文件内容并生成 NZ 时间戳。
+- 工具：shell（cat > .claude/context-initial.json）→ 按指定结构写入 Production Build Pipeline 上下文 JSON。
+- 工具：apply_patch → 微调 `.claude/context-initial.json` 中的 reachability 文本拼写。
+
+**观察**:
+- Docker Compose 引用的 ./db/init.sql 实际缺失；quarkus-policy-api 尚无专属 Dockerfile/native 反射配置，现有流水线仅覆盖 CLI/Truffle native 产物。
+
+# 2025-11-12 09:56 NZDT Production Build Pipeline Phase 1 Native Config
+
+**操作记录**:
+- 工具：sequential-thinking（1 次）→ 明确目录创建、配置生成、实体注解与编译验证的执行顺序。
+- 工具：shell（python/cat/mkdir/jq/find/gradlew）→ 生成 reflect/resource/serialization 配置、创建 META-INF/native-image 目录、验证 JSON、运行 `./gradlew :quarkus-policy-api:compileJava`。
+- 工具：apply_patch → 为 PolicyVersion、AuditLog、Workflow*Entity、InboxEvent、GenericOutboxEntity、Anomaly*Entity/Payload 等添加 @RegisterForReflection 注解及相关 import。
+
+**观察**:
+- 利用脚本根据包路径批量生成反射/序列化列表可降低遗漏风险；编译命令触发 generateAsterJar，需确保 npm 依赖齐全。
+
+# 2025-11-12 14:14 NZDT Production Build Pipeline Phase 4 CI/CD
+
+**操作记录**:
+- 工具：shell（ls/head/grep）→ 审查 `.github/workflows/ci.yml` 与 `build-native.yml` 的既有 job 结构。
+- 工具：apply_patch → 在 `ci.yml` 中新增 `policy-api-docker` job（Buildx+GHCR 推送、验收测试、清理）。
+- 工具：shell（pip3/podman-compose）→ 安装 `podman-compose` 并验证 compose 场景（up/ps/logs/down）。
+- 工具：shell → 生成 `.claude/phase4-cicd-integration-report.md`。
+
+**观察**:
+- CI 仅在 main 分支 push 时构建/推送 GHCR 镜像；验收测试通过 bitnami Postgres + `/q/health` 保障容器可运行，cleanup 步骤避免残留容器与网络。
+
+# 2025-11-12 10:20 NZDT Production Build Pipeline Phase 2 Docker
+
+**操作记录**:
+- 工具：sequential-thinking（1 次）→ 拆解 Node→Gradle→Runtime 三阶段的镜像目标，确认需修改 Gradle 任务以允许跳过 generateAsterJar。
+- 工具：apply_patch → 在 `quarkus-policy-api/build.gradle.kts` 中加入 `SKIP_GENERATE_ASTER_JAR` 检查，并新建 `quarkus-policy-api/Dockerfile` 实现三阶段构建。
+- 工具：shell（docker build）→ 试图执行 `docker build -f quarkus-policy-api/Dockerfile ...`，但宿主未安装 docker（二进制缺失），构建无法验证，已记录错误。
+
+**观察**:
+- Dockerfile 已满足分阶段职责并引用 Stage1 产物避免重复 npm 步骤；后续若需验证需在具备 docker CLI 的环境运行。
+
+# 2025-11-12 09:41 NZDT Production Build Pipeline 深度调查（question-1）
+
+**操作记录**:
+- 工具：sequential-thinking（1 次）→ 梳理反射配置与 Docker 构建调查范围及命令步骤。
+- 工具：shell（ls/head/cat）→ 检查 aster-lang-cli 与 aster-truffle 的 META-INF/native-image 配置文件，提取 reflect/resource/serialization/reachability 内容。
+- 工具：shell（rg/find）→ 确认 quarkus-policy-api 未使用 @RegisterForReflection 且 build 目录无 reflect-config.json。
+- 工具：shell（sed/find）→ 分析 quarkus-policy-api/build.gradle.kts 中 generateAsterJar/syncPolicy* 任务以及 policy-rules-merged.jar 位置。
+- 工具：shell（cat Dockerfile.truffle）→ 复核多阶段构建流程与镜像元数据；使用 date 生成 NZ 时间戳。
+- 工具：shell（cat > .claude/context-question-1.json）→ 输出深挖结果 JSON。
+
+**观察**:
+- CLI/Truffle 反射配置集中在 AST/CoreModel 命名空间，无法覆盖 Quarkus GraphQL/Hibernate 类型；Policy API 完全依赖 Quarkus 自动注册，未显式声明自定义反射。
+- generateAsterJar 将 npm emit:class 与 jar:jvm 绑定到 Gradle 编译链，Docker 若未拆分阶段会被迫安装 Node/npm；需借鉴 Dockerfile.truffle 的 builder→runtime 模式。
+
+# 2025-11-12 09:22 NZDT Production Build Pipeline 上下文收集启动
+
+**操作记录**:
+- 工具：sequential-thinking（1 次）→ 解析生产构建流水线上下文收集范围并列出构建/容器/CI/运行时/迁移五大检查项。
+- 工具：shell（pwd）→ 确认当前仓库路径 `/Users/rpang/IdeaProjects/aster-lang`，方便后续命令显式指定 workdir。
+- 工具：shell（rg --files -g 'operations-log.md'）→ 搜索全局 operations-log 文件列表以确认记录位置。
+- 工具：code-index（set_project_path）→ 初始化索引指向当前仓库，便于后续使用 code-index 进行检索。
+- 工具：shell（sed、env TZ=Pacific/Auckland date）→ 查看 operations-log 现有格式并获取 NZ 时间戳以保持日志格式一致。
+
+**观察**:
+- 任务要求将扫描结果写入 `.claude/context-initial.json` 并需记录操作日志，需遵守 AGENTS.md 中的工具留痕及中文输出规范。
+
 # 2025-11-12 02:11 NZDT PolicyGraphQLResource 幂等键 final 修复
 
 **操作记录**:
@@ -5622,3 +5690,106 @@ List.map (1000 items) Heavy: 1.516680 ms
 
 **观察**:
 - InboxEvent.count() 属于 reactive Panache API，如需同步值需阻塞等待；测试环境使用事务方法时若直接返回 long 会触发编译错误。
+# 2025-11-12 16:35 NZDT Phase 0 Task 1 镜像瘦身
+
+**操作记录**:
+- 工具：sequential-thinking → 分析 distroless 运行失败原因并规划 glibc 依赖验证步骤。
+- 工具：shell → 提取容器内可执行文件、在 Fedora/Alpine/UBI 镜像中测试二进制，确认缺少 glibc 时会直接 exit 127。
+- 工具：apply_patch → 将 Stage 3 基底改为 `registry.access.redhat.com/ubi9/ubi-micro:9.5`，调整 /tmp 与非特权用户配置。
+- 工具：podman build → 重新构建多阶段镜像（耗时 18 分钟），生成 51.8 MB 新镜像。
+- 工具：podman run/exec/curl → 启动 bitnami Postgres（5433）、部署 policy-api:test、执行 Flyway、`/q/health` 健康检查与启动时间抓取。
+
+**观察**:
+- Distroless/static-debian12 缺失 glibc，Graal `-H:+StaticExecutableWithDynamicLibC` 输出在 musl/无 glibc 环境会直接被 runtime 判定不可执行（exit 127）。
+- UBI Micro 提供完整 glibc 但只有 24.5 MB 基底，配合 strip+UPX 后镜像 51.8 MB，满足 <120 MB 目标；Quarkus 启动日志显示 0.357 s，健康检查和 Flyway 全部通过。
+# 2025-11-12 16:43 NZDT Phase 0 Task 2 K3s 部署清单
+
+**操作记录**:
+- 工具：sequential-thinking → 梳理 base/overlays 结构、Secret/ConfigMap/HPA 依赖与补丁策略。
+- 工具：shell → 批量创建 `k8s/base`、`k8s/overlays/(dev|prod)` 目录并写入 namespace、PostgreSQL StatefulSet/Service/ConfigMap/Secret、Policy API Deployment/Service/ConfigMap/HPA、Ingress、Kustomization 与 README。
+- 工具：kubectl kustomize → 分别渲染 `k8s/base`、`k8s/overlays/dev`、`k8s/overlays/prod`，确认补丁与资源合成成功（仅给出 commonLabels/patchesStrategicMerge 的弃用警告）。
+- 工具：kubectl apply --dry-run=client -k k8s/base → 由于当前 kube-apiserver (http://localhost:8080) 不可达而失败，记录日志；未继续强制部署。
+
+**观察**:
+- Base 清单默认 2 副本 + HPA，dev overlay 将副本降至 1 并删除 HPA，prod overlay 增加反亲和与更高资源配额。
+- Kustomize 5.5 提示 `commonLabels/patchesStrategicMerge` 将被废弃，后续可执行 `kustomize edit fix` 迁移至新版语法，但不影响当前渲染。
+- K8s README 汇总了 dry-run、部署、排障、升级、清理命令，可直接在 K3s 运维手册中引用。
+# 2025-11-12 16:55 NZDT Phase 0 Task 3 监控集成
+
+**操作记录**:
+- 工具：sequential-thinking → 制定监控目录结构、Prometheus/Grafana 配置、docker-compose 与 K3s manifests 实施步骤。
+- 工具：shell → 新建 `monitoring/` 与 `k8s/monitoring/` 目录，编写 Prometheus 配置、告警规则、Grafana datasource + dashboard JSON、docker-compose 监控服务，以及 Kubernetes ConfigMap/Deployment/Service/PVC/ServiceMonitor。
+- 工具：kubectl kustomize → 校验 `k8s/monitoring` 渲染成功。
+- 工具：podman-compose → 首次 `--profile monitoring up -d` 触发默认服务构建后中止，清理临时容器；改为 `podman-compose --profile monitoring up -d prometheus grafana`，成功启动监控栈。
+- 工具：curl/jq → 校验 Prometheus targets、`up{job="policy-api"}` 查询与 Grafana datasource/dashboard；随后执行 `podman-compose --profile monitoring down` 清理环境（记录未启动服务的提示）。
+
+**观察**:
+- Prometheus Target 4 个（自监控、policy-api、postgres-exporter、redis-exporter），`policy-api` 当前因容器未运行返回 `up=0`，但抓取流程正常。
+- Grafana 自动加载 Datasource 与 Dashboard（Policy API Observability），可用 admin/admin 登录。
+- K8s Monitoring manifests 依赖 `monitoring.coreos.com` CRD；若集群未安装 Prometheus Operator，则需跳过 `ServiceMonitor` 或先安装 operator。
+- docker-compose 监控 profile 仍会尝试构建无 profile 服务，需通过显式指定服务名或 profiles 进行规避。
+# 2025-11-12 17:05 NZDT Phase 0 Task 4 CI/CD 优化
+
+**操作记录**:
+- 工具：sequential-thinking → 规划并行 job、缓存策略、多架构构建与性能基准流程。
+- 工具：apply_patch → 更新 `.github/workflows/ci.yml`，新增全局 `IMAGE_NAME/REGISTRY`、Gradle/npm cache 步骤、`policy-api-build`(多架构) / `policy-api-manifest` / `policy-api-metrics` 三个作业及 PR 指标评论。
+- 工具：shell → 验证 workflow 片段，确认新 job 结构与脚本逻辑。
+
+**观察**:
+- 本地 acceptance job 复用了 bitnami Postgres，与 docker-compose 流程一致，可在 PR 中提供镜像大小/启动时长/构建耗时评论。
+- 主分支 push 触发 Buildx 多架构构建，采用 `push-by-digest` + manifest job 生成 `sha/latest` 标签，兼容 GHCR 缓存。
+- actions/cache 针对 Gradle/npm 可减少重复下载；`docker/build-push-action` 复用 GHA 缓存以提升构建速度。
+# 2025-11-12 17:25 NZDT Phase 0 Advanced Task 1 — 镜像进一步优化
+
+**操作记录**:
+- 工具：shell → 复制现有 Dockerfile 为 `Dockerfile.glibc`，新增 `Dockerfile.musl`（Node 阶段根据 `TARGETARCH` 下载 JDK，Stage2 使用 `ghcr.io/graalvm/native-image-community:25-muslib`，Stage3 采用 distroless static）。
+- 工具：apply_patch → 在 `application.properties` 中禁用 Swagger UI、GraphQL UI、DevServices。
+- 工具：podman build → 尝试 `--platform=linux/amd64 -f Dockerfile.musl`，记录 Stage2 `microdnf install` 在 qemu 环境触发 `double free or corruption`；保留 glibc 镜像 `aster/policy-api:glibc`（51.8 MB）。
+- 工具：podman run/ldd → 验证现有二进制为静态可执行，但仍需 glibc symbol 支撑。
+
+**观察**:
+- musl builder 镜像仅提供 amd64，多架构构建需在真实 amd64 主机执行；在 macOS arm64 + qemu 下 `microdnf` 无法处理 musl-devel 安装。
+- 已为后续任务准备 `Dockerfile.musl`，但暂时无法成功产出镜像；后续可在 CI (amd64 runner) 验证。
+# 2025-11-12 17:32 NZDT Phase 0 Advanced Task 2 — K3s 生产配置
+
+**操作记录**:
+- 工具：shell → 新增 `k8s/base` 下的 NetworkPolicy（policy-api/postgres）、PodDisruptionBudget、ResourceQuota、LimitRange；同步更新 `k8s/base/kustomization.yaml`。
+- 工具：kubectl kustomize → 渲染 `k8s/base`，仅提示 `commonLabels` 的弃用警告，资源合成成功。
+
+**观察**:
+- NetPolicy 实现入口来源控制（Ingress Controller、Prometheus）与 egress（PostgreSQL、DNS、外部 443）。
+- PDB 保证 policy-api 至少保留 1 个副本、PostgreSQL 禁止中断，配合 ResourceQuota/LimitRange 提高集群安全基线。
+- 需在实际 K3s 集群设置相应 namespace label（`name: kube-system`、`name: monitoring`）以匹配 NetworkPolicy 条件。
+# 2025-11-12 17:45 NZDT Phase 0 Advanced Task 3 — 监控增强
+
+**操作记录**:
+- 工具：apply_patch/python → 新增 `BusinessMetrics`（Micrometer 计数器/Timer），在 `PolicyEvaluationResource`、`AuditEventListener`、`WorkflowSchedulerService` 中记录业务指标；更新 application.properties、Grafana dashboard（新增 PostgreSQL/Redis 面板）。
+- 工具：shell → 创建 Alertmanager 配置、启用 postgres/redis exporter，扩展 `docker-compose.yml`、`monitoring/prometheus.yml`。
+- 工具：podman-compose → 启动 `postgres-exporter`、`redis-exporter`、`alertmanager`、`prometheus`、`grafana`，通过 `curl` 检查 Prometheus targets=4、Alertmanager `/api/v2/status` 正常；随后 `down` 清理。
+
+**观察**:
+- Alertmanager 需要有效 `slack_api_url` 才能启动，暂以占位 URL 通过配置校验；真实环境请改为私有 webhook。
+- exporters 依赖 docker compose network 别名；已将 Prometheus 目标更新为 `aster-postgres-exporter` / `aster-redis-exporter`。
+- Grafana Dashboard 现包含 7 个面板（JVM/HTTP/DB/GraphQL/业务/PostgreSQL/Redis），便于统一可视化。
+# 2025-11-12 17:55 NZDT Phase 0 Advanced Task 4 — CI/CD 进阶优化
+
+**操作记录**:
+- 工具：shell → 新增 `.github/workflows/e2e-tests.yml`（docker compose 启动 postgres/redis/policy-api，执行 GraphQL/health/metrics 检查并清理）。
+- 工具：apply_patch → 在 `.github/workflows/ci.yml` 中追加 `security-scan` 作业（Trivy SARIF + GitHub Security Upload + 高危拦截）。
+- 工具：shell → 创建 `k8s/argocd/application.yaml` 与 README，定义 prod overlay GitOps 流程。
+
+**观察**:
+- E2E workflow 使用 `docker compose`，默认镜像 `aster/policy-api:test`；如需使用最新 GHCR 版本，可在 workflow 中添加 build 步骤。
+- 安全扫描依赖 `policy-api-manifest` 生成的 `sha-<commit>` 标签；如需对 PR 镜像扫描，可改为消费 `policy-api-metrics` 生成的本地 tag。
+- ArgoCD Application 默认自动同步 + 自愈，建议结合 K3s 集群配置 RBAC/Secret 后再启用。
+# 2025-11-12 18:41 NZDT Phase 0 后续优化落地
+
+**操作记录**:
+- 工具：sequential-thinking（3 次）→ 拆解 Task1~Task4，识别监控清单、文档、Workflow 与验证输出的实施顺序及风险。
+- 工具：code-index（set_project_path、search_code_advanced）→ 索引 `.github/workflows`、k8s 目录与 docker-compose，确认已有 job/资源命名，避免重复定义。
+- 工具：shell（ls/sed/rg/cat/date/kubectl）→ 阅读 docker-compose.yml 与 monitoring 配置、查看 k8s 结构、执行 `kubectl kustomize k8s/{base,monitoring}` 及 `kubectl apply --dry-run=client -k k8s/monitoring`（记录 API Server 不可达错误），获取 NZ 时间戳。
+- 工具：apply_patch → 新增 `k8s/base/monitoring` 下的 exporter/Alertmanager/ServiceMonitor 清单，更新 base kustomization、k8s/README.md、docker-compose.yml、`.github/workflows/e2e-tests.yml` 以及 `.claude/phase0-final-verification.md`，并记录 operations-log。
+
+**观察**:
+- `kubectl kustomize k8s/base` 可成功渲染但提示 `commonLabels` 已弃用，后续需执行 `kustomize edit fix`。
+- `kubectl apply --dry-run=client -k k8s/monitoring` 因当前环境无 Kubernetes API Server 而失败（`dial tcp [::1]:8080`），待具备集群后复测。

@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: policy-api
+  namespace: aster-policy
+  labels:
+    release: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      app: policy-api
+  namespaceSelector:
+    matchNames:
+      - aster-policy
+  endpoints:
+    - port: http
+      path: /q/metrics
+      interval: 15s

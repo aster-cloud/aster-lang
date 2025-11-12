@@ -1,6 +1,7 @@
 package io.aster.audit.outbox;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -19,6 +20,7 @@ import java.time.Instant;
  *
  * @param <P> 反序列化后的 payload 类型
  */
+@RegisterForReflection
 @MappedSuperclass
 public abstract class GenericOutboxEntity<P> extends PanacheEntityBase {
 
@@ -68,4 +70,3 @@ public abstract class GenericOutboxEntity<P> extends PanacheEntityBase {
      */
     public abstract P deserializePayload();
 }
-

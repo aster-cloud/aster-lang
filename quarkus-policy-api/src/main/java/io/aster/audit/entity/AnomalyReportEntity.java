@@ -1,6 +1,7 @@
 package io.aster.audit.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -15,6 +16,7 @@ import java.util.UUID;
  * 用于存储定时任务生成的异常检测结果，支持异步化异常检测。
  * Phase 3.7 扩展：添加状态管理、指派、验证结果字段，支持异常响应自动化闭环。
  */
+@RegisterForReflection
 @Entity
 @Table(name = "anomaly_reports")
 public class AnomalyReportEntity extends PanacheEntityBase {

@@ -1,6 +1,7 @@
 package io.aster.policy.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -15,6 +16,7 @@ import java.time.Instant;
  *
  * 所有 PII 在写入前已被脱敏。
  */
+@RegisterForReflection
 @Entity
 @Table(name = "audit_logs", indexes = {
     @Index(name = "idx_audit_tenant", columnList = "tenant_id"),

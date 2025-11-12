@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: aster-policy
+  labels:
+    app: alertmanager
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: aster-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+        app.kubernetes.io/name: alertmanager
+    spec:
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - '--config.file=/etc/alertmanager/config.yml'
+            - '--storage.path=/alertmanager'
+          ports:
+            - containerPort: 9093
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+            - name: data
+              mountPath: /alertmanager
+          livenessProbe:
+            httpGet:
+              path: /#/status
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /#/status
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+      volumes:
+        - name: config
+          configMap:
+            name: alertmanager-config
+            items:
+              - key: config.yml
+                path: config.yml
+        - name: data
+          emptyDir: {}

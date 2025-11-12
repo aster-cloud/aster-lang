@@ -1,6 +1,7 @@
 package io.aster.policy.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.List;
  * 实现不可变部署：每次策略更新都创建新版本，旧版本标记为非活跃。
  * 使用 timestamp 作为版本号确保唯一性和排序。
  */
+@RegisterForReflection
 @Entity
 @Table(name = "policy_versions", indexes = {
     @Index(name = "idx_policy_id_active", columnList = "policy_id,active"),

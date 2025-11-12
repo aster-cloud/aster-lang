@@ -89,7 +89,17 @@ tasks.withType<Test> {
 // 确保在编译前生成Aster JAR（包含loan policy + creditcard + healthcare + insurance + lending）
 // 使用 shell find 自动发现所有策略文件，在执行时动态查找
 // 重要：必须一次性传递所有 .aster 文件给 emit:class，因为 emit:class 会清空 build/jvm-classes 目录
+val skipGenerateAsterJar = providers.environmentVariable("SKIP_GENERATE_ASTER_JAR").isPresent
+
 val generateAsterJar by tasks.registering(Exec::class) {
+    onlyIf {
+        if (skipGenerateAsterJar) {
+            logger.lifecycle("Skipping generateAsterJar because SKIP_GENERATE_ASTER_JAR is set")
+            false
+        } else {
+            true
+        }
+    }
     workingDir = rootProject.projectDir
 
     commandLine = if (System.getProperty("os.name").lowercase().contains("win")) {
