@@ -4,7 +4,7 @@
 
 # Interface: Null
 
-Defined in: [types.ts:308](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types.ts#L308)
+Defined in: [types.ts:308](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types.ts#L308)
 
 Null 字面量基础接口。
 
@@ -18,7 +18,7 @@ Null 字面量基础接口。
 
 > **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:309](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types.ts#L309)
+Defined in: [types.ts:309](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types.ts#L309)
 
 #### Overrides
 
@@ -30,7 +30,7 @@ Defined in: [types.ts:309](https://github.com/wontlost-ltd/aster-lang/blob/ab6ee
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -42,7 +42,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types/base.ts#L43)
 
 #### Inherited from
 
@@ -54,7 +54,7 @@ Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` **kind**: `"Null"`
 
-Defined in: [types/base.ts:349](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types/base.ts#L349)
+Defined in: [types/base.ts:349](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types/base.ts#L349)
 
 #### Inherited from
 

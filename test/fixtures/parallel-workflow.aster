@@ -1,0 +1,24 @@
+This module is test.parallel_workflow.
+
+To processOrder, given orderId as Text, produce Workflow of Result of Text and Text and IO. It performs io:
+
+  workflow:
+    step validateOrder:
+      Return ok of "inventory-ok".
+
+    step authorizePayment depends on validateOrder:
+      Return ok of "payment-authorized".
+
+    step reserveInventory depends on validateOrder:
+      Return ok of "stock-reserved".
+
+    step completeOrder depends on authorizePayment, reserveInventory:
+      Return ok of "order-completed".
+
+    compensate authorizePayment:
+      Return ok of "payment-refunded".
+
+    compensate reserveInventory:
+      Return ok of "stock-released".
+
+  .

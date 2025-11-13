@@ -6,7 +6,7 @@
 
 > **getAllCapabilityPrefixes**(): `string`[]
 
-Defined in: [config/semantic.ts:180](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/config/semantic.ts#L180)
+Defined in: [config/semantic.ts:180](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/config/semantic.ts#L180)
 
 获取所有 capability 前缀（用于调试）。
 

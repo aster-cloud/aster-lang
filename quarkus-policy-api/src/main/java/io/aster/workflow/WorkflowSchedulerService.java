@@ -493,4 +493,94 @@ public class WorkflowSchedulerService {
         .ifNoItem().after(Duration.ofMinutes(5))  // 超时控制
         .failWith(() -> new TimeoutException("Replay 超时: " + workflowId));
     }
+
+    /**
+     * 恢复 workflow 执行（从当前状态继续）
+     *
+     * 用于 timer 触发后恢复 workflow
+     *
+     * @param workflowId workflow 唯一标识符
+     */
+    @Transactional
+    public void resumeWorkflow(String workflowId) {
+        UUID wfUuid = UUID.fromString(workflowId);
+        Optional<WorkflowStateEntity> stateOpt = WorkflowStateEntity.findByWorkflowId(wfUuid);
+
+        if (stateOpt.isEmpty()) {
+            Log.warnf("Cannot resume workflow %s: not found", workflowId);
+            return;
+        }
+
+        WorkflowStateEntity state = stateOpt.get();
+
+        // 只恢复暂停或就绪状态的 workflow
+        if ("PAUSED".equals(state.status) || "READY".equals(state.status)) {
+            state.status = "READY";
+            state.lockOwner = null; // 释放锁
+            state.lockExpiresAt = null;
+            state.persist();
+
+            Log.infof("Resuming workflow %s from status %s", workflowId, state.status);
+
+            // 异步调度执行
+            executorService.submit(() -> {
+                try {
+                    processWorkflow(workflowId);
+                } catch (Exception e) {
+                    Log.errorf(e, "Error resuming workflow %s", workflowId);
+                }
+            });
+        } else {
+            Log.debugf("Workflow %s is in status %s, cannot resume", workflowId, state.status);
+        }
+    }
+
+    /**
+     * 恢复 workflow 特定 step 的执行
+     *
+     * 用于 timer 触发特定 step 继续执行
+     *
+     * @param workflowId workflow 唯一标识符
+     * @param stepId     要恢复的 step 标识符
+     */
+    @Transactional
+    public void resumeWorkflowStep(String workflowId, String stepId) {
+        UUID wfUuid = UUID.fromString(workflowId);
+        Optional<WorkflowStateEntity> stateOpt = WorkflowStateEntity.findByWorkflowId(wfUuid);
+
+        if (stateOpt.isEmpty()) {
+            Log.warnf("Cannot resume workflow %s step %s: workflow not found", workflowId, stepId);
+            return;
+        }
+
+        WorkflowStateEntity state = stateOpt.get();
+
+        // 恢复执行（不设置 currentStep 因为该字段不存在，workflow 内部会通过事件重放确定当前位置）
+        state.status = "READY";
+        state.lockOwner = null; // 释放锁
+        state.lockExpiresAt = null;
+        state.persist();
+
+        Log.infof("Resuming workflow %s at step %s", workflowId, stepId);
+
+        // 追加 TIMER_TRIGGERED 事件
+        try {
+            eventStore.appendEvent(
+                workflowId,
+                "TIMER_TRIGGERED",
+                String.format("{\"stepId\":\"%s\",\"timestamp\":\"%s\"}", stepId, Instant.now())
+            );
+        } catch (Exception e) {
+            Log.warnf(e, "Failed to append TIMER_TRIGGERED event for workflow %s step %s", workflowId, stepId);
+        }
+
+        // 异步调度执行
+        executorService.submit(() -> {
+            try {
+                processWorkflow(workflowId);
+            } catch (Exception e) {
+                Log.errorf(e, "Error resuming workflow %s at step %s", workflowId, stepId, e);
+            }
+        });
+    }
 }

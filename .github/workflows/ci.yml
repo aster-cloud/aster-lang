@@ -173,11 +173,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Java 21 (Graalvm)
-        uses: actions/setup-java@v4
+      - name: Setup Java 25 (GraalVM)
+        uses: graalvm/setup-graalvm@v1
         with:
-          distribution: graalvm
-          java-version: '21'
+          java-version: '25'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'gradle'
 
       - name: Setup Node.js 22
@@ -248,11 +249,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
 
-      - name: Setup Java 21 (Graalvm)
-        uses: actions/setup-java@v4
+      - name: Setup Java 25 (GraalVM)
+        uses: graalvm/setup-graalvm@v1
         with:
-          distribution: graalvm
-          java-version: '21'
+          java-version: '25'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'gradle'
 
       - name: Setup Node.js 22
@@ -542,7 +544,7 @@ jobs:
       - name: Setup Java 25 (GraalVM)
         uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '25.0.2'
+          java-version: '25'
           distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'gradle'

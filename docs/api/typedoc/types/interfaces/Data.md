@@ -4,7 +4,7 @@
 
 # Interface: Data
 
-Defined in: [types.ts:150](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types.ts#L150)
+Defined in: [types.ts:150](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types.ts#L150)
 
 Data 类型声明基础接口。
 
@@ -18,7 +18,7 @@ Data 类型声明基础接口。
 
 > `readonly` **fields**: readonly [`Field`](Field.md)[]
 
-Defined in: [types.ts:151](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types.ts#L151)
+Defined in: [types.ts:151](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types.ts#L151)
 
 #### Overrides
 
@@ -30,7 +30,7 @@ Defined in: [types.ts:151](https://github.com/wontlost-ltd/aster-lang/blob/ab6ee
 
 > **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:152](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types.ts#L152)
+Defined in: [types.ts:152](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types.ts#L152)
 
 #### Overrides
 
@@ -42,7 +42,7 @@ Defined in: [types.ts:152](https://github.com/wontlost-ltd/aster-lang/blob/ab6ee
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -54,7 +54,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` `optional` **file**: `null` \| `string`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types/base.ts#L43)
 
 #### Inherited from
 
@@ -66,7 +66,7 @@ Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` **kind**: `"Data"`
 
-Defined in: [types/base.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types/base.ts#L63)
+Defined in: [types/base.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types/base.ts#L63)
 
 #### Inherited from
 
@@ -78,7 +78,7 @@ Defined in: [types/base.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/a
 
 > `readonly` **name**: `string`
 
-Defined in: [types/base.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types/base.ts#L64)
+Defined in: [types/base.ts:64](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types/base.ts#L64)
 
 #### Inherited from
 

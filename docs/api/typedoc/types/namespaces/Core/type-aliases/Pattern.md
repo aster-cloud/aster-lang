@@ -6,4 +6,4 @@
 
 > **Pattern** = [`PatNull`](../interfaces/PatNull.md) \| [`PatCtor`](../interfaces/PatCtor.md) \| [`PatName`](../interfaces/PatName.md) \| [`PatInt`](../interfaces/PatInt.md)
 
-Defined in: [types.ts:497](https://github.com/wontlost-ltd/aster-lang/blob/ab6eefadc7906826e24e3d67ad63e9619e1502fe/src/types.ts#L497)
+Defined in: [types.ts:497](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types.ts#L497)

@@ -27,8 +27,23 @@ public class WorkflowTimerEntity extends PanacheEntityBase {
     @Column(name = "workflow_id", nullable = false)
     public UUID workflowId;
 
+    @Column(name = "step_id", nullable = true, length = 128)
+    public String stepId;
+
     @Column(name = "fire_at", nullable = false)
     public Instant fireAt;
+
+    /** Alias for fireAt to match implementation guide naming */
+    public Instant getNextExecutionTime() {
+        return fireAt;
+    }
+
+    public void setNextExecutionTime(Instant nextExecutionTime) {
+        this.fireAt = nextExecutionTime;
+    }
+
+    @Column(name = "interval_millis", nullable = true)
+    public Long intervalMillis;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
@@ -36,6 +51,9 @@ public class WorkflowTimerEntity extends PanacheEntityBase {
 
     @Column(nullable = false, length = 32)
     public String status = "PENDING";
+
+    @Column(name = "retry_count", nullable = false)
+    public int retryCount = 0;
 
     @Column(name = "created_at", nullable = false)
     public Instant createdAt = Instant.now();
