@@ -4,7 +4,7 @@
 
 # Interface: Timeout
 
-Defined in: [types.ts:472](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types.ts#L472)
+Defined in: [types.ts:472](https://github.com/wontlost-ltd/aster-lang/blob/098e8b967ef568d4f69ccd6202c35e3fb6d0bfd2/src/types.ts#L472)
 
 Timeout 基础接口。
 
@@ -18,7 +18,7 @@ Timeout 基础接口。
 
 > `readonly` **milliseconds**: `number`
 
-Defined in: [types/base.ts:250](https://github.com/wontlost-ltd/aster-lang/blob/79dfa19a5124ff223e5e405f5fcfc462e6d1587a/src/types/base.ts#L250)
+Defined in: [types/base.ts:250](https://github.com/wontlost-ltd/aster-lang/blob/098e8b967ef568d4f69ccd6202c35e3fb6d0bfd2/src/types/base.ts#L250)
 
 #### Inherited from
 

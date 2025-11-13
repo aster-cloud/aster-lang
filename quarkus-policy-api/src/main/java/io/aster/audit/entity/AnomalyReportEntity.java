@@ -101,14 +101,36 @@ public class AnomalyReportEntity extends PanacheEntityBase {
     @Column(name = "sample_workflow_id")
     public UUID sampleWorkflowId;
 
+    /**
+     * 租户ID（Phase 4.3）
+     * 用于多租户数据隔离，确保租户只能访问自己的异常报告
+     */
+    @Column(name = "tenant_id", nullable = false, length = 255)
+    public String tenantId;
+
     // ==================== Panache Active Record 查询方法 ====================
 
     /**
-     * 查询最近 N 天的异常报告
+     * 查询最近 N 天的异常报告（带租户过滤）
      *
+     * @param tenantId 租户ID
      * @param days 天数
      * @return 异常报告列表，按检测时间降序排列
      */
+    public static List<AnomalyReportEntity> findRecent(String tenantId, int days) {
+        return find("tenant_id = ?1 AND detected_at >= ?2 ORDER BY detected_at DESC",
+            tenantId, Instant.now().minus(days, ChronoUnit.DAYS))
+            .list();
+    }
+
+    /**
+     * 查询最近 N 天的异常报告（不带租户过滤，仅用于系统级管理）
+     *
+     * @param days 天数
+     * @return 异常报告列表，按检测时间降序排列
+     * @deprecated 使用 findRecent(String tenantId, int days) 替代
+     */
+    @Deprecated
     public static List<AnomalyReportEntity> findRecent(int days) {
         return find("detected_at >= ?1 ORDER BY detected_at DESC",
             Instant.now().minus(days, ChronoUnit.DAYS))
@@ -116,27 +138,29 @@ public class AnomalyReportEntity extends PanacheEntityBase {
     }
 
     /**
-     * 按异常类型查询
+     * 按异常类型查询（带租户过滤）
      *
+     * @param tenantId 租户ID
      * @param type 异常类型（HIGH_FAILURE_RATE, ZOMBIE_VERSION, PERFORMANCE_DEGRADATION）
      * @param days 天数
      * @return 指定类型的异常报告列表
      */
-    public static List<AnomalyReportEntity> findByType(String type, int days) {
-        return find("anomaly_type = ?1 AND detected_at >= ?2 ORDER BY detected_at DESC",
-            type, Instant.now().minus(days, ChronoUnit.DAYS))
+    public static List<AnomalyReportEntity> findByType(String tenantId, String type, int days) {
+        return find("tenant_id = ?1 AND anomaly_type = ?2 AND detected_at >= ?3 ORDER BY detected_at DESC",
+            tenantId, type, Instant.now().minus(days, ChronoUnit.DAYS))
             .list();
     }
 
     /**
-     * 统计 CRITICAL 严重程度的异常数量
+     * 统计 CRITICAL 严重程度的异常数量（带租户过滤）
      *
+     * @param tenantId 租户ID
      * @param days 天数
      * @return CRITICAL 异常数量
      */
-    public static long countCritical(int days) {
-        return count("severity = 'CRITICAL' AND detected_at >= ?1",
-            Instant.now().minus(days, ChronoUnit.DAYS));
+    public static long countCritical(String tenantId, int days) {
+        return count("tenant_id = ?1 AND severity = 'CRITICAL' AND detected_at >= ?2",
+            tenantId, Instant.now().minus(days, ChronoUnit.DAYS));
     }
 
     /**
@@ -150,15 +174,16 @@ public class AnomalyReportEntity extends PanacheEntityBase {
     }
 
     /**
-     * 按版本 ID 查询异常历史
+     * 按版本 ID 查询异常历史（带租户过滤）
      *
+     * @param tenantId  租户ID
      * @param versionId 策略版本 ID
      * @param days      天数
      * @return 指定版本的异常报告列表
      */
-    public static List<AnomalyReportEntity> findByVersion(Long versionId, int days) {
-        return find("version_id = ?1 AND detected_at >= ?2 ORDER BY detected_at DESC",
-            versionId, Instant.now().minus(days, ChronoUnit.DAYS))
+    public static List<AnomalyReportEntity> findByVersion(String tenantId, Long versionId, int days) {
+        return find("tenant_id = ?1 AND version_id = ?2 AND detected_at >= ?3 ORDER BY detected_at DESC",
+            tenantId, versionId, Instant.now().minus(days, ChronoUnit.DAYS))
             .list();
     }
 }

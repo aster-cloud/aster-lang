@@ -1,6 +1,7 @@
 package io.aster.audit.service;
 
 import io.aster.audit.dto.*;
+import io.aster.policy.tenant.TenantContext;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.cache.CacheKey;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,6 +32,9 @@ public class PolicyAnalyticsService {
     @Inject
     EntityManager em;
 
+    @Inject
+    TenantContext tenantContext;
+
     @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgresql")
     String dbKind;
 
@@ -40,12 +44,12 @@ public class PolicyAnalyticsService {
      * 使用索引：idx_workflow_state_started_at, idx_workflow_state_policy_version
      *
      * Phase 3.4: 添加缓存层，TTL 15 分钟，减少重复查询的数据库负载
+     * Phase 4.3: 强制租户过滤，从 TenantContext 自动获取
      *
      * @param versionId  策略版本 ID
      * @param granularity 时间粒度（hour, day, week, month）
      * @param from       开始时间
      * @param to         结束时间
-     * @param tenantId   可选的租户 ID 过滤
      * @return 按时间桶聚合的统计数据
      */
     @CacheResult(cacheName = "version-usage-stats")
@@ -53,14 +57,15 @@ public class PolicyAnalyticsService {
         @CacheKey Long versionId,
         @CacheKey String granularity,
         @CacheKey Instant from,
-        @CacheKey Instant to,
-        @CacheKey String tenantId
+        @CacheKey Instant to
     ) {
+        // 0. 获取当前租户ID（强制过滤）
+        String tenantId = tenantContext.getCurrentTenant();
+
         // 1. 构建 DATE_TRUNC 表达式（支持 H2 兼容）
         String dateTruncExpr = buildDateTruncExpression(granularity, "started_at");
 
-        // 2. 构建 SQL（使用文本块）
-        String tenantFilter = tenantId != null ? "AND tenant_id = ?4" : "";
+        // 2. 构建 SQL（强制租户过滤）
         String sql = String.format("""
             SELECT
                 %s AS time_bucket,
@@ -72,19 +77,17 @@ public class PolicyAnalyticsService {
             FROM workflow_state
             WHERE policy_version_id = ?1
               AND started_at BETWEEN ?2 AND ?3
-              %s
+              AND tenant_id = ?4
             GROUP BY time_bucket
             ORDER BY time_bucket ASC
-            """, dateTruncExpr, tenantFilter);
+            """, dateTruncExpr);
 
         // 3. 执行原生查询
         jakarta.persistence.Query query = em.createNativeQuery(sql)
             .setParameter(1, versionId)
             .setParameter(2, from)
-            .setParameter(3, to);
-        if (tenantId != null) {
-            query.setParameter(4, tenantId);
-        }
+            .setParameter(3, to)
+            .setParameter(4, tenantId);
 
         // 4. 映射结果到 DTO
         @SuppressWarnings("unchecked")
@@ -123,10 +126,19 @@ public class PolicyAnalyticsService {
      * @return 异常报告列表
      */
     public List<AnomalyReportDTO> detectAnomalies(double threshold, int days) {
+        // Phase 4.3: 检查租户上下文是否可用（HTTP请求 vs 后台调度器）
+        String tenantId = tenantContext.isInitialized() ? tenantContext.getCurrentTenant() : null;
+        boolean filterByTenant = (tenantId != null);
+
         List<AnomalyReportDTO> anomalies = new ArrayList<>();
 
-        // 2.1 高失败率检测（Phase 3.8 扩展：捕获 sampleWorkflowId）
+        // 2.1 高失败率检测（Phase 3.8 扩展：捕获 sampleWorkflowId；Phase 4.3：条件租户过滤）
         String failureRateExpr = "CAST(SUM(CASE WHEN ws.status = 'FAILED' THEN 1 ELSE 0 END) AS DOUBLE PRECISION) / NULLIF(COUNT(*), 0)";
+
+        // 构建条件SQL：调度器模式（tenantId=null）检测所有租户，HTTP模式（tenantId!=null）仅检测当前租户
+        String tenantFilterClause = filterByTenant ? "AND ws.tenant_id = ?2" : "";
+        String subqueryTenantFilter = filterByTenant ? "AND tenant_id = ?2" : "";
+
         String sqlHighFailure = String.format("""
             SELECT
                 pv.id, pv.policy_id,
@@ -137,21 +149,28 @@ public class PolicyAnalyticsService {
                  FROM workflow_state
                  WHERE policy_version_id = pv.id
                    AND status = 'FAILED'
+                   %s
                    AND started_at >= NOW() - INTERVAL '%d days'
                  ORDER BY started_at DESC
-                 LIMIT 1) AS sample_workflow_id
+                 LIMIT 1) AS sample_workflow_id,
+                MAX(ws.tenant_id) AS tenant_id
             FROM workflow_state ws
             JOIN policy_versions pv ON ws.policy_version_id = pv.id
             WHERE ws.started_at >= NOW() - INTERVAL '%d days'
+              %s
             GROUP BY pv.id, pv.policy_id
             HAVING %s > ?1
             ORDER BY failure_rate DESC
-            """, failureRateExpr, days, days, failureRateExpr);
+            """, failureRateExpr, subqueryTenantFilter, days, days, tenantFilterClause, failureRateExpr);
+
+        jakarta.persistence.Query query = em.createNativeQuery(sqlHighFailure)
+            .setParameter(1, threshold);
+        if (filterByTenant) {
+            query.setParameter(2, tenantId);
+        }
 
         @SuppressWarnings("unchecked")
-        List<Object[]> highFailureResults = em.createNativeQuery(sqlHighFailure)
-            .setParameter(1, threshold)
-            .getResultList();
+        List<Object[]> highFailureResults = query.getResultList();
 
         for (Object[] row : highFailureResults) {
             AnomalyReportDTO anomaly = new AnomalyReportDTO();
@@ -171,6 +190,11 @@ public class PolicyAnalyticsService {
                 } else if (sampleWorkflowIdObj instanceof String) {
                     anomaly.sampleWorkflowId = UUID.fromString((String) sampleWorkflowIdObj);
                 }
+            }
+
+            // Phase 4.3: 捕获租户 ID（用于后台调度器写入）
+            if (row[6] != null) {
+                anomaly.tenantId = (String) row[6];
             }
 
             // 计算严重程度
@@ -195,7 +219,7 @@ public class PolicyAnalyticsService {
             anomalies.add(anomaly);
         }
 
-        // 2.2 僵尸版本检测（Phase 3.8 扩展：捕获 sampleWorkflowId）
+        // 2.2 僵尸版本检测（Phase 3.8 扩展：捕获 sampleWorkflowId；Phase 4.3：条件租户过滤）
         String sqlZombieVersions = String.format("""
             SELECT
                 pv.id, pv.policy_id,
@@ -204,17 +228,24 @@ public class PolicyAnalyticsService {
                  FROM workflow_state
                  WHERE policy_version_id = pv.id
                    AND status = 'FAILED'
+                   %s
                  ORDER BY started_at DESC
-                 LIMIT 1) AS sample_workflow_id
+                 LIMIT 1) AS sample_workflow_id,
+                MAX(ws.tenant_id) AS tenant_id
             FROM policy_versions pv
             LEFT JOIN workflow_state ws ON pv.id = ws.policy_version_id
+            WHERE 1=1 %s
             GROUP BY pv.id, pv.policy_id
             HAVING MAX(ws.started_at) < NOW() - INTERVAL '%d days' OR MAX(ws.started_at) IS NULL
-            """, days);
+            """, subqueryTenantFilter, tenantFilterClause, days);
+
+        jakarta.persistence.Query zombieQuery = em.createNativeQuery(sqlZombieVersions);
+        if (filterByTenant) {
+            zombieQuery.setParameter(2, tenantId);
+        }
 
         @SuppressWarnings("unchecked")
-        List<Object[]> zombieResults = em.createNativeQuery(sqlZombieVersions)
-            .getResultList();
+        List<Object[]> zombieResults = zombieQuery.getResultList();
 
         for (Object[] row : zombieResults) {
             AnomalyReportDTO anomaly = new AnomalyReportDTO();
@@ -235,9 +266,13 @@ public class PolicyAnalyticsService {
                 }
             }
 
-            java.sql.Timestamp lastUsedTimestamp = (java.sql.Timestamp) row[2];
-            if (lastUsedTimestamp != null) {
-                Instant lastUsedAt = lastUsedTimestamp.toInstant();
+            // Phase 4.3: 捕获租户 ID（用于后台调度器写入）
+            if (row[4] != null) {
+                anomaly.tenantId = (String) row[4];
+            }
+
+            Instant lastUsedAt = toInstant(row[2]);
+            if (lastUsedAt != null) {
                 long daysSinceLastUse = java.time.Duration.between(lastUsedAt, Instant.now()).toDays();
                 anomaly.description = String.format(
                     "策略版本 %s 已 %d 天未使用，可能为僵尸版本",
@@ -255,29 +290,43 @@ public class PolicyAnalyticsService {
             anomalies.add(anomaly);
         }
 
-        // 2.3 性能劣化检测（Phase 3.4）
+        // 2.3 性能劣化检测（Phase 3.4 + Phase 3.8 扩展：捕获 sampleWorkflowId；Phase 4.3：条件租户过滤）
         String sqlPerformanceDegradation = String.format("""
             SELECT
                 pv.id, pv.policy_id,
                 AVG(CASE WHEN ws.started_at >= NOW() - INTERVAL '7 days' THEN ws.duration_ms END) AS recent_avg_ms,
                 AVG(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN ws.duration_ms END) AS historical_avg_ms,
                 COUNT(CASE WHEN ws.started_at >= NOW() - INTERVAL '7 days' THEN 1 END) AS recent_count,
-                COUNT(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN 1 END) AS historical_count
+                COUNT(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN 1 END) AS historical_count,
+                (SELECT workflow_id
+                 FROM workflow_state
+                 WHERE policy_version_id = pv.id
+                   AND status = 'COMPLETED'
+                   AND started_at >= NOW() - INTERVAL '1 days'
+                   %s
+                 ORDER BY started_at DESC
+                 LIMIT 1) AS sample_workflow_id,
+                MAX(ws.tenant_id) AS tenant_id
             FROM policy_versions pv
             JOIN workflow_state ws ON pv.id = ws.policy_version_id
             WHERE ws.started_at >= NOW() - INTERVAL '%d days'
               AND ws.status = 'COMPLETED'
               AND ws.duration_ms IS NOT NULL
+              %s
             GROUP BY pv.id, pv.policy_id
             HAVING COUNT(CASE WHEN ws.started_at >= NOW() - INTERVAL '7 days' THEN 1 END) >= 10
                AND COUNT(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN 1 END) >= 10
                AND AVG(CASE WHEN ws.started_at >= NOW() - INTERVAL '7 days' THEN ws.duration_ms END) > AVG(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN ws.duration_ms END) * 1.5
             ORDER BY (AVG(CASE WHEN ws.started_at >= NOW() - INTERVAL '7 days' THEN ws.duration_ms END) - AVG(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN ws.duration_ms END)) / AVG(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN ws.duration_ms END) DESC
-            """, days);
+            """, subqueryTenantFilter, days, tenantFilterClause);
+
+        jakarta.persistence.Query degradationQuery = em.createNativeQuery(sqlPerformanceDegradation);
+        if (filterByTenant) {
+            degradationQuery.setParameter(2, tenantId);
+        }
 
         @SuppressWarnings("unchecked")
-        List<Object[]> degradationResults = em.createNativeQuery(sqlPerformanceDegradation)
-            .getResultList();
+        List<Object[]> degradationResults = degradationQuery.getResultList();
 
         for (Object[] row : degradationResults) {
             AnomalyReportDTO anomaly = new AnomalyReportDTO();
@@ -290,6 +339,22 @@ public class PolicyAnalyticsService {
             double historicalAvgMs = ((Number) row[3]).doubleValue();
             int recentCount = ((Number) row[4]).intValue();
             int historicalCount = ((Number) row[5]).intValue();
+
+            // Phase 3.8: 捕获最近完成的 workflow ID 作为样本
+            if (row[6] != null) {
+                // PostgreSQL UUID 列可能返回 UUID 对象或 String，需兼容处理
+                Object sampleWorkflowIdObj = row[6];
+                if (sampleWorkflowIdObj instanceof UUID) {
+                    anomaly.sampleWorkflowId = (UUID) sampleWorkflowIdObj;
+                } else if (sampleWorkflowIdObj instanceof String) {
+                    anomaly.sampleWorkflowId = UUID.fromString((String) sampleWorkflowIdObj);
+                }
+            }
+
+            // Phase 4.3: 捕获租户 ID（用于后台调度器写入）
+            if (row[7] != null) {
+                anomaly.tenantId = (String) row[7];
+            }
 
             double degradationRatio = (recentAvgMs - historicalAvgMs) / historicalAvgMs;
             anomaly.metricValue = degradationRatio;  // 如 1.2 表示劣化 120%
@@ -332,6 +397,9 @@ public class PolicyAnalyticsService {
      * @return 版本对比结果
      */
     public VersionComparisonDTO compareVersions(Long versionAId, Long versionBId, int days) {
+        // Phase 4.3: 强制租户过滤，从 TenantContext 自动获取
+        String tenantId = tenantContext.getCurrentTenant();
+
         VersionComparisonDTO dto = new VersionComparisonDTO();
         dto.versionAId = versionAId;
         dto.versionBId = versionBId;
@@ -344,17 +412,20 @@ public class PolicyAnalyticsService {
                 AVG(CASE WHEN status = 'COMPLETED' THEN duration_ms ELSE NULL END) AS avg_duration_ms
             FROM workflow_state
             WHERE policy_version_id = ?1
+              AND tenant_id = ?2
               AND started_at >= NOW() - INTERVAL '%d days'
             """, days);
 
         // 查询版本 A 统计数据
         Object[] resultA = (Object[]) em.createNativeQuery(sql)
             .setParameter(1, versionAId)
+            .setParameter(2, tenantId)
             .getSingleResult();
 
         // 查询版本 B 统计数据
         Object[] resultB = (Object[]) em.createNativeQuery(sql)
             .setParameter(1, versionBId)
+            .setParameter(2, tenantId)
             .getSingleResult();
 
         // 填充版本 A 数据

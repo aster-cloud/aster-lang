@@ -8,6 +8,7 @@ import io.aster.audit.rest.model.AnomalyDetailResponse;
 import io.aster.audit.rest.model.AnomalyStatusUpdateRequest;
 import io.aster.audit.service.AnomalyWorkflowService;
 import io.aster.audit.service.PolicyAnalyticsService;
+import io.aster.policy.tenant.TenantContext;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
@@ -51,16 +52,20 @@ public class PolicyAnalyticsResource {
     @Inject
     InboxGuard inboxGuard;
 
+    @Inject
+    TenantContext tenantContext;
+
     /**
      * 获取版本使用统计（按时间粒度聚合）
      *
-     * GET /api/audit/stats/version-usage?versionId=1&granularity=day&from=2025-01-01T00:00:00Z&to=2025-01-31T23:59:59Z&tenantId=tenant1
+     * GET /api/audit/stats/version-usage?versionId=1&granularity=day&from=2025-01-01T00:00:00Z&to=2025-01-31T23:59:59Z
+     *
+     * Phase 4.3: 租户ID 从 X-Tenant-Id header 自动获取（由 TenantFilter 强制验证）
      *
      * @param versionId   策略版本 ID（必填）
      * @param granularity 时间粒度（hour, day, week, month，默认 day）
      * @param from        开始时间（默认最近 7 天）
      * @param to          结束时间（默认当前时间）
-     * @param tenantId    可选的租户 ID 过滤
      * @return 按时间桶聚合的统计数据
      */
     @GET
@@ -70,8 +75,7 @@ public class PolicyAnalyticsResource {
         @QueryParam("versionId") Long versionId,
         @QueryParam("granularity") @DefaultValue("day") String granularity,
         @QueryParam("from") Instant from,
-        @QueryParam("to") Instant to,
-        @QueryParam("tenantId") String tenantId
+        @QueryParam("to") Instant to
     ) {
         // 参数验证
         if (versionId == null) {
@@ -101,16 +105,19 @@ public class PolicyAnalyticsResource {
             throw new BadRequestException("Time range cannot exceed 90 days (current: " + daysDiff + " days)");
         }
 
-        return analyticsService.getVersionUsageStats(versionId, granularity, from, to, tenantId);
+        // Phase 4.3: TenantContext 由 TenantFilter 自动填充，Service 层自动使用
+        return analyticsService.getVersionUsageStats(versionId, granularity, from, to);
     }
 
     /**
-     * 获取异常检测报告（异步模式 - Phase 3.4）
+     * 获取异常检测报告（异步模式 - Phase 3.4, Phase 4.3）
      *
      * GET /api/audit/anomalies?page=1&size=20&type=HIGH_FAILURE_RATE&days=7
      *
      * 从 anomaly_reports 表查询异常记录，而非实时计算。
      * 异常数据由定时任务（AnomalyDetectionScheduler）每小时生成。
+     *
+     * Phase 4.3: 租户ID 从 X-Tenant-Id header 自动获取（由 TenantFilter 强制验证）
      *
      * @param page 页码（从 1 开始，默认 1）
      * @param size 每页大小（1-100，默认 20）
@@ -138,14 +145,18 @@ public class PolicyAnalyticsResource {
             throw new BadRequestException("days must be between 1 and 365");
         }
 
+        // Phase 4.3: 强制租户过滤，从 TenantContext 自动获取
+        String tenantId = tenantContext.getCurrentTenant();
+
         // 构建查询条件
-        String query = "detectedAt >= ?1";
+        String query = "tenantId = ?1 AND detectedAt >= ?2";
         List<Object> params = new ArrayList<>();
+        params.add(tenantId);
         params.add(Instant.now().minus(days, ChronoUnit.DAYS));
 
         // 可选的异常类型过滤
         if (type != null && !type.isBlank()) {
-            query += " AND anomalyType = ?2";
+            query += " AND anomalyType = ?3";
             params.add(type);
         }
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.aster.policy.entity.PolicyVersion;
 import io.aster.policy.service.PolicyVersionService;
+import io.aster.policy.tenant.TenantContext;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -44,6 +45,9 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
 
     @Inject
     PolicyVersionService policyVersionService;
+
+    @Inject
+    TenantContext tenantContext;
 
     @ConfigProperty(name = "workflow.result-futures.ttl-hours", defaultValue = "24")
     int ttlHours;
@@ -111,7 +115,9 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
             }
 
             // 创建 workflow 状态（如果不存在）
-            WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfUuid);
+            // Phase 4.3: 传递租户ID以确保多租户数据隔离
+            String tenantId = tenantContext.isInitialized() ? tenantContext.getCurrentTenant() : null;
+            WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfUuid, tenantId);
 
             // Phase 3.4: 标记 workflow 开始时间
             state.markStarted();

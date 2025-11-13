@@ -5,6 +5,7 @@ import io.aster.audit.entity.AnomalyReportEntity;
 import io.aster.audit.outbox.OutboxStatus;
 import io.aster.audit.rest.model.VerificationResult;
 import io.aster.policy.entity.PolicyVersion;
+import io.aster.workflow.WorkflowStateEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -76,11 +77,29 @@ class AnomalyWorkflowServiceTest {
         // 清理测试数据
         AnomalyActionEntity.delete("anomalyId = ?1", testAnomalyId);
         AnomalyReportEntity.deleteById(testAnomalyId);
+        WorkflowStateEntity.delete("policyVersionId = ?1", testVersionId);
         PolicyVersion.deleteById(testVersionId);
     }
 
     @Test
+    @Transactional
     void testSubmitVerificationAction_Success() {
+        // Phase 3.8: 创建带 clockTimes 的 workflow
+        UUID sampleWorkflowId = UUID.randomUUID();
+        WorkflowStateEntity workflow = new WorkflowStateEntity();
+        workflow.workflowId = sampleWorkflowId;
+        workflow.policyVersionId = testVersionId;
+        workflow.status = "COMPLETED";
+        workflow.clockTimes = "[1000, 2000, 3000]";
+        workflow.startedAt = Instant.now();
+        workflow.durationMs = 1000L;
+        workflow.persist();
+
+        // 设置 anomaly 的 sampleWorkflowId
+        AnomalyReportEntity anomaly = AnomalyReportEntity.findById(testAnomalyId);
+        anomaly.sampleWorkflowId = sampleWorkflowId;
+        anomaly.persist();
+
         // 执行提交验证动作
         Long actionId = service.submitVerificationAction(testAnomalyId)
             .await().indefinitely();
@@ -90,7 +109,7 @@ class AnomalyWorkflowServiceTest {
         assertTrue(actionId > 0);
 
         // 验证异常状态更新为 VERIFYING
-        AnomalyReportEntity anomaly = AnomalyReportEntity.findById(testAnomalyId);
+        anomaly = AnomalyReportEntity.findById(testAnomalyId);
         assertEquals("VERIFYING", anomaly.status);
 
         // 验证动作实体创建成功
@@ -178,7 +197,7 @@ class AnomalyWorkflowServiceTest {
     }
 
     /**
-     * Phase 3.8: 测试 payload 构建 - 有 sampleWorkflowId 的情况
+     * Phase 3.8: 测试 payload 构建 - 有 sampleWorkflowId 和 clockTimes 的情况
      *
      * 验证：
      * 1. payload 正确构建为 JSON 格式
@@ -187,8 +206,18 @@ class AnomalyWorkflowServiceTest {
     @Test
     @Transactional
     void testSubmitVerificationAction_WithSampleWorkflowId_PayloadBuilt() {
-        // 设置 sampleWorkflowId
+        // 创建带 clockTimes 的 workflow
         UUID sampleWorkflowId = UUID.randomUUID();
+        WorkflowStateEntity workflow = new WorkflowStateEntity();
+        workflow.workflowId = sampleWorkflowId;
+        workflow.policyVersionId = testVersionId;
+        workflow.status = "COMPLETED";
+        workflow.clockTimes = "[1000, 2000, 3000]";
+        workflow.startedAt = Instant.now();
+        workflow.durationMs = 1000L;
+        workflow.persist();
+
+        // 设置 sampleWorkflowId
         AnomalyReportEntity anomaly = AnomalyReportEntity.findById(testAnomalyId);
         anomaly.sampleWorkflowId = sampleWorkflowId;
         anomaly.persist();
@@ -208,12 +237,12 @@ class AnomalyWorkflowServiceTest {
     }
 
     /**
-     * Phase 3.8: 测试 payload 构建 - 无 sampleWorkflowId 的情况（降级策略）
+     * Phase 3.8: 测试跳过场景 - 无 sampleWorkflowId 时跳过创建
      *
      * 验证：
-     * 1. 缺少 sampleWorkflowId 时 payload 为 null
-     * 2. 动作仍然被创建（优雅降级）
-     * 3. 状态正确更新为 VERIFYING
+     * 1. 缺少 sampleWorkflowId 时返回 null
+     * 2. 不创建 AnomalyActionEntity
+     * 3. 状态保持 PENDING
      */
     @Test
     @Transactional
@@ -223,20 +252,16 @@ class AnomalyWorkflowServiceTest {
         anomaly.sampleWorkflowId = null;
         anomaly.persist();
 
-        // 执行提交验证动作（应该成功，不抛出异常）
+        // 执行提交验证动作（Phase 3.8: 应返回 null）
         Long actionId = service.submitVerificationAction(testAnomalyId)
             .await().indefinitely();
 
-        // 验证动作仍然被创建
-        assertNotNull(actionId);
+        // 验证返回 null（跳过创建）
+        assertNull(actionId, "缺少 sampleWorkflowId 时应返回 null");
 
-        // 验证 payload 为 null（优雅降级）
-        AnomalyActionEntity action = AnomalyActionEntity.findById(actionId);
-        assertNull(action.payload, "缺少 sampleWorkflowId 时 payload 应为 null");
-
-        // 验证状态仍然更新为 VERIFYING
+        // 验证状态保持 PENDING（未更新）
         anomaly = AnomalyReportEntity.findById(testAnomalyId);
-        assertEquals("VERIFYING", anomaly.status);
+        assertEquals("PENDING", anomaly.status);
     }
 
     /**
@@ -247,8 +272,18 @@ class AnomalyWorkflowServiceTest {
     @Test
     @Transactional
     void testSubmitVerificationAction_PayloadJsonFormat() {
-        // 设置 sampleWorkflowId
+        // 创建带 clockTimes 的 workflow
         UUID sampleWorkflowId = UUID.randomUUID();
+        WorkflowStateEntity workflow = new WorkflowStateEntity();
+        workflow.workflowId = sampleWorkflowId;
+        workflow.policyVersionId = testVersionId;
+        workflow.status = "COMPLETED";
+        workflow.clockTimes = "[1000, 2000, 3000]";
+        workflow.startedAt = Instant.now();
+        workflow.durationMs = 1000L;
+        workflow.persist();
+
+        // 设置 sampleWorkflowId
         AnomalyReportEntity anomaly = AnomalyReportEntity.findById(testAnomalyId);
         anomaly.sampleWorkflowId = sampleWorkflowId;
         anomaly.persist();

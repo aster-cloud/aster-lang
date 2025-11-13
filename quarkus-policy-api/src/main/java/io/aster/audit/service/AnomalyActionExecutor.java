@@ -4,11 +4,14 @@ import io.aster.audit.entity.AnomalyActionEntity;
 import io.aster.audit.entity.AnomalyActionPayload;
 import io.aster.audit.entity.AnomalyReportEntity;
 import io.aster.audit.inbox.InboxGuard;
+import io.aster.audit.metrics.AnomalyMetrics;
 import io.aster.audit.rest.model.VerificationResult;
 import io.aster.policy.entity.PolicyVersion;
 import io.aster.policy.service.PolicyVersionService;
 import io.aster.workflow.WorkflowSchedulerService;
 import io.aster.workflow.WorkflowStateEntity;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -42,6 +45,12 @@ public class AnomalyActionExecutor {
 
     @Inject
     InboxGuard inboxGuard;
+
+    @Inject
+    AnomalyMetrics anomalyMetrics;
+
+    @Inject
+    MeterRegistry meterRegistry;
 
     /**
      * 执行 Replay 验证
@@ -217,9 +226,16 @@ public class AnomalyActionExecutor {
     }
 
     private Uni<Boolean> performAutoRollback(AnomalyActionEntity action, AnomalyActionPayload payload) {
+        // Phase 3.8 Task 3: 记录回滚尝试次数
+        anomalyMetrics.recordRollbackAttempt();
+
+        // Phase 3.8 Task 3: 开始计时
+        Timer.Sample sample = Timer.start(meterRegistry);
+
         try {
             AnomalyReportEntity anomaly = AnomalyReportEntity.findById(action.anomalyId);
             if (anomaly == null) {
+                anomalyMetrics.recordRollbackFailed();
                 return Uni.createFrom().failure(
                     new IllegalArgumentException("异常报告不存在: anomalyId=" + action.anomalyId)
                 );
@@ -227,6 +243,7 @@ public class AnomalyActionExecutor {
 
             Long targetVersion = payload.targetVersion();
             if (targetVersion == null) {
+                anomalyMetrics.recordRollbackFailed();
                 return Uni.createFrom().failure(
                     new IllegalArgumentException("Payload 缺少 targetVersion")
                 );
@@ -235,18 +252,45 @@ public class AnomalyActionExecutor {
             PolicyVersion currentVersion = policyVersionService.getActiveVersion(anomaly.policyId);
             Long fromVersion = currentVersion != null ? currentVersion.version : null;
 
+            // Phase 3.8 Task 3: 版本验证 - 检测版本漂移
+            if (fromVersion != null && fromVersion.equals(targetVersion)) {
+                LOG.warnf("版本幂等检测: 当前版本 %d 与目标版本相同，跳过回滚", targetVersion);
+                // 幂等操作视为成功
+                anomalyMetrics.recordRollbackSuccess();
+                sample.stop(anomalyMetrics.getRollbackExecutionTimer());
+                return Uni.createFrom().item(true);
+            }
+
+            // Phase 3.8 Task 3: 版本验证 - 检测版本漂移（版本号不匹配预期）
+            PolicyVersion targetPolicyVersion = PolicyVersion.findByVersion(anomaly.policyId, targetVersion);
+            if (targetPolicyVersion == null) {
+                LOG.errorf("版本漂移检测: 目标版本 %d 不存在（可能已被删除）", targetVersion);
+                anomalyMetrics.recordRollbackFailed();
+                return Uni.createFrom().failure(
+                    new IllegalStateException("目标版本不存在: version=" + targetVersion)
+                );
+            }
+
             policyVersionService.rollbackToVersion(anomaly.policyId, targetVersion);
 
             LOG.infof("异常 %d 触发自动回滚: %s from %d to %d",
                 action.anomalyId, anomaly.policyId, fromVersion, targetVersion);
 
+            // Phase 3.8 Task 3: 记录成功并停止计时
+            anomalyMetrics.recordRollbackSuccess();
+            sample.stop(anomalyMetrics.getRollbackExecutionTimer());
+
             return Uni.createFrom().item(true);
 
         } catch (IllegalArgumentException e) {
             LOG.errorf(e, "自动回滚失败: action=%d", action.id);
+            anomalyMetrics.recordRollbackFailed();
+            sample.stop(anomalyMetrics.getRollbackExecutionTimer());
             return Uni.createFrom().failure(e);
         } catch (Exception e) {
             LOG.errorf(e, "自动回滚执行异常: action=%d", action.id);
+            anomalyMetrics.recordRollbackFailed();
+            sample.stop(anomalyMetrics.getRollbackExecutionTimer());
             return Uni.createFrom().failure(e);
         }
     }

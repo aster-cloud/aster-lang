@@ -158,12 +158,27 @@ public class WorkflowStateEntity extends PanacheEntityBase {
     }
 
     /**
-     * 获取或创建 workflow 状态
+     * 获取或创建 workflow 状态（仅用于内部事件存储）
      *
      * @param workflowId workflow 唯一标识符
      * @return workflow 状态实例
+     * @deprecated 使用 getOrCreate(UUID, String) 替代，明确指定租户ID
      */
+    @Deprecated
     public static WorkflowStateEntity getOrCreate(UUID workflowId) {
+        return getOrCreate(workflowId, null);
+    }
+
+    /**
+     * 获取或创建 workflow 状态
+     *
+     * Phase 4.3: 添加租户ID参数，确保多租户数据隔离
+     *
+     * @param workflowId workflow 唯一标识符
+     * @param tenantId   租户ID（可为null，仅在创建新workflow时使用，更新时忽略）
+     * @return workflow 状态实例
+     */
+    public static WorkflowStateEntity getOrCreate(UUID workflowId, String tenantId) {
         Optional<WorkflowStateEntity> existing = findByIdOptional(workflowId);
         if (existing.isPresent()) {
             return existing.get();
@@ -171,6 +186,7 @@ public class WorkflowStateEntity extends PanacheEntityBase {
 
         var state = new WorkflowStateEntity();
         state.workflowId = workflowId;
+        state.tenantId = tenantId;  // Phase 4.3: 设置租户ID（null表示未知租户，需要后续设置）
         state.status = "READY";
         state.lastEventSeq = 0L;
         state.createdAt = Instant.now();

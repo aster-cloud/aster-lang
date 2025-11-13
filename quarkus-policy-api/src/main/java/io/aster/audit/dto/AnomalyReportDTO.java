@@ -39,4 +39,7 @@ public class AnomalyReportDTO {
 
     /** 代表性失败 workflow 实例 ID（Phase 3.8）*/
     public UUID sampleWorkflowId;
+
+    /** 租户 ID（Phase 4.3 - 用于后台调度器写入时设置租户隔离）*/
+    public String tenantId;
 }
