@@ -100,6 +100,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testGetVersionUsageStats_HourGranularity() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionId", versionA.id)
             .queryParam("granularity", "hour")
             .queryParam("from", Instant.now().minus(1, ChronoUnit.DAYS).toString())
@@ -117,6 +118,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testGetVersionUsageStats_DayGranularity() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionId", versionA.id)
             .queryParam("granularity", "day")
             .queryParam("from", Instant.now().minus(7, ChronoUnit.DAYS).toString())
@@ -133,6 +135,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testGetVersionUsageStats_WithTenantFilter() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionId", versionA.id)
             .queryParam("granularity", "day")
             .queryParam("tenantId", "test-tenant")
@@ -148,6 +151,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testGetVersionUsageStats_InvalidGranularity() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionId", versionA.id)
             .queryParam("granularity", "invalid")
             .when().get("/api/audit/stats/version-usage")
@@ -161,6 +165,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testGetVersionUsageStats_TimeRangeExceedsLimit() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionId", versionA.id)
             .queryParam("from", Instant.now().minus(100, ChronoUnit.DAYS).toString())
             .queryParam("to", Instant.now().toString())
@@ -175,6 +180,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testGetVersionUsageStats_MissingVersionId() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("granularity", "day")
             .when().get("/api/audit/stats/version-usage")
             .then()
@@ -192,6 +198,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testDetectAnomalies_HighFailureRate() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("days", 30)
             .when().get("/api/audit/anomalies")
             .then()
@@ -207,6 +214,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testDetectAnomalies_CustomThreshold() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("page", 1)
             .queryParam("size", 10)
             .queryParam("type", "HIGH_FAILURE_RATE")
@@ -223,6 +231,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testDetectAnomalies_InvalidThreshold() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("page", 0)  // page must be >= 1
             .when().get("/api/audit/anomalies")
             .then()
@@ -235,6 +244,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testDetectAnomalies_InvalidDays() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("days", 500)
             .when().get("/api/audit/anomalies")
             .then()
@@ -249,6 +259,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testCompareVersions_SuccessRateDifference() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionA", versionA.id)
             .queryParam("versionB", versionB.id)
             .queryParam("days", 7)
@@ -269,6 +280,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testCompareVersions_MissingParameters() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionA", versionA.id)
             .when().get("/api/audit/compare")
             .then()
@@ -281,6 +293,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testCompareVersions_SameVersion() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionA", versionA.id)
             .queryParam("versionB", versionA.id)
             .when().get("/api/audit/compare")
@@ -294,6 +307,7 @@ public class PolicyAnalyticsResourceTest {
     @Test
     void testCompareVersions_InvalidDays() {
         given()
+            .header("X-Tenant-Id", "test-tenant")
             .queryParam("versionA", versionA.id)
             .queryParam("versionB", versionB.id)
             .queryParam("days", 100)
