@@ -77,10 +77,11 @@ public class FunctionEmitter {
         var mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, fn.name, paramsDesc.toString(), null, null);
         for (int idx = 0; idx < fn.params.size(); idx++) {
             var p = fn.params.get(idx);
-            mv.visitParameter(p.name, 0);
-            Main.emitParameterAnnotations(mv, idx, p);
+        mv.visitParameter(p.name, 0);
+        Main.emitParameterAnnotations(mv, idx, p);
         }
         Main.addOriginAnnotation(mv, fn.origin);
+        Main.addFuncMetadataAnnotations(mv, fn);
         mv.visitCode();
 
         var lStart = new Label();

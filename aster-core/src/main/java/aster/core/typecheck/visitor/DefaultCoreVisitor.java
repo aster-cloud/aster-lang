@@ -107,6 +107,7 @@ public class DefaultCoreVisitor<Ctx> implements CoreVisitor<Ctx, Void> {
       case CoreModel.Block block -> visitBlock(block, ctx);
       case CoreModel.Start start -> visitStartImpl(start, ctx);
       case CoreModel.Wait w -> visitWaitImpl(w, ctx);
+      case CoreModel.Workflow workflow -> visitWorkflowImpl(workflow, ctx);
     };
   }
 
@@ -124,6 +125,27 @@ public class DefaultCoreVisitor<Ctx> implements CoreVisitor<Ctx, Void> {
       visitExpression(s.expr, ctx);
     }
     return null;
+  }
+
+  private Void visitWorkflowImpl(CoreModel.Workflow workflow, Ctx ctx) {
+    if (workflow.steps != null) {
+      for (var step : workflow.steps) {
+        visitWorkflowStep(step, ctx);
+      }
+    }
+    return null;
+  }
+
+  private void visitWorkflowStep(CoreModel.Step step, Ctx ctx) {
+    if (step == null) {
+      return;
+    }
+    if (step.body != null) {
+      visitBlock(step.body, ctx);
+    }
+    if (step.compensate != null) {
+      visitBlock(step.compensate, ctx);
+    }
   }
 
   private Void visitReturnImpl(CoreModel.Return r, Ctx ctx) {
@@ -312,6 +334,7 @@ public class DefaultCoreVisitor<Ctx> implements CoreVisitor<Ctx, Void> {
       case CoreModel.ListT l -> visitTypeChild(l.type, ctx);
       case CoreModel.MapT m -> visitMapTypeImpl(m, ctx);
       case CoreModel.FuncType f -> visitFuncTypeImpl(f, ctx);
+      case CoreModel.PiiType pii -> visitTypeChild(pii.baseType, ctx);
     };
   }
 

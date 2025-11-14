@@ -1,0 +1,17 @@
+This module is tests.cross.capability_violations.
+
+To missingCapability, produce Text. It performs io [Http]:
+  Let token be Secrets.get("api-key").
+  Let status be Http.get("/status").
+  Return status.
+
+To redundantCapability, produce Text. It performs io [Sql]:
+  Return "ok".
+
+To workflowMissingCapability, produce Workflow of Result of Text and Text and IO. It performs io [Sql]:
+  
+  workflow:
+    step fetch:
+      Return ok of Secrets.rotate("session").
+  
+  .

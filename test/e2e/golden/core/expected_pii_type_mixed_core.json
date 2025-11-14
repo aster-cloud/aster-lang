@@ -26,6 +26,10 @@
       "effects": [],
       "effectCaps": [],
       "effectCapsExplicit": false,
+      "piiLevel": "L2",
+      "piiCategories": [
+        "email"
+      ],
       "body": {
         "kind": "Block",
         "statements": [
@@ -76,6 +80,10 @@
       "effects": [],
       "effectCaps": [],
       "effectCapsExplicit": false,
+      "piiLevel": "L3",
+      "piiCategories": [
+        "phone"
+      ],
       "body": {
         "kind": "Block",
         "statements": [

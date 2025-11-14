@@ -1,4 +1,5 @@
 plugins {
+    application
     `java-library`
     antlr
     id("me.champeau.jmh") version "0.7.2"
@@ -104,4 +105,8 @@ tasks.jacocoTestReport {
             }
         })
     )
+}
+
+application {
+    mainClass.set("aster.core.typecheck.cli.TypeCheckCli")
 }

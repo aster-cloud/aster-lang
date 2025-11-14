@@ -2,11 +2,15 @@ package aster.core.typecheck;
 
 import aster.core.ir.CoreModel;
 import aster.core.ir.CoreModel.*;
+import aster.core.typecheck.capability.ManifestConfig;
+import aster.core.typecheck.capability.ManifestReader;
 import aster.core.typecheck.checkers.*;
+import aster.core.typecheck.pii.PiiTypeChecker;
 import aster.core.typecheck.model.Diagnostic;
 import aster.core.typecheck.model.SymbolInfo;
 import aster.core.typecheck.model.VisitorContext;
 
+import java.nio.file.Path;
 import java.util.*;
 
 /**
@@ -35,6 +39,8 @@ public final class TypeChecker {
   private final GenericTypeChecker genericChecker;
   private final EffectChecker effectChecker;
   private final AsyncDisciplineChecker asyncChecker;
+  private final PiiTypeChecker piiChecker;
+  private final CapabilityChecker capabilityChecker;
 
   // ========== 构造器 ==========
 
@@ -48,6 +54,9 @@ public final class TypeChecker {
     this.baseChecker = new BaseTypeChecker(symbolTable, diagnostics, genericChecker);
     this.effectChecker = new EffectChecker(symbolTable, effectConfig, diagnostics);
     this.asyncChecker = new AsyncDisciplineChecker(diagnostics);
+    this.piiChecker = new PiiTypeChecker();
+    this.capabilityChecker = new CapabilityChecker();
+    loadManifestFromEnv();
   }
 
   // ========== 公共 API ==========
@@ -86,7 +95,20 @@ public final class TypeChecker {
     }
 
     symbolTable.exitScope();
-    return diagnostics.getDiagnostics();
+
+    var baseDiagnostics = new ArrayList<>(diagnostics.getDiagnostics());
+    if (module != null && module.decls != null) {
+      var funcs = module.decls.stream()
+        .filter(CoreModel.Func.class::isInstance)
+        .map(CoreModel.Func.class::cast)
+        .toList();
+      baseDiagnostics.addAll(capabilityChecker.checkModule(funcs));
+      if (shouldEnforcePii()) {
+        baseDiagnostics.addAll(piiChecker.checkModule(funcs));
+      }
+    }
+
+    return List.copyOf(baseDiagnostics);
   }
 
   // ========== 第一遍：收集类型定义 ==========
@@ -299,5 +321,34 @@ public final class TypeChecker {
    */
   AsyncDisciplineChecker getAsyncChecker() {
     return asyncChecker;
+  }
+
+  /**
+   * 注入 Manifest 配置（用于 CLI/测试自定义能力范围）。
+   */
+  public void setManifest(ManifestConfig manifest) {
+    capabilityChecker.setManifest(manifest);
+  }
+
+  private void loadManifestFromEnv() {
+    var manifestPath = System.getenv("ASTER_MANIFEST_PATH");
+    if (manifestPath == null || manifestPath.isBlank()) {
+      return;
+    }
+    try {
+      var config = ManifestReader.read(Path.of(manifestPath));
+      setManifest(config);
+    } catch (RuntimeException ex) {
+      throw new IllegalStateException("加载 ASTER_MANIFEST_PATH 指定的 Manifest 失败: " + manifestPath, ex);
+    }
+  }
+
+  private boolean shouldEnforcePii() {
+    var enforcePii = System.getenv("ENFORCE_PII");
+    var asterEnforcePii = System.getenv("ASTER_ENFORCE_PII");
+    if ("true".equalsIgnoreCase(enforcePii)) {
+      return true;
+    }
+    return "1".equals(asterEnforcePii) || "true".equalsIgnoreCase(asterEnforcePii);
   }
 }

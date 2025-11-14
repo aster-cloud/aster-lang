@@ -18,6 +18,7 @@ import { SymbolTable } from './typecheck/symbol_table.js';
 import type { SymbolKind } from './typecheck/symbol_table.js';
 import { DiagnosticBuilder } from './typecheck/diagnostics.js';
 import { TypeSystem } from './typecheck/type_system.js';
+import { checkModulePII } from './typecheck-pii.js';
 import { ErrorCode } from './error_codes.js';
 
 // 从配置获取效果推断前缀（模块级，避免重复调用）
@@ -38,6 +39,10 @@ export function resolveAlias(name: string, imports: Map<string, string>): string
   const [prefix, ...rest] = name.split('.');
   const resolved = imports.get(prefix!);
   return resolved ? `${resolved}.${rest.join('.')}` : name;
+}
+
+export function shouldEnforcePii(): boolean {
+  return process.env.ENFORCE_PII === 'true' || process.env.ASTER_ENFORCE_PII === '1';
 }
 
 const typecheckLogger = createLogger('typecheck');
@@ -141,7 +146,14 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
       }
     }
     const effectDiags = inferEffects(m, ctx.imports);
-    const result = [...diagnostics.getDiagnostics(), ...effectDiags];
+    const piiDiagnostics: TypecheckDiagnostic[] = [];
+    if (shouldEnforcePii()) {
+      const funcs = m.decls.filter((decl): decl is Core.Func => decl.kind === 'Func');
+      if (funcs.length > 0) {
+        checkModulePII(funcs, piiDiagnostics);
+      }
+    }
+    const result = [...diagnostics.getDiagnostics(), ...effectDiags, ...piiDiagnostics];
     const duration = performance.now() - startTime;
     const baseMeta = { moduleName, errorCount: result.length };
     logPerformance({
@@ -228,6 +240,7 @@ function typecheckFunc(ctx: ModuleContext, f: Core.Func, diagnostics: Diagnostic
 
   // Effect enforcement (minimal lattice: ∅ ⊑ CPU ⊑ IO[*])
   checkEffects(ctx, f, diagnostics);
+  checkCapabilityInferredEffects(f, diagnostics);
 
   // Async discipline: every started task should be waited somewhere in the body
   checkAsyncDiscipline(f, diagnostics);
@@ -517,6 +530,46 @@ function checkEffects(
         }
       }
     }
+  }
+}
+
+function checkCapabilityInferredEffects(
+  f: Core.Func,
+  diagnostics: DiagnosticBuilder
+): void {
+  if (!f.body) return;
+  const observed = collectCapabilities(f.body);
+  if (observed.size === 0) return;
+
+  const hasIO = f.effects.some(e => String(e).toLowerCase() === 'io');
+  const hasCPU = f.effects.some(e => String(e).toLowerCase() === 'cpu');
+
+  const ioCaps: CapabilityKind[] = [];
+  for (const cap of observed.keys()) {
+    if (cap !== CapabilityKind.CPU) {
+      ioCaps.push(cap);
+    }
+  }
+
+  if (ioCaps.length > 0 && !hasIO) {
+    const capNames = ioCaps.join(', ');
+    const calls = ioCaps
+      .flatMap(cap => observed.get(cap) ?? [])
+      .slice(0, 3)
+      .join(', ');
+    diagnostics.error(ErrorCode.CAPABILITY_INFER_MISSING_IO, f.span, {
+      func: f.name,
+      capabilities: capNames,
+      calls: calls || undefined,
+    });
+  }
+
+  if (observed.has(CapabilityKind.CPU) && !(hasCPU || hasIO)) {
+    const cpuCalls = (observed.get(CapabilityKind.CPU) ?? []).slice(0, 3).join(', ');
+    diagnostics.error(ErrorCode.CAPABILITY_INFER_MISSING_CPU, f.span, {
+      func: f.name,
+      calls: cpuCalls || undefined,
+    });
   }
 }
 

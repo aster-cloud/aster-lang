@@ -101,6 +101,8 @@ tasks.withType<Test> {
 val skipGenerateAsterJar = providers.environmentVariable("SKIP_GENERATE_ASTER_JAR").isPresent
 
 val generateAsterJar by tasks.registering(Exec::class) {
+    notCompatibleWithConfigurationCache("Aster JAR 生成依赖动态扫描策略文件并调用 npm 脚本")
+
     onlyIf {
         if (skipGenerateAsterJar) {
             logger.lifecycle("Skipping generateAsterJar because SKIP_GENERATE_ASTER_JAR is set")

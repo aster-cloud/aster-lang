@@ -98,6 +98,17 @@ START: 'Start';
 WAIT: 'Wait';
 FOR: 'for';
 ASYNC: 'async';
+WORKFLOW: 'Workflow' | 'workflow';
+STEP: 'Step' | 'step';
+RETRY: 'Retry' | 'retry';
+TIMEOUT: 'Timeout' | 'timeout';
+DEPENDS: 'Depends' | 'depends';
+ON: 'On' | 'on';
+COMPENSATE: 'Compensate' | 'compensate';
+MAX: 'Max' | 'max';
+ATTEMPTS: 'Attempts' | 'attempts';
+BACKOFF: 'Backoff' | 'backoff';
+SECONDS: 'seconds' | 'second';
 
 // 表达式关键字
 FUNCTION: 'function';

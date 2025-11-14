@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": {
+            "enum": ["Http", "Sql", "Time", "Files", "Secrets", "AiModel", "Cpu"]
+          }
+        },
+        "deny": {
+          "type": "array",
+          "items": {
+            "enum": ["Http", "Sql", "Time", "Files", "Secrets", "AiModel", "Cpu"]
+          }
+        }
+      }
+    }
+  }
+}

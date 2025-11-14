@@ -102,6 +102,103 @@ function withEffectCaps(
   return coreFunc;
 }
 
+function withFuncPiiMetadata(
+  coreFunc: import('./types.js').Core.Func
+): import('./types.js').Core.Func {
+  const metadata = aggregateFuncPii(coreFunc);
+  if (!metadata) return coreFunc;
+  type MutableFunc = {
+    -readonly [K in keyof import('./types.js').Core.Func]: (import('./types.js').Core.Func)[K]
+  };
+  const mutable = coreFunc as unknown as MutableFunc;
+  mutable.piiLevel = metadata.level;
+  mutable.piiCategories = [...metadata.categories];
+  return coreFunc;
+}
+
+type FuncPiiMeta = {
+  readonly level: import('./types.js').PiiSensitivityLevel;
+  readonly categories: readonly string[];
+};
+
+const PII_LEVEL_ORDER: Record<string, number> = { L1: 1, L2: 2, L3: 3 };
+
+function aggregateFuncPii(func: import('./types.js').Core.Func): FuncPiiMeta | null {
+  let summary: FuncPiiMeta | null = null;
+  for (const param of func.params) {
+    summary = mergeFuncPiiMeta(summary, extractPiiFromType(param.type));
+  }
+  return mergeFuncPiiMeta(summary, extractPiiFromType(func.ret));
+}
+
+function extractPiiFromType(type?: import('./types.js').Core.Type | null): FuncPiiMeta | null {
+  if (!type) return null;
+  switch (type.kind) {
+    case 'PiiType': {
+      const categories = type.category ? [type.category] : [];
+      const baseMeta = extractPiiFromType(type.baseType);
+      const current: FuncPiiMeta = { level: type.sensitivity, categories };
+      return mergeFuncPiiMeta(current, baseMeta);
+    }
+    case 'Result':
+      return mergeFuncPiiMeta(extractPiiFromType(type.ok), extractPiiFromType(type.err));
+    case 'Maybe':
+    case 'Option':
+    case 'List':
+      return extractPiiFromType(type.type);
+    case 'Map':
+      return mergeFuncPiiMeta(extractPiiFromType(type.key), extractPiiFromType(type.val));
+    case 'FuncType': {
+      let meta: FuncPiiMeta | null = null;
+      for (const param of type.params ?? []) {
+        meta = mergeFuncPiiMeta(meta, extractPiiFromType(param));
+      }
+      return mergeFuncPiiMeta(meta, extractPiiFromType(type.ret));
+    }
+    case 'TypeApp': {
+      let meta: FuncPiiMeta | null = null;
+      for (const arg of type.args ?? []) {
+        meta = mergeFuncPiiMeta(meta, extractPiiFromType(arg));
+      }
+      return meta;
+    }
+    default:
+      return null;
+  }
+}
+
+function mergeFuncPiiMeta(left: FuncPiiMeta | null, right: FuncPiiMeta | null): FuncPiiMeta | null {
+  if (!left) return right;
+  if (!right) return left;
+  return {
+    level: pickHigherPiiLevel(left.level, right.level),
+    categories: mergeCategories(left.categories, right.categories),
+  };
+}
+
+function pickHigherPiiLevel(
+  left: import('./types.js').PiiSensitivityLevel,
+  right: import('./types.js').PiiSensitivityLevel
+): import('./types.js').PiiSensitivityLevel {
+  const leftRank = PII_LEVEL_ORDER[left] ?? 0;
+  const rightRank = PII_LEVEL_ORDER[right] ?? 0;
+  return leftRank >= rightRank ? left : right;
+}
+
+function mergeCategories(
+  left: readonly string[],
+  right: readonly string[]
+): string[] {
+  const seen = new Set<string>();
+  for (const item of left) {
+    if (item) seen.add(item);
+  }
+  for (const item of right) {
+    if (item) seen.add(item);
+  }
+  return Array.from(seen);
+}
+
 function lowerAnnotations(
   annotations: readonly import('./types.js').Annotation[] | undefined
 ): readonly import('./types.js').Core.Annotation[] {
@@ -202,8 +299,9 @@ function lowerFunc(f: Func): import('./types.js').Core.Func {
   });
   const body = f.body ? lowerBlock(f.body) : Core.Block([]);
   const out = Core.Func(f.name, f.typeParams ?? [], params, ret, effects, body);
-  // 传递能力元数据和源位置信息
-  return withOrigin(withEffectCaps(out, f), f);
+  // 传递能力与 PII 元数据，并附带源位置信息
+  const enriched = withFuncPiiMetadata(withEffectCaps(out, f));
+  return withOrigin(enriched, f);
 }
 
 function lowerBlock(b: Block): import('./types.js').Core.Block {

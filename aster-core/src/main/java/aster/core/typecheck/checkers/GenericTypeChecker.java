@@ -197,6 +197,14 @@ public final class GenericTypeChecker {
         substituted.origin = m.origin;
         yield substituted;
       }
+      case CoreModel.PiiType pii -> {
+        var substituted = new CoreModel.PiiType();
+        substituted.baseType = substituteTypeVars(pii.baseType, bindings);
+        substituted.sensitivity = pii.sensitivity;
+        substituted.category = pii.category;
+        substituted.origin = pii.origin;
+        yield substituted;
+      }
     };
   }
 

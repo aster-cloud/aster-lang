@@ -431,6 +431,24 @@ Re-exports [PiiDataCategory](../types/type-aliases/PiiDataCategory.md)
 
 ***
 
+### PII\_LEVELS
+
+Re-exports [PII_LEVELS](../types/variables/PII_LEVELS.md)
+
+***
+
+### PiiLevel
+
+Re-exports [PiiLevel](../types/type-aliases/PiiLevel.md)
+
+***
+
+### PiiMeta
+
+Re-exports [PiiMeta](../types/interfaces/PiiMeta.md)
+
+***
+
 ### TypePii
 
 Re-exports [TypePii](../types/interfaces/TypePii.md)

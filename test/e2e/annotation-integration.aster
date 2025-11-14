@@ -1,0 +1,15 @@
+This module is test.e2e.annotation_integration.
+
+To get_user_email with user_id: @pii(L1, name) Text, produce @pii(L2, email) Text. It performs io [Http]:
+  Return Http.get("api.example.com/users").
+
+To fetch_data, produce Text:
+  Return Http.get("api.example.com/data").
+
+To compute_hash with input: Text, produce Text. It performs io [AiModel]:
+  Return input.
+
+To process_sensitive_data with ssn: @pii(L3, ssn) Text and email: @pii(L2, email) Text, produce @pii(L3, ssn) Text. It performs io [Http, Sql]:
+  Let user_data be Db.query(email).
+  Http.post("api.example.com/process", ssn).
+  Return ssn.

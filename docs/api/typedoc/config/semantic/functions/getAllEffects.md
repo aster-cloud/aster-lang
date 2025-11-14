@@ -6,7 +6,7 @@
 
 > **getAllEffects**(): `string`[]
 
-Defined in: [config/semantic.ts:90](https://github.com/wontlost-ltd/aster-lang/blob/098e8b967ef568d4f69ccd6202c35e3fb6d0bfd2/src/config/semantic.ts#L90)
+Defined in: [config/semantic.ts:90](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/config/semantic.ts#L90)
 
 获取所有合法的 effect 字符串（用于错误提示）。
 

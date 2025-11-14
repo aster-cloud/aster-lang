@@ -1,59 +1,88 @@
 #!/bin/bash
-# 对比 Java 与 TypeScript 类型检查器输出，确保结果一致。
-set -u -o pipefail
+# 端到端注解集成测试入口：构建 → TypeScript E2E → 跨栈诊断对比。
+set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GOLDEN_DIR="$ROOT/test/type-checker/golden"
+TS_CLI="$ROOT/dist/scripts/typecheck-cli.js"
+JAVA_CLI="$ROOT/aster-core/build/install/aster-core/bin/aster-core"
+DIAG_DIFF="${DIAG_DIFF_CMD:-node --loader ts-node/esm \"$ROOT/tools/diagnostic_diff.ts\" --ignore-span}"
 
-JAVA_CMD="${JAVA_TYPECHECK_CMD:-}"
-TS_CMD="${TS_TYPECHECK_CMD:-}"
-AST_DIFF_CMD="${AST_DIFF_CMD:-node --loader ts-node/esm \"$ROOT/tools/ast_diff.ts\"}"
+normalize_diags() {
+  local input_path="$1"
+  local output_path="$2"
+  node - <<'EOF' "$input_path" "$output_path"
+import fs from 'node:fs';
 
-if [[ -z "$JAVA_CMD" || -z "$TS_CMD" ]]; then
-  echo "请设置 JAVA_TYPECHECK_CMD 与 TS_TYPECHECK_CMD 环境变量后再运行。" >&2
-  exit 2
-fi
+const [inputPath, outputPath] = process.argv.slice(2);
+const allowed = new Set(['E200', 'E302', 'E303']);
+const raw = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+const diags = Array.isArray(raw.diagnostics) ? raw.diagnostics : [];
+const normalized = {
+  diagnostics: diags
+    .filter(diag => allowed.has(String(diag.code ?? '').toUpperCase()))
+    .map(diag => ({
+      code: String(diag.code ?? '').toUpperCase(),
+      severity: String(diag.severity ?? '').toLowerCase(),
+    })),
+};
+fs.writeFileSync(outputPath, JSON.stringify(normalized, null, 2), 'utf8');
+EOF
+}
 
-if ! compgen -G "$GOLDEN_DIR/*.aster" > /dev/null; then
-  echo "未找到任何 golden 测试用例，路径：$GOLDEN_DIR" >&2
+echo "=== 端到端集成测试 ==="
+
+echo "⚙️  编译 TypeScript 工具链"
+(cd "$ROOT" && npm run build)
+
+echo "⚙️  编译 Java 组件"
+(cd "$ROOT" && ./gradlew :aster-core:installDist :aster-asm-emitter:build)
+
+echo "=== TypeScript E2E Tests ==="
+(cd "$ROOT" && node --test dist/test/e2e/annotation-integration.test.js)
+
+echo "=== Cross-stack Diagnostic Validation ==="
+shopt -s nullglob
+files=("$ROOT"/test/e2e/*.aster)
+if [[ ${#files[@]} -eq 0 ]]; then
+  echo "未找到 test/e2e/*.aster 测试样例" >&2
   exit 1
 fi
 
-overall_status=0
-
-for file in "$GOLDEN_DIR"/*.aster; do
-  base="$(basename "$file")"
-  echo "=== 比对 $base ==="
-
-  java_tmp="$(mktemp)"
-  ts_tmp="$(mktemp)"
-
-  if ! eval "$JAVA_CMD \"$file\"" > "$java_tmp"; then
-    echo "Java 类型检查失败: $file" >&2
-    overall_status=1
-    rm -f "$java_tmp" "$ts_tmp"
-    continue
-  fi
-
-  if ! eval "$TS_CMD \"$file\"" > "$ts_tmp"; then
-    echo "TypeScript 类型检查失败: $file" >&2
-    overall_status=1
-    rm -f "$java_tmp" "$ts_tmp"
-    continue
-  fi
-
-  if ! eval "$AST_DIFF_CMD \"$java_tmp\" \"$ts_tmp\""; then
-    echo "AST 输出不一致: $file" >&2
-    overall_status=1
-  fi
-
-  rm -f "$java_tmp" "$ts_tmp"
-done
-
-if [[ $overall_status -eq 0 ]]; then
-  echo "🎉 所有测试的 Java 与 TS 类型检查结果一致。"
-else
-  echo "⚠️ 交叉验证存在差异，请修复后重试。"
+if [[ ! -f "$TS_CLI" ]]; then
+  echo "缺少 $TS_CLI，请先运行 npm run build" >&2
+  exit 1
+fi
+if [[ ! -x "$JAVA_CLI" ]]; then
+  echo "缺少 Java CLI，可通过 ./gradlew :aster-core:installDist 构建" >&2
+  exit 1
 fi
 
-exit $overall_status
+for file in "${files[@]}"; do
+  base="$(basename "$file")"
+  echo "--- 比对 $base ---"
+  ts_tmp="$(mktemp)"
+  java_tmp="$(mktemp)"
+  ts_norm="$(mktemp)"
+  java_norm="$(mktemp)"
+  if ! (cd "$ROOT" && node "$TS_CLI" "$file" > "$ts_tmp"); then
+    echo "TypeScript 诊断生成失败: $base" >&2
+    rm -f "$ts_tmp" "$java_tmp"
+    exit 1
+  fi
+  if ! (cd "$ROOT" && "$JAVA_CLI" typecheck "$file" > "$java_tmp"); then
+    echo "Java 诊断生成失败: $base" >&2
+    rm -f "$ts_tmp" "$java_tmp"
+    exit 1
+  fi
+  normalize_diags "$java_tmp" "$java_norm"
+  normalize_diags "$ts_tmp" "$ts_norm"
+
+  if ! eval "$DIAG_DIFF \"$java_norm\" \"$ts_norm\""; then
+    echo "诊断输出不一致: $base" >&2
+    rm -f "$ts_tmp" "$java_tmp"
+    exit 1
+  fi
+  rm -f "$ts_tmp" "$java_tmp" "$ts_norm" "$java_norm"
+done
+
+echo "✅ 所有端到端集成测试通过"

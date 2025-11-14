@@ -115,6 +115,10 @@ public interface CoreVisitor<Ctx, R> {
     return visitStatement(w, ctx);
   }
 
+  default R visitWorkflow(CoreModel.Workflow w, Ctx ctx) {
+    return visitStatement(w, ctx);
+  }
+
   // ========== 表达式类型的默认分发方法 ==========
 
   default R visitName(CoreModel.Name n, Ctx ctx) {

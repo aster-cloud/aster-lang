@@ -160,6 +160,20 @@ public final class EffectChecker {
       }
       case CoreModel.Start start -> inferEffect(start.expr, ctx);
       case CoreModel.Wait wait -> Effect.PURE; // Wait 本身不产生效果
+      case CoreModel.Workflow workflow -> {
+        var maxEffect = Effect.PURE;
+        if (workflow.steps != null) {
+          for (var step : workflow.steps) {
+            if (step.body != null) {
+              maxEffect = join(maxEffect, inferBlockEffect(step.body, ctx));
+            }
+            if (step.compensate != null) {
+              maxEffect = join(maxEffect, inferBlockEffect(step.compensate, ctx));
+            }
+          }
+        }
+        yield maxEffect;
+      }
     };
   }
 

@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * 所有 AST 节点的共同标记接口，用于类型安全和多态序列化支持。
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
-public sealed interface AstNode permits Decl, Stmt, Expr, Pattern, Type, Module {
+public sealed interface AstNode permits Decl, Stmt, Expr, Pattern, Type, Module, Stmt.WorkflowStep {
     /**
      * 获取节点的 kind 标识符
      * @return 节点类型的字符串标识

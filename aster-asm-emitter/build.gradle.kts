@@ -1,3 +1,6 @@
+import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.kotlin.dsl.getByType
+
 plugins {
   java
   application
@@ -85,4 +88,30 @@ tasks.jacocoTestReport {
     html.required.set(true)
     csv.required.set(false)
   }
+}
+
+val sourceSets = extensions.getByType<SourceSetContainer>()
+val sourceProperty = providers.gradleProperty("aster.source")
+val outputProperty = providers.gradleProperty("aster.outputDir")
+
+val compileAster by tasks.registering(JavaExec::class) {
+  group = "verification"
+  description = "编译单个 .aster 文件并写入 JVM 类输出目录，供端到端测试使用。"
+  classpath = sourceSets.getByName("main").runtimeClasspath
+  mainClass.set("aster.emitter.CompileAsterCli")
+  dependsOn(":aster-runtime:jar")
+  dependsOn(tasks.named("testClasses"))
+  doFirst {
+    val sourceFile = sourceProperty.orNull?.takeIf { it.isNotBlank() }
+      ?: throw GradleException("请通过 -Paster.source=path/to/file.aster 指定输入文件。")
+    args = listOf(sourceFile)
+    val outDir = outputProperty.orNull?.takeIf { it.isNotBlank() }
+    if (outDir != null) {
+      systemProperty("aster.outputDir", outDir)
+    }
+  }
+}
+
+compileAster.configure {
+  notCompatibleWithConfigurationCache("自定义 JavaExec 在执行期动态拼接参数")
 }

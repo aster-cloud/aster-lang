@@ -2,6 +2,25 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-14 P4-2.6 注解端到端验证
+- 日期：2025-11-14 15:59 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run test:e2e:annotations` → 通过（覆盖 TypeScript⇄Java 诊断一致性、Core IR metadata 校验、JVM 注解反射验证、PII/Capability 差异对齐）
+  - `bash scripts/cross_validate.sh` → 通过（串行执行 build → gradle 装配 → Node E2E → 诊断 diff，新增归一化逻辑仅对比 E200/E302/E303 code/severity）
+
+## 2025-11-14 P4-2.2 PII 类型检查验证
+- 日期：2025-11-14 09:40 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm test -- pii-propagation.test.ts` → 通过（fmt/build/unit/integration/golden/property 全流程执行，包含新增 `test/type-checker/pii-propagation.test.ts` 覆盖 PII 赋值/合并/sink/函数调用场景）
+
+## 2025-11-14 Cross-Stack Validation Stub Run
+- 日期：2025-11-14 06:05 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `JAVA_TYPECHECK_CMD="node -e 'console.log(JSON.stringify({diagnostics:[],source:process.argv[1]}))'" TS_TYPECHECK_CMD="node -e 'console.log(JSON.stringify({diagnostics:[],source:process.argv[1]}))'" AST_DIFF_CMD="node -e 'process.exit(0)'" DIAG_DIFF_CMD="node -e 'process.exit(0)'" bash scripts/cross_validate.sh` → 通过（使用 stub 命令验证脚本逻辑；真实 TypeScript/Java 类型检查命令尚待配置，`ts-node/esm` loader 在本地环境仍不可用）
+
 ## 2025-11-12 Phase 3 DSL Emitter & DTO 校验
 - 日期：2025-11-12 22:27 NZST
 - 执行者：Codex

@@ -221,14 +221,14 @@ public final class SymbolTable {
      * 可变选项
      */
     public static DefineOptions mutable(Origin span) {
-      return new DefineOptions(true, Optional.of(span), false, Optional.empty(), Optional.empty());
+      return new DefineOptions(true, Optional.ofNullable(span), false, Optional.empty(), Optional.empty());
     }
 
     /**
      * 不可变选项
      */
     public static DefineOptions immutable(Origin span) {
-      return new DefineOptions(false, Optional.of(span), false, Optional.empty(), Optional.empty());
+      return new DefineOptions(false, Optional.ofNullable(span), false, Optional.empty(), Optional.empty());
     }
   }
 
@@ -446,6 +446,7 @@ public final class SymbolTable {
       case CoreModel.MapT m -> expandMapType(m, stack);
       case CoreModel.TypeApp ta -> expandTypeApp(ta, stack);
       case CoreModel.FuncType ft -> expandFuncType(ft, stack);
+      case CoreModel.PiiType pii -> expandPiiType(pii, stack);
       case CoreModel.TypeVar tv -> tv; // 类型变量不展开
     };
   }
@@ -537,6 +538,15 @@ public final class SymbolTable {
       .toList();
     expanded.ret = expandAliasType(ft.ret, stack);
     expanded.origin = ft.origin;
+    return expanded;
+  }
+
+  private Type expandPiiType(CoreModel.PiiType pii, Set<String> stack) {
+    var expanded = new CoreModel.PiiType();
+    expanded.baseType = expandAliasType(pii.baseType, stack);
+    expanded.sensitivity = pii.sensitivity;
+    expanded.category = pii.category;
+    expanded.origin = pii.origin;
     return expanded;
   }
 }

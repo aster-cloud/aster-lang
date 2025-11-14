@@ -565,6 +565,33 @@ To makeIdentity, produce Fn1:
     assert.equal(paramType.category, 'email');
   });
 
+  it('函数应聚合参数与返回值的 PII 元数据', () => {
+    const funcDecl = Node.Func(
+      'shareProfile',
+      [],
+      [makeParam('userId', Node.TypePii(Node.TypeName('Text'), 'L1', 'name'))],
+      Node.Result(
+        Node.TypePii(Node.TypeName('Text'), 'L2', 'email'),
+        Node.TypeName('Error')
+      ),
+      [],
+      [],
+      false,
+      Node.Block([
+        Node.Return(
+          Node.Call(Node.Name('Ok'), [
+            Node.String('ok'),
+          ])
+        ),
+      ])
+    );
+    const moduleAst = Node.Module('test.lowering.func.pii', [funcDecl]);
+    const core = lowerAst(moduleAst);
+    const func = core.decls[0] as Core.Func;
+    assert.equal(func.piiLevel, 'L2');
+    assert.deepEqual(func.piiCategories, ['name', 'email']);
+  });
+
   it('类型参数引用应降级为 Core.TypeVar', () => {
     const funcDecl = Node.Func(
       'identity',

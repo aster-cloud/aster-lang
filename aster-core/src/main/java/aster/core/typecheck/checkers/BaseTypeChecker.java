@@ -65,7 +65,9 @@ public final class BaseTypeChecker {
       case CoreModel.Name name -> {
         var symbol = symbolTable.lookup(name.name);
         if (symbol.isEmpty()) {
-          diagnostics.undefinedVariable(name.name, Optional.ofNullable(name.origin));
+          if (!name.name.contains(".")) {
+            diagnostics.undefinedVariable(name.name, Optional.ofNullable(name.origin));
+          }
           yield TypeSystem.unknown();
         }
         yield symbol.get().type();
@@ -178,6 +180,20 @@ public final class BaseTypeChecker {
       }
 
       case CoreModel.Wait wait -> Optional.empty();
+
+      case CoreModel.Workflow workflow -> {
+        if (workflow.steps != null) {
+          for (var step : workflow.steps) {
+            if (step.body != null) {
+              checkBlock(step.body, ctx);
+            }
+            if (step.compensate != null) {
+              checkBlock(step.compensate, ctx);
+            }
+          }
+        }
+        yield Optional.empty();
+      }
     };
   }
 
@@ -305,6 +321,7 @@ public final class BaseTypeChecker {
       case CoreModel.Option o -> containsTypeVar(o.type);
       case CoreModel.ListT l -> containsTypeVar(l.type);
       case CoreModel.MapT m -> containsTypeVar(m.key) || containsTypeVar(m.val);
+      case CoreModel.PiiType pii -> containsTypeVar(pii.baseType);
     };
   }
 
@@ -711,6 +728,7 @@ public final class BaseTypeChecker {
       case CoreModel.TypeApp ta -> {
         ta.args.forEach(arg -> collectTypeVarsHelper(arg, vars));
       }
+      case CoreModel.PiiType pii -> collectTypeVarsHelper(pii.baseType, vars);
       default -> {} // TypeName 等不包含类型变量
     }
   }
@@ -761,6 +779,14 @@ public final class BaseTypeChecker {
           .toList();
         substituted.ret = substituteTypeVarsInType(ft.ret, bindings);
         substituted.origin = ft.origin;
+        yield substituted;
+      }
+      case CoreModel.PiiType pii -> {
+        var substituted = new CoreModel.PiiType();
+        substituted.baseType = substituteTypeVarsInType(pii.baseType, bindings);
+        substituted.sensitivity = pii.sensitivity;
+        substituted.category = pii.category;
+        substituted.origin = pii.origin;
         yield substituted;
       }
       case CoreModel.TypeApp ta -> {

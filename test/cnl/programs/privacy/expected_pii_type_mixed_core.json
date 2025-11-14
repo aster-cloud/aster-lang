@@ -5,7 +5,6 @@
     {
       "kind": "Func",
       "name": "get_user_info",
-      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "Result",
@@ -54,12 +53,15 @@
             }
           }
         ]
-      }
+      },
+      "piiLevel": "L2",
+      "piiCategories": [
+        "email"
+      ]
     },
     {
       "kind": "Func",
       "name": "get_optional_phone",
-      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "PiiType",
@@ -96,7 +98,11 @@
             }
           }
         ]
-      }
+      },
+      "piiLevel": "L3",
+      "piiCategories": [
+        "phone"
+      ]
     }
   ]
 }

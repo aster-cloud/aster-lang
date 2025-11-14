@@ -76,6 +76,58 @@ public final class Main {
     } catch (Throwable __) { /* ignore */ }
   }
 
+  static void addFuncMetadataAnnotations(MethodVisitor mv, CoreModel.Func fn) {
+    if (mv == null || fn == null) {
+      return;
+    }
+    emitPiiAnnotation(mv, fn);
+    emitCapabilityAnnotation(mv, fn);
+  }
+
+  private static void emitPiiAnnotation(MethodVisitor mv, CoreModel.Func fn) {
+    if (fn.piiLevel == null || fn.piiLevel.isEmpty()) {
+      return;
+    }
+    try {
+      AnnotationVisitor av = mv.visitAnnotation("Laster/runtime/AsterPii;", true);
+      av.visit("level", fn.piiLevel);
+      AnnotationVisitor categories = av.visitArray("categories");
+      if (fn.piiCategories != null) {
+        for (String category : fn.piiCategories) {
+          categories.visit(null, category);
+        }
+      }
+      categories.visitEnd();
+      av.visitEnd();
+    } catch (Throwable __) {
+      // 与 addOriginAnnotation 保持一致，忽略注解写入异常
+    }
+  }
+
+  private static void emitCapabilityAnnotation(MethodVisitor mv, CoreModel.Func fn) {
+    if (!fn.effectCapsExplicit || fn.effectCaps == null || fn.effectCaps.isEmpty()) {
+      return;
+    }
+    try {
+      AnnotationVisitor av = mv.visitAnnotation("Laster/runtime/AsterCapability;", true);
+      AnnotationVisitor effects = av.visitArray("effects");
+      if (fn.effects != null) {
+        for (String effect : fn.effects) {
+          effects.visit(null, effect);
+        }
+      }
+      effects.visitEnd();
+      AnnotationVisitor caps = av.visitArray("capabilities");
+      for (String cap : fn.effectCaps) {
+        caps.visit(null, cap);
+      }
+      caps.visitEnd();
+      av.visitEnd();
+    } catch (Throwable __) {
+      // 忽略注解写入异常，避免影响发射流程
+    }
+  }
+
   static String withOrigin(String msg, CoreModel.Origin o) {
     if (o == null || o.start == null || o.end == null) return msg;
     String file = (o.file == null) ? "" : o.file;
@@ -260,6 +312,9 @@ public final class Main {
   private static void emitFieldAnnotations(FieldVisitor fv, CoreModel.Field field) {
     if (field == null || field.annotations == null || field.annotations.isEmpty()) return;
     for (var ann : field.annotations) {
+      if ("pii".equalsIgnoreCase(ann.name)) {
+        continue;
+      }
       String descriptor = annotationDescriptor(ann.name);
       AnnotationVisitor av = fv.visitAnnotation(descriptor, true);
       if (av == null) continue;
@@ -315,6 +370,9 @@ public final class Main {
   ) {
     if (param == null || param.annotations == null || param.annotations.isEmpty()) return;
     for (var ann : param.annotations) {
+      if ("pii".equalsIgnoreCase(ann.name)) {
+        continue;
+      }
       String descriptor = annotationDescriptor(ann.name);
       AnnotationVisitor av = mv.visitParameterAnnotation(index, descriptor, true);
       if (av == null) continue;
@@ -404,6 +462,7 @@ public final class Main {
       emitParameterAnnotations(mv, idx, p);
     }
     addOriginAnnotation(mv, fn.origin);
+    addFuncMetadataAnnotations(mv, fn);
     mv.visitCode();
     var lStart = new Label();
     mv.visitLabel(lStart);
@@ -1576,6 +1635,9 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     return internal.substring(0, i).replace('/', '.');
   }
   static String jDesc(String pkg, CoreModel.Type t) {
+    if (t instanceof CoreModel.PiiType pii) {
+      return jDesc(pkg, pii.baseType);
+    }
     if (t instanceof CoreModel.TypeName tn) {
       return switch (tn.name) {
         case BuiltinTypes.STRING, BuiltinTypes.TEXT -> "Ljava/lang/String;";

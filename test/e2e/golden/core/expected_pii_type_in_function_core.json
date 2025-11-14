@@ -28,6 +28,10 @@
       "effects": [],
       "effectCaps": [],
       "effectCapsExplicit": false,
+      "piiLevel": "L2",
+      "piiCategories": [
+        "email"
+      ],
       "body": {
         "kind": "Block",
         "statements": [

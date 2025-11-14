@@ -2,8 +2,11 @@ package aster.core.lowering;
 
 import aster.core.ast.*;
 import aster.core.ir.CoreModel;
+import aster.core.typecheck.CapabilityKind;
+import aster.core.typecheck.checkers.CapabilityChecker;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -110,8 +113,11 @@ public final class CoreLowering {
     }
     out.ret = func.retType() == null ? null : lowerType(func.retType());
     out.effects = func.effects() == null ? new ArrayList<>() : new ArrayList<>(func.effects());
+    out.effectCaps = func.effectCaps() == null ? new ArrayList<>() : new ArrayList<>(func.effectCaps());
+    out.effectCapsExplicit = func.effectCapsExplicit();
     out.body = func.body() == null ? emptyBlock(func.span()) : lowerBlock(func.body());
     out.origin = spanToOrigin(func.span());
+    annotateFuncPii(out);
     return out;
   }
 
@@ -191,6 +197,7 @@ public final class CoreLowering {
         out.origin = spanToOrigin(wait.span());
         yield out;
       }
+      case Stmt.Workflow workflow -> lowerWorkflow(workflow);
       case Block block -> {
         CoreModel.Scope out = new CoreModel.Scope();
         out.statements = new ArrayList<>();
@@ -203,6 +210,95 @@ public final class CoreLowering {
         yield out;
       }
     };
+  }
+
+  private CoreModel.Workflow lowerWorkflow(Stmt.Workflow workflow) {
+    CoreModel.Workflow out = new CoreModel.Workflow();
+    out.steps = new ArrayList<>();
+    var capabilityChecker = new CapabilityChecker();
+    String previousStep = null;
+    if (workflow.steps() != null) {
+      for (Stmt.WorkflowStep step : workflow.steps()) {
+        CoreModel.Step lowered = lowerWorkflowStep(step, previousStep, capabilityChecker);
+        out.steps.add(lowered);
+        previousStep = step.name();
+      }
+    }
+    out.effectCaps = mergeWorkflowCapabilities(out.steps);
+    if (workflow.retry() != null) {
+      CoreModel.RetryPolicy retry = new CoreModel.RetryPolicy();
+      retry.maxAttempts = workflow.retry().maxAttempts();
+      retry.backoff = workflow.retry().backoff();
+      out.retry = retry;
+    }
+    if (workflow.timeout() != null) {
+      CoreModel.Timeout timeout = new CoreModel.Timeout();
+      timeout.milliseconds = workflow.timeout().milliseconds();
+      out.timeout = timeout;
+    }
+    out.origin = spanToOrigin(workflow.span());
+    return out;
+  }
+
+  private CoreModel.Step lowerWorkflowStep(
+      Stmt.WorkflowStep step,
+      String previousStep,
+      CapabilityChecker capabilityChecker
+  ) {
+    CoreModel.Step lowered = new CoreModel.Step();
+    lowered.name = step.name();
+    lowered.body = step.body() == null ? emptyBlock(step.span()) : lowerBlock(step.body());
+    lowered.compensate = step.compensate() == null ? null : lowerBlock(step.compensate());
+    if (step.dependencies() != null && !step.dependencies().isEmpty()) {
+      lowered.dependencies = new ArrayList<>(step.dependencies());
+    } else if (previousStep != null) {
+      lowered.dependencies = new ArrayList<>(List.of(previousStep));
+    } else {
+      lowered.dependencies = new ArrayList<>();
+    }
+    lowered.effectCaps = collectStepCapabilities(capabilityChecker, lowered.body, lowered.compensate);
+    lowered.origin = spanToOrigin(step.span());
+    return lowered;
+  }
+
+  private List<String> collectStepCapabilities(
+      CapabilityChecker capabilityChecker,
+      CoreModel.Block body,
+      CoreModel.Block compensate
+  ) {
+    var merged = new LinkedHashSet<String>();
+    mergeCapabilityMap(capabilityChecker.collectCapabilities(body), merged);
+    if (compensate != null) {
+      mergeCapabilityMap(capabilityChecker.collectCapabilities(compensate), merged);
+    }
+    return new ArrayList<>(merged);
+  }
+
+  private void mergeCapabilityMap(Map<CapabilityKind, List<String>> source, LinkedHashSet<String> accumulator) {
+    if (source == null || source.isEmpty()) {
+      return;
+    }
+    for (var entry : source.keySet()) {
+      accumulator.add(entry.displayName());
+    }
+  }
+
+  private List<String> mergeWorkflowCapabilities(List<CoreModel.Step> steps) {
+    if (steps == null || steps.isEmpty()) {
+      return List.of();
+    }
+    var merged = new LinkedHashSet<String>();
+    for (var step : steps) {
+      if (step.effectCaps == null) {
+        continue;
+      }
+      for (var cap : step.effectCaps) {
+        if (cap != null) {
+          merged.add(cap);
+        }
+      }
+    }
+    return new ArrayList<>(merged);
   }
 
   private CoreModel.Case lowerCase(Stmt.Case kase) {
@@ -404,7 +500,7 @@ public final class CoreLowering {
     if (type == null) {
       return null;
     }
-    return switch (type) {
+    CoreModel.Type lowered = switch (type) {
       case Type.TypeName name -> {
         CoreModel.TypeName out = new CoreModel.TypeName();
         out.name = name.name();
@@ -474,7 +570,138 @@ public final class CoreLowering {
         yield out;
       }
     };
+    return applyTypeAnnotations(lowered, type, type.annotations());
   }
+
+  private CoreModel.Type applyTypeAnnotations(CoreModel.Type lowered, Type source, List<Annotation> annotations) {
+    if (lowered == null || annotations == null || annotations.isEmpty()) {
+      return lowered;
+    }
+    for (Annotation annotation : annotations) {
+      if ("pii".equalsIgnoreCase(annotation.name())) {
+        return wrapWithPiiType(lowered, annotation, source);
+      }
+    }
+    return lowered;
+  }
+
+  private CoreModel.Type wrapWithPiiType(CoreModel.Type baseType, Annotation annotation, Type source) {
+    CoreModel.PiiType pii = new CoreModel.PiiType();
+    pii.baseType = baseType;
+    pii.sensitivity = annotationValue(annotation, "level", "$0");
+    pii.category = annotationValue(annotation, "category", "$1");
+    pii.origin = source == null ? null : spanToOrigin(source.span());
+    return pii;
+  }
+
+  private String annotationValue(Annotation annotation, String... keys) {
+    if (annotation == null || annotation.params() == null || annotation.params().isEmpty()) {
+      return "";
+    }
+    Map<String, Object> params = annotation.params();
+    for (String key : keys) {
+      Object value = params.get(key);
+      if (value != null) {
+        return value.toString();
+      }
+    }
+    return "";
+  }
+
+  private void annotateFuncPii(CoreModel.Func func) {
+    if (func == null) {
+      return;
+    }
+    PiiMetadata summary = null;
+    if (func.params != null) {
+      for (CoreModel.Param param : func.params) {
+        summary = mergePiiMeta(summary, extractPiiFromType(param.type));
+      }
+    }
+    summary = mergePiiMeta(summary, extractPiiFromType(func.ret));
+    if (summary == null || summary.level == null || summary.level.isEmpty()) {
+      func.piiLevel = "";
+      func.piiCategories = Collections.emptyList();
+      return;
+    }
+    func.piiLevel = summary.level;
+    func.piiCategories = new ArrayList<>(summary.categories());
+  }
+
+  private PiiMetadata extractPiiFromType(CoreModel.Type type) {
+    if (type == null) {
+      return null;
+    }
+    if (type instanceof CoreModel.PiiType pii) {
+      LinkedHashSet<String> categories = new LinkedHashSet<>();
+      if (pii.category != null && !pii.category.isEmpty()) {
+        categories.add(pii.category);
+      }
+      PiiMetadata nested = extractPiiFromType(pii.baseType);
+      PiiMetadata current = new PiiMetadata(pii.sensitivity == null ? "" : pii.sensitivity, categories);
+      return mergePiiMeta(current, nested);
+    }
+    if (type instanceof CoreModel.Result result) {
+      return mergePiiMeta(extractPiiFromType(result.ok), extractPiiFromType(result.err));
+    }
+    if (type instanceof CoreModel.Maybe maybe) {
+      return extractPiiFromType(maybe.type);
+    }
+    if (type instanceof CoreModel.Option option) {
+      return extractPiiFromType(option.type);
+    }
+    if (type instanceof CoreModel.ListT list) {
+      return extractPiiFromType(list.type);
+    }
+    if (type instanceof CoreModel.MapT map) {
+      return mergePiiMeta(extractPiiFromType(map.key), extractPiiFromType(map.val));
+    }
+    if (type instanceof CoreModel.FuncType funcType) {
+      PiiMetadata meta = null;
+      if (funcType.params != null) {
+        for (CoreModel.Type param : funcType.params) {
+          meta = mergePiiMeta(meta, extractPiiFromType(param));
+        }
+      }
+      return mergePiiMeta(meta, extractPiiFromType(funcType.ret));
+    }
+    if (type instanceof CoreModel.TypeApp app && app.args != null) {
+      PiiMetadata meta = null;
+      for (CoreModel.Type arg : app.args) {
+        meta = mergePiiMeta(meta, extractPiiFromType(arg));
+      }
+      return meta;
+    }
+    return null;
+  }
+
+  private PiiMetadata mergePiiMeta(PiiMetadata left, PiiMetadata right) {
+    if (left == null) return right;
+    if (right == null) return left;
+    String level = maxPiiLevel(left.level, right.level);
+    LinkedHashSet<String> categories = new LinkedHashSet<>(left.categories());
+    categories.addAll(right.categories());
+    return new PiiMetadata(level, categories);
+  }
+
+  private String maxPiiLevel(String a, String b) {
+    String left = a == null ? "" : a;
+    String right = b == null ? "" : b;
+    int leftRank = piiLevelRank(left);
+    int rightRank = piiLevelRank(right);
+    return leftRank >= rightRank ? left : right;
+  }
+
+  private int piiLevelRank(String level) {
+    return switch (level) {
+      case "L1" -> 1;
+      case "L2" -> 2;
+      case "L3" -> 3;
+      default -> 0;
+    };
+  }
+
+  private record PiiMetadata(String level, LinkedHashSet<String> categories) {}
 
   private CoreModel.Block emptyBlock(Span source) {
     CoreModel.Block block = new CoreModel.Block();
@@ -593,6 +820,16 @@ public final class CoreLowering {
       }
       case Stmt.Start start -> visitExpr(start.expr(), scopes, captures);
       case Stmt.Wait ignored -> { }
+      case Stmt.Workflow workflow -> {
+        if (workflow.steps() != null) {
+          for (Stmt.WorkflowStep step : workflow.steps()) {
+            traverseBlock(step.body(), scopes, captures);
+            if (step.compensate() != null) {
+              traverseBlock(step.compensate(), scopes, captures);
+            }
+          }
+        }
+      }
       case Block block -> traverseBlock(block, scopes, captures);
     }
   }

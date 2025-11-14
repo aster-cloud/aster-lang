@@ -68,6 +68,10 @@ public final class TypeSystem {
       return true;
     }
 
+    if (t1 instanceof CoreModel.PiiType || t2 instanceof CoreModel.PiiType) {
+      return equals(unwrapPii(t1), unwrapPii(t2), strict);
+    }
+
     // 类型种类不同
     if (t1.getClass() != t2.getClass()) {
       return false;
@@ -148,6 +152,10 @@ public final class TypeSystem {
     }
     if (t2 instanceof CoreModel.TypeVar tv2) {
       return bindTypeVar(tv2, t1, bindings);
+    }
+
+    if (t1 instanceof CoreModel.PiiType || t2 instanceof CoreModel.PiiType) {
+      return unify(unwrapPii(t1), unwrapPii(t2), bindings);
     }
 
     // 类型种类不同
@@ -237,6 +245,10 @@ public final class TypeSystem {
     // Unknown 作为 bottom type 的否定
     if (isUnknown(sub)) {
       return false;
+    }
+
+    if (sub instanceof CoreModel.PiiType || sup instanceof CoreModel.PiiType) {
+      return isSubtype(unwrapPii(sub), unwrapPii(sup));
     }
 
     // Maybe/Option 互转
@@ -334,6 +346,14 @@ public final class TypeSystem {
         expanded.origin = f.origin;
         yield expanded;
       }
+      case CoreModel.PiiType pii -> {
+        var expanded = new CoreModel.PiiType();
+        expanded.baseType = expandRecursive(pii.baseType, aliases, visited);
+        expanded.sensitivity = pii.sensitivity;
+        expanded.category = pii.category;
+        expanded.origin = pii.origin;
+        yield expanded;
+      }
       default -> type;
     };
   }
@@ -376,6 +396,11 @@ public final class TypeSystem {
           .reduce((a, b) -> a + ", " + b)
           .orElse("");
         yield "(" + paramsStr + ") -> " + format(f.ret);
+      }
+      case CoreModel.PiiType pii -> {
+        var level = pii.sensitivity != null ? pii.sensitivity : "L1";
+        var category = pii.category != null ? pii.category : "unknown";
+        yield "@pii(" + level + ", " + category + ") " + format(pii.baseType);
       }
       default -> "Unknown";
     };
@@ -520,5 +545,12 @@ public final class TypeSystem {
     var tn = new CoreModel.TypeName();
     tn.name = name;
     return tn;
+  }
+
+  private static Type unwrapPii(Type type) {
+    if (type instanceof CoreModel.PiiType pii) {
+      return pii.baseType != null ? pii.baseType : unknown();
+    }
+    return type;
   }
 }

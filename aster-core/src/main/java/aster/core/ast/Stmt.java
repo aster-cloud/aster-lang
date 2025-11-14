@@ -21,10 +21,11 @@ import java.util.List;
     @JsonSubTypes.Type(value = Stmt.Match.class, name = "Match"),
     @JsonSubTypes.Type(value = Stmt.Start.class, name = "Start"),
     @JsonSubTypes.Type(value = Stmt.Wait.class, name = "Wait"),
+    @JsonSubTypes.Type(value = Stmt.Workflow.class, name = "workflow"),
     @JsonSubTypes.Type(value = Block.class, name = "Block")
 })
 public sealed interface Stmt extends AstNode
-    permits Stmt.Let, Stmt.Set, Stmt.Return, Stmt.If, Stmt.Match, Stmt.Start, Stmt.Wait, Block {
+    permits Stmt.Let, Stmt.Set, Stmt.Return, Stmt.If, Stmt.Match, Stmt.Start, Stmt.Wait, Stmt.Workflow, Block {
 
     /**
      * Let 绑定语句（不可变变量声明）
@@ -174,4 +175,76 @@ public sealed interface Stmt extends AstNode
             return "Wait";
         }
     }
+
+    /**
+     * Workflow 语句
+     *
+     * @param steps   步骤列表
+     * @param retry   重试策略（可选）
+     * @param timeout 超时配置（可选）
+     * @param span    源码位置信息
+     */
+    @JsonTypeName("workflow")
+    record Workflow(
+        @JsonProperty("steps") List<WorkflowStep> steps,
+        @JsonProperty("retry") RetryPolicy retry,
+        @JsonProperty("timeout") Timeout timeout,
+        @JsonProperty("span") Span span
+    ) implements Stmt {
+        public Workflow {
+            steps = steps == null ? List.of() : List.copyOf(steps);
+        }
+
+        @Override
+        public String kind() {
+            return "workflow";
+        }
+    }
+
+    /**
+     * Workflow 中的 step 定义
+     *
+     * @param name         步骤名称
+     * @param body         主体代码块
+     * @param compensate   补偿代码块（可选）
+     * @param dependencies 依赖步骤列表
+     * @param span         源码位置信息
+     */
+    @JsonTypeName("step")
+    record WorkflowStep(
+        @JsonProperty("name") String name,
+        @JsonProperty("body") Block body,
+        @JsonProperty("compensate") Block compensate,
+        @JsonProperty("dependencies") List<String> dependencies,
+        @JsonProperty("span") Span span
+    ) implements AstNode {
+        public WorkflowStep {
+            dependencies = dependencies == null ? List.of() : List.copyOf(dependencies);
+        }
+
+        @Override
+        public String kind() {
+            return "step";
+        }
+    }
+
+    /**
+     * Workflow Retry 配置
+     *
+     * @param maxAttempts 最大尝试次数
+     * @param backoff     回退模式（exponential/linear）
+     */
+    record RetryPolicy(
+        @JsonProperty("maxAttempts") int maxAttempts,
+        @JsonProperty("backoff") String backoff
+    ) {}
+
+    /**
+     * Workflow Timeout 配置
+     *
+     * @param milliseconds 超时时长（毫秒）
+     */
+    record Timeout(
+        @JsonProperty("milliseconds") long milliseconds
+    ) {}
 }

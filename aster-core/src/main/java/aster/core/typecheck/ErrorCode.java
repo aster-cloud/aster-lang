@@ -39,6 +39,9 @@ public enum ErrorCode {
   COMPENSATE_NEW_CAPABILITY("E028", Category.CAPABILITY, Severity.ERROR, "Compensate block for step '%s' in function '%s' introduces new capability %s that does not appear in the main step body.", "Compensate 只能重复主体已使用的能力；如需额外调用，请将相同行为移至主体或在主体中声明该 capability。"),
   WORKFLOW_UNKNOWN_STEP_DEPENDENCY("E029", Category.SCOPE, Severity.ERROR, "Workflow step '%s' depends on undefined step '%s'.", "仅引用当前 workflow 中已声明的步骤名称，或修正依赖拼写。"),
   WORKFLOW_CIRCULAR_DEPENDENCY("E030", Category.TYPE, Severity.ERROR, "Workflow contains circular step dependency: %s", "移除或重构循环依赖，确保步骤可拓扑排序执行。"),
+  PII_ASSIGN_DOWNGRADE("E070", Category.TYPE, Severity.ERROR, "禁止将 PII 数据赋给较低等级目标: %s -> %s", "使用脱敏函数或为目标变量声明匹配的 @pii 等级。"),
+  PII_SINK_UNSANITIZED("E072", Category.TYPE, Severity.ERROR, "PII 等级 %s 数据未脱敏即输出到 %s", "在输出前调用 redact() 或 tokenize() 以降低敏感度。"),
+  PII_ARG_VIOLATION("E073", Category.TYPE, Severity.ERROR, "PII 参数类型不匹配: 期望 %s, 实际 %s", "检查函数签名，确保 PII 等级与类别一致。"),
   DUPLICATE_IMPORT_ALIAS("E100", Category.SCOPE, Severity.WARNING, "Duplicate import alias '%s'.", "为不同的导入使用唯一别名，避免覆盖。"),
   UNDEFINED_VARIABLE("E101", Category.SCOPE, Severity.ERROR, "Undefined variable: %s", "在使用变量前先声明并初始化。"),
   EFF_MISSING_IO("E200", Category.EFFECT, Severity.ERROR, "Function '%s' may perform I/O but is missing @io effect.", "为具有 IO 行为的函数声明 @io 效果。"),
@@ -54,6 +57,8 @@ public enum ErrorCode {
   CAPABILITY_NOT_ALLOWED("E300", Category.CAPABILITY, Severity.ERROR, "Function '%s' requires %s capability but manifest for module '%s' denies it.", "更新能力清单或修改函数实现以符合限制。"),
   EFF_CAP_MISSING("E301", Category.CAPABILITY, Severity.ERROR, "Function '%s' uses %s capability but header declares [%s].", "在函数头部声明实际使用到的能力。"),
   EFF_CAP_SUPERFLUOUS("E302", Category.CAPABILITY, Severity.INFO, "Function '%s' declares %s capability but it is not used.", "移除未使用的能力声明以保持清晰。"),
+  CAPABILITY_INFER_MISSING_IO("E303", Category.CAPABILITY, Severity.ERROR, "Function '%s' uses IO capabilities [%s] but is missing @io effect (e.g., %s).", "在函数头部声明 `It performs io ...`，或移除相关调用保持纯度。"),
+  CAPABILITY_INFER_MISSING_CPU("E304", Category.CAPABILITY, Severity.ERROR, "Function '%s' performs CPU capability calls (e.g., %s) but declares neither @cpu nor @io effect.", "为函数添加 @cpu 或 @io 效果以覆盖 CPU 能力。"),
   PII_HTTP_UNENCRYPTED("E400", Category.PII, Severity.ERROR, "PII data transmitted over HTTP without encryption", "使用加密通道（HTTPS）或脱敏处理后再传输 PII 数据。"),
   PII_ANNOTATION_MISSING("E401", Category.PII, Severity.ERROR, "PII annotation missing for value flowing into '%s'", "为敏感数据添加 @pii 标注以便跟踪。"),
   PII_SENSITIVITY_MISMATCH("E402", Category.PII, Severity.WARNING, "PII sensitivity mismatch: required %s, got %s", "调整数据的敏感级别或更新流程要求。"),
@@ -62,6 +67,8 @@ public enum ErrorCode {
   ASYNC_DUPLICATE_START("E502", Category.ASYNC, Severity.ERROR, "Async task '%s' started multiple times (%s occurrences)", "避免重复启动同名任务，可复用已有任务或改用新名称。"),
   ASYNC_DUPLICATE_WAIT("E503", Category.ASYNC, Severity.WARNING, "Async task '%s' waited multiple times (%s occurrences)", "确保每个任务仅等待一次，或使用单独的同步机制。"),
   ASYNC_WAIT_BEFORE_START("E504", Category.ASYNC, Severity.ERROR, "Wait for async task '%s' occurs before any matching start", "在 wait for 之前先执行 start，并确保两者位于兼容的控制路径。"),
+  PII_IMPLICIT_UPLEVEL("W071", Category.TYPE, Severity.WARNING, "检测到隐式 PII 等级提升: %s -> %s", "为等级变化添加显式类型注解以便审计。"),
+  PII_SINK_UNKNOWN("W074", Category.TYPE, Severity.WARNING, "可能有 PII 数据流向 %s 但缺少注解", "为数据增加 @pii 注解以追踪敏感数据流。"),
   ;
 
   private final String code;

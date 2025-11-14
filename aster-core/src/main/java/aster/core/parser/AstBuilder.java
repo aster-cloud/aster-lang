@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -639,6 +640,86 @@ public class AstBuilder extends AsterParserBaseVisitor<Object> {
     }
 
     @Override
+    public Stmt.Workflow visitWorkflowStmt(AsterParser.WorkflowStmtContext ctx) {
+        AsterParser.WorkflowBodyContext bodyCtx = ctx.workflowBody();
+        if (bodyCtx == null) {
+            throw new IllegalStateException("workflow 语句缺失主体");
+        }
+        List<Stmt.WorkflowStep> steps = bodyCtx.workflowStep().stream()
+            .map(this::visitWorkflowStep)
+            .collect(Collectors.toList());
+        if (steps.isEmpty()) {
+            throw new IllegalStateException("workflow 至少需要声明一个 step");
+        }
+        Stmt.RetryPolicy retry = bodyCtx.retrySection() != null ? visitRetrySection(bodyCtx.retrySection()) : null;
+        Stmt.Timeout timeout = bodyCtx.timeoutSection() != null ? visitTimeoutSection(bodyCtx.timeoutSection()) : null;
+        return new Stmt.Workflow(steps, retry, timeout, spanFrom(ctx));
+    }
+
+    @Override
+    public Stmt.WorkflowStep visitWorkflowStep(AsterParser.WorkflowStepContext ctx) {
+        String name = nameIdentText(ctx.nameIdent());
+        List<String> dependencies = ctx.stepDependencies() != null
+            ? extractDependencies(ctx.stepDependencies())
+            : List.of();
+        Block body = visitBlock(ctx.block());
+        Block compensate = null;
+        if (ctx.compensateSection() != null) {
+            compensate = visitBlock(ctx.compensateSection().block());
+        }
+        return new Stmt.WorkflowStep(name, body, compensate, dependencies, spanFrom(ctx));
+    }
+
+    private List<String> extractDependencies(AsterParser.StepDependenciesContext ctx) {
+        if (ctx == null || ctx.stringList() == null) {
+            return List.of();
+        }
+        return ctx.stringList().STRING_LITERAL().stream()
+            .map(this::parseStringLiteral)
+            .collect(Collectors.toUnmodifiableList());
+    }
+
+    @Override
+    public Stmt.RetryPolicy visitRetrySection(AsterParser.RetrySectionContext ctx) {
+        Integer maxAttempts = null;
+        String backoff = null;
+        for (var directive : ctx.retryDirective()) {
+            if (directive.MAX() != null) {
+                int attempts = Integer.parseInt(directive.INT_LITERAL().getText());
+                if (attempts <= 0) {
+                    throw new IllegalStateException("Retry `max attempts` 必须大于 0");
+                }
+                maxAttempts = attempts;
+            } else if (directive.BACKOFF() != null) {
+                String raw = directive.IDENT() != null
+                    ? directive.IDENT().getText()
+                    : directive.TYPE_IDENT().getText();
+                String normalized = raw == null ? "" : raw.toLowerCase(Locale.ROOT);
+                if (!normalized.equals("exponential") && !normalized.equals("linear")) {
+                    throw new IllegalStateException("Retry `backoff` 仅支持 exponential 或 linear");
+                }
+                backoff = normalized;
+            }
+        }
+        if (maxAttempts == null) {
+            throw new IllegalStateException("Retry 区块必须声明 max attempts");
+        }
+        if (backoff == null) {
+            throw new IllegalStateException("Retry 区块必须声明 backoff");
+        }
+        return new Stmt.RetryPolicy(maxAttempts, backoff);
+    }
+
+    @Override
+    public Stmt.Timeout visitTimeoutSection(AsterParser.TimeoutSectionContext ctx) {
+        long seconds = Long.parseLong(ctx.INT_LITERAL().getText());
+        if (seconds < 0) {
+            throw new IllegalStateException("timeout 数值必须为非负整数");
+        }
+        return new Stmt.Timeout(seconds * 1000L);
+    }
+
+    @Override
     public Stmt.Return visitReturnStmt(AsterParser.ReturnStmtContext ctx) {
         Expr expr = (Expr) visit(ctx.expr());
         return new Stmt.Return(expr, spanFrom(ctx));
@@ -1070,6 +1151,18 @@ public class AstBuilder extends AsterParserBaseVisitor<Object> {
             return first;
         }
         return new Span(first.start(), second.end());
+    }
+
+    private String parseStringLiteral(TerminalNode literalNode) {
+        if (literalNode == null) {
+            throw new IllegalStateException("依赖名称必须为字符串字面量");
+        }
+        String raw = literalNode.getText();
+        if (raw == null || raw.length() < 2) {
+            throw new IllegalStateException("字符串字面量格式非法");
+        }
+        String inner = raw.substring(1, raw.length() - 1);
+        return StringEscapes.unescape(inner);
     }
 
     private Expr applyCallSuffix(

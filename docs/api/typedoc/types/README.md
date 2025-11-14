@@ -63,6 +63,7 @@
 - [Err](interfaces/Err.md)
 - [Some](interfaces/Some.md)
 - [None](interfaces/None.md)
+- [PiiMeta](interfaces/PiiMeta.md)
 - [TypePii](interfaces/TypePii.md)
 - [TypeName](interfaces/TypeName.md)
 - [TypeVar](interfaces/TypeVar.md)
@@ -86,6 +87,11 @@
 - [Type](type-aliases/Type.md)
 - [PiiSensitivityLevel](type-aliases/PiiSensitivityLevel.md)
 - [PiiDataCategory](type-aliases/PiiDataCategory.md)
+- [PiiLevel](type-aliases/PiiLevel.md)
+
+## Variables
+
+- [PII\_LEVELS](variables/PII_LEVELS.md)
 
 ## Functions
 

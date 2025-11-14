@@ -5,7 +5,6 @@
     {
       "kind": "Func",
       "name": "get_email",
-      "typeParams": [],
       "params": [],
       "ret": {
         "kind": "PiiType",
@@ -30,7 +29,11 @@
             }
           }
         ]
-      }
+      },
+      "piiLevel": "L2",
+      "piiCategories": [
+        "email"
+      ]
     }
   ]
 }

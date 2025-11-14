@@ -36,6 +36,9 @@ export const enum ErrorCode {
   COMPENSATE_NEW_CAPABILITY = "E028",
   WORKFLOW_UNKNOWN_STEP_DEPENDENCY = "E029",
   WORKFLOW_CIRCULAR_DEPENDENCY = "E030",
+  PII_ASSIGN_DOWNGRADE = "E070",
+  PII_SINK_UNSANITIZED = "E072",
+  PII_ARG_VIOLATION = "E073",
   DUPLICATE_IMPORT_ALIAS = "E100",
   UNDEFINED_VARIABLE = "E101",
   EFF_MISSING_IO = "E200",
@@ -51,6 +54,8 @@ export const enum ErrorCode {
   CAPABILITY_NOT_ALLOWED = "E300",
   EFF_CAP_MISSING = "E301",
   EFF_CAP_SUPERFLUOUS = "E302",
+  CAPABILITY_INFER_MISSING_IO = "E303",
+  CAPABILITY_INFER_MISSING_CPU = "E304",
   PII_HTTP_UNENCRYPTED = "E400",
   PII_ANNOTATION_MISSING = "E401",
   PII_SENSITIVITY_MISMATCH = "E402",
@@ -59,6 +64,8 @@ export const enum ErrorCode {
   ASYNC_DUPLICATE_START = "E502",
   ASYNC_DUPLICATE_WAIT = "E503",
   ASYNC_WAIT_BEFORE_START = "E504",
+  PII_IMPLICIT_UPLEVEL = "W071",
+  PII_SINK_UNKNOWN = "W074",
 }
 
 export interface ErrorMetadata {
@@ -100,6 +107,9 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.COMPENSATE_NEW_CAPABILITY]: "Compensate block for step '{step}' in function '{func}' introduces new capability {capability} that does not appear in the main step body.",
   [ErrorCode.WORKFLOW_UNKNOWN_STEP_DEPENDENCY]: "Workflow step '{step}' depends on undefined step '{dependency}'.",
   [ErrorCode.WORKFLOW_CIRCULAR_DEPENDENCY]: "Workflow contains circular step dependency: {cycle}",
+  [ErrorCode.PII_ASSIGN_DOWNGRADE]: "禁止将 PII 数据赋给较低等级目标: {source} -> {target}",
+  [ErrorCode.PII_SINK_UNSANITIZED]: "PII 等级 {level} 数据未脱敏即输出到 {sinkKind}",
+  [ErrorCode.PII_ARG_VIOLATION]: "PII 参数类型不匹配: 期望 {expected}, 实际 {actual}",
   [ErrorCode.DUPLICATE_IMPORT_ALIAS]: "Duplicate import alias '{alias}'.",
   [ErrorCode.UNDEFINED_VARIABLE]: "Undefined variable: {name}",
   [ErrorCode.EFF_MISSING_IO]: "Function '{func}' may perform I/O but is missing @io effect.",
@@ -115,6 +125,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.CAPABILITY_NOT_ALLOWED]: "Function '{func}' requires {cap} capability but manifest for module '{module}' denies it.",
   [ErrorCode.EFF_CAP_MISSING]: "Function '{func}' uses {cap} capability but header declares [{declared}].",
   [ErrorCode.EFF_CAP_SUPERFLUOUS]: "Function '{func}' declares {cap} capability but it is not used.",
+  [ErrorCode.CAPABILITY_INFER_MISSING_IO]: "Function '{func}' uses IO capabilities [{capabilities}] but is missing @io effect (e.g., {calls}).",
+  [ErrorCode.CAPABILITY_INFER_MISSING_CPU]: "Function '{func}' performs CPU capability calls (e.g., {calls}) but declares neither @cpu nor @io effect.",
   [ErrorCode.PII_HTTP_UNENCRYPTED]: "PII data transmitted over HTTP without encryption",
   [ErrorCode.PII_ANNOTATION_MISSING]: "PII annotation missing for value flowing into '{sink}'",
   [ErrorCode.PII_SENSITIVITY_MISMATCH]: "PII sensitivity mismatch: required {required}, got {actual}",
@@ -123,6 +135,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.ASYNC_DUPLICATE_START]: "Async task '{task}' started multiple times ({count} occurrences)",
   [ErrorCode.ASYNC_DUPLICATE_WAIT]: "Async task '{task}' waited multiple times ({count} occurrences)",
   [ErrorCode.ASYNC_WAIT_BEFORE_START]: "Wait for async task '{task}' occurs before any matching start",
+  [ErrorCode.PII_IMPLICIT_UPLEVEL]: "检测到隐式 PII 等级提升: {source} -> {target}",
+  [ErrorCode.PII_SINK_UNKNOWN]: "可能有 PII 数据流向 {sinkKind} 但缺少注解",
 };
 
 export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
@@ -336,6 +350,27 @@ export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
     message: "Workflow contains circular step dependency: {cycle}",
     help: "移除或重构循环依赖，确保步骤可拓扑排序执行。",
   },
+  [ErrorCode.PII_ASSIGN_DOWNGRADE]: {
+    code: ErrorCode.PII_ASSIGN_DOWNGRADE,
+    category: 'type',
+    severity: 'error',
+    message: "禁止将 PII 数据赋给较低等级目标: {source} -> {target}",
+    help: "使用脱敏函数或为目标变量声明匹配的 @pii 等级。",
+  },
+  [ErrorCode.PII_SINK_UNSANITIZED]: {
+    code: ErrorCode.PII_SINK_UNSANITIZED,
+    category: 'type',
+    severity: 'error',
+    message: "PII 等级 {level} 数据未脱敏即输出到 {sinkKind}",
+    help: "在输出前调用 redact() 或 tokenize() 以降低敏感度。",
+  },
+  [ErrorCode.PII_ARG_VIOLATION]: {
+    code: ErrorCode.PII_ARG_VIOLATION,
+    category: 'type',
+    severity: 'error',
+    message: "PII 参数类型不匹配: 期望 {expected}, 实际 {actual}",
+    help: "检查函数签名，确保 PII 等级与类别一致。",
+  },
   [ErrorCode.DUPLICATE_IMPORT_ALIAS]: {
     code: ErrorCode.DUPLICATE_IMPORT_ALIAS,
     category: 'scope',
@@ -441,6 +476,20 @@ export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
     message: "Function '{func}' declares {cap} capability but it is not used.",
     help: "移除未使用的能力声明以保持清晰。",
   },
+  [ErrorCode.CAPABILITY_INFER_MISSING_IO]: {
+    code: ErrorCode.CAPABILITY_INFER_MISSING_IO,
+    category: 'capability',
+    severity: 'error',
+    message: "Function '{func}' uses IO capabilities [{capabilities}] but is missing @io effect (e.g., {calls}).",
+    help: "在函数头部声明 `It performs io ...`，或移除相关调用保持纯度。",
+  },
+  [ErrorCode.CAPABILITY_INFER_MISSING_CPU]: {
+    code: ErrorCode.CAPABILITY_INFER_MISSING_CPU,
+    category: 'capability',
+    severity: 'error',
+    message: "Function '{func}' performs CPU capability calls (e.g., {calls}) but declares neither @cpu nor @io effect.",
+    help: "为函数添加 @cpu 或 @io 效果以覆盖 CPU 能力。",
+  },
   [ErrorCode.PII_HTTP_UNENCRYPTED]: {
     code: ErrorCode.PII_HTTP_UNENCRYPTED,
     category: 'pii',
@@ -496,6 +545,20 @@ export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
     severity: 'error',
     message: "Wait for async task '{task}' occurs before any matching start",
     help: "在 wait for 之前先执行 start，并确保两者位于兼容的控制路径。",
+  },
+  [ErrorCode.PII_IMPLICIT_UPLEVEL]: {
+    code: ErrorCode.PII_IMPLICIT_UPLEVEL,
+    category: 'type',
+    severity: 'warning',
+    message: "检测到隐式 PII 等级提升: {source} -> {target}",
+    help: "为等级变化添加显式类型注解以便审计。",
+  },
+  [ErrorCode.PII_SINK_UNKNOWN]: {
+    code: ErrorCode.PII_SINK_UNKNOWN,
+    category: 'type',
+    severity: 'warning',
+    message: "可能有 PII 数据流向 {sinkKind} 但缺少注解",
+    help: "为数据增加 @pii 注解以追踪敏感数据流。",
   },
 };
 

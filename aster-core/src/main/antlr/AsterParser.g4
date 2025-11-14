@@ -282,6 +282,7 @@ stmt
     | defineStmt
     | startStmt
     | waitStmt
+    | workflowStmt
     | returnStmt
     | ifStmt
     | matchStmt
@@ -307,6 +308,46 @@ startStmt
 
 waitStmt
     : WAIT FOR nameIdent (AND nameIdent)* DOT
+    ;
+
+workflowStmt
+    : WORKFLOW COLON NEWLINE INDENT workflowBody DEDENT DOT
+    ;
+
+workflowBody
+    : workflowStep (NEWLINE+ workflowStep)*
+      (NEWLINE+ retrySection)?
+      (NEWLINE+ timeoutSection)?
+      NEWLINE*
+    ;
+
+workflowStep
+    : STEP nameIdent stepDependencies? COLON NEWLINE block (NEWLINE+ compensateSection)?
+    ;
+
+stepDependencies
+    : DEPENDS ON LBRACKET stringList? RBRACKET
+    ;
+
+stringList
+    : STRING_LITERAL (COMMA STRING_LITERAL)*
+    ;
+
+compensateSection
+    : COMPENSATE COLON NEWLINE block
+    ;
+
+retrySection
+    : RETRY COLON NEWLINE INDENT retryDirective (NEWLINE+ retryDirective)* NEWLINE* DEDENT
+    ;
+
+retryDirective
+    : MAX ATTEMPTS COLON INT_LITERAL DOT
+    | BACKOFF COLON (IDENT | TYPE_IDENT) DOT
+    ;
+
+timeoutSection
+    : TIMEOUT COLON INT_LITERAL SECONDS DOT
     ;
 
 /**

@@ -103,6 +103,10 @@ public final class CoreModel {
     public List<Param> params;             // 形参列表
     public Type ret;                       // 返回类型
     public List<String> effects;           // 效果声明列表（IO、CPU、Secrets 等）
+    public List<String> effectCaps = Collections.emptyList(); // 能力列表（Http、Sql 等）
+    public boolean effectCapsExplicit;     // 是否显式声明能力
+    public String piiLevel = "";           // 聚合后的 PII 等级（L1/L2/L3）
+    public List<String> piiCategories = Collections.emptyList(); // 聚合后的 PII 类别
     public Block body;                     // 函数体
     public Origin origin;
   }
@@ -164,9 +168,10 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = Option.class, name = "Option"),
     @JsonSubTypes.Type(value = ListT.class, name = "List"),
     @JsonSubTypes.Type(value = MapT.class, name = "Map"),
-    @JsonSubTypes.Type(value = FuncType.class, name = "FuncType")
+    @JsonSubTypes.Type(value = FuncType.class, name = "FuncType"),
+    @JsonSubTypes.Type(value = PiiType.class, name = "PiiType")
   })
-  public sealed interface Type permits TypeName, TypeVar, TypeApp, Result, Maybe, Option, ListT, MapT, FuncType {}
+  public sealed interface Type permits TypeName, TypeVar, TypeApp, Result, Maybe, Option, ListT, MapT, FuncType, PiiType {}
 
   @JsonTypeName("TypeName")
   public static final class TypeName implements Type {
@@ -226,14 +231,22 @@ public final class CoreModel {
     public Origin origin;
   }
 
+  @JsonTypeName("PiiType")
+  public static final class PiiType implements Type {
+    public Type baseType;            // 基础类型（如 Text）
+    public String sensitivity;      // 敏感级别（L1/L2/L3）
+    public String category;         // 数据类别（email/phone 等）
+    public Origin origin;
+  }
+
   // ========== 语句 (Stmt) ==========
 
   /**
    * 语句的基类型
    * <p>
-   * 支持的语句：Let（变量绑定）、Set（变量赋值）、Return（返回）、
+   * 支持的语句：Let（变量绑定）、Set（赋值）、Return（返回）、
    * If（条件分支）、Match（模式匹配）、Scope（作用域）、Block（代码块）、
-   * Start（启动并发任务）、Wait（等待并发任务）
+   * Start（启动并发任务）、Wait（等待并发任务）、Workflow（工作流）
    */
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
@@ -245,9 +258,10 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = Scope.class, name = "Scope"),
     @JsonSubTypes.Type(value = Block.class, name = "Block"),
     @JsonSubTypes.Type(value = Start.class, name = "Start"),
-    @JsonSubTypes.Type(value = Wait.class, name = "Wait")
+    @JsonSubTypes.Type(value = Wait.class, name = "Wait"),
+    @JsonSubTypes.Type(value = Workflow.class, name = "workflow")
   })
-  public sealed interface Stmt permits Let, Set, Return, If, Match, Scope, Block, Start, Wait {}
+  public sealed interface Stmt permits Let, Set, Return, If, Match, Scope, Block, Start, Wait, Workflow {}
 
   @JsonTypeName("Let")
   public static final class Let implements Stmt {
@@ -307,6 +321,34 @@ public final class CoreModel {
   public static final class Wait implements Stmt {
     public List<String> names;    // 等待的任务名列表
     public Origin origin;
+  }
+
+  @JsonTypeName("workflow")
+  public static final class Workflow implements Stmt {
+    public List<Step> steps = Collections.emptyList();     // 步骤列表
+    public List<String> effectCaps = Collections.emptyList(); // 工作流声明的能力
+    public RetryPolicy retry;                              // 重试策略
+    public Timeout timeout;                                // 超时配置
+    public Origin origin;
+  }
+
+  public static final class Step {
+    public String kind = "step";                   // 与 TS IR 对齐
+    public String name;                            // 步骤名称
+    public Block body;                             // 主体代码块
+    public Block compensate;                       // 补偿代码块（可选）
+    public List<String> dependencies = Collections.emptyList(); // 依赖步骤名称
+    public List<String> effectCaps = Collections.emptyList();   // 步骤能力
+    public Origin origin;
+  }
+
+  public static final class RetryPolicy {
+    public int maxAttempts;                // 最大重试次数
+    public String backoff;                 // 回退策略（exponential/linear）
+  }
+
+  public static final class Timeout {
+    public long milliseconds;              // 超时时间（毫秒）
   }
 
   /**

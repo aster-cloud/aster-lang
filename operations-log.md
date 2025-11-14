@@ -1,3 +1,340 @@
+# 2025-11-14 15:59 NZDT P4-2.6 注解 E2E 实施
+
+**操作记录**:
+- 工具：apply_patch(test/e2e/annotation-integration.aster) → 新增端到端 .aster 场景覆盖 PII/Capability。
+- 工具：apply_patch(test/e2e/annotation-integration.test.ts) → 创建 Node 测试，集成 CLI 比对/反射验证。
+- 工具：apply_patch(aster-asm-emitter/src/test/java/aster/emitter/test/AnnotationVerifier.java) → 编写 JVM 注解验证工具。
+- 工具：apply_patch(aster-asm-emitter/src/main/java/aster/emitter/CompileAsterCli.java) → 实现 .aster→JVM Java CLI。
+- 工具：apply_patch(aster-asm-emitter/build.gradle.kts) → 注册 `compileAster` 任务并兼容 config cache。
+- 工具：apply_patch(scripts/cross_validate.sh) → 改造端到端脚本，加入 build/test/诊断对比。
+- 工具：node --loader ts-node/esm scripts/generate_error_codes.ts → 同步 TS/Java 错误码常量，包含 CAPABILITY_INFER_*。
+- 工具：apply_patch(src/typecheck.ts) → 注入 capability 推断缺失效果诊断逻辑。
+- 工具：npm run build → 多次编译 TypeScript，确保 dist 同步最新源码。
+- 工具：npm run test:e2e:annotations → 运行端到端测试套件，校验 CLI/诊断/反射。
+- 工具：bash scripts/cross_validate.sh → 构建并执行 cross-stack 验证，输出一致。
+- 工具：apply_patch(docs/testing.md) → 记录本次测试执行结果。
+
+**观察**:
+- TypeScript/Java 诊断现已通过 CAPABILITY_INFER_* 代码保持一致，差异通过脚本归一化聚焦在 E200/E302/E303。
+- Java CLI 缺省输出目录位于模块内，测试与脚本均切换到 `aster-asm-emitter/build/jvm-classes`，并为 Gradle 命令禁用配置缓存避免序列化错误。
+
+# 2025-11-14 15:25 NZDT P4-2.6 端到端集成测试准备
+
+**操作记录**:
+- 工具：sequential-thinking(totalThoughts=4, step=1) → 明确任务目标为构建端到端注解集成测试与脚本需求。
+- 工具：sequential-thinking(totalThoughts=4, step=2) → 盘点需调研目录/工具与潜在风险。
+- 工具：sequential-thinking(totalThoughts=4, step=3) → 制定执行流程（调研→实现→记录）。
+- 工具：shell(`ls`) → 快速确认仓库根目录结构。
+- 工具：shell(`rg --files -g 'AGENTS.md'`) → 未找到其他层级 AGENTS 约束。
+- 工具：shell(`ls docs`) → 查看文档目录。
+- 工具：shell(`ls docs/workstreams`) → 获取现有工作流列表。
+- 工具：shell(`ls docs/workstreams/P4-2`) → 确认阶段文档。
+- 工具：shell(`sed -n '1,160p' operations-log.md`) → 阅读最新日志格式。
+- 工具：shell(`sed -n '1,160p' docs/workstreams/P4-2/operations-log.md`) → 参考子阶段日志写法。
+- 工具：shell(`ls test/e2e`) → 检查 e2e 目录现状。
+- 工具：shell(`rg --files -g '*.test.ts' test/e2e`) → 未找到既有 e2e test.ts。
+- 工具：shell(`ls test/e2e/runner`) → 确认 runner 脚本位置。
+- 工具：shell(`rg --files -g '*.test.ts'`) → 罗列全局测试文件以参考导入风格。
+- 工具：shell(`cat tsconfig.json`) → 确认 build 输出包含 test 目录。
+- 工具：shell(`ls dist/scripts`) → 查看已编译脚本列表。
+- 工具：shell(`sed -n '1,160p' test/unit/lowering/lowering.test.ts`) → 参考 Node test 写法。
+- 工具：shell(`sed -n '1,200p' scripts/cross_validate.sh`) → 阅读现有 cross-validate 脚本逻辑。
+- 工具：shell(`rg -n '@pii' -g '*.aster'`) → 查找现有 PII 样例风格。
+- 工具：shell(`sed -n '1,120p' test/e2e/golden/diagnostics/eff_valid_http_sql.aster`) → 确认 DSL 语法。
+- 工具：shell(`rg -n 'Db\\.' -g '*.aster'`) → 收集 Db 调用用例。
+- 工具：shell(`rg -n "compileAster"`) → 搜索现有 Gradle 任务（未命中）。
+- 工具：shell(`rg -n "compileAster" -R`) → 失败：rg 不支持 -R。
+- 工具：shell(`rg -n "compileAster" --glob '*gradle*'`) → 仍未找到任务定义。
+- 工具：shell(`sed -n '1,200p' aster-asm-emitter/build.gradle.kts`) → 查看模块配置。
+- 工具：shell(`sed -n '1,200p' scripts/emit-classfiles.ts`) → 阅读 class 发射脚本。
+- 工具：shell(`sed -n '200,420p' scripts/emit-classfiles.ts`) → 关注输出目录与 workflow 处理。
+- 工具：shell(`sed -n '1,200p' scripts/emit-core.ts`) → 了解 core JSON 发射行为。
+- 工具：shell(`sed -n '1,200p' scripts/typecheck-cli.ts`) → 确定 CLI 输出格式。
+- 工具：shell(`sed -n '1,200p' aster-asm-emitter/src/test/java/aster/emitter/AnnotationEmissionTest.java`) → 参考注解校验方式。
+- 工具：shell(`rg -n "typecheck-pii" -n`) → 定位 TS PII 检查实现。
+- 工具：shell(`sed -n '1,200p' src/typecheck.ts`) → 确认 ENFORCE_PII 开关与诊断逻辑。
+- 工具：shell(`rg -n "piiCategories" src`) → 查找 PII 聚合位置。
+- 工具：shell(`sed -n '1,200p' src/lower_to_core.ts`) → 阅读 aggregateFuncPii 实现。
+- 工具：shell(`ls docs/workstreams/P4-batch5`) → 查阅包含 research 子目录的任务结构。
+- 工具：shell(`ls docs/workstreams/P4-batch5/research`) → 参考阶段文档命名。
+- 工具：shell(`mkdir -p docs/workstreams/P4-2.6`) → 创建任务目录。
+- 工具：shell(`mkdir -p docs/workstreams/P4-2.6/research docs/workstreams/P4-2.6/design docs/workstreams/P4-2.6/implementation docs/workstreams/P4-2.6/verification`) → 初始化阶段子目录。
+- 工具：apply_patch(新增 docs/workstreams/P4-2.6/operations-log.md) → 建立任务日志表头。
+- 工具：code-index__set_project_path(`/Users/rpang/IdeaProjects/aster-lang`) → 激活检索索引。
+- 工具：code-index__build_deep_index → 构建深度索引。
+- 工具：code-index__get_file_summary(scripts/cross_validate.sh) → 获取脚本摘要。
+- 工具：shell(`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M %Z'`) → 记录当前 NZ 时区时间戳。
+
+**观察**:
+- 已确认仓库中缺少 compileAster 任务与 AnnotationVerifier 工具，需要在本次工作中补齐。
+- e2e 目录尚无 TypeScript 测试与 .aster 集成样例，可直接新增。
+- cross_validate.sh 当前仅对能力诊断做 CLI 比对，后续需扩展为端到端流程。
+
+# 2025-11-14 15:02 NZST PII 聚合与运行时注解实现
+
+**操作记录**:
+- 工具：apply_patch(aster-core/src/main/java/aster/core/ir/CoreModel.java, aster-core/src/main/java/aster/core/lowering/CoreLowering.java) → 新增函数级 PII 字段并实现 Java 端聚合/类型注解转换逻辑。
+- 工具：apply_patch(src/types.ts, src/lower_to_core.ts, test/unit/lowering/lowering.test.ts) → 扩展 Core.Func 类型、在 TS 降级阶段聚合 PII、补充单测。
+- 工具：apply_patch(test/e2e/golden/core/expected_pii_type_*.json, test/cnl/programs/privacy/expected_pii_type_*.json) → 将新字段写入所有 PII golden 样例。
+- 工具：apply_patch(aster-runtime/src/main/java/aster/runtime/AsterPii.java, aster-runtime/src/main/java/aster/runtime/AsterCapability.java) → 创建运行时注解定义。
+- 工具：apply_patch(aster-asm-emitter/src/main/java/aster/emitter/Main.java, FunctionEmitter.java) → 注入方法级注解发射、处理 PiiType 描述符、忽略参数/字段上的 @pii。
+- 工具：apply_patch(test/fixtures/annotation-test.aster, aster-asm-emitter/src/test/java/aster/emitter/AnnotationEmissionTest.java) → 添加集成 fixture 与反射用例并多次调整返回类型、类加载逻辑。
+- 工具：apply_patch(aster-asm-emitter/src/main/java/aster/emitter/Main.java) → jDesc 支持 CoreModel.PiiType、过滤 @pii 的参数/字段注解。
+- 工具：shell(`sed -n '60,140p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java`) → 校验函数发射段落插入位置。
+- 工具：shell(`sed -n '1631,1690p' aster-asm-emitter/src/main/java/aster/emitter/Main.java`) → 确认 jDesc 对 PiiType 的处理分支。
+- 工具：shell(`sed -n '300,420p' aster-asm-emitter/src/main/java/aster/emitter/Main.java`) → 追踪注解映射逻辑便于跳过 @pii。
+- 工具：shell(`sed -n '200,240p' aster-core/src/main/java/aster/core/parser/AstBuilder.java`) → 验证参数注解合并方式。
+- 工具：shell(`nl -ba aster-asm-emitter/src/test/java/aster/emitter/AnnotationEmissionTest.java`) → 查定位号排查断言。
+- 工具：shell(`cat aster-asm-emitter/build/test-results/test/TEST-aster.emitter.AnnotationEmissionTest.xml`) ×2 → 获取 Gradle 失败原因（Unknown annotation、VerifyError）。
+- 工具：shell(`npm run build`) → 使用 tsc + PEG 生成器编译 TypeScript（成功）。
+- 工具：shell(`node --test dist/test/unit/lowering/lowering.test.js`) → 运行 TS 降级单测，40 个子测均通过。
+- 工具：shell(`./gradlew :aster-asm-emitter:test`) ×3 → 先后暴露 @pii 未识别、VerifyError 问题，第三次在修复后通过。
+- 工具：shell(`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'`) → 获取日志时间戳。
+
+**观察**:
+- Java 与 TypeScript 降级层现已能聚合 PII 等级/类别，并透传到 Core IR 与 ASM 注解。
+- 运行时注解与测试覆盖确保 PII/能力 metadata 可通过反射获知，Gradle/TS 自测均已通过。
+
+# 2025-11-14 14:32 NZST PII 函数聚合上下文采集
+
+**操作记录**:
+- 工具：code-index__search_code_advanced(pattern=`class Func`, file=`aster-core/.../CoreModel.java`) → 确认 Func 结构缺少 PII 字段。
+- 工具：shell(`sed -n '99,190p' aster-core/src/main/java/aster/core/ir/CoreModel.java`) 与 shell(`sed -n '224,280p' ...`) → 阅读 Func 字段与 CoreModel.PiiType 定义。
+- 工具：shell(`rg -n "PiiType" aster-core/src/main/java/aster/core/ir/CoreModel.java`) → 定位 PiiType 行号。
+- 工具：code-index__search_code_advanced(pattern=`class CoreLowering`, file=`aster-core/.../CoreLowering.java`) → 定位降级器入口。
+- 工具：shell(`sed -n '1,200p' aster-core/src/main/java/aster/core/lowering/CoreLowering.java`)、shell(`sed -n '490,620p' ...`)、shell(`sed -n '620,720p' ...`) → 检查 Func 降级与类型转换逻辑。
+- 工具：shell(`rg -n "Pii" aster-core/src/main/java/aster/core/lowering/CoreLowering.java`) → 确认 Java 降级器尚未处理 PII。
+- 工具：shell(`rg -n "PiiType" -g"*.ts"`)、shell(`sed -n '1,200p' src/core_ir.ts`) → 了解 TS Core IR 构造函数如何表达 PiiType。
+- 工具：shell(`sed -n '480,640p' src/types.ts`)、shell(`rg -n "Base.BaseFunc" src/types.ts`)、shell(`sed -n '120,220p' src/types.ts`)、shell(`sed -n '420,520p' src/types.ts`) → 比对 AST/Core Func 接口。
+- 工具：shell(`sed -n '1,200p' src/lower_to_core.ts`) 与 shell(`sed -n '200,400p' ...)` → 分析 TS 降级器插入 PII 聚合位置。
+- 工具：shell(`rg -n "metaFromType" src/typecheck-pii.ts`)、shell(`sed -n '430,520p' src/typecheck-pii.ts`)、shell(`rg -n "buildFuncSignatures" src/typecheck-pii.ts`)、shell(`sed -n '340,420p' src/typecheck-pii.ts`) → 参考现有 TypeScript PII 聚合逻辑。
+- 工具：shell(`rg -n "AsterPii" -R aster-runtime-annotations`) 与 shell(`rg -n "AsterPii" aster-runtime-annotations -g"*.java"`) → 尝试查找运行时注解模块但路径不存在。
+- 工具：shell(`ls`) → 再次确认仓库根目录与可用模块。
+- 工具：shell(`rg -n "AsterPii" -g"*.java"`)、shell(`rg -n "AsterCapability" -g"*.java"`) → 确认注解尚未实现。
+- 工具：shell(`ls aster-runtime`)、shell(`ls aster-runtime/src`)、shell(`ls aster-runtime/src/main/java`) → 梳理运行时模块结构。
+- 工具：shell(`rg -n "@interface" aster-runtime/src/main/java -g"*.java"`)、shell(`sed -n '1,200p' aster-runtime/src/main/java/aster/runtime/AsterOrigin.java`) → 参考现有运行时注解实现方式。
+- 工具：shell(`sed -n '1,80p' settings.gradle.kts`) → 查证已注册的 Gradle 子模块。
+- 工具：shell(`rg -n "class FunctionEmitter" aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java`)、shell(`sed -n '1,200p' .../FunctionEmitter.java`) → 获取字节码发射管线细节。
+- 工具：shell(`rg -n "FunctionEmitter" -R aster-asm-emitter/src/main/java/aster/emitter`) → 确定 Main 与 FunctionEmitter 的交互位置。
+- 工具：shell(`sed -n '320,440p' aster-asm-emitter/src/main/java/aster/emitter/Main.java`)、shell(`sed -n '1,80p' .../Main.java`) → 检查主发射逻辑插入点。
+- 工具：shell(`rg -n "@pii" test -n`) → 枚举现有 PII 测试资源。
+- 工具：shell(`ls test/e2e/golden/core`) → 列出 golden Core JSON，确认需更新的期望文件。
+- 工具：shell(`sed -n '1,120p' test/e2e/golden/core/expected_pii_type_basic_core.json`)、shell(`sed -n '1,160p' ...in_data...)`、shell(`sed -n '1,200p' ...in_function...)` → 评估新增字段对 golden 的影响。
+- 工具：shell(`rg -n "Node.Result" test/unit/lowering/lowering.test.ts`)、shell(`sed -n '1,80p' ...`)、shell(`sed -n '520,620p' ...`) → 定位 TS 降级单测插桩点。
+- 工具：shell(`ls test/fixtures`) → 确认 fixture 目录可新增 annotation 测试。
+- 工具：shell(`rg -n "TypePii" src test -g"*.ts"`) → 查找 TypePii 节点定义与使用。
+- 工具：shell(`sed -n '1,200p' aster-core/src/main/java/aster/core/ast/Type.java`)、shell(`sed -n '200,400p' ...`) → 验证 Java AST 类型注解结构。
+- 工具：shell(`sed -n '1,200p' aster-core/src/main/java/aster/core/ast/Annotation.java`) → 了解 Java AST 注解表示。
+- 工具：shell(`rg -n "pii" aster-core/src/main/java/aster/core -g"*.java"`) 与 shell(`rg -n "CoreModel\\.PiiType" aster-core/src/main/java/aster/core -g"*.java"`) → 统计 Core 模块对 PII 的引用。
+- 工具：shell(`rg -n "lower_to_core" -g"*.ts"`) → 找出脚本与测试对降级器的依赖。
+- 工具：shell(`rg -n "compileAsterToClass" -g"*.java" aster-asm-emitter/src/test/java`) → 确认测试中尚无现成的 Aster→Class 辅助函数。
+- 工具：shell(`sed -n '1,160p' aster-asm-emitter/src/test/java/aster/emitter/GoldenClassTest.java`) → 研究当前黄金测试如何驱动 Main 主程序。
+- 工具：shell(`ls aster-asm-emitter/src/test/java`)、shell(`ls aster-asm-emitter/src/test/java/aster`)、shell(`ls aster-asm-emitter/src/test/java/aster/emitter`) → 罗列可扩展的测试套件。
+- 工具：shell(`rg -n "node" aster-asm-emitter/src/test/java -g"*.java"`) → 评估是否已有 Node 相关测试依赖。
+- 工具：shell(`sed -n '1,200p' scripts/emit-classfiles.ts`) → 学习 JS 端编译流程，辅助设计 Java 端测试策略。
+- 工具：apply_patch(`operations-log.md`，多次) → 更新本次日志记录与补充工具调用说明。
+
+**观察**:
+- CoreModel.Func 与 TypeScript Core.Func 均缺少函数级 PII 字段，需同步扩展并在降级/IR 生成阶段聚合。
+- Java 运行时目前仅有 AsterOrigin 注解，需要新增 AsterPii/AsterCapability 并在 Main/FunctionEmitter 统一发射。
+- golden Core JSON 中的 PII 场景将出现新字段，需同步更新基线与相应测试。
+
+# 2025-11-14 14:16 NZST PII 函数级聚合执行启动
+
+**操作记录**:
+- 工具：sequential-thinking ×3 → 梳理 PII 聚合任务目标、依赖、风险与实施步骤。
+- 工具：code-index__set_project_path(`/Users/rpang/IdeaProjects/aster-lang`) → 设定索引用于后续检索。
+- 工具：code-index__find_files(`*operations-log.md`) → 确认日志文件位置。
+- 工具：shell(`cat operations-log.md`) → 阅读既有记录，掌握格式。
+- 工具：shell(`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'`) → 获取当前日志时间。
+- 工具：apply_patch(`operations-log.md`) ×2 → 更新日志条目并同步工具调用记录。
+
+**观察**:
+- 需持续按 AGENTS.md 记录所有工具调用，避免遗漏。
+
+# 2025-11-14 13:39 NZDT P4-2.5 上下文扫描
+
+**操作记录**:
+- 工具：code-index__set_project_path(`/Users/rpang/IdeaProjects/aster-lang`) → 复位索引，确认 1922 个文件可供检索。
+- 工具：code-index__find_files(`**/FunctionEmitter.java`) → 定位 `aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java`。
+- 工具：shell(`sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/FunctionEmitter.java`) → 阅读函数字节码生成流程。
+- 工具：code-index__search_code_advanced(pattern=`pii`, file=`FunctionEmitter.java`) → 确认当前实现未包含 PII 逻辑。
+- 工具：code-index__search_code_advanced(pattern=`class Func`, file_pattern=`aster-core/...`) → 跳转到 CoreModel.Func 定义。
+- 工具：shell(`sed -n '99,220p' aster-core/src/main/java/aster/core/ir/CoreModel.java`) → 查看 Func 字段列表。
+- 工具：code-index__search_code_advanced(pattern=`class Pii`, file_pattern=`aster-core/...`) → 查找 PiiType/元数据定义。
+- 工具：shell(`sed -n '220,360p' aster-core/src/main/java/aster/core/ir/CoreModel.java`) → 阅读 PiiType 结构。
+- 工具：code-index__search_code_advanced(pattern=`pii`, file_pattern=`aster-core/...`) → 确认 CoreModel 仅在类型级别引用 PII。
+- 工具：shell(`sed -n '1,160p' aster-core/src/main/java/aster/core/ir/CoreModel.java`) → 再次核对 Func 是否含注解字段。
+- 工具：code-index__search_code_advanced(pattern=`piiLevel`) → 仅在 TypeScript `typecheck-pii.ts`/`types.ts` 出现，Java 侧缺失。
+- 工具：code-index__search_code_advanced(pattern=`piiLevel`, start_index=10) → 补充检索结果确认无 Java 定义。
+- 工具：shell(`rg -n "interface Func" src/types.ts`) → 查找 TS Func 接口位置。
+- 工具：shell(`sed -n '449,520p' src/types.ts`) → 阅读 Core Func 接口定义。
+- 工具：shell(`sed -n '169,250p' src/types.ts`) → 对比 AST Func 定义。
+- 工具：shell(`rg -n "namespace Base" src/types.ts`) → 验证 Base 模块声明（无匹配）。
+- 工具：shell(`rg -n "BaseFunc" -g"*.ts"`) → 查找 BaseFunc 基类实现。
+- 工具：shell(`sed -n '103,180p' src/types/base.ts`) → 阅读 BaseFunc 字段，确认仅含 effects/capabilities。
+- 工具：shell(`rg -n '"piiLevel"' -g"*.json"`) → 证实 golden JSON 中尚未输出 PII level。
+- 工具：shell(`sed -n '1,80p' test/type-checker/golden/pii_http_violation.aster`) → 了解 @pii 用例及效果声明。
+- 工具：shell(`sed -n '1,120p' test/e2e/golden/core/expected_annotations_mixed_core.json`) → 检查 Core 函数 JSON 结构。
+- 工具：shell(`sed -n '120,240p' test/e2e/golden/core/expected_annotations_mixed_core.json`) → 确认函数缺少注解字段。
+- 工具：shell(`rg -n "handles pii" -R`) → 误用参数，命令报错（未找到 DSL 字样）。
+- 工具：shell(`rg -n "handles pii"`) → 继续搜索 `It handles pii` 语句，未匹配。
+- 工具：shell(`rg -n "handles pii" -i`) → 以不区分大小写再次搜索，仍未发现。
+- 工具：shell(`rg -n "@pii"`) → 罗列仓库内 @pii 用例及参考文档。
+- 工具：shell(`rg -n "effectCapsExplicit"`) → 统计 effect/capability 字段使用点。
+- 工具：shell(`sed -n '600,680p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java`) → 查看 CLI 序列化 Core.Func 时输出的字段。
+- 工具：shell(`sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/Main.java`) → 理解编译入口及 CoreContext。
+- 工具：shell(`sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/ContextBuilder.java`) → 明确上下文索引结构。
+- 工具：shell(`sed -n '1,200p' aster-asm-emitter/src/main/java/aster/emitter/CoreContext.java`) → 查看 CoreContext 载荷。
+- 工具：shell(`rg -n "functionSchemas" -g"*.java"`) → 追踪函数 schema 使用位置。
+- 工具：shell(`sed -n '130,220p' docs/workstreams/P4-2/annotation-semantics.md`) → 阅读 P4-2 注解语义规划。
+- 工具：shell(`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZDT'`) → 记录当前时区时间以标注日志。
+
+**观察**:
+- 目前 CoreModel.Func 未携带 PII 元数据或注解列表，TypeScript/JSON 亦缺少对应字段；若要生成运行时注解，需确认元数据来源或扩展 IR。
+- effectCaps 字段已存在但尚未在 ASM emitter 使用，后续需在 FunctionEmitter 中发射注解。
+
+# 2025-11-14 13:30 NZDT P4-2.5 代码生成注解准备
+
+**操作记录**:
+- 工具：sequential-thinking（3次）→ 梳理 P4-2.5 任务目标、依赖与风险，形成执行步骤草案。
+- 工具：shell(`ls`) → 快速确认仓库根目录结构，定位 `aster-runtime-annotations`、`aster-asm-emitter` 等目标模块。
+- 工具：shell(`sed -n '1,160p' operations-log.md`) → 阅读历史日志，保持记录格式一致。
+- 工具：shell(`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZDT'`) → 获取当前新西兰时区时间以写入日志。
+
+**观察**:
+- 需在 `aster-runtime-annotations` 新增运行时注解，并在 `FunctionEmitter` 引入 ASM 注解生成逻辑，相关依赖与测试路径已在根目录确认。
+
+# 2025-11-14 13:01 NZDT Capability 改进3 CLI 与脚本实现
+
+**操作记录**:
+- 工具：apply_patch → 新增 `test/fixtures/capability-violations.aster`，覆盖缺失能力、冗余能力与 workflow 未声明能力三类场景。
+- 工具：apply_patch → 更新 `scripts/typecheck-cli.ts`，实现 JSON 输出、`--filter-codes` 选项与 `--help` 用法说明。
+- 工具：apply_patch → 新建 `aster-core/src/main/java/aster/core/typecheck/cli/TypeCheckCli.java`，复用 TypeScript emit-core 生成 CoreModel，支持 `--filter-codes` 过滤诊断并输出 JSON。
+- 工具：apply_patch → 调整 `aster-core/build.gradle.kts` 启用 `application` 插件，配置 CLI 主类。
+- 工具：apply_patch → 修改 `SymbolTable`/`BaseTypeChecker`，允许空 span 并忽略 `Foo.bar` 形式的未定义变量诊断。
+- 工具：npm run build → 编译 TypeScript 工具链（多次).
+- 工具：./gradlew :aster-core:classes/installDist/run → 构建并验证 Java CLI（多次带 filter 参数）。
+- 工具：apply_patch → 重写 `tools/diagnostic_diff_core.ts`/`tools/diagnostic_diff.ts`，新增 `--ignore-span` 选项、可选字段处理与 TypeScript 编译支持。
+- 工具：apply_patch → 更新 `tsconfig.json` 将 `tools/**/*` 納入編譯。
+- 工具：apply_patch → 重構 `scripts/cross_validate.sh` 預設指向新 TS/Java CLI、允許自動建置、過濾指定錯誤碼並啟用 `--ignore-span` 診斷比對。
+- 工具：bash scripts/cross_validate.sh → 實際跑 capability fixture 跨栈驗證，結果一致。
+
+**观察**:
+- Java CLI 透過 Node emit-core 取得 CoreModel，目前僅輸出 capabilities 相關診斷；其他 TypeScript 診斷後續可按需擴展。
+- 由於 emit-core JSON 缺少 source span，diagnostic_diff 需忽略 span 欄位，已透過 `--ignore-span` 控制。
+- cross_validate 預設僅涵蓋 capability fixture，如需全量 golden 可設定 `CROSS_VALIDATE_INCLUDE_GOLDEN=1`。
+
+# 2025-11-14 12:26 NZDT Capability 改进3 执行准备
+
+**操作记录**:
+- 工具：sequential-thinking → 根据改进 3 步骤梳理执行重点（capability fixture、TS/Java CLI、cross_validate 扩展）。
+- 工具：code-index__set_project_path(`/Users/rpang/IdeaProjects/aster-lang`) → 复位索引以便检索 docs/workstreams 与 CLI 源码。
+- 工具：code-index__find_files(`docs/workstreams/**`) → 确认现有操作日志目录，准备写入后续记录。
+- 工具：shell(`ls`) → 快速确认仓库根目录结构，定位 scripts/test/docs 位置。
+- 工具：shell(`sed -n '1,160p' operations-log.md`) → 复查前序记录，保持日志格式一致。
+- 工具：shell(`sed -n '1,200p' scripts/cross_validate.sh`) → 阅读当前跨栈验证流程，确认扩展点。
+- 工具：shell(`node dist/scripts/typecheck-cli.js --help`) → 验证 TS CLI 用法，发现命令将 `--help` 视为文件路径。
+
+**观察**:
+- TypeScript typecheck CLI 仅接受文件路径并输出纯文本，尚未提供 JSON 诊断或帮助说明，需要调整以支持 cross_validate。
+- cross_validate.sh 仍依赖外部 env 注入命令，后续需接入新的 capability fixture 以及 Java/TS CLI 输出对比。
+
+# 2025-11-14 12:08 NZDT Capability 改进2 Manifest 实施
+
+**操作记录**:
+- 工具：shell(`mkdir -p aster-core/src/main/java/aster/core/typecheck/capability`, `mkdir -p aster-core/src/test/resources`) → 创建 Manifest 配置与测试资源目录。
+- 工具：apply_patch（多次）→ 新增 `ManifestConfig`/`ManifestReader`、`manifest.schema.json`、`manifest.example.json`、`test-manifest.json`，并更新 CapabilityChecker/TypeChecker 以注入 Manifest 逻辑。
+- 工具：apply_patch → 扩充 `CapabilityCheckerTest`，添加 ManifestReader 测试、Manifest 违规/跳过用例。
+- 工具：shell(`./gradlew :aster-core:test --tests aster.core.typecheck.checkers.CapabilityCheckerTest`) → 回归 13 个能力检查相关单测，全部通过。
+
+**观察**:
+- ManifestConfig 默认空集合即拒绝所有能力，因此必须显式列出 allow 列表，符合"函数声明需为 manifest 子集"要求。
+- TypeChecker 读取 `ASTER_MANIFEST_PATH` 时若解析失败会立即抛出异常，可在 CLI 层显式暴露错误，避免静默跳过。
+- CapabilityChecker 现支持动态切换 manifest（`setManifest(null)`），便于测试验证不同策略。
+
+# 2025-11-14 12:21 NZDT Capability 改进3 方案梳理
+
+**操作记录**:
+- 工具：sequential-thinking（3 次）→ 明确 cross_validate 扩展需求、capability fixture、CI 集成策略与潜在风险。
+- 工具：code-index__find_files(`scripts/cross_validate.sh`) + shell(`sed -n '1,200p'`) → 阅读脚本当前实现，确认仍依赖 `JAVA_TYPECHECK_CMD`/`TS_TYPECHECK_CMD`。
+- 工具：shell(`rg -n "typecheck-file" -g"*"`、`ls dist/scripts | grep typecheck`) → 验证仓库中不存在 `typecheck-file` 脚本。
+- 工具：shell(`jar tf aster-core/build/libs/aster-core.jar | head`, `unzip -p ... MANIFEST.MF`) → 检查 Java JAR 缺少 `Main-Class` 且未打包 ANTLR/Jackson 依赖。
+- 工具：shell(`sed -n '1,200p' tools/diagnostic_diff.ts`, `sed -n '1,200p' tools/ast_diff.ts`) → 理解 AST/诊断 diff 期望的 JSON 结构。
+
+**观察**:
+- 仓库尚未提供 `dist/scripts/typecheck-file.js`，无法直接复用用户指定的 TypeScript 命令。
+- `aster-core.jar` 既无入口也未打包依赖，当前无法通过 `java -jar ... typecheck` 生成 JSON 输出。
+- cross_validate.sh 现阶段仍依赖外部 env 变量注入命令，需在实现 capability 测试前明确 TypeScript/Java 输出来源或新 CLI 方案。
+
+# 2025-11-14 12:03 NZDT Capability 改进2 Manifest 调研
+
+**操作记录**:
+- 工具：sequential-thinking（4 次）→ 明确 Manifest 集成与 cross_validate 增强的任务理解、依赖与风险，并形成执行顺序。
+- 工具：update_plan → 根据思考结果拆分为调研、Manifest 集成、cross_validate 扩展三步计划。
+- 工具：code-index__set_project_path(`/Users/rpang/IdeaProjects/aster-lang`) → 初始化索引以便定位 TypeChecker、CapabilityChecker 及相关测试。
+- 工具：code-index__find_files(`**/CapabilityChecker.java`、`**/TypeChecker.java`、`**/CapabilityKind.java`) → 精准获取核心类路径。
+- 工具：shell(`sed -n '1,400p' …/CapabilityChecker.java`) → 复核现有能力推断、声明核对与 workflow 校验逻辑，标记 Manifest 注入位置。
+- 工具：shell(`sed -n '1,420p' …/TypeChecker.java`) → 理解类型检查流程及 PII/Effect 相关环境变量模式，为 Manifest 读取提供参考。
+- 工具：shell(`sed -n '1,240p' …/CapabilityCheckerTest.java`) → 确认当前测试覆盖范围，规划新增 Manifest 相关用例。
+- 工具：shell(`rg -n "ASTER_" -n`) → 查找现有环境变量使用，确保 ASTER_MANIFEST_PATH 行为与既有约定一致。
+- 工具：shell(`ls .claude`) → 检查上下文与日志目录，确认 operations-log.md 已包含 Capability 改进阶段记录，决定沿用该文件追加日志。
+
+**观察**:
+- CapabilityChecker 目前仅根据函数体实际使用与声明比对，尚无全局 Manifest 约束；适合在 `checkFunction` 末尾追加 Manifest 子集校验。
+- TypeChecker 已采用环境变量控制（如 ASTER_ENFORCE_PII），可沿用此模式在构造函数内加载 Manifest 并提供 setManifest 钩子。
+- 测试需覆盖 ManifestReader 解析、允许/拒绝判断与 CapabilityChecker 集成，建议使用 `src/test/resources/test-manifest.json` 作为基线数据。
+
+# 2025-11-14 11:30 NZDT Capability 系统改进 - 启动记录
+
+**操作记录**:
+- 工具：sequential-thinking（3 次）→ 梳理三项 Capability 改进的范围、技术风险与执行步骤。
+- 工具：shell(`ls`) → 快速列出仓库根目录，确认 `operations-log.md` 与 `docs/`、`aster-core/` 等关键子目录存在。
+- 工具：code-index__set_project_path(`/Users/rpang/IdeaProjects/aster-lang`) → 初始化代码检索索引，便于后续定位 grammar、AST、CapabilityChecker 文件。
+- 工具：code-index__search_code_advanced(`workflow`) → 了解全局 workflow 相关文档与实现分布，确认 TypeScript 侧已有完整 AST 与 Lowering 参考。
+- 工具：code-index__search_code_advanced(`WorkflowStmt`) → 验证 TypeScript AST/Lowering/测试中已定义 workflow 结构，便于 Java 侧对齐。
+- 工具：code-index__find_files(`**/*.java`) → 粗略确认 Java 源码分布位置（aster-core、aster-lang-cli 等），为定位 AST/Checker 提供路径。
+- 工具：code-index__search_code_advanced(`CapabilityChecker`) → 找到 Java CapabilityChecker 与测试所在目录（`aster-core/src/...`），确定改进落点。
+- 工具：code-index__search_code_advanced(`AstBuilder`) → 确认 Java AST 构建器文件与相关测试，后续将于此扩展 workflow lowering。
+- 工具：shell(`tail -n 40 operations-log.md`) → 检查既有记录格式，确保新增日志遵循既定模板。
+- 工具：shell(`sed -n '1,60p' operations-log.md`) → 阅读最新段落头部，确认章节顺序与写法。
+- 工具：shell(`env TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M %Z"`) → 获取新西兰时区时间戳用于本次记录。
+
+**观察**:
+- 当前 Java 代码尚未显式出现 `WorkflowStmt`/workflow lowering，实现缺口集中在 `aster-core`。
+- operations-log 采用按时间倒序的章节结构，需保持相同格式追加后续阶段记录。
+
+
+# 2025-11-14 11:55 NZDT Capability 系统改进 - AST/Checker 实施
+
+**操作记录**:
+- 工具：apply_patch（多次）→ 更新 `AsterLexer.g4`/`AsterParser.g4`、`AstNode.java`、`Stmt.java`、`AstBuilder.java`、`CoreLowering.java`、`CapabilityChecker.java` 以及 `CapabilityCheckerTest.java`，补齐 workflow 语法、AST 节点、降级逻辑与能力检测。
+- 工具：shell(`./gradlew :aster-core:generateGrammarSource`) → 基于新语法重新生成 ANTLR 产物。
+- 工具：shell(`./gradlew :aster-core:test --tests aster.core.typecheck.checkers.CapabilityCheckerTest`) → 首次运行单测，定位到 `traverseStmt` 缺失 workflow case 及访问修饰符问题。
+- 工具：shell(`./gradlew :aster-core:test --tests aster.core.typecheck.checkers.CapabilityCheckerTest.workflowCapabilityAggregation aster.core.typecheck.checkers.CapabilityCheckerTest.workflowCompensateParity`) → 因 Gradle 目标名称格式错误失败，未执行测试。
+- 工具：shell(`./gradlew :aster-core:test --tests aster.core.typecheck.checkers.CapabilityCheckerTest`) → 修复后复测，10/10 用例通过。
+- 工具：shell(`git status -sb`) → 查看当前改动概况，确认仅关注能力相关文件。
+
+**观察**:
+- Workflow AST/IR 打通后，CoreLowering 需补充 step 能力聚合与默认依赖推导，否则后续类型检查无法获取完整 metadata。
+- CapabilityChecker 新增 workflow/compensate 校验路径，可输出 `WORKFLOW_UNDECLARED_CAPABILITY` 与 `COMPENSATE_NEW_CAPABILITY`，对应测试已覆盖。
+
+
+# 2025-11-14 11:39 NZDT Capability 系统改进 - 语法/IR 勘察
+
+**操作记录**:
+- 工具：shell（`ls aster-core/src/main/java/aster/core`, `ls aster-core/src/main/java/aster/core/ast`）→ 确认 AST、parser、lowering 等子包结构。
+- 工具：shell（`sed` 多次）→ 逐段阅读 `ast/Stmt.java`、`ast/Decl.java`、`src/types.ts`、`src/ast.ts`、`src/types/base.ts`、`src/parser/expr-stmt-parser.ts`、`src/lower_to_core.ts`、`aster-core/.../CoreLowering.java`、`CoreModel.java`、`CapabilityChecker.java`、`CapabilityCheckerTest.java`、`TypeChecker.java`，梳理现有 AST 与 Core IR 的语义差异。
+- 工具：code-index__search_code_advanced（`pattern="Workflow"` 限定 Java 源、`pattern="AstBuilder"` 等）→ 确认 Workflow 相关类型目前仅存在于 Core IR，Java AST 与 parser 缺失；定位 `AstBuilder`、`CapabilityChecker`、`ErrorCode` 等入口文件。
+- 工具：shell（`sed` + `rg`）→ 检查 `AsterParser.g4`/`AsterLexer.g4` 语法与关键字列表，确认缺少 `workflow/step/retry/timeout/compensate` 语法；使用 `rg` 搜索 `workflow`、`COMPENSATE_NEW_CAPABILITY` 等，验证尚未在 Java 实现。
+- 工具：shell（`sed -n`）→ 阅读 TypeScript `typecheck.ts` 中 workflow 能力校验逻辑，对齐未来 Java 需求。
+
+**观察**:
+- Java AST/grammar 缺失 workflow/step/retry/timeout/compensate 语句，需新增 tokens 与规则。
+- CoreLowering 目前未处理 Workflow/Step，待实现 effectCaps 归并与依赖推断；CapabilityChecker 测试解禁需依赖该功能。
+- TypeScript pipeline 已有完整参考，实现应遵循其结构以保持 cross-stack 一致性。
+
+
 # 2025-11-13 21:53 NZDT Phase 4 性能基线-Workflow/DB 实施
 
 **操作记录**:
@@ -118,6 +455,19 @@ Total output lines: 174
 **操作记录**:
 - 工具：sequential-thinking → 解析三个崩溃恢复场景、确定依赖文件与执行顺序。
 - 工具：code-index(set_project_path/find_files) + shell(sed/cat) → 阅读 CrashRecoveryTestBase、WorkflowConcurrencyIntegrationTest 等参考实现。
+
+
+# 2025-11-14 00:09 NZDT Phase 4 语言上下文扫描
+
+**操作记录**:
+- 工具：sequential-thinking（4 次）→ 明确 Phase 4 P4-0/P4-2 需要的核心组件、测试与错误处理扫描步骤。
+- 工具：code-index__set_project_path、search_code_advanced（Lexer/Parser/TypeChecker/ErrorCode/Annotation）→ 定位 aster-core 与 TypeScript src 中的关键类与规则。
+- 工具：shell(ls/sed/cat/rg/date/cp) → 阅读 `src/lexer.ts`、`src/parser.ts`、`src/typecheck.ts`、`aster-core/src/main/java/aster/core/ast/*`、测试与错误码文件，并备份旧 `.claude/context-initial.json`。
+- 工具：apply_patch → 重写 `.claude/context-initial.json`，记录 Phase 4 初始上下文（组件、测试、错误处理、语言特性、观察）。
+
+**观察**:
+- Lexer/Parser/TypeChecker 在 TypeScript 与 Java 双栈实现中保持共享语义（canonicalize → lex → parse → Core IR），错误码由 shared/error_codes.json 统一生成。
+- 测试覆盖包括 JUnit 语法/类型检查集、Node fast-check fuzz、黄金测试；尚缺跨栈一致性验证与注解语义的运行时说明。
 - 工具：apply_patch → 新增 `WorkflowCrashRecoveryTest` 并补充事务性 helper。
 - 工具：apply_patch → 调整 helper 以直接写入 WorkflowEventEntity、增加 JSON 节点断言。
 - 工具：shell(`./gradlew :quarkus-policy-api:test --tests io.aster.workflow.WorkflowCrashRecoveryTest`) → 运行并通过 3 个新测试用例。
@@ -6582,4 +6932,3 @@ CI 中的 configuration cache 警告是**预期行为**:
 5. 生成最终报告
 
 **预计剩余工作量**：~300-400 行代码修改 + 测试更新 + 验证（约 2-3 小时）
-

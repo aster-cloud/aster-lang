@@ -45,6 +45,8 @@
     "test:integration:lsp": "npm run build && node --test 'dist/test/integration/lsp/**/*.test.js'",
     "test:integration:pipeline": "npm run build && node --test 'dist/test/integration/pipeline/**/*.test.js'",
     "test:integration:capabilities": "npm run build && node --test 'dist/test/integration/capabilities/**/*.test.js'",
+    "test:e2e:annotations": "node --test dist/test/e2e/annotation-integration.test.js",
+    "test:e2e:full": "bash scripts/cross_validate.sh",
     "test:e2e": "npm run build && node dist/test/e2e/runner/golden-runner.js",
     "test:regression": "npm run build && node --test 'dist/test/regression/**/*.test.js'",
     "test:golden": "npm run fmt:examples && npm run build && node dist/scripts/golden.js",

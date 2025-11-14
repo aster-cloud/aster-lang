@@ -365,6 +365,15 @@ export type PiiDataCategory =
   | 'name'       // 姓名
   | 'biometric'; // 生物识别信息（指纹、面部识别等）
 
+export const PII_LEVELS = ['L1', 'L2', 'L3'] as const;
+export type PiiLevel = (typeof PII_LEVELS)[number];
+
+export interface PiiMeta {
+  readonly level: PiiLevel;
+  readonly categories: readonly string[];
+  readonly sourceSpan?: Span | undefined;
+}
+
 /**
  * PII 类型标注（AST 层）
  * 语法：@pii(L2, email) Text
@@ -442,6 +451,8 @@ export namespace Core {
     readonly effects: readonly EffectEnum[];
     readonly body: Block;
     readonly params: readonly Parameter[];
+    readonly piiLevel?: PiiSensitivityLevel;
+    readonly piiCategories?: readonly string[];
   }
 
   export interface Parameter extends Base.BaseParameter<Type> {
