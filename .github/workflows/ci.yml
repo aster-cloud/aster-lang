@@ -16,29 +16,62 @@ env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/policy-api
 
 jobs:
-  test:
-    name: Test (Node ${{ matrix.node-version }})
+  build:
+    name: Build TypeScript
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22]
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+          retention-days: 1
+
+  test:
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        node-version: [22]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Audit dependencies
         run: npm run audit
-      
+
       - name: Type check
         run: npm run typecheck
       
@@ -102,9 +135,6 @@ jobs:
         with:
           name: prettier-fixes
           path: prettier-fix.patch
-      
-      - name: Build
-        run: npm run build
 
       - name: Validate error codes
         run: npm run verify:error-codes
@@ -123,24 +153,27 @@ jobs:
   benchmark:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
-    needs: test
-    
+    needs: build
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
-      
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Build
-        run: npm run build
-      
+
       - name: Run benchmarks
         run: npm run bench
 
@@ -171,7 +204,7 @@ jobs:
   jvm:
     name: JVM Emitter Check
     runs-on: ubuntu-latest
-    needs: test
+    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -190,11 +223,14 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Build
-        run: npm run build
 
       - name: Ensure gradlew is executable
         run: chmod +x ./gradlew
@@ -229,7 +265,7 @@ jobs:
   cross-stack-validation:
     name: Cross-Stack Typecheck Validation
     runs-on: ubuntu-latest
-    needs: test
+    needs: build
     env:
       JAVA_TYPECHECK_CMD: ${{ vars.JAVA_TYPECHECK_CMD || '' }}
       TS_TYPECHECK_CMD: ${{ vars.TS_TYPECHECK_CMD || '' }}
@@ -250,11 +286,14 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Build TypeScript artifacts
-        run: npm run build
 
       - name: Show cross-validate configuration
         run: |
@@ -271,7 +310,7 @@ jobs:
   quarkus-policy-api:
     name: Quarkus Policy API Tests
     runs-on: ubuntu-latest
-    needs: test
+    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -308,11 +347,14 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Build
-        run: npm run build
 
       - name: Ensure gradlew is executable
         run: chmod +x ./gradlew
@@ -627,7 +669,7 @@ jobs:
   truffle-native:
     name: Truffle Native Image Build
     runs-on: ubuntu-latest
-    needs: test
+    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -647,11 +689,14 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Build
-        run: npm run build
 
       - name: Ensure gradlew is executable
         run: chmod +x ./gradlew
