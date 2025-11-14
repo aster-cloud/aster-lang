@@ -234,6 +234,8 @@ public class PolicyAnalyticsResource {
      *
      * GET /api/audit/anomalies/{id}
      *
+     * Phase 4.3: 强制租户过滤，防止跨租户数据访问
+     *
      * @param id 异常报告 ID
      * @return 异常详情，包含验证结果和处置状态
      */
@@ -241,8 +243,15 @@ public class PolicyAnalyticsResource {
     @Path("/anomalies/{id}")
     @Blocking
     public Response getAnomalyDetail(@PathParam("id") Long id) {
-        // 查询异常实体
-        AnomalyReportEntity entity = AnomalyReportEntity.findById(id);
+        // Phase 4.3: 强制租户过滤，从 TenantContext 自动获取
+        String tenantId = tenantContext.getCurrentTenant();
+
+        // 查询异常实体（包含租户验证）
+        AnomalyReportEntity entity = AnomalyReportEntity.find(
+            "id = ?1 AND tenantId = ?2",
+            id,
+            tenantId
+        ).firstResult();
 
         if (entity == null) {
             return Response.status(Response.Status.NOT_FOUND)
@@ -273,12 +282,33 @@ public class PolicyAnalyticsResource {
      *
      * 提交验证动作到队列，由 AnomalyActionScheduler 异步执行。
      *
+     * Phase 4.3: 强制租户验证，防止跨租户触发验证
+     *
      * @param id 异常报告 ID
      * @return 验证动作响应（含动作 ID）
      */
     @POST
     @Path("/anomalies/{id}/actions/verify")
     public Uni<Response> triggerVerification(@PathParam("id") Long id) {
+        // Phase 4.3: 强制租户验证
+        String tenantId = tenantContext.getCurrentTenant();
+
+        // 先验证实体是否存在且属于当前租户
+        AnomalyReportEntity entity = AnomalyReportEntity.find(
+            "id = ?1 AND tenantId = ?2",
+            id,
+            tenantId
+        ).firstResult();
+
+        if (entity == null) {
+            return Uni.createFrom().item(
+                Response.status(Response.Status.NOT_FOUND)
+                    .entity("Anomaly not found: id=" + id)
+                    .build()
+            );
+        }
+
+        // 租户验证通过，提交验证动作
         return workflowService.submitVerificationAction(id)
             .onItem().transform(actionId -> {
                 AnomalyActionResponse response = new AnomalyActionResponse(
@@ -336,6 +366,25 @@ public class PolicyAnalyticsResource {
     }
 
     private Uni<Response> performUpdateAnomalyStatus(Long id, AnomalyStatusUpdateRequest request) {
+        // Phase 4.3: 强制租户验证，防止跨租户修改
+        String tenantId = tenantContext.getCurrentTenant();
+
+        // 先验证实体是否存在且属于当前租户
+        AnomalyReportEntity entity = AnomalyReportEntity.find(
+            "id = ?1 AND tenantId = ?2",
+            id,
+            tenantId
+        ).firstResult();
+
+        if (entity == null) {
+            return Uni.createFrom().item(
+                Response.status(Response.Status.NOT_FOUND)
+                    .entity("Anomaly not found: id=" + id)
+                    .build()
+            );
+        }
+
+        // 租户验证通过，执行状态更新
         return workflowService.updateStatus(id, request.status(), request.notes())
             .onItem().transform(success -> Response.noContent().build())
             .onFailure().recoverWithItem(failure -> {
