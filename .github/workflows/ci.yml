@@ -508,11 +508,19 @@ jobs:
         run: |
           set -euo pipefail
           docker network create policy-ci || true
+
+          # Start PostgreSQL
           docker run -d --name policy-ci-postgres --network policy-ci \
             -e POSTGRESQL_USERNAME=postgres \
             -e POSTGRESQL_PASSWORD=postgres \
             -e POSTGRESQL_DATABASE=aster_policy \
             docker.io/bitnami/postgresql:latest
+
+          # Start Redis
+          docker run -d --name policy-ci-redis --network policy-ci \
+            docker.io/redis:7-alpine
+
+          # Wait for PostgreSQL to be ready
           for i in {1..12}; do
             if docker exec policy-ci-postgres pg_isready -U postgres >/dev/null 2>&1; then
               break
@@ -520,12 +528,25 @@ jobs:
             echo "Waiting for Postgres..."
             sleep 5
           done
+
+          # Wait for Redis to be ready
+          for i in {1..12}; do
+            if docker exec policy-ci-redis redis-cli ping >/dev/null 2>&1; then
+              echo "Redis is ready"
+              break
+            fi
+            echo "Waiting for Redis..."
+            sleep 2
+          done
+
+          # Start application
           docker run -d --name policy-ci-app --network policy-ci -p 8080:8080 \
             -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://policy-ci-postgres:5432/aster_policy \
             -e QUARKUS_DATASOURCE_REACTIVE_URL=postgresql://policy-ci-postgres:5432/aster_policy \
             -e QUARKUS_DATASOURCE_USERNAME=postgres \
             -e QUARKUS_DATASOURCE_PASSWORD=postgres \
             -e QUARKUS_FLYWAY_MIGRATE_AT_START=true \
+            -e QUARKUS_REDIS_HOSTS=redis://policy-ci-redis:6379 \
             "$IMAGE_TAG"
           start=$(date +%s)
           timeout=120
@@ -574,6 +595,7 @@ jobs:
         if: always()
         run: |
           docker rm -f policy-ci-app || true
+          docker rm -f policy-ci-redis || true
           docker rm -f policy-ci-postgres || true
           docker network rm policy-ci || true
 
