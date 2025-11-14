@@ -407,6 +407,24 @@ public final class AsyncTaskRegistry {
       return;
     }
 
+    // Check if any dependency has failed before transitioning to RUNNING
+    // This prevents race condition where task gets scheduled before cancellation propagates
+    if (!info.dependencies.isEmpty()) {
+      for (String dep : info.dependencies) {
+        if (isFailed(dep)) {
+          // Dependency failed, mark this task as cancelled
+          if (state.status.compareAndSet(TaskStatus.PENDING, TaskStatus.CANCELLED)) {
+            info.future.cancel(false);
+            remainingTasks.decrementAndGet();
+            synchronized (graphLock) {
+              dependencyGraph.markCompleted(info.taskId);
+            }
+          }
+          return;
+        }
+      }
+    }
+
     if (!state.status.compareAndSet(TaskStatus.PENDING, TaskStatus.RUNNING)) {
       if (state.status.get() == TaskStatus.CANCELLED) {
         info.future.cancel(false);
