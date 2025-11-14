@@ -11,12 +11,17 @@ import io.aster.common.dto.PagedResult;
 import io.aster.perf.PerfStats;
 import io.aster.perf.SystemMetrics;
 import io.aster.policy.entity.PolicyVersion;
+import io.aster.policy.tenant.TenantContext;
 import io.aster.workflow.WorkflowEventEntity;
 import io.aster.workflow.WorkflowStateEntity;
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.ManagedContext;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.context.control.RequestContextController;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +56,12 @@ public class PolicyDatabasePerformanceBaselineTest {
     @Inject
     PolicyAuditService auditService;
 
+    @Inject
+    RequestContextController requestContextController;
+
+    @Inject
+    TenantContext tenantContext;
+
     private DatasetSummary dataset;
 
     @BeforeEach
@@ -64,9 +75,15 @@ public class PolicyDatabasePerformanceBaselineTest {
 
     @Test
     void captureDatabaseQueryBaseline() throws IOException {
-        DatabaseBaselineReport report = measureBaseline(DEFAULT_ITERATIONS);
-        writeReport(report, "database-baseline.json");
-        Assertions.assertThat(report.metrics().size()).isGreaterThanOrEqualTo(4);
+        requestContextController.activate();
+        try {
+            tenantContext.setCurrentTenant(dataset.tenants().get(0));
+            DatabaseBaselineReport report = measureBaseline(DEFAULT_ITERATIONS);
+            writeReport(report, "database-baseline.json");
+            Assertions.assertThat(report.metrics().size()).isGreaterThanOrEqualTo(4);
+        } finally {
+            requestContextController.deactivate();
+        }
     }
 
     private DatabaseBaselineReport measureBaseline(int iterations) {

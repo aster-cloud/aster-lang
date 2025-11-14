@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -18,7 +18,7 @@ Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/b6ce
 
 ##### name
 
-`null` | `string`
+`string` | `null`
 
 ##### decls
 
@@ -40,7 +40,7 @@ readonly [`Declaration`](../../types/namespaces/Core/type-aliases/Declaration.md
 
 ##### asName
 
-`null` | `string`
+`string` | `null`
 
 #### Returns
 
@@ -94,7 +94,7 @@ readonly `string`[]
 
 ##### typeParams
 
-`undefined` | readonly `string`[]
+readonly `string`[] | `undefined`
 
 ##### params
 
@@ -218,7 +218,7 @@ readonly [`Statement`](../../types/namespaces/Core/type-aliases/Statement.md)[]
 
 ##### elseBlock
 
-`null` | [`Block`](../../types/namespaces/Core/interfaces/Block.md)
+[`Block`](../../types/namespaces/Core/interfaces/Block.md) | `null`
 
 #### Returns
 

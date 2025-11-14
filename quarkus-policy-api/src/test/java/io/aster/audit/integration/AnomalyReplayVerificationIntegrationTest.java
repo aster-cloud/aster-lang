@@ -147,6 +147,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomalyEntity.detectedAt = detectedAnomaly.detectedAt;
         anomalyEntity.sampleWorkflowId = detectedAnomaly.sampleWorkflowId;  // Phase 3.8
         anomalyEntity.status = "PENDING";
+        anomalyEntity.tenantId = "test-tenant";
         anomalyEntity.persist();
 
         Long anomalyId = anomalyEntity.id;
@@ -196,6 +197,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomaly.detectedAt = Instant.now();
         anomaly.status = "PENDING";
         anomaly.sampleWorkflowId = null;  // 缺少 sampleWorkflowId
+        anomaly.tenantId = "test-tenant";
         anomaly.persist();
 
         Long anomalyId = anomaly.id;
@@ -250,6 +252,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomaly.detectedAt = Instant.now();
         anomaly.status = "PENDING";
         anomaly.sampleWorkflowId = workflowId;
+        anomaly.tenantId = "test-tenant";
         anomaly.persist();
 
         Long anomalyId = anomaly.id;
@@ -342,6 +345,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomalyEntity.detectedAt = detectedAnomaly.detectedAt;
         anomalyEntity.sampleWorkflowId = detectedAnomaly.sampleWorkflowId;
         anomalyEntity.status = "PENDING";
+        anomalyEntity.tenantId = "test-tenant";
         anomalyEntity.persist();
 
         Long anomalyId = anomalyEntity.id;
@@ -390,6 +394,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomaly.recommendation = "Test recommendation";
         anomaly.detectedAt = Instant.now();
         anomaly.status = "VERIFYING";
+        anomaly.tenantId = "test-tenant";
         anomaly.persist();
 
         Long anomalyId = anomaly.id;
@@ -465,6 +470,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomaly.status = "PENDING";
         anomaly.description = "Performance degraded in v2";
         anomaly.detectedAt = Instant.now();
+        anomaly.tenantId = "test-tenant";
         anomaly.persist();
 
         // 4. 创建 workflow（用于 replay）
@@ -557,6 +563,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomaly.status = "PENDING";
         anomaly.description = "Performance issue";
         anomaly.detectedAt = Instant.now();
+        anomaly.tenantId = "test-tenant";
         anomaly.persist();
 
         // 3. 创建 workflow
@@ -621,6 +628,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomaly.status = "PENDING";
         anomaly.description = "Performance issue";
         anomaly.detectedAt = Instant.now();
+        anomaly.tenantId = "test-tenant";
         anomaly.persist();
 
         // 3. 创建 workflow
@@ -693,6 +701,7 @@ class AnomalyReplayVerificationIntegrationTest {
         anomaly.status = "PENDING";
         anomaly.description = "Performance issue";
         anomaly.detectedAt = Instant.now();
+        anomaly.tenantId = "test-tenant";
         anomaly.persist();
 
         // 4. 手动创建 AUTO_ROLLBACK 动作（模拟已触发场景）

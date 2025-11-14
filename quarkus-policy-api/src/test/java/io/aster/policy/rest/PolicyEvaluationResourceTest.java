@@ -1,6 +1,7 @@
 package io.aster.policy.rest;
 
 import io.aster.policy.api.PolicyEvaluationService;
+import io.aster.policy.test.RedisEnabledTest;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
@@ -22,6 +23,7 @@ import static org.hamcrest.Matchers.*;
  * 6. 错误处理 - 无效输入和边界情况
  */
 @QuarkusTest
+@RedisEnabledTest
 public class PolicyEvaluationResourceTest {
 
     @Inject
@@ -42,6 +44,7 @@ public class PolicyEvaluationResourceTest {
     public void testEvaluatePolicy_LoanScenario() {
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "policyModule": "aster.finance.loan",
@@ -82,6 +85,7 @@ public class PolicyEvaluationResourceTest {
     public void testEvaluatePolicy_CreditCardScenario() {
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "policyModule": "aster.finance.creditcard",
@@ -184,6 +188,7 @@ public class PolicyEvaluationResourceTest {
     public void testEvaluateBatch_MultipleRequests() {
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "requests": [
@@ -258,6 +263,7 @@ public class PolicyEvaluationResourceTest {
     public void testEvaluateBatch_WithFailures() {
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "requests": [
@@ -309,6 +315,7 @@ public class PolicyEvaluationResourceTest {
     public void testValidatePolicy_ValidPolicy() {
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "policyModule": "aster.finance.loan",
@@ -333,6 +340,7 @@ public class PolicyEvaluationResourceTest {
     public void testValidatePolicy_InvalidModule() {
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "policyModule": "aster.nonexistent.module",
@@ -357,6 +365,7 @@ public class PolicyEvaluationResourceTest {
     public void testValidatePolicy_InvalidFunction() {
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "policyModule": "aster.finance.loan",
@@ -580,6 +589,7 @@ public class PolicyEvaluationResourceTest {
     public void testEvaluatePolicy_ParameterMismatch() {
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "policyModule": "aster.finance.loan",
@@ -603,9 +613,10 @@ public class PolicyEvaluationResourceTest {
      */
     @Test
     public void testEvaluatePolicy_DefaultTenant() {
-        // 不提供X-Tenant-Id头部，应使用"default"租户
+        // 显式提供 X-Tenant-Id="default"（TenantFilter 强制要求）
         given()
             .contentType(ContentType.JSON)
+            .header("X-Tenant-Id", "default")
             .body("""
                 {
                     "policyModule": "aster.finance.loan",

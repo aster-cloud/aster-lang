@@ -1,3 +1,18 @@
+# 2025-11-15 09:46 NZDT Priority3 失败分析
+
+**操作记录**:
+- 工具：sequential-thinking(totalThoughts=2) ×2 → 先明确任务目标、研究步骤与风险。
+- 工具：code-index.set_project_path(.)、code-index.find_files(**/MultiTenantIsolationTest.java 等) → 建立索引并定位 5 个失败测试文件与核心实现。
+- 工具：shell(`sed -n`/`nl`) 针对 MultiTenantIsolationTest、TenantFilter、PolicyAnalyticsService、WorkflowPerformanceBaselineTest、PostgresWorkflowRuntime、TimerSchedulerService、WorkflowSchedulerService 等源码 → 收集断言与逻辑细节。
+- 工具：shell(`cat`/`nl`) 读取 `quarkus-policy-api/build/test-results/test/TEST-*.xml` → 提取栈轨、耗时与日志证据。
+- 工具：shell(`rg`) 分析 `WorkflowTimerEntity` 状态变迁与 `UUID.randomUUID` 使用点 → 验证 NonDeterminism 守护失败原因。
+- 工具：shell(`cat <<'EOF' > .claude/context-priority3-analysis.json`) → 输出 5 个失败的根因/影响/方案/优先级 JSON 报告。
+
+**观察**:
+- TenantFilter 把缺失 header 的请求默认为 default 租户，直接破坏多租户隔离，必须恢复 400 流程。
+- Policy/Workflow 两个性能基线在后台线程缺失 RequestContext，需在测试层显式注入或提供 TenantContext helper。
+- TimerSchedulerService 与 WorkflowSchedulerService 的双重轮询造成 status=FIRED 卡住，须统一调度入口。
+
 # 2025-11-14 23:20 NZDT 多租户隔离 Stage1 上下文
 
 **操作记录**:
@@ -7006,4 +7021,3 @@ if (entity == null) {
 **Status:** Phase 4.3 multi-tenant isolation fix 100% complete ✅
 
 **Next Steps:** Integration testing and deployment
-

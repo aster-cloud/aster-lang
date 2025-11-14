@@ -12,12 +12,12 @@ import org.jboss.logging.Logger;
  *
  * <p>规则：
  * <ul>
- *   <li>缺失 X-Tenant-Id → 400 Bad Request</li>
- *   <li>空字符串或仅空白 → 400 Bad Request</li>
+ *   <li>缺失 X-Tenant-Id → 400 Bad Request（除豁免路径外）</li>
+ *   <li>空字符串或仅空白 → 400 Bad Request（除豁免路径外）</li>
  *   <li>有效 tenant ID → 填充 TenantContext</li>
  * </ul>
  *
- * <p>豁免路径：
+ * <p>豁免路径（无需 X-Tenant-Id header）：
  * <ul>
  *   <li>/q/* - Quarkus 管理端点（health, metrics, openapi）</li>
  *   <li>/graphql/schema.graphql - GraphQL schema 端点</li>
@@ -36,14 +36,18 @@ public class TenantFilter implements ContainerRequestFilter {
     public void filter(ContainerRequestContext requestContext) {
         String path = requestContext.getUriInfo().getPath();
 
-        // 豁免管理端点和 schema 端点
-        if (path.startsWith("q/") || path.equals("graphql/schema.graphql")) {
+        // 豁免路径：仅管理端点和 schema 端点
+        if (path.startsWith("/q/") || path.startsWith("q/")
+                || path.equals("/graphql/schema.graphql") || path.equals("graphql/schema.graphql")) {
             LOG.debugf("Bypassing tenant validation for path: %s", path);
+            // 豁免路径使用默认租户
+            tenantContext.setCurrentTenant("default");
             return;
         }
 
         String tenantId = requestContext.getHeaderString(TENANT_HEADER);
 
+        // 严格校验：缺失或空白 header 返回 400
         if (tenantId == null || tenantId.trim().isEmpty()) {
             LOG.warnf("Missing or empty %s header for path: %s", TENANT_HEADER, path);
             requestContext.abortWith(

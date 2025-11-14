@@ -220,6 +220,10 @@ public class PolicyAnalyticsService {
         }
 
         // 2.2 僵尸版本检测（Phase 3.8 扩展：捕获 sampleWorkflowId；Phase 4.3：条件租户过滤）
+        // 注意：此查询独立于第一个查询，需要使用 ?1 作为租户参数
+        String zombieSubqueryTenantFilter = filterByTenant ? "AND tenant_id = ?1" : "";
+        String zombieTenantFilterClause = filterByTenant ? "AND ws.tenant_id = ?1" : "";
+
         String sqlZombieVersions = String.format("""
             SELECT
                 pv.id, pv.policy_id,
@@ -237,11 +241,11 @@ public class PolicyAnalyticsService {
             WHERE 1=1 %s
             GROUP BY pv.id, pv.policy_id
             HAVING MAX(ws.started_at) < NOW() - INTERVAL '%d days' OR MAX(ws.started_at) IS NULL
-            """, subqueryTenantFilter, tenantFilterClause, days);
+            """, zombieSubqueryTenantFilter, zombieTenantFilterClause, days);
 
         jakarta.persistence.Query zombieQuery = em.createNativeQuery(sqlZombieVersions);
         if (filterByTenant) {
-            zombieQuery.setParameter(2, tenantId);
+            zombieQuery.setParameter(1, tenantId);
         }
 
         @SuppressWarnings("unchecked")
@@ -291,6 +295,10 @@ public class PolicyAnalyticsService {
         }
 
         // 2.3 性能劣化检测（Phase 3.4 + Phase 3.8 扩展：捕获 sampleWorkflowId；Phase 4.3：条件租户过滤）
+        // 注意：此查询独立于前两个查询，需要使用 ?1 作为租户参数
+        String degradationSubqueryTenantFilter = filterByTenant ? "AND tenant_id = ?1" : "";
+        String degradationTenantFilterClause = filterByTenant ? "AND ws.tenant_id = ?1" : "";
+
         String sqlPerformanceDegradation = String.format("""
             SELECT
                 pv.id, pv.policy_id,
@@ -318,11 +326,11 @@ public class PolicyAnalyticsService {
                AND COUNT(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN 1 END) >= 10
                AND AVG(CASE WHEN ws.started_at >= NOW() - INTERVAL '7 days' THEN ws.duration_ms END) > AVG(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN ws.duration_ms END) * 1.5
             ORDER BY (AVG(CASE WHEN ws.started_at >= NOW() - INTERVAL '7 days' THEN ws.duration_ms END) - AVG(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN ws.duration_ms END)) / AVG(CASE WHEN ws.started_at < NOW() - INTERVAL '7 days' AND ws.started_at >= NOW() - INTERVAL '30 days' THEN ws.duration_ms END) DESC
-            """, subqueryTenantFilter, days, tenantFilterClause);
+            """, degradationSubqueryTenantFilter, days, degradationTenantFilterClause);
 
         jakarta.persistence.Query degradationQuery = em.createNativeQuery(sqlPerformanceDegradation);
         if (filterByTenant) {
-            degradationQuery.setParameter(2, tenantId);
+            degradationQuery.setParameter(1, tenantId);
         }
 
         @SuppressWarnings("unchecked")

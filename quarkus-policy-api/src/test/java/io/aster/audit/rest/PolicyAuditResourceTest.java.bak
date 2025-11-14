@@ -78,7 +78,6 @@ public class PolicyAuditResourceTest {
     void testGetVersionUsage_DefaultPagination() {
         given()
             .header("X-Tenant-Id", TEST_TENANT_ID)
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/policy-versions/{versionId}/usage", testVersion.id)
             .then()
             .statusCode(200)
@@ -95,7 +94,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetVersionUsage_WithStatusFilter() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .queryParam("status", "READY")
             .when().get("/api/audit/policy-versions/{versionId}/usage", testVersion.id)
             .then()
@@ -109,7 +107,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetVersionUsage_InvalidPagination_NegativePage() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .queryParam("page", -1)
             .when().get("/api/audit/policy-versions/{versionId}/usage", testVersion.id)
             .then()
@@ -122,7 +119,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetVersionUsage_InvalidPagination_SizeExceedsMax() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .queryParam("size", 101)
             .when().get("/api/audit/policy-versions/{versionId}/usage", testVersion.id)
             .then()
@@ -138,7 +134,6 @@ public class PolicyAuditResourceTest {
         Instant to = Instant.now().plus(1, ChronoUnit.HOURS);
 
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .queryParam("from", from.toString())
             .queryParam("to", to.toString())
             .queryParam("page", 0)
@@ -157,7 +152,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetVersionTimeline_MissingRequiredParams() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .queryParam("page", 0)
             .queryParam("size", 10)
             .when().get("/api/audit/policy-versions/{versionId}/timeline", testVersion.id)
@@ -174,7 +168,6 @@ public class PolicyAuditResourceTest {
         Instant to = from.minus(1, ChronoUnit.HOURS);
 
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .queryParam("from", from.toString())
             .queryParam("to", to.toString())
             .queryParam("page", 0)
@@ -190,7 +183,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testAssessImpact_ReturnsCorrectCounts() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/policy-versions/{versionId}/impact", testVersion.id)
             .then()
             .statusCode(200)
@@ -205,7 +197,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testAssessImpact_NotFound() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/policy-versions/{versionId}/impact", 999999L)
             .then()
             .statusCode(404);
@@ -217,7 +208,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetWorkflowVersionHistory() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/workflows/{workflowId}/version-history", workflowId1)
             .then()
             .statusCode(200)
@@ -230,7 +220,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetWorkflowVersionHistory_InvalidUUID() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/workflows/{workflowId}/version-history", "invalid-uuid")
             .then()
             .statusCode(400);
@@ -243,7 +232,6 @@ public class PolicyAuditResourceTest {
     void testGetArtifact_NotFound() {
         String validSha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/artifacts/{sha256}", validSha256)
             .then()
             .statusCode(404);
@@ -255,7 +243,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetArtifact_InvalidFormat() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/artifacts/{sha256}", "invalid-sha256")
             .then()
             .statusCode(400);
@@ -267,7 +254,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetRuntimePolicies() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/runtime/{build}/policies", "test-build-1.0.0")
             .then()
             .statusCode(200)
@@ -280,7 +266,6 @@ public class PolicyAuditResourceTest {
     @Test
     void testGetRuntimePolicies_EmptyBuild() {
         given()
-            .header("X-Tenant-Id", TEST_TENANT_ID)
             .when().get("/api/audit/runtime/{build}/policies", " ")
             .then()
             .statusCode(400);

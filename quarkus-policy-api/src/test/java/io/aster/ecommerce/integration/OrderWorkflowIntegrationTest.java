@@ -120,6 +120,7 @@ class OrderWorkflowIntegrationTest {
     private List<Map<String, Object>> fetchEvents(String workflowId) {
         return given()
             .accept(ContentType.JSON)
+            .header("X-Tenant-Id", "tenant-it")
             .get("/api/workflows/{workflowId}/events", workflowId)
         .then()
             .statusCode(200)

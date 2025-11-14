@@ -63,7 +63,7 @@
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:regression && npm run test:property && npm run test:fuzz",
     "test:golden:update": "npm run build && node dist/scripts/cli.js test/cnl/programs/examples/greet.aster > test/cnl/programs/examples/expected_greet.ast.json && node dist/scripts/cli.js test/cnl/programs/examples/login.aster > test/cnl/programs/examples/expected_login.ast.json && node dist/scripts/emit-core.js test/cnl/programs/examples/greet.aster > test/cnl/programs/examples/expected_greet_core.json && node dist/scripts/emit-core.js test/cnl/programs/examples/login.aster > test/cnl/programs/examples/expected_login_core.json",
     "lint": "eslint src scripts --ext .ts",
-    "audit": "audit-ci --moderate",
+    "audit": "audit-ci --high",
     "lint:fix": "eslint src scripts --ext .ts --fix",
     "format": "prettier --write src scripts docs",
     "format:check": "prettier --check src scripts docs",

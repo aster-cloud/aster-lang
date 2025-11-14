@@ -29,9 +29,9 @@ public class RedisTestResource implements QuarkusTestResourceLifecycleManager {
         System.out.println("[Redis Testcontainer] Started: " + redisHost);
 
         // 配置 Quarkus Redis 连接
+        // 移除 value-type 显式配置，让 Quarkus 自动推导类型（避免 ClassCastException）
         return Map.of(
-            "quarkus.redis.hosts", redisHost,
-            "quarkus.cache.redis.policy-results.value-type", "io.aster.policy.rest.model.EvaluationResponse"
+            "quarkus.redis.hosts", redisHost
         );
     }
 

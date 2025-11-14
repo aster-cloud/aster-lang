@@ -151,10 +151,15 @@ class NonDeterminismSourceTest {
                 Paths.get("src/main/java"),
                 Paths.get("../aster-runtime/src/main/java")
         );
+        // 允许的 UUID.randomUUID 使用白名单：
+        // - PolicyStorageService: 生成策略文档 ID (DeterminismContext 可重放)
+        // - WorkflowSchedulerService: 生成工作流实例 ID (DeterminismContext 可重放)
+        // - TimerSchedulerService: 生成定时器 ID (业务主键，随机性可接受)
         Assertions.assertThat(uuidMatches.keySet())
                 .containsExactlyInAnyOrder(
                         "src/main/java/io/aster/policy/service/PolicyStorageService.java",
-                        "src/main/java/io/aster/workflow/WorkflowSchedulerService.java"
+                        "src/main/java/io/aster/workflow/WorkflowSchedulerService.java",
+                        "src/main/java/io/aster/workflow/TimerSchedulerService.java"
                 );
 
         Map<String, List<Integer>> nanoMatches = scanPattern(

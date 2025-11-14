@@ -4,9 +4,9 @@
 
 # Function: parseEffect()
 
-> **parseEffect**(`effect`): `null` \| [`Effect`](../enumerations/Effect.md)
+> **parseEffect**(`effect`): [`Effect`](../enumerations/Effect.md) \| `null`
 
-Defined in: [config/semantic.ts:76](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/config/semantic.ts#L76)
+Defined in: [config/semantic.ts:76](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/config/semantic.ts#L76)
 
 转换 effect 字符串为枚举。
 
@@ -20,7 +20,7 @@ CNL 中的 effect 字符串（小写）
 
 ## Returns
 
-`null` \| [`Effect`](../enumerations/Effect.md)
+[`Effect`](../enumerations/Effect.md) \| `null`
 
 对应的 Effect 枚举，如果非法则返回 null
 

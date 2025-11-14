@@ -13,7 +13,11 @@ import io.aster.workflow.WorkflowEventEntity;
 import io.aster.workflow.WorkflowSchedulerService;
 import io.aster.workflow.WorkflowStateEntity;
 import io.aster.workflow.WorkflowTimerEntity;
+import io.aster.policy.tenant.TenantContext;
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.ManagedContext;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.context.control.RequestContextController;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.assertj.core.api.Assertions;
@@ -53,6 +57,12 @@ public class WorkflowPerformanceBaselineTest {
     @Inject
     PostgresEventStore eventStore;
 
+    @Inject
+    RequestContextController requestContextController;
+
+    @Inject
+    TenantContext tenantContext;
+
     @BeforeEach
     @Transactional
     void cleanTables() {
@@ -82,7 +92,9 @@ public class WorkflowPerformanceBaselineTest {
 
         for (int i = 0; i < totalWorkflows; i++) {
             executor.submit(() -> {
+                requestContextController.activate();
                 try {
+                    tenantContext.setCurrentTenant("test-tenant");
                     WorkflowRunSample sample = runSingleWorkflow();
                     endToEndSamples.add(sample.endToEndMs());
                     schedulerSamples.add(sample.schedulerMs());
@@ -90,7 +102,11 @@ public class WorkflowPerformanceBaselineTest {
                 } catch (Exception e) {
                     errors.add(e);
                 } finally {
-                    latch.countDown();
+                    try {
+                        requestContextController.deactivate();
+                    } finally {
+                        latch.countDown();
+                    }
                 }
             });
         }

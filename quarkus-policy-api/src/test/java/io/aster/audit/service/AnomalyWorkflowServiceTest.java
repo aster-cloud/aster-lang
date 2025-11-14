@@ -66,6 +66,7 @@ class AnomalyWorkflowServiceTest {
         anomaly.metricValue = 0.5;
         anomaly.threshold = 0.1;
         anomaly.detectedAt = Instant.now();
+        anomaly.tenantId = "test-tenant";
         anomaly.persist();
 
         testAnomalyId = anomaly.id;

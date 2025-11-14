@@ -72,15 +72,11 @@ public class WorkflowSchedulerService {
 
         // 启动定时器轮询服务
         timerPollingService = Executors.newScheduledThreadPool(1);
-        timerPollingService.scheduleAtFixedRate(
-                this::pollTimers,
-                0,
-                5,
-                TimeUnit.SECONDS
-        );
 
-        // 启动就绪 workflow 轮询（LISTEN/NOTIFY 的简化替代）
-        // 实际生产环境应使用 PostgreSQL LISTEN/NOTIFY
+        // 注意：pollTimers() 已禁用，timer 调度由 TimerSchedulerService 统一管理
+        // TimerSchedulerService 会处理所有定时器状态转换（PENDING → EXECUTING → COMPLETED/PENDING）
+        // WorkflowSchedulerService 不再参与 timer 调度，避免竞态条件
+
         timerPollingService.scheduleAtFixedRate(
                 this::pollReadyWorkflows,
                 0,

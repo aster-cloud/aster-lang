@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -46,6 +47,7 @@ public class PolicyMetrics {
      * 初始化指标
      * 在应用启动时自动调用
      */
+    @PostConstruct
     public void init() {
         // 注册缓存命中率 Gauge
         Gauge.builder("cache_hit_ratio", this, PolicyMetrics::calculateCacheHitRatio)

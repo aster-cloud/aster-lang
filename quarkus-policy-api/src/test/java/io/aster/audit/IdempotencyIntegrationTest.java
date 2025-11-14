@@ -240,8 +240,8 @@ public class IdempotencyIntegrationTest {
 
     @Test
     void testDifferentTenantsIsolation() {
-        Long anomalyA = createTestAnomaly(POLICY_PREFIX + "tenantA", null, "PENDING");
-        Long anomalyB = createTestAnomaly(POLICY_PREFIX + "tenantB", null, "PENDING");
+        Long anomalyA = createTestAnomaly(POLICY_PREFIX + "tenantA", null, "PENDING", "tenant-A");
+        Long anomalyB = createTestAnomaly(POLICY_PREFIX + "tenantB", null, "PENDING", "tenant-B");
         String key = newKey();
 
         sendStatusUpdate(anomalyA, key, "tenant-A", "DISMISSED")
@@ -318,6 +318,11 @@ public class IdempotencyIntegrationTest {
 
     @Transactional
     Long createTestAnomaly(String policyId, Long versionId, String status) {
+        return createTestAnomaly(policyId, versionId, status, DEFAULT_TENANT);
+    }
+
+    @Transactional
+    Long createTestAnomaly(String policyId, Long versionId, String status, String tenantId) {
         AnomalyReportEntity entity = new AnomalyReportEntity();
         entity.anomalyType = "HIGH_FAILURE_RATE";
         entity.versionId = versionId;
@@ -329,6 +334,7 @@ public class IdempotencyIntegrationTest {
         entity.recommendation = "Investigate";
         entity.detectedAt = Instant.now();
         entity.status = status;
+        entity.tenantId = tenantId;
         entity.persist();
         anomalyIdsToClean.add(entity.id);
         return entity.id;

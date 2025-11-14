@@ -349,8 +349,9 @@ class AuditLogComplianceTest {
         // Given: 创建默认租户的审计日志
         auditLogger.logPolicyEvaluation("module1", "func1", "default", 10, true);
 
-        // When & Then: 不传 X-Tenant-Id 头部时使用默认租户
+        // When & Then: 使用默认租户 ID 查询
         given()
+            .header("X-Tenant-Id", "default")
             .when()
             .get("/api/audit")
             .then()

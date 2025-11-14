@@ -210,6 +210,7 @@ class GenericOutboxSchedulerTest {
             anomaly.metricValue = 0.1;
             anomaly.threshold = 0.2;
             anomaly.description = "scheduler test";
+            anomaly.tenantId = "test-tenant";
             anomaly.persist();
             return anomaly.id;
         });
