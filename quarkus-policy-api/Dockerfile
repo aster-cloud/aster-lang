@@ -15,7 +15,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends bash git python3 make g++ curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://api.adoptium.net/v3/binary/latest/25/ea/linux/aarch64/jdk/hotspot/normal/eclipse -o /tmp/openjdk25.tar.gz \
+RUN ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL https://api.adoptium.net/v3/binary/latest/25/ea/linux/${ARCH}/jdk/hotspot/normal/eclipse -o /tmp/openjdk25.tar.gz \
     && mkdir -p /usr/lib/jvm/java-25-temurin \
     && tar -xzf /tmp/openjdk25.tar.gz -C /usr/lib/jvm/java-25-temurin --strip-components=1 \
     && rm /tmp/openjdk25.tar.gz
@@ -51,11 +52,13 @@ USER root
 WORKDIR /workspace
 
 RUN microdnf install -y unzip zip findutils curl binutils xz && microdnf clean all && \
-    curl -fsSL https://github.com/upx/upx/releases/download/v${UPX_VERSION}/upx-${UPX_VERSION}-arm64_linux.tar.xz -o /tmp/upx.tar.xz && \
+    ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then UPX_ARCH="amd64_linux"; elif [ "$ARCH" = "aarch64" ]; then UPX_ARCH="arm64_linux"; else UPX_ARCH="amd64_linux"; fi && \
+    curl -fsSL https://github.com/upx/upx/releases/download/v${UPX_VERSION}/upx-${UPX_VERSION}-${UPX_ARCH}.tar.xz -o /tmp/upx.tar.xz && \
     tar -xf /tmp/upx.tar.xz -C /tmp && \
-    mv /tmp/upx-${UPX_VERSION}-arm64_linux/upx /usr/local/bin/upx && \
+    mv /tmp/upx-${UPX_VERSION}-${UPX_ARCH}/upx /usr/local/bin/upx && \
     chmod +x /usr/local/bin/upx && \
-    rm -rf /tmp/upx.tar.xz /tmp/upx-${UPX_VERSION}-arm64_linux
+    rm -rf /tmp/upx.tar.xz /tmp/upx-${UPX_VERSION}-${UPX_ARCH}
 
 ENV JAVA_HOME=/usr/lib64/graalvm/graalvm-community-java25
 ENV GRAALVM_HOME=/usr/lib64/graalvm/graalvm-community-java25

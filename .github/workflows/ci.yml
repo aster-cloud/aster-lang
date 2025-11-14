@@ -105,7 +105,10 @@ jobs:
       
       - name: Build
         run: npm run build
-      
+
+      - name: Validate error codes
+        run: npm run verify:error-codes
+
       - name: Test
         run: npm run test
       

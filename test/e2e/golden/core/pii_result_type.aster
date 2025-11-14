@@ -1,0 +1,4 @@
+This module is test.pii.result.
+
+To get_email, produce @pii(L2, email) Text:
+  Return "test@example.com".

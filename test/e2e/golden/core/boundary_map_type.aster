@@ -1,0 +1,4 @@
+This module is test.boundary.map_type.
+
+To get_value with m: Map Text to Int, k: Text, produce Int?:
+  Return Map.get(m, k).

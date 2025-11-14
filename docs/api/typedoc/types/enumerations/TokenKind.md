@@ -4,7 +4,7 @@
 
 # Enumeration: TokenKind
 
-Defined in: [types.ts:69](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L69)
+Defined in: [types.ts:69](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L69)
 
 ## Enumeration Members
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:69](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **EOF**: `"EOF"`
 
-Defined in: [types.ts:70](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L70)
+Defined in: [types.ts:70](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L70)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:70](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **NEWLINE**: `"NEWLINE"`
 
-Defined in: [types.ts:71](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L71)
+Defined in: [types.ts:71](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L71)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:71](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **INDENT**: `"INDENT"`
 
-Defined in: [types.ts:72](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L72)
+Defined in: [types.ts:72](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L72)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:72](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **DEDENT**: `"DEDENT"`
 
-Defined in: [types.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L73)
+Defined in: [types.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L73)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [types.ts:73](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **DOT**: `"DOT"`
 
-Defined in: [types.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L74)
+Defined in: [types.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L74)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [types.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **COLON**: `"COLON"`
 
-Defined in: [types.ts:75](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L75)
+Defined in: [types.ts:75](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L75)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [types.ts:75](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **COMMA**: `"COMMA"`
 
-Defined in: [types.ts:76](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L76)
+Defined in: [types.ts:76](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L76)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [types.ts:76](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **LPAREN**: `"LPAREN"`
 
-Defined in: [types.ts:77](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L77)
+Defined in: [types.ts:77](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L77)
 
 ***
 
@@ -76,7 +76,7 @@ Defined in: [types.ts:77](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **RPAREN**: `"RPAREN"`
 
-Defined in: [types.ts:78](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L78)
+Defined in: [types.ts:78](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L78)
 
 ***
 
@@ -84,7 +84,7 @@ Defined in: [types.ts:78](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **LBRACKET**: `"LBRACKET"`
 
-Defined in: [types.ts:79](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L79)
+Defined in: [types.ts:79](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L79)
 
 ***
 
@@ -92,7 +92,7 @@ Defined in: [types.ts:79](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **RBRACKET**: `"RBRACKET"`
 
-Defined in: [types.ts:80](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L80)
+Defined in: [types.ts:80](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L80)
 
 ***
 
@@ -100,7 +100,7 @@ Defined in: [types.ts:80](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **EQUALS**: `"EQUALS"`
 
-Defined in: [types.ts:81](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L81)
+Defined in: [types.ts:81](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L81)
 
 ***
 
@@ -108,7 +108,7 @@ Defined in: [types.ts:81](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **PLUS**: `"PLUS"`
 
-Defined in: [types.ts:82](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L82)
+Defined in: [types.ts:82](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L82)
 
 ***
 
@@ -116,7 +116,7 @@ Defined in: [types.ts:82](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **STAR**: `"STAR"`
 
-Defined in: [types.ts:83](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L83)
+Defined in: [types.ts:83](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L83)
 
 ***
 
@@ -124,7 +124,7 @@ Defined in: [types.ts:83](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **MINUS**: `"MINUS"`
 
-Defined in: [types.ts:84](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L84)
+Defined in: [types.ts:84](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L84)
 
 ***
 
@@ -132,7 +132,7 @@ Defined in: [types.ts:84](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **SLASH**: `"SLASH"`
 
-Defined in: [types.ts:85](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L85)
+Defined in: [types.ts:85](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L85)
 
 ***
 
@@ -140,7 +140,7 @@ Defined in: [types.ts:85](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **LT**: `"LT"`
 
-Defined in: [types.ts:86](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L86)
+Defined in: [types.ts:86](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L86)
 
 ***
 
@@ -148,7 +148,7 @@ Defined in: [types.ts:86](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **GT**: `"GT"`
 
-Defined in: [types.ts:87](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L87)
+Defined in: [types.ts:87](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L87)
 
 ***
 
@@ -156,7 +156,7 @@ Defined in: [types.ts:87](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **LTE**: `"LTE"`
 
-Defined in: [types.ts:88](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L88)
+Defined in: [types.ts:88](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L88)
 
 ***
 
@@ -164,7 +164,7 @@ Defined in: [types.ts:88](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **GTE**: `"GTE"`
 
-Defined in: [types.ts:89](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L89)
+Defined in: [types.ts:89](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L89)
 
 ***
 
@@ -172,7 +172,7 @@ Defined in: [types.ts:89](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **NEQ**: `"NEQ"`
 
-Defined in: [types.ts:90](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L90)
+Defined in: [types.ts:90](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L90)
 
 ***
 
@@ -180,7 +180,7 @@ Defined in: [types.ts:90](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **QUESTION**: `"QUESTION"`
 
-Defined in: [types.ts:91](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L91)
+Defined in: [types.ts:91](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L91)
 
 ***
 
@@ -188,7 +188,7 @@ Defined in: [types.ts:91](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **AT**: `"AT"`
 
-Defined in: [types.ts:92](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L92)
+Defined in: [types.ts:92](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L92)
 
 ***
 
@@ -196,7 +196,7 @@ Defined in: [types.ts:92](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **IDENT**: `"IDENT"`
 
-Defined in: [types.ts:93](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L93)
+Defined in: [types.ts:93](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L93)
 
 ***
 
@@ -204,7 +204,7 @@ Defined in: [types.ts:93](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **TYPE\_IDENT**: `"TYPE_IDENT"`
 
-Defined in: [types.ts:94](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L94)
+Defined in: [types.ts:94](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L94)
 
 ***
 
@@ -212,7 +212,7 @@ Defined in: [types.ts:94](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **STRING**: `"STRING"`
 
-Defined in: [types.ts:95](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L95)
+Defined in: [types.ts:95](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L95)
 
 ***
 
@@ -220,7 +220,7 @@ Defined in: [types.ts:95](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **INT**: `"INT"`
 
-Defined in: [types.ts:96](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L96)
+Defined in: [types.ts:96](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L96)
 
 ***
 
@@ -228,7 +228,7 @@ Defined in: [types.ts:96](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **FLOAT**: `"FLOAT"`
 
-Defined in: [types.ts:97](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L97)
+Defined in: [types.ts:97](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L97)
 
 ***
 
@@ -236,7 +236,7 @@ Defined in: [types.ts:97](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **LONG**: `"LONG"`
 
-Defined in: [types.ts:98](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L98)
+Defined in: [types.ts:98](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L98)
 
 ***
 
@@ -244,7 +244,7 @@ Defined in: [types.ts:98](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **BOOL**: `"BOOL"`
 
-Defined in: [types.ts:99](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L99)
+Defined in: [types.ts:99](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L99)
 
 ***
 
@@ -252,7 +252,7 @@ Defined in: [types.ts:99](https://github.com/wontlost-ltd/aster-lang/blob/d04228
 
 > **NULL**: `"NULL"`
 
-Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L100)
+Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L100)
 
 ***
 
@@ -260,7 +260,7 @@ Defined in: [types.ts:100](https://github.com/wontlost-ltd/aster-lang/blob/d0422
 
 > **KEYWORD**: `"KEYWORD"`
 
-Defined in: [types.ts:101](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L101)
+Defined in: [types.ts:101](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L101)
 
 ***
 
@@ -268,4 +268,4 @@ Defined in: [types.ts:101](https://github.com/wontlost-ltd/aster-lang/blob/d0422
 
 > **COMMENT**: `"COMMENT"`
 
-Defined in: [types.ts:102](https://github.com/wontlost-ltd/aster-lang/blob/d0422831ed603278d294a40664f5f8949bd9d592/src/types.ts#L102)
+Defined in: [types.ts:102](https://github.com/wontlost-ltd/aster-lang/blob/b6ce5257cbcdd765132b6b1613adb34added24b2/src/types.ts#L102)

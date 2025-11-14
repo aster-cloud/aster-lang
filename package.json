@@ -245,6 +245,8 @@
     "verify:asm:classes": "npm run verify:asm && node dist/scripts/verify-classes.js",
     "verify:asm:fuzz": "npm run build && node dist/scripts/verify-fuzz.js",
     "verify:examples": "node dist/scripts/verify-examples.js",
+    "verify:error-codes": "node dist/scripts/validate_error_codes.js",
+    "docs:error-codes": "node dist/scripts/generate_error_code_docs.js",
     "ci:timeout": "npx timeout-cli -t 1800 -m \"CI 在 30 分钟时超时终止\" npm run ci",
     "ci:strict": "npm run typecheck && npm run lint && npm run test && npm run build && npm run emit:class test/cnl/programs/examples/greet.aster && npm run javap:verify && npm run determinism:asm && npm run verify:asm:assert:listget && npm run verify:asm:interop && npm run verify:asm:classes && npm run docs:api && npm run docs:build",
     "native:cli:parse": "node dist/scripts/aster.js parse",

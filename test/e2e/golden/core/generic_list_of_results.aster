@@ -1,0 +1,4 @@
+This module is test.generic.list_results.
+
+To count_results with items: List of Result of Int and Text, produce Int:
+  Return List.length(items).
