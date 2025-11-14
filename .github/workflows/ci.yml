@@ -534,7 +534,7 @@ jobs:
               break
             fi
             if [ $(( $(date +%s) - start )) -gt $timeout ]; then
-              echo "Startup timeout"
+              echo "Startup timeout - application did not log 'started in'"
               docker logs policy-ci-app
               exit 1
             fi
@@ -542,7 +542,31 @@ jobs:
           done
           line=$(docker logs policy-ci-app | grep "started in" | tail -n 1)
           startup=$(echo "$line" | grep -oE '[0-9]+\.[0-9]+')
-          curl -f http://localhost:8080/q/health
+
+          # Wait for health endpoint to be ready (with retry)
+          health_timeout=30
+          health_start=$(date +%s)
+          health_ready=false
+          while true; do
+            if curl -sf http://localhost:8080/q/health >/dev/null 2>&1; then
+              health_ready=true
+              break
+            fi
+            if [ $(( $(date +%s) - health_start )) -gt $health_timeout ]; then
+              echo "Health check timeout - endpoint not ready after ${health_timeout}s"
+              echo "Application logs:"
+              docker logs policy-ci-app
+              exit 1
+            fi
+            echo "Waiting for health endpoint to be ready..."
+            sleep 2
+          done
+
+          if [ "$health_ready" = true ]; then
+            echo "✓ Health endpoint ready"
+            curl -f http://localhost:8080/q/health
+          fi
+
           echo "startup=$startup" >> "$GITHUB_OUTPUT"
           echo "::notice::Policy API startup ${startup}s"
 
