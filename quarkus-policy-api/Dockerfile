@@ -16,10 +16,17 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN ARCH=$(dpkg --print-architecture) && \
-    curl -fsSL https://api.adoptium.net/v3/binary/latest/25/ea/linux/${ARCH}/jdk/hotspot/normal/eclipse -o /tmp/openjdk25.tar.gz \
-    && mkdir -p /usr/lib/jvm/java-25-temurin \
-    && tar -xzf /tmp/openjdk25.tar.gz -C /usr/lib/jvm/java-25-temurin --strip-components=1 \
-    && rm /tmp/openjdk25.tar.gz
+    if [ "$ARCH" = "amd64" ]; then \
+        JDK_URL="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.1%2B8/OpenJDK25U-jdk_x64_linux_hotspot_25.0.1_8.tar.gz"; \
+    elif [ "$ARCH" = "arm64" ]; then \
+        JDK_URL="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.1%2B8/OpenJDK25U-jdk_aarch64_linux_hotspot_25.0.1_8.tar.gz"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    curl -fsSL "$JDK_URL" -o /tmp/openjdk25.tar.gz && \
+    mkdir -p /usr/lib/jvm/java-25-temurin && \
+    tar -xzf /tmp/openjdk25.tar.gz -C /usr/lib/jvm/java-25-temurin --strip-components=1 && \
+    rm /tmp/openjdk25.tar.gz
 
 ENV JAVA_HOME=/usr/lib/jvm/java-25-temurin
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
