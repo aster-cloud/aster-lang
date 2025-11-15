@@ -18,7 +18,7 @@ jobs:
     uses: ./.github/workflows/_reusable-build.yml
     with:
       artifact-name: native-dist
-      node-version: ${{ env.NODE_VERSION }}
+      node-version: '22'
 
   build-native:
     name: Build Native Image (${{ matrix.os }})
