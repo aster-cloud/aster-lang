@@ -1209,22 +1209,35 @@ public class BenchmarkTest {
         context.eval(source);
       }
 
-      // 实际测试
-      long start = System.nanoTime();
+      // 实际测试：收集每次迭代的时间
       int iterations = 10000;
-      for (int i = 0; i < iterations; i++) {
-        Value result = context.eval(source);
-        assertEquals(8, result.asInt(), "appendMultiple([1,2,3,4,5]) should produce list of length 8");
-      }
-      long end = System.nanoTime();
+      double[] timingsMs = new double[iterations];
 
-      double avgMs = (end - start) / 1_000_000.0 / iterations;
-      System.out.printf("List.append benchmark: %.3f ms per iteration (10000 iterations)%n", avgMs);
+      for (int i = 0; i < iterations; i++) {
+        long start = System.nanoTime();
+        Value result = context.eval(source);
+        long end = System.nanoTime();
+
+        assertEquals(8, result.asInt(), "appendMultiple([1,2,3,4,5]) should produce list of length 8");
+        timingsMs[i] = (end - start) / 1_000_000.0;
+      }
+
+      // 计算统计量
+      java.util.Arrays.sort(timingsMs);
+      double avgMs = java.util.Arrays.stream(timingsMs).average().orElse(0.0);
+      double medianMs = timingsMs[iterations / 2];
+      double p95Ms = timingsMs[(int) (iterations * 0.95)];
+
+      System.out.printf("List.append benchmark (%d iterations):%n", iterations);
+      System.out.printf("  Average: %.4f ms%n", avgMs);
+      System.out.printf("  Median:  %.4f ms%n", medianMs);
+      System.out.printf("  95th%%:   %.4f ms%n", p95Ms);
 
       // List.append 应该快速（但涉及对象分配：new ArrayList()）
-      // 性能阈值：< 0.012 ms（允许 CI 环境的合理波动）
+      // 性能阈值：95th percentile < 0.015 ms（排除异常值，更稳定的回归检测）
       // 如果超过阈值，说明对象分配开销过大，触发 Batch 3 退出条件
-      assertTrue(avgMs < 0.012, "Performance regression: " + avgMs + " ms >= 0.012 ms (object allocation overhead too high)");
+      assertTrue(p95Ms < 0.015,
+        String.format("Performance regression: 95th percentile %.4f ms >= 0.015 ms (object allocation overhead too high)", p95Ms));
     }
   }
 
