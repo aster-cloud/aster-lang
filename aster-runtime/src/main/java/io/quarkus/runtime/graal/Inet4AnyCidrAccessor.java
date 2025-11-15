@@ -1,21 +1,21 @@
 package io.quarkus.runtime.graal;
 
-import java.net.Inet4Address;
+import io.smallrye.common.net.CidrAddress;
 
 /**
  * 处理 {@code Inet.INET4_ANY_CIDR} 静态字段。
  */
 public final class Inet4AnyCidrAccessor {
-  private static volatile Inet4Address value = InetAccessorUtils.resolveV4("0.0.0.0");
+  private static volatile CidrAddress value = CidrAddress.INET4_ANY_CIDR;
 
   private Inet4AnyCidrAccessor() {
   }
 
-  public static Inet4Address get() {
+  public static CidrAddress get() {
     return value;
   }
 
-  public static void set(Inet4Address newValue) {
+  public static void set(CidrAddress newValue) {
     value = newValue;
   }
 }
