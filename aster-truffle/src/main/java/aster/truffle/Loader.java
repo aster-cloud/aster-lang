@@ -139,13 +139,17 @@ public final class Loader {
         env.set(e.getKey(), new aster.truffle.nodes.LambdaValue(params, List.of(), new Object[0], callTarget, requiredEffects));
       }
     }
-    // Ensure params exist in env for binding (they shadow any function names)
-    if (entry.params != null) for (var p : entry.params) env.set(p.name, null);
-    // Build entry invocation as a call to the function lambda with param names as arguments
-    Node target = new NameNodeEnv(env, entry.name);
-    java.util.ArrayList<Node> argNodes = new java.util.ArrayList<>();
-    if (entry.params != null) for (var p : entry.params) argNodes.add(new NameNodeEnv(env, p.name));
-    Node root = CallNode.create(target, argNodes);
+    // 如果入口函数有参数，直接返回 LambdaValue（让调用者传参执行）
+    // 否则构建立即调用的 CallNode（无参函数可以直接执行）
+    Node root;
+    if (entry.params != null && !entry.params.isEmpty()) {
+      // 有参函数：返回可执行的 lambda，GoldenTestAdapter 会调用 program.execute(args)
+      root = new NameNodeEnv(env, entry.name);
+    } else {
+      // 无参函数：构建立即调用节点，context.eval() 会直接执行
+      Node target = new NameNodeEnv(env, entry.name);
+      root = CallNode.create(target, new java.util.ArrayList<>());
+    }
     return new Program(root, env, entry.params, entry.name, entry.effects);
   }
 

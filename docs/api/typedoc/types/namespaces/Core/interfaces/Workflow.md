@@ -4,7 +4,7 @@
 
 # Interface: Workflow
 
-Defined in: [types.ts:472](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types.ts#L472)
+Defined in: [types.ts:472](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types.ts#L472)
 
 Workflow 语句基础接口。
 
@@ -18,7 +18,7 @@ Workflow 语句基础接口。
 
 > `readonly` **effectCaps**: [`EffectCaps`](../../../type-aliases/EffectCaps.md)
 
-Defined in: [types.ts:474](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types.ts#L474)
+Defined in: [types.ts:474](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types.ts#L474)
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: [types.ts:474](https://github.com/wontlost-ltd/aster-lang/blob/90c50
 
 > `readonly` `optional` **span**: `undefined`
 
-Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types/base.ts#L41)
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L41)
 
 #### Inherited from
 
@@ -38,7 +38,7 @@ Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/9
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -50,7 +50,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/9
 
 > `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L43)
 
 #### Inherited from
 
@@ -62,7 +62,7 @@ Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/9
 
 > `readonly` **kind**: `"workflow"`
 
-Defined in: [types/base.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types/base.ts#L221)
+Defined in: [types/base.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L221)
 
 #### Inherited from
 
@@ -74,7 +74,7 @@ Defined in: [types/base.ts:221](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **steps**: readonly [`Step`](Step.md)[]
 
-Defined in: [types/base.ts:222](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types/base.ts#L222)
+Defined in: [types/base.ts:222](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L222)
 
 #### Inherited from
 
@@ -86,7 +86,7 @@ Defined in: [types/base.ts:222](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` `optional` **retry**: [`RetryPolicy`](RetryPolicy.md)
 
-Defined in: [types/base.ts:223](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types/base.ts#L223)
+Defined in: [types/base.ts:223](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L223)
 
 #### Inherited from
 
@@ -98,7 +98,7 @@ Defined in: [types/base.ts:223](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` `optional` **timeout**: [`Timeout`](Timeout.md)
 
-Defined in: [types/base.ts:224](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/types/base.ts#L224)
+Defined in: [types/base.ts:224](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L224)
 
 #### Inherited from
 

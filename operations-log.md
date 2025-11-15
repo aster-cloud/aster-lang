@@ -7021,3 +7021,22 @@ if (entity == null) {
 **Status:** Phase 4.3 multi-tenant isolation fix 100% complete ✅
 
 **Next Steps:** Integration testing and deployment
+
+# 2025-11-15 10:50 NZDT Phase 4.6 Priority 2/3 完成
+
+**操作记录**:
+- 工具：Read(TimerIntegrationTest.java, TimerSchedulerService.java, WorkflowSchedulerService.java) → 分析定时器竞态条件根因
+- 工具：Edit(WorkflowSchedulerService.java:76-85) → 禁用 pollTimers() 调度，消除双重轮询竞态
+- 工具：Bash(./gradlew :quarkus-policy-api:test) → 验证所有测试通过 (406/406)
+
+**最终修复方案**:
+- **Timer竞态消除**: 采用单一调度器策略，禁用 WorkflowSchedulerService.pollTimers()，所有定时器状态转换由 TimerSchedulerService 统一管理
+- **职责分离**: TimerSchedulerService 负责 PENDING → EXECUTING → COMPLETED/PENDING(周期性)，WorkflowSchedulerService 专注于就绪 workflow 轮询
+- **简化设计**: 保持 TimerSchedulerService 的简单乐观锁实现，避免复杂的 CAS 操作
+
+**观察**:
+- 最初尝试的 CAS 操作反而导致更多测试失败（周期性定时器状态为 FIRED 而非 PENDING）
+- 根本问题是架构设计：两个调度器不应竞争相同资源，而应职责分离
+- 简单的单一调度器方案比复杂的并发控制更可靠
+
+**测试结果**: ✅ 406/406 tests passed (100%)

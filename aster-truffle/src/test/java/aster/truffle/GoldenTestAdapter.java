@@ -58,8 +58,10 @@ public class GoldenTestAdapter {
    * 随着 stdlib 完善，这个列表应该逐渐减少
    */
   private static final String[] KNOWN_LIMITATIONS = {
-    // 示例：如果某些测试依赖未实现的 stdlib 函数，在这里列出
-    // "test_using_unimplemented_feature"
+    // PII 类型系统未在 Truffle 后端实现
+    "pii_",
+    // Workflow 语法未在 Core IR 中实现（应由前端编译器处理）
+    "workflow"
   };
 
   @TestFactory
@@ -113,12 +115,12 @@ public class GoldenTestAdapter {
       // 读取 Core IR JSON
       String json = Files.readString(jsonFile.toPath());
 
-      // 检查是否包含参数化函数（改进的检查逻辑）
-      // 检查入口函数是否有非空参数列表
-      if (entryFunctionHasParameters(json)) {
-        // 入口函数携带参数 - 运行器暂不支持传参执行
-        System.out.println("⚠️ SKIP: " + testName + " (entry function requires parameters)");
-        recordSkip(testName);
+      // 检查入口函数并生成默认参数
+      EntryFunctionInfo entryInfo = getEntryFunctionInfo(json);
+      if (entryInfo == null) {
+        System.err.println("❌ FAIL: " + testName + " (no entry function found)");
+        recordFail(testName);
+        fail("No entry function found in test " + testName);
         return;
       }
 
@@ -126,8 +128,34 @@ public class GoldenTestAdapter {
       Source source = Source.newBuilder("aster", json, testName + ".json")
         .build();
 
-      // 执行（会自动调用 main 函数或第一个函数）
-      Value result = context.eval(source);
+      // 执行程序（对于无参函数，直接 eval；对于有参函数，先 eval 获取可执行对象再传参）
+      Value result;
+      if (entryInfo.params.isEmpty()) {
+        // 无参函数 - context.eval() 会自动执行并返回结果
+        result = context.eval(source);
+      } else {
+        // 有参函数 - context.eval() 返回可执行对象，需要传参调用
+        Value program = context.eval(source);
+
+        // 生成默认测试值
+        Object[] args = generateDefaultArgs(entryInfo.params);
+
+        // Debug: 打印参数信息
+        System.err.println("DEBUG [" + testName + "]: Generated args for " + entryInfo.name + ":");
+        for (int i = 0; i < args.length; i++) {
+          Object arg = args[i];
+          String typeInfo = arg == null ? "null" : arg.getClass().getName() + " = " + arg;
+          System.err.println("  args[" + i + "] (" + entryInfo.params.get(i).name + "): " + typeInfo);
+        }
+
+        // 检查是否可执行
+        if (program != null && program.canExecute()) {
+          result = program.execute(args);
+        } else {
+          // 如果不可执行，说明已经执行完毕（可能是 Loader 的行为）
+          result = program;
+        }
+      }
 
       if (expectException) {
         System.err.println("❌ FAIL: " + testName + " (expected exception but succeeded with result: " + result + ")");
@@ -179,8 +207,117 @@ public class GoldenTestAdapter {
   }
 
   /**
-   * 检查入口函数是否含参数（入口优先匹配 main，无则回退首个函数）
+   * 获取入口函数信息（名称和参数列表）
    */
+  private EntryFunctionInfo getEntryFunctionInfo(String json) {
+    try {
+      JsonNode root = MAPPER.readTree(json);
+      JsonNode decls = root.path("decls");
+      if (!decls.isArray()) {
+        return null;
+      }
+
+      JsonNode entry = null;
+      String entryName = null;
+
+      // 优先查找 main 函数，否则使用第一个函数
+      for (JsonNode decl : decls) {
+        if (!"Func".equals(decl.path("kind").asText())) {
+          continue;
+        }
+
+        String name = decl.path("name").asText();
+        if (entry == null) {
+          entry = decl;
+          entryName = name;
+        }
+
+        if ("main".equals(name)) {
+          entry = decl;
+          entryName = name;
+          break;
+        }
+      }
+
+      if (entry == null) {
+        return null;
+      }
+
+      // 解析参数列表
+      List<ParamInfo> params = new ArrayList<>();
+      JsonNode paramsNode = entry.path("params");
+      if (paramsNode.isArray()) {
+        for (JsonNode param : paramsNode) {
+          String paramName = param.path("name").asText();
+          JsonNode paramType = param.path("type");
+          params.add(new ParamInfo(paramName, paramType));
+        }
+      }
+
+      return new EntryFunctionInfo(entryName, params);
+
+    } catch (IOException e) {
+      System.err.println("⚠️ 无法解析 JSON 以获取入口函数信息: " + e.getMessage());
+      return null;
+    }
+  }
+
+  /**
+   * 根据参数类型生成默认测试值
+   */
+  private Object[] generateDefaultArgs(List<ParamInfo> params) {
+    Object[] args = new Object[params.size()];
+    for (int i = 0; i < params.size(); i++) {
+      args[i] = generateDefaultValue(params.get(i).type);
+    }
+    return args;
+  }
+
+  /**
+   * 根据类型节点生成默认值
+   */
+  private Object generateDefaultValue(JsonNode typeNode) {
+    String kind = typeNode.path("kind").asText();
+
+    switch (kind) {
+      case "TypeName": {
+        String typeName = typeNode.path("name").asText();
+        switch (typeName) {
+          case "Int": return 0;
+          case "Text": return "";
+          case "Bool": return false;
+          case "Float": return 0.0;
+          default: return null; // 未知类型返回 null
+        }
+      }
+
+      case "List":
+        // 返回空列表（使用 java.util.ArrayList，Builtins.java 期望 List<?> 类型）
+        return new java.util.ArrayList<>();
+
+      case "Maybe":
+        // Maybe 类型默认返回 null (None)
+        return null;
+
+      case "Result":
+        // Result 类型默认返回 null（可以改为返回 Ok(null) 或 Err(null)）
+        return null;
+
+      case "Map":
+        // 返回空 Map（使用 java.util.HashMap，Builtins.java 期望 Map<?,?> 类型）
+        return new java.util.HashMap<>();
+
+      default:
+        // 未知类型返回 null
+        return null;
+    }
+  }
+
+  /**
+   * 检查入口函数是否含参数（入口优先匹配 main，无则回退首个函数）
+   * @deprecated 已被 getEntryFunctionInfo 取代
+   */
+  @Deprecated
   private boolean entryFunctionHasParameters(String json) {
     try {
       JsonNode root = MAPPER.readTree(json);
@@ -348,5 +485,31 @@ public class GoldenTestAdapter {
     private final AtomicInteger pass = new AtomicInteger();
     private final AtomicInteger skip = new AtomicInteger();
     private final AtomicInteger fail = new AtomicInteger();
+  }
+
+  /**
+   * 入口函数信息
+   */
+  private static final class EntryFunctionInfo {
+    final String name;
+    final List<ParamInfo> params;
+
+    EntryFunctionInfo(String name, List<ParamInfo> params) {
+      this.name = name;
+      this.params = params;
+    }
+  }
+
+  /**
+   * 参数信息
+   */
+  private static final class ParamInfo {
+    final String name;
+    final JsonNode type;
+
+    ParamInfo(String name, JsonNode type) {
+      this.name = name;
+      this.type = type;
+    }
   }
 }

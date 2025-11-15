@@ -6,7 +6,7 @@
 
 > **getErrorMetadata**(`code`): [`ErrorMetadata`](../interfaces/ErrorMetadata.md)
 
-Defined in: [error\_codes.ts:579](https://github.com/wontlost-ltd/aster-lang/blob/90c50dda0d3ed53f4a4a0435fba3a3f21e46c809/src/error_codes.ts#L579)
+Defined in: [error\_codes.ts:579](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/error_codes.ts#L579)
 
 获取详细元数据，包含分类与帮助信息。
 
