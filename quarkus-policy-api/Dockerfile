@@ -42,11 +42,12 @@ COPY . .
 # 预先编译 test/generators.ts 以满足 TypeScript 中对 .js 模块的依赖
 RUN npx tsc test/generators.ts --module ES2022 --target ES2022 --outDir test --declaration false --skipLibCheck
 
-# 构建 TypeScript CLI + 生成 Aster jar/类文件
+# 构建 TypeScript CLI + 通过 Gradle 生成策略 JAR 并注入 workflow 依赖
 RUN npm run build && \
-    FILES=$(find quarkus-policy-api/src/main/resources/policies -name '*.aster' -type f | sort | tr '\n' ' ') && \
-    npm run emit:class -- ${FILES} && \
-    npm run jar:jvm
+    chmod +x gradlew && \
+    ./gradlew -g build/.gradle :quarkus-policy-api:generateAsterJar \
+      --no-daemon --stacktrace \
+      -Dorg.gradle.configuration-cache=false
 
 # ============================================
 # Stage 2: Gradle native builder
