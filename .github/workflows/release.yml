@@ -20,16 +20,20 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: Setup environment
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           fetch-depth: '0'
           enable-node: 'true'
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
           enable-java: 'true'
           java-provider: 'graalvm'
-          java-version: '21'
+          java-version: '25'
           npm-ci: 'false'
 
       - name: Clean lockfile and node_modules

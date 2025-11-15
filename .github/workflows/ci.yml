@@ -28,9 +28,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-java: 'false'
 
       - name: 下载 TypeScript 产物
@@ -120,9 +124,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-java: 'false'
 
       - name: 下载 TypeScript 产物
@@ -139,9 +147,13 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-java: 'false'
 
       - name: npm 审计
@@ -155,9 +167,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-java: 'true'
           enable-gradle: 'true'
 
@@ -202,9 +218,13 @@ jobs:
       JAVA_TYPECHECK_CMD: ${{ vars.JAVA_TYPECHECK_CMD || '' }}
       TS_TYPECHECK_CMD: ${{ vars.TS_TYPECHECK_CMD || '' }}
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化 Node + Temurin 环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-java: 'true'
           java-provider: 'temurin'
           java-distribution: 'temurin'
@@ -233,9 +253,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-java: 'true'
           enable-gradle: 'true'
 
@@ -269,8 +293,12 @@ jobs:
             platform: linux/arm64
     steps:
       - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: Checkout 代码
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-node: 'false'
           npm-ci: 'false'
           enable-java: 'false'
@@ -409,8 +437,12 @@ jobs:
     needs: quarkus-policy-api
     steps:
       - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: Checkout 代码
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-node: 'false'
           npm-ci: 'false'
           enable-java: 'false'
@@ -551,9 +583,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-java: 'true'
           enable-gradle: 'true'
           native-image-job-reports: 'true'

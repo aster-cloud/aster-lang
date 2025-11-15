@@ -24,9 +24,13 @@ jobs:
       pull-requests: write
       packages: write
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化发布环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           fetch-depth: '0'
           enable-java: 'true'
           enable-gradle: 'true'

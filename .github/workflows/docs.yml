@@ -15,9 +15,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: Setup environment
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-node: 'true'
           enable-java: 'false'
           node-version: '22'

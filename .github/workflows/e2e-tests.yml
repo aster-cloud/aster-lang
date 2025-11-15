@@ -15,9 +15,13 @@ jobs:
     outputs:
       image: ${{ steps.image-ref.outputs.value }}
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: Checkout
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-node: 'false'
           npm-ci: 'false'
           enable-java: 'false'
@@ -56,9 +60,13 @@ jobs:
     env:
       POLICY_API_IMAGE: ${{ needs.policy-api-build.outputs.image }}
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: Checkout
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-node: 'false'
           npm-ci: 'false'
           enable-java: 'false'
