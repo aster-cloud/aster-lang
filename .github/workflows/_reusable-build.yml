@@ -30,9 +30,13 @@ jobs:
     outputs:
       artifact-name: ${{ inputs.artifact-name }}
     steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
         with:
+          checkout: 'false'
           enable-java: 'false'
           node-version: ${{ inputs.node-version }}
           working-directory: ${{ inputs.working-directory }}
