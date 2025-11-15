@@ -1,3 +1,5 @@
+import dev.aster.build.GenerateAsterJarTask
+
 plugins { application }
 
 repositories { mavenCentral() }
@@ -17,12 +19,14 @@ dependencies {
 
 application { mainClass.set("example.MapMain") }
 
-val generateAsterJar by tasks.registering(Exec::class) {
-  workingDir = rootProject.projectDir
-  commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
-    listOf("cmd", "/c", "set", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out", "&&", "npm", "run", "emit:class", "test/cnl/programs/collections/map_ops.aster", "&&", "set", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out", "&&", "npm", "run", "jar:jvm")
-  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/map-jvm/build/aster-out npm run emit:class test/cnl/programs/collections/map_ops.aster && ASTER_OUT_DIR=examples/map-jvm/build/aster-out npm run jar:jvm")
+val generateAsterJar by tasks.registering(GenerateAsterJarTask::class) {
+  description = "生成 map-jvm 模块的 aster.jar"
+  workingDirectory.set(rootProject.layout.projectDirectory)
+  outputDirectory.set(moduleOut)
+  outputJar.set(moduleOut.map { it.file("aster.jar") })
+  asterSources.from(rootProject.file("test/cnl/programs/collections/map_ops.aster"))
 }
+
 tasks.withType<JavaCompile>().configureEach {
   dependsOn(generateAsterJar)
 }

@@ -148,8 +148,11 @@ val benchmarkStartupTime by tasks.registering(Exec::class) {
 val checkBinarySize by tasks.registering {
   dependsOn("nativeCompile")
 
+  // 避免配置缓存序列化问题：在执行阶段而非配置阶段使用 project.file()
+  val binaryPath = "build/native/nativeCompile/aster"
+
   doLast {
-    val binaryFile = file("build/native/nativeCompile/aster")
+    val binaryFile = project.file(binaryPath)
     if (binaryFile.exists()) {
       val sizeMB = binaryFile.length() / (1024.0 * 1024.0)
       println("=== Binary Size Check ===")

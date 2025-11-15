@@ -7305,3 +7305,26 @@ if (entity == null) {
 - 工具：apply_patch(aster-runtime/build.gradle.kts, application.properties, IdempotencyKeyManager.java, InMemoryWorkflowRuntime.java, IdempotencyKeyManagerTest.java, beans.xml 等) → 添加依赖配置、实现 IdempotencyKeyManager、重构运行时和测试
 - 工具：Shell(SKIP_GENERATE_ASTER_JAR=1 ./gradlew :quarkus-policy-api:test --tests IdempotencyKeyManagerTest) ×3 → 解决依赖缺失与 Redis 配置后最终全部测试通过
 - 工具：Shell(TZ=Pacific/Auckland date) → 获取 NZ 本地时间记录日志时间戳
+
+# 2025-11-16 08:42 NZDT Gradle buildSrc 可见性扫描
+
+**操作记录**:
+- 工具：SequentialThinking(明确 buildSrc 可见性调查范围与步骤) → 确认先设置 code-index 再扫描文件
+- 工具：CodeIndex.set_project_path(/Users/rpang/IdeaProjects/aster-lang) → 初始化索引
+- 工具：CodeIndex.build_deep_index() → 重新索引项目文件
+- 工具：Shell(ls/find buildSrc) → 发现 buildSrc 仅含 build.gradle.kts 和空的 src/main/kotlin，无 GenerateAsterJarTask 源码
+- 工具：Shell(cat settings.gradle.kts / quarkus-policy-api/build.gradle.kts / examples/*/build.gradle.kts / gradle-wrapper.properties) → 收集根设置、任务使用方式与 Gradle 版本
+- 工具：CodeIndex.search_code_advanced(GenerateAsterJarTask) → 仅匹配各模块的 import/注册，未发现定义
+- 工具：Shell(rg -n \\"gradle\\" .github/workflows/ci.yml) + sed → 定位 quarkus-policy-api GitHub Actions 作业及 Gradle 命令
+- 工具：Shell(TZ=Pacific/Auckland date) → 记录日志时间
+- 工具：apply_patch(.claude/context-gradle-buildsrc.json) → 写入上下文收集报告
+
+# 2025-11-16 08:53 NZDT GenerateAsterJarTask 实现与验证
+
+**操作记录**:
+- 工具：SequentialThinking(创建 GenerateAsterJarTask 并修复 buildSrc 编译错误) → 梳理任务属性、跨平台需求与验证步骤
+- 工具：CodeIndex.search_code_advanced(GenerateAsterJarTask) → 收集 quarkus-policy-api/example 模块对任务的全部引用
+- 工具：Shell(sed/ls 检视 quarkus-policy-api/build.gradle.kts 与 examples/*/build.gradle.kts) → 核对 workingDirectory/outputJar/asterSources 等配置方式
+- 工具：apply_patch(buildSrc/src/main/kotlin/dev/aster/build/GenerateAsterJarTask.kt) ×2 → 首次实现任务并添加 npm emit/jar 执行，随后将 workingDirectory 标记为 @Internal 并合并 CLASSPATH 继承
+- 工具：Shell(./gradlew :quarkus-policy-api:compileJava --no-configuration-cache) ×3 → 首轮暴露 implicit dependency 校验错误并定位到 InputDirectory 配置，后两次（含 --console=plain 重定向日志）均确认任务与编译成功
+- 工具：Shell(TZ=Pacific/Auckland date) → 记录阶段完成时间
