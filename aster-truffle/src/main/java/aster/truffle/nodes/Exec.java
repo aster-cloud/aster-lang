@@ -15,6 +15,7 @@ public final class Exec {
     // IfNode, MatchNode, BlockNode 已迁移到 AsterExpressionNode，由第一个分支处理
     if (n instanceof StartNode sn) return sn.execute(f);
     if (n instanceof WaitNode wn) return wn.execute(f);
+    if (n instanceof WorkflowNode wf) return wf.execute(f);
     return null;
   }
 

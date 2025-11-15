@@ -134,37 +134,37 @@ public final class Builtins {
     // === Text Operations (纯函数) ===
     register("Text.concat", new BuiltinDef(args -> {
       checkArity("Text.concat", args, 2);
-      return String.valueOf(args[0]) + String.valueOf(args[1]);
+      return textValue(args[0]) + textValue(args[1]);
     }));
 
     register("Text.toUpper", new BuiltinDef(args -> {
       checkArity("Text.toUpper", args, 1);
-      return String.valueOf(args[0]).toUpperCase();
+      return textValue(args[0]).toUpperCase();
     }));
 
     register("Text.toLower", new BuiltinDef(args -> {
       checkArity("Text.toLower", args, 1);
-      return String.valueOf(args[0]).toLowerCase();
+      return textValue(args[0]).toLowerCase();
     }));
 
     register("Text.startsWith", new BuiltinDef(args -> {
       checkArity("Text.startsWith", args, 2);
-      return String.valueOf(args[0]).startsWith(String.valueOf(args[1]));
+      return textValue(args[0]).startsWith(textValue(args[1]));
     }));
 
     register("Text.indexOf", new BuiltinDef(args -> {
       checkArity("Text.indexOf", args, 2);
-      return String.valueOf(args[0]).indexOf(String.valueOf(args[1]));
+      return textValue(args[0]).indexOf(textValue(args[1]));
     }));
 
     register("Text.length", new BuiltinDef(args -> {
       checkArity("Text.length", args, 1);
-      return String.valueOf(args[0]).length();
+      return textValue(args[0]).length();
     }));
 
     register("Text.substring", new BuiltinDef(args -> {
       checkArity("Text.substring", args, 2, 3);
-      String s = String.valueOf(args[0]);
+      String s = textValue(args[0]);
       int start = toInt(args[1]);
       if (start < 0) {
         throw new BuiltinException(ErrorMessages.stringIndexNegative(start));
@@ -181,29 +181,44 @@ public final class Builtins {
 
     register("Text.trim", new BuiltinDef(args -> {
       checkArity("Text.trim", args, 1);
-      return String.valueOf(args[0]).trim();
+      return textValue(args[0]).trim();
     }));
 
     register("Text.split", new BuiltinDef(args -> {
       checkArity("Text.split", args, 2);
-      String s = String.valueOf(args[0]);
-      String delimiter = String.valueOf(args[1]);
+      String s = textValue(args[0]);
+      String delimiter = textValue(args[1]);
       return Arrays.asList(s.split(java.util.regex.Pattern.quote(delimiter)));
     }));
 
     register("Text.replace", new BuiltinDef(args -> {
       checkArity("Text.replace", args, 3);
-      String s = String.valueOf(args[0]);
-      String target = String.valueOf(args[1]);
-      String replacement = String.valueOf(args[2]);
+      String s = textValue(args[0]);
+      String target = textValue(args[1]);
+      String replacement = textValue(args[2]);
       return s.replace(target, replacement);
     }));
 
     register("Text.contains", new BuiltinDef(args -> {
       checkArity("Text.contains", args, 2);
-      String haystack = String.valueOf(args[0]);
-      String needle = String.valueOf(args[1]);
+      String haystack = textValue(args[0]);
+      String needle = textValue(args[1]);
       return haystack.contains(needle);
+    }));
+
+    register("Text.redact", new BuiltinDef(args -> {
+      checkArity("Text.redact", args, 1);
+      Object target = args[0];
+      if (target instanceof AsterPiiValue pii) {
+        return pii.redact();
+      }
+      return textValue(target);
+    }));
+
+    // === PII Helpers ===
+    register("PII.unwrap", new BuiltinDef(args -> {
+      checkArity("PII.unwrap", args, 1);
+      return AsterPiiValue.unwrap(args[0]);
     }));
 
     // === List Operations (纯函数) ===
@@ -774,17 +789,28 @@ public final class Builtins {
   }
 
   private static boolean toBool(Object o) {
-    if (o instanceof Boolean b) return b;
-    if (o == null) return false;
-    if (o instanceof Number n) return n.doubleValue() != 0.0;
-    if (o instanceof String s) return !s.isEmpty();
+    Object value = unwrap(o);
+    if (value instanceof Boolean b) return b;
+    if (value == null) return false;
+    if (value instanceof Number n) return n.doubleValue() != 0.0;
+    if (value instanceof String s) return !s.isEmpty();
     return true;
   }
 
   private static int toInt(Object o) {
-    if (o instanceof Number n) return n.intValue();
-    if (o instanceof String s) return Integer.parseInt(s);
+    Object value = unwrap(o);
+    if (value instanceof Number n) return n.intValue();
+    if (value instanceof String s) return Integer.parseInt(s);
     throw new BuiltinException(ErrorMessages.typeExpectedGot("Int", typeName(o)));
+  }
+
+  private static String textValue(Object value) {
+    Object inner = unwrap(value);
+    return String.valueOf(inner);
+  }
+
+  private static Object unwrap(Object value) {
+    return AsterPiiValue.unwrap(value);
   }
 
   /**
@@ -795,6 +821,9 @@ public final class Builtins {
    */
   public static String typeName(Object o) {
     if (o == null) return "null";
+    if (o instanceof AsterPiiValue) return "PII";
+    if (o instanceof AsterDataValue dataValue) return dataValue.getTypeName();
+    if (o instanceof AsterEnumValue enumValue) return enumValue.getQualifiedName();
     if (o instanceof Map<?,?> m) {
       Object t = m.get("_type");
       if (t instanceof String s) return s;

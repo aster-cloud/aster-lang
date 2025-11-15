@@ -99,16 +99,35 @@ graalvmNative {
 }
 
 // 确保生成的 Aster JAR 存在
+// 注意：build/jvm-classes 由测试运行时按需生成，这里不强制依赖
 val generateAsterJar by tasks.registering(Exec::class) {
+  dependsOn(":aster-runtime:jar")
+
   workingDir = rootProject.projectDir
   commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
     listOf("cmd", "/c", "npm", "run", "jar:jvm")
   else listOf("sh", "-c", "npm run jar:jvm")
 }
 
-tasks.withType<JavaCompile>().configureEach {
-  dependsOn(generateAsterJar)
+// 如果 build/jvm-classes 不存在，跳过此任务（测试环境会自行生成）
+generateAsterJar.configure {
+  onlyIf {
+    val jvmClassesDir = file("${rootProject.projectDir}/build/jvm-classes")
+    if (!jvmClassesDir.exists()) {
+      logger.warn("Skipping generateAsterJar: build/jvm-classes does not exist. " +
+                  "Run 'npm run emit:class <files>' first if needed.")
+      false
+    } else {
+      true
+    }
+  }
 }
+
+// 注意：不强制 JavaCompile 依赖 generateAsterJar，因为测试环境会按需生成
+// 如需手动构建 JAR，运行: ./gradlew :aster-lang-cli:generateAsterJar
+// tasks.withType<JavaCompile>().configureEach {
+//   dependsOn(generateAsterJar)
+// }
 
 // 性能测试任务
 val benchmarkStartupTime by tasks.registering(Exec::class) {

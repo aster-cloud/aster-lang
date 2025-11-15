@@ -4,7 +4,7 @@
 
 # Interface: BaseRetryPolicy
 
-Defined in: [types/base.ts:241](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L241)
+Defined in: [types/base.ts:241](https://github.com/wontlost-ltd/aster-lang/blob/1bf231501298c8356da6c07e4bf89f297ebdc5b7/src/types/base.ts#L241)
 
 RetryPolicy 基础接口。
 
@@ -19,7 +19,7 @@ RetryPolicy 基础接口。
 
 > `readonly` **maxAttempts**: `number`
 
-Defined in: [types/base.ts:242](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L242)
+Defined in: [types/base.ts:242](https://github.com/wontlost-ltd/aster-lang/blob/1bf231501298c8356da6c07e4bf89f297ebdc5b7/src/types/base.ts#L242)
 
 ***
 
@@ -27,4 +27,4 @@ Defined in: [types/base.ts:242](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **backoff**: `"exponential"` \| `"linear"`
 
-Defined in: [types/base.ts:243](https://github.com/wontlost-ltd/aster-lang/blob/5aed71e244ba99d51d83b6e3bb0e5f93667094c5/src/types/base.ts#L243)
+Defined in: [types/base.ts:243](https://github.com/wontlost-ltd/aster-lang/blob/1bf231501298c8356da6c07e4bf89f297ebdc5b7/src/types/base.ts#L243)

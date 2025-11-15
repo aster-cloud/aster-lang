@@ -26,10 +26,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup GraalVM
+      - name: Setup Java 25 (GraalVM)
         uses: graalvm/setup-graalvm@v1
         with:
-          java-version: ${{ env.GRAALVM_VERSION }}
+          java-version: '25'
           distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'gradle'

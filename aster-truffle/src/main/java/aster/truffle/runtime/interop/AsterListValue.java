@@ -13,7 +13,7 @@ import java.util.List;
 public final class AsterListValue implements TruffleObject {
   private final List<Object> elements;
 
-  AsterListValue(List<Object> elements) {
+  public AsterListValue(List<Object> elements) {
     this.elements = elements;
   }
 

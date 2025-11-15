@@ -2,6 +2,12 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-15 TimerIntegrationTest 周期重调度验证
+- 日期：2025-11-15 17:42 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew quarkus-policy-api:test --tests io.aster.workflow.TimerIntegrationTest.testPeriodicTimerReschedulesItself` → 通过（PostgreSQL Testcontainers + TimerScheduler 周期性线程均正常运行，新增轮询逻辑后 `testPeriodicTimerReschedulesItself` 稳定通过）
+
 ## 2025-11-14 P4-2.6 注解端到端验证
 - 日期：2025-11-14 15:59 NZDT
 - 执行者：Codex

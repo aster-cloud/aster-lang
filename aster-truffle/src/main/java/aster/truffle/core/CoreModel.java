@@ -44,9 +44,10 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = Let.class, name = "Let"),
     @JsonSubTypes.Type(value = Set.class, name = "Set"),
     @JsonSubTypes.Type(value = Start.class, name = "Start"),
-    @JsonSubTypes.Type(value = Wait.class, name = "Wait")
+    @JsonSubTypes.Type(value = Wait.class, name = "Wait"),
+    @JsonSubTypes.Type(value = Workflow.class, name = "workflow")
   })
-  public sealed interface Stmt permits Return, If, Match, Scope, Let, Set, Start, Wait {}
+  public sealed interface Stmt permits Return, If, Match, Scope, Let, Set, Start, Wait, Workflow {}
   @JsonTypeName("Return") public static final class Return implements Stmt { public Expr expr; }
   @JsonTypeName("If") public static final class If implements Stmt { public Expr cond; public Block thenBlock; public Block elseBlock; }
   @JsonTypeName("Let") public static final class Let implements Stmt { public String name; public Expr expr; }
@@ -56,6 +57,31 @@ public final class CoreModel {
   @JsonTypeName("Match") public static final class Match implements Stmt { public Expr expr; public java.util.List<Case> cases; }
   @JsonTypeName("Scope") public static final class Scope implements Stmt { public java.util.List<Stmt> statements; }
   @JsonTypeName("Case") public static final class Case { public Pattern pattern; public Stmt body; }
+  @JsonTypeName("workflow")
+  public static final class Workflow implements Stmt {
+    public List<Step> steps;
+    public List<String> effectCaps;
+    public RetryPolicy retry;
+    public Timeout timeout;
+  }
+
+  public static final class Step {
+    public String kind;
+    public String name;
+    public Block body;
+    public Block compensate;
+    public List<String> dependencies;
+    public List<String> effectCaps;
+  }
+
+  public static final class RetryPolicy {
+    public int maxAttempts;
+    public String backoff;
+  }
+
+  public static final class Timeout {
+    public long milliseconds;
+  }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({
@@ -103,19 +129,44 @@ public final class CoreModel {
     @JsonSubTypes.Type(value = Result.class, name = "Result"),
     @JsonSubTypes.Type(value = ListT.class, name = "List"),
     @JsonSubTypes.Type(value = MapT.class, name = "Map"),
-    @JsonSubTypes.Type(value = FuncType.class, name = "FuncType")
+    @JsonSubTypes.Type(value = FuncType.class, name = "FuncType"),
+    @JsonSubTypes.Type(value = PiiType.class, name = "PiiType")
   })
-  public sealed interface Type permits TypeName, TypeVar, TypeApp, Maybe, Option, Result, ListT, MapT, FuncType {}
+  public sealed interface Type permits TypeName, TypeVar, TypeApp, Maybe, Option, Result, ListT, MapT, FuncType, PiiType {}
   @JsonTypeName("TypeName") public static final class TypeName implements Type { public String name; }
-  @JsonTypeName("TypeVar") public static final class TypeVar implements Type { public String name; }
-  @JsonTypeName("TypeApp") public static final class TypeApp implements Type { public String base; public java.util.List<Type> args; }
+  @JsonTypeName("TypeVar")
+  public static final class TypeVar implements Type {
+    public String kind = "TypeVar";
+    public String name;
+  }
+  @JsonTypeName("TypeApp")
+  public static final class TypeApp implements Type {
+    public String kind = "TypeApp";
+    public Type base;
+    public java.util.List<Type> args;
+  }
   @JsonTypeName("Maybe") public static final class Maybe implements Type { public Type type; }
-  @JsonTypeName("Option") public static final class Option implements Type { public Type type; }
+  @JsonTypeName("Option")
+  public static final class Option implements Type {
+    public String kind = "Option";
+    public Type type;
+  }
   @JsonTypeName("Result") public static final class Result implements Type { public Type ok; public Type err; }
   // Name ListT/MapT to avoid clashing with java.util.List/Map in annotations
   @JsonTypeName("List") public static final class ListT implements Type { public Type type; }
   @JsonTypeName("Map") public static final class MapT implements Type { public Type key; public Type val; }
-  @JsonTypeName("FuncType") public static final class FuncType implements Type { public java.util.List<Type> params; public Type ret; }
+  @JsonTypeName("FuncType")
+  public static final class FuncType implements Type {
+    public String kind = "FuncType";
+    public java.util.List<Type> params;
+    public Type returnType;
+    public java.util.List<String> effects;
+  }
+  @JsonTypeName("PiiType") public static final class PiiType implements Type {
+    public Type baseType;
+    public String sensitivity;
+    public String category;
+  }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "kind")
   @JsonSubTypes({

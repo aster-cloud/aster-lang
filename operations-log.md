@@ -1,3 +1,122 @@
+# 2025-11-15 17:40 NZDT TimerIntegrationTest 周期重调度排查
+
+**操作记录**:
+- 工具：sequential-thinking(totalThoughts=2) → 梳理定时器测试失败可能原因（调度逻辑 vs 固定 sleep 不足）。
+- 工具：update_plan(3 步) → 拆解为分析实现、修改验证、结果记录三个阶段。
+- 工具：code-index.find_files(`**/TimerIntegrationTest.java`, `**/TimerSchedulerService*.java`, `**/WorkflowTimerEntity.java`) → 锁定测试与调度相关源码。
+- 工具：shell(`sed -n '1,200p' quarkus-policy-api/src/test/java/io/aster/workflow/TimerIntegrationTest.java`, `sed -n '1,200p' quarkus-policy-api/src/main/java/io/aster/workflow/TimerSchedulerService.java`, `sed -n '1,250p' .../TimerCrashRecoveryTest.java`) → 阅读测试逻辑与调度实现，确认 crash 测试已具备 fireAt 轮询辅助。
+- 工具：apply_patch(quarkus-policy-api/src/test/java/io/aster/workflow/TimerIntegrationTest.java) → 引入 waitForTimerReschedule 轮询方法，测试中改为等待 fireAt 推进而非固定 Thread.sleep。
+- 工具：shell(`TZ="Pacific/Auckland" date "+%Y-%m-%d %H:%M NZDT"`) → 获取日志时间戳。
+
+**观察**:
+- TimerIntegrationTest 原实现仅 Thread.sleep(3000) 就断言下一次 fireAt，应对 Testcontainers 启动或调度线程抖动时可能尚未完成首次触发，导致 fireAt 仍停留在初始值而断言失败。
+- CrashRecoveryTest 早已通过 waitForFireAtAdvance 轮询验证周期性定时器，因此将相同策略移植到集成测试即可消除非确定性。
+- 新 helper 在 10 秒超时内循环调用 findTimerById，一旦 fireAt 大于初始基线即返回，既能确保重新调度又不会过早失败。
+
+# 2025-11-15 17:29 NZDT generateAsterJar 构建失败调查
+
+**操作记录**:
+- 工具：sequential-thinking(totalThoughts=4) → 梳理 generateAsterJar 任务调查步骤与风险。
+- 工具：update_plan(4 步) → 规划读取 build.gradle.kts、重现 ./gradlew test --continue、解析测试报告、整理 JSON。
+- 工具：code-index.set_project_path(/Users/rpang/IdeaProjects/aster-lang) → 初始化检索目录。
+- 工具：shell(`rg -n "generateAsterJar" aster-lang-cli/build.gradle.kts`, `sed -n '1,200p' aster-lang-cli/build.gradle.kts`) → 获取任务定义源码。
+- 工具：shell(`./gradlew :aster-lang-cli:generateAsterJar --dry-run`) → 查看任务依赖行为。
+- 工具：shell(`./gradlew test --continue`, `./gradlew test --continue --console=plain | tee /tmp/gradle-test.log`, `./gradlew test --continue --console=plain > /tmp/gradle-test.log 2>&1`) → 重现失败并收集完整日志。
+- 工具：shell(`rg --no-ignore 'failures="[1-9]" -g"TEST-*.xml"`, `sed -n '1,200p' quarkus-policy-api/build/test-results/test/TEST-io.aster.workflow.TimerIntegrationTest.xml`, `sed -n '1,200p' quarkus-policy-api/build/test-results/test/TEST-io.aster.policy.graphql.PolicyGraphQLResourceTest.xml`) → 提取失败与跳过测试详情。
+- 工具：shell(`sed -n '80,200p' quarkus-policy-api/build/reports/tests/test/index.html`) → 验证 406 测试/1 failed/1 ignored 汇总。
+
+**观察**:
+- `aster-lang-cli/build.gradle.kts` 中的 `generateAsterJar` 只是执行 `npm run jar:jvm`，并被所有 `JavaCompile` 任务依赖，但未声明生成 `build/jvm-classes` 的前置步骤。
+- `./gradlew test --continue` 的完整日志显示 `cp: ... build/jvm-classes/*: No such file or directory`，导致 `node dist/scripts/jar-jvm.js` 退出，`Process 'command 'sh'' finished with non-zero exit value 1`（记录在 /tmp/gradle-test.log）。
+- 失败测试来自 `quarkus-policy-api`：`TimerIntegrationTest#testPeriodicTimerReschedulesItself` 断言下一次触发时间在未来，实测得 false；唯一跳过的用例是 `PolicyGraphQLResourceTest#testCacheTtlExpiryTriggersReload`。
+
+# 2025-11-15 16:23 NZDT Import/Data/Enum 运行时实现
+
+**操作记录**:
+- 工具：apply_patch(AsterDataValue.java, AsterEnumValue.java) → 新增 Data/Enum 值对象，提供 Interop 成员、字段/变体元数据与 `_type` 兼容访问。
+- 工具：apply_patch(ConstructNode.java) → 构造节点输出 AsterDataValue，并保存 CoreModel.Data 供运行时引用。
+- 工具：apply_patch(Loader.java) → Data 构造添加字段校验/重排逻辑、引入 requireDataDefinition/prepareDataFields，并在 buildName 输出 AsterEnumValue。
+- 工具：apply_patch(MatchNode.java) → 模式匹配支持 AsterDataValue/AsterEnumValue，同步保留旧 Map 兼容逻辑。
+- 工具：apply_patch(Builtins.java) → typeName() 返回 Data/Enum 友好名称，优化错误消息。
+- 工具：shell(`./gradlew :aster-truffle:compileJava`) → 编译通过，仅有既有 BuiltinCallNode guard 提示。
+- 工具：shell(`./gradlew :aster-truffle:test --tests \"*GoldenTestAdapter*\"`) → Golden 测试全部执行，expected fail 用例保持 PASS。
+
+**观察**:
+- Data 构造若缺失或重复字段立即抛错，可避免 silently 生成无序 Map。
+- 新 Enum/Data 值对象维持 `_type`/`value` 可读语义，Golden 测试运行均未新增失败。
+
+# 2025-11-15 16:17 NZDT Import/Data/Enum 现状分析
+
+**操作记录**:
+- 工具：code-index.search_code_advanced(`class CoreModel`) → 确认 CoreModel Java 定义位置（aster-truffle/aster-core）。
+- 工具：shell(`sed -n '1,200p' aster-truffle/.../CoreModel.java`, `sed -n '1,620p' aster-truffle/.../Loader.java`, `sed -n '400,620p' ...`, `rg -n 'dataTypeIndex'`, `rg -n 'buildConstruct'`, `sed -n '600,780p'`, `sed -n '1,220p' NameNode.java`, `sed -n '1,200p' MatchNode.java`, `sed -n '1,200p' ConstructNode.java`, `sed -n '1,200p' ResultNodes.java`) → 逐段阅读 Core IR/Loader/节点实现。
+- 工具：shell(`rg -n '\"Enum\"' -g'*.json' test/...`, `cat expected_match_enum_core.json`, `rg -n '\"kind\": \"Data\"' -g'*.json'`, `sed -n '1,160p' match_ctor_core.json`, `sed -n '90,160p' expected_login_core.json`) → 解析 Golden Core JSON 中 Data/Enum 的实际使用。
+- 工具：shell(`rg -n '_type' -g'*.java' aster-truffle`, `sed -n '1,200p' runtime/PiiSupport.java`, `sed -n '400,760p' runtime/Builtins.java`, `sed -n '800,860p' runtime/Builtins.java`) → 统计 `_type` 依赖点，评估兼容性。
+- 工具：shell(`rg -n 'ConstructNode.create'`, `ls runtime`, `sed -n '1,200p' runtime/AsterPiiValue.java`, `ls runtime/interop`, `sed -n '1,200p' runtime/interop/AsterListValue.java`, `rg -n 'Enum' *.java`, `rg -n 'NameNodeGen'`) → 梳理可复用的运行时模式与 DSL 生成方式。
+- 工具：shell(`TZ=\"Pacific/Auckland\" date \"+%Y-%m-%d %H:%M %Z\"`) → 获取 NZ 时间用于日志。
+
+**观察**:
+- Data/Enum 在 Loader 中仅登记轻量 Map，ConstructNode 返回 `_type` Map，MatchNode 也是直接读 Map，缺乏运行时元数据。
+- Golden Core JSON 里 Data 主要出现在记录类型构造，Enum 仅作为 Err/Ok payload；目前无真正的 Import 运行时代码。
+- Builtins/PiiSupport 等依赖 `_type` Map 的逻辑集中在 Option/Result，后续需保持接口可兼容；新的值对象须实现 Interop 并保留 `_type` 语义。
+
+# 2025-11-15 16:08 NZDT Import/Data/Enum Stage3 初始
+
+**操作记录**:
+- 工具：sequential-thinking(totalThoughts=6) → 梳理 Import/Data/Enum 运行时任务范围与主要风险，规划需要解析的组件与验证步骤。
+- 工具：code-index.set_project_path(/Users/rpang/IdeaProjects/aster-lang) → 初始化索引，确保后续检索遵循规范。
+- 工具：code-index.find_files(operations-log.md) → 确认操作日志位置，遵守 trace 要求。
+- 工具：shell(`ls`) → 快速确认项目根目录结构，定位 aster-truffle/aster-core 等相关模块。
+- 工具：shell(`cat operations-log.md`) → 阅读既有日志输出格式，确保新记录保持一致。
+- 工具：shell(`TZ=\"Pacific/Auckland\" date \"+%Y-%m-%d %H:%M %Z\"`) → 获取当前新西兰时间，写入日志标题。
+
+**观察**:
+- 操作日志按时间倒序记录，在相同格式基础上追加更易审计。
+- 现有工作流相关改动较多，后续扩展 Import/Data/Enum 时需关注 Loader/Workflow 交互。
+
+# 2025-11-15 14:47 NZDT Workflow Loader Step5 补充
+
+**操作记录**:
+- 工具：apply_patch(WorkflowNode.java) → 捕获 ReturnNode.ReturnException 将返回值写入工作流任务结果，避免异步任务被视作失败。
+- 工具：shell(`./gradlew :aster-truffle:compileJava`, `./gradlew :aster-truffle:test --tests "*GoldenTestAdapter*"`) → 再次编译并运行 Golden 测试，确认 workflow 场景执行成功。
+
+**观察**:
+- Workflow 步骤中的 Return 通过异常控制流实现，若不拦截会导致 AsyncTaskRegistry 将任务标记为失败；新增捕获后，可按同步语义返回值。
+
+# 2025-11-15 14:45 NZDT Workflow Loader Step5 调整
+
+**操作记录**:
+- 工具：apply_patch(Loader.java) → 在模块加载阶段扫描函数体自动追加 Async effect，并新增递归检测逻辑保证 workflow 语句触发权限补全。
+- 工具：apply_patch(ResultNodes.java) → 调整 Ok/Err/Some/None 节点构建 Map 的方式，允许 null 值避免 Map.of 抛出 NPE。
+- 工具：shell(`./gradlew :aster-truffle:compileJava`, `./gradlew :aster-truffle:test --tests "*GoldenTestAdapter*"`) → 编译与运行 Golden 测试，验证 workflow 场景实际执行。
+
+**观察**:
+- Workflow Golden 测试需要 Async effect，缺失时 WorkflowNode 会在执行前抛出异常；已通过 Loader 自动补齐效果集解决。
+- ResultNodes 原先使用 Map.of，不接受 null 值；workflow 步骤触发 Sql.insert 等 stub 时易返回 null，这也是之前 Workflow 执行失败的根本原因。
+
+# 2025-11-15 14:40 NZDT Workflow Loader Step2-4 实施
+
+**操作记录**:
+- 工具：apply_patch(CoreModel.java) → 为 Truffle Core IR 增补 Workflow/Step/Retry/Timeout 定义，并更新 Stmt 类型注册。
+- 工具：apply_patch(Loader.java) → 在 buildBlock/buildScope 中识别 Workflow，新增 buildWorkflow 构建 Step AST/依赖拓扑，并传递 timeout。
+- 工具：apply_patch(Exec.java) → Exec.exec 支持 WorkflowNode 执行，确保工作流节点真正运行。
+- 工具：apply_patch(GoldenTestAdapter.java) → 移除 workflow 跳过逻辑，让 Golden 测试实际执行。
+
+**观察**:
+- WorkflowNode 构造依赖 Map<String,Set<String>>，Loader 需保持拓扑顺序并使用 LinkedHashSet 避免重复。
+- 现阶段 compensate/retry 字段仍未落地到运行时，如需使用需在 WorkflowNode 后续扩展。
+
+# 2025-11-15 14:37 NZDT Workflow Loader Step1 调研
+
+**操作记录**:
+- 工具：sequential-thinking(totalThoughts=3) → 明确 Loader 缺失点、研究目标与风险。
+- 工具：code-index.set_project_path(.)、code-index.find_files/`search_code_advanced` → 定位 CoreModel/WorkflowNode/Golden 测试资源。
+- 工具：shell(`sed`/`rg`/`cat`) 阅读 `aster-core/src/.../CoreModel.java`、`aster-truffle/nodes/WorkflowNode.java`、`aster-truffle/Loader.java`、`test/e2e/golden/core/expected_workflow-*.json` 等，梳理数据结构与执行流程。
+
+**观察**:
+- Truffle Loader 仍未识别 `workflow` 语句，`WorkflowNode` 也未在 Exec 中注册，导致工作流 AST 无法执行。
+- `aster-truffle/core/CoreModel.java` 缺少 Workflow/Step/Rz 定义，后续解析 JSON 前需要补齐。
+
 # 2025-11-15 09:46 NZDT Priority3 失败分析
 
 **操作记录**:
@@ -7040,3 +7159,50 @@ if (entity == null) {
 - 简单的单一调度器方案比复杂的并发控制更可靠
 
 **测试结果**: ✅ 406/406 tests passed (100%)
+
+# 2025-11-15 15:29 NZDT Truffle PII 类型支持阶段0
+
+**操作记录**:
+- 工具：SequentialThinking(thought#1) → 记录任务理解、识别需分析的上下文
+- 工具：SequentialThinking(thought#2) → 确定使用 code-index 及日志策略
+- 工具：CodeIndex.search_code_advanced(pattern=\"PiiType\") → 因未设项目路径失败，确认需 set_project_path
+- 工具：CodeIndex.set_project_path(/Users/rpang/IdeaProjects/aster-lang) → 初始化代码索引以便检索
+- 工具：CodeIndex.search_code_advanced(pattern=\"class PiiType\") → 获取 CoreModel.PiiType 所在行，便于深入分析
+- 工具：Shell(ls @ repo root) → 快速确认仓库结构和 docs/workstreams 位置
+- 工具：Shell(tail operations-log.md) → 查看既有日志格式以保持一致
+- 工具：Shell(date TZ=Pacific/Auckland) → 获取 NZ 本地时间用于日志时间戳
+
+# 2025-11-15 15:31 NZDT Truffle PII 类型支持阶段0-上下文收集
+
+**操作记录**:
+- 工具：Shell(sed -n '210,270p' aster-core/.../CoreModel.java) → 查看 CoreModel.PiiType 在 Java 侧的定义与字段
+- 工具：Shell(sed -n '560,610p' src/types.ts) → 获取 TypeScript CoreModel.PiiType 接口（baseType、sensitivity、category）
+- 工具：Shell(ls test/e2e/golden/core | grep pii) → 列出 PII 相关 golden 输入和 IR 期望文件
+- 工具：Shell(cat expected_pii_type_basic_core.json / expected_pii_type_in_function_core.json / expected_pii_type_in_data_core.json / expected_pii_result_type_core.json) → 分析 Core IR 中 PII 类型在函数返回、参数、数据结构中的表示
+- 工具：Shell(ls -l expected_pii_in_maybe_core.json) → 确认文件为空 (0 bytes)
+- 工具：Shell(cat pii_result_type.aster / pii_type_in_data.aster / pii_type_in_function.aster / pii_type_mixed.aster / pii_type_phone.aster / pii_type_ssn.aster / pii_param_return.aster) → 了解 PII 代码示例如何构造与传播敏感值
+- 工具：Shell(ls test/e2e/golden/core | grep maybe) → 检查 maybe 相关 golden 资源，确认缺失 `pii_in_maybe.aster`
+- 工具：Shell(rg -n \"pii_in_maybe\") → 验证仓库中无其它 `pii_in_maybe` 源文件
+- 工具：Shell(date TZ=Pacific/Auckland) → 记录当前 NZ 时间用于日志条目
+
+# 2025-11-15 15:40 NZDT Truffle PII 类型支持阶段1-代码结构梳理
+
+**操作记录**:
+- 工具：Shell(sed -n '260,320p' DESIGN.md) → 查阅 type erasure 要求和 PII 设计约束
+- 工具：Shell(sed -n '1,200p' aster-truffle/core/CoreModel.java) → 确认 Truffle IR 缺少 PiiType
+- 工具：Shell(多次 sed/awk Loader.java) → 分析 Loader 中 score、buildExpr、Return 与 Construct 流程及可插入 PII 包装的位置
+- 工具：Shell(sed -n '1,200p' aster-truffle/runtime/Builtins.java) → 整理需要 unwrap PII 的内置函数
+- 工具：Shell(sed -n '1,200p' aster-truffle/runtime/interop/AsterListValue.java) → 学习现有 TruffleObject 封装样例
+- 工具：Shell(sed -n '1,200p' aster-truffle/nodes/{AsterExpressionNode,LetNode,ConstructNode,Env,CallNode,NameNode,LambdaRootNode,LambdaValue,ReturnNode}.java) → 理解参数绑定/返回节点实现方便埋点
+- 工具：Shell(rg + nl 解析 expected_pii_type_mixed_core.json 等) → 查证 Result/Maybe 中 PII 值结构
+- 工具：Shell(sed -n '1,220p' 及 '230-340p' GoldenTestAdapter.java) → 确认 generateDefaultValue 需扩展 PII 类型处理
+- 工具：Shell(date TZ=Pacific/Auckland) → 记录阶段性日志时间戳
+
+# 2025-11-15 15:52 NZDT Truffle PII 类型支持阶段2-实现与验证
+
+**操作记录**:
+- 工具：apply_patch(CoreModel.java, 新增 runtime/AsterPiiValue.java、runtime/PiiSupport.java、nodes/PiiWrapNode.java、修改 runtime/interop/AsterListValue.java) → 补足 PiiType 与运行时封装
+- 工具：apply_patch(Loader.java, LambdaRootNode.java, Builtins.java, GoldenTestAdapter.java, 删除 test/e2e/golden/core/expected_pii_in_maybe_core.json) → 引入返回类型栈/数据类型索引、运行时包装、PII builtin、默认参数生成与清理空测试
+- 工具：Shell(./gradlew :aster-truffle:compileJava) ×2 → 首次捕获编译错误修正 List 泛型，二次确认构建成功
+- 工具：Shell(./gradlew :aster-truffle:test --tests \"*GoldenTestAdapter*\") ×2 → 首次观察执行日志，二次确认命令在缓存下成功
+- 工具：Shell(date TZ=Pacific/Auckland) → 记录阶段性完成时间

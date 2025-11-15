@@ -116,7 +116,10 @@ public final class WorkflowNode extends Node {
         Set<String> previousEffects = context.getAllowedEffects();
         try {
           context.setAllowedEffects(capturedEffects);
-          return Exec.exec(expr, materializedFrame);
+          Object result = Exec.exec(expr, materializedFrame);
+          return result;
+        } catch (ReturnNode.ReturnException rex) {
+          return rex.value;
         } catch (RuntimeException ex) {
           throw ex;
         } catch (Throwable t) {

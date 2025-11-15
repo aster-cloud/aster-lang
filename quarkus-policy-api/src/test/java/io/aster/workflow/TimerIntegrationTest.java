@@ -66,16 +66,20 @@ public class TimerIntegrationTest {
         String workflowId = UUID.randomUUID().toString();
 
         UUID timerId = createPeriodicTimerWithWorkflow(workflowId, Duration.ofSeconds(2));
+        WorkflowTimerEntity initialSnapshot = findTimerById(timerId);
+        assertNotNull(initialSnapshot);
+        Instant baselineFireAt = initialSnapshot.fireAt;
 
-        // When: 等待第一次触发
-        Thread.sleep(3000); // 等待超过一个周期
+        // When: 等待 fireAt 推进（轮询，避免固定 sleep 带来的不确定性）
+        WorkflowTimerEntity timer = waitForTimerReschedule(timerId, baselineFireAt, Duration.ofSeconds(10));
+        assertNotNull(timer, "Periodic timer should still exist after first trigger");
 
         // Then: 验证 timer 已重新调度
-        WorkflowTimerEntity timer = findTimerById(timerId);
-        assertNotNull(timer);
         assertEquals("PENDING", timer.status, "Periodic timer should return to PENDING");
         assertNotNull(timer.intervalMillis);
         assertEquals(Duration.ofSeconds(2).toMillis(), timer.intervalMillis);
+        assertTrue(timer.fireAt.isAfter(baselineFireAt),
+            "Periodic timer fireAt should advance after first trigger");
         assertTrue(timer.fireAt.isAfter(Instant.now().minusSeconds(1)),
             "Next fire time should be in the future");
     }
@@ -268,5 +272,23 @@ public class TimerIntegrationTest {
     @Transactional
     WorkflowStateEntity findWorkflowState(String workflowId) {
         return WorkflowStateEntity.findById(UUID.fromString(workflowId));
+    }
+
+    /**
+     * 轮询等待 fireAt 前进，确保周期性 timer 至少触发一次后再断言
+     */
+    private WorkflowTimerEntity waitForTimerReschedule(UUID timerId, Instant baselineFireAt, Duration timeout)
+        throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeout.toMillis();
+        WorkflowTimerEntity latest = null;
+        while (System.currentTimeMillis() < deadline) {
+            latest = findTimerById(timerId);
+            if (latest != null && latest.fireAt != null
+                && baselineFireAt != null && latest.fireAt.isAfter(baselineFireAt)) {
+                return latest;
+            }
+            Thread.sleep(500);
+        }
+        return latest;
     }
 }

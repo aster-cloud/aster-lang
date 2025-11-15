@@ -1,7 +1,9 @@
 package aster.truffle.nodes;
 
 import aster.truffle.AsterLanguage;
+import aster.truffle.core.CoreModel;
 import aster.truffle.runtime.AsterConfig;
+import aster.truffle.runtime.PiiSupport;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -22,6 +24,7 @@ public final class LambdaRootNode extends RootNode {
   @CompilationFinal private final String name;
   @CompilationFinal private final int paramCount;
   @CompilationFinal private final int captureCount;
+  @CompilationFinal(dimensions = 1) private final CoreModel.Type[] paramTypes;
   @Child private com.oracle.truffle.api.nodes.Node bodyNode;
 
   /**
@@ -40,13 +43,15 @@ public final class LambdaRootNode extends RootNode {
       String name,
       int paramCount,
       int captureCount,
-      com.oracle.truffle.api.nodes.Node bodyNode
+      com.oracle.truffle.api.nodes.Node bodyNode,
+      CoreModel.Type[] paramTypes
   ) {
     super(language, frameDescriptor);
     this.name = name;
     this.paramCount = paramCount;
     this.captureCount = captureCount;
     this.bodyNode = bodyNode;
+    this.paramTypes = paramTypes == null ? new CoreModel.Type[0] : paramTypes.clone();
   }
 
   @Override
@@ -94,9 +99,14 @@ public final class LambdaRootNode extends RootNode {
     }
 
     for (int i = 0; i < paramCount; i++) {
-      frame.setObject(i, args[i]);
+      Object arg = args[i];
+      CoreModel.Type expectedType = (i < paramTypes.length) ? paramTypes[i] : null;
+      if (expectedType != null) {
+        arg = PiiSupport.wrapValue(arg, expectedType);
+      }
+      frame.setObject(i, arg);
       if (AsterConfig.DEBUG) {
-        System.err.println("DEBUG: lambda param slot[" + i + "]=" + args[i]);
+        System.err.println("DEBUG: lambda param slot[" + i + "]=" + arg);
       }
     }
   }

@@ -13,7 +13,7 @@ public final class ResultNodes {
     public Object executeGeneric(VirtualFrame frame) {
       Profiler.inc("ok");
       Object value = Exec.exec(expr, frame);
-      return java.util.Map.of("_type", "Ok", "value", value);
+      return createResult("Ok", value);
     }
   }
   public static final class ErrNode extends AsterExpressionNode {
@@ -23,7 +23,7 @@ public final class ResultNodes {
     public Object executeGeneric(VirtualFrame frame) {
       Profiler.inc("err");
       Object value = Exec.exec(expr, frame);
-      return java.util.Map.of("_type", "Err", "value", value);
+      return createResult("Err", value);
     }
   }
 
@@ -34,14 +34,27 @@ public final class ResultNodes {
     public Object executeGeneric(VirtualFrame frame) {
       Profiler.inc("some");
       Object value = Exec.exec(expr, frame);
-      return java.util.Map.of("_type", "Some", "value", value);
+      return createResult("Some", value);
     }
   }
   public static final class NoneNode extends AsterExpressionNode {
     @Override
     public Object executeGeneric(VirtualFrame frame) {
       Profiler.inc("none");
-      return java.util.Map.of("_type", "None");
+      return createResult("None");
     }
+  }
+
+  private static java.util.Map<String,Object> createResult(String type, Object value) {
+    java.util.LinkedHashMap<String,Object> map = new java.util.LinkedHashMap<>();
+    map.put("_type", type);
+    map.put("value", value);
+    return map;
+  }
+
+  private static java.util.Map<String,Object> createResult(String type) {
+    java.util.LinkedHashMap<String,Object> map = new java.util.LinkedHashMap<>();
+    map.put("_type", type);
+    return map;
   }
 }

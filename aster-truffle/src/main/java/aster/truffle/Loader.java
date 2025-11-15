@@ -2,8 +2,10 @@ package aster.truffle;
 
 import aster.truffle.core.CoreModel;
 import aster.truffle.nodes.*;
+import aster.truffle.runtime.AsterEnumValue;
 import aster.truffle.runtime.Builtins;
 import aster.truffle.runtime.FrameSlotBuilder;
+import aster.truffle.runtime.PiiSupport;
 import com.fasterxml.jackson.databind.*;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.*;
@@ -40,6 +42,22 @@ public final class Loader {
     this.entryFunction = null;
     this.entryParamSlots = null;
     this.paramSlotStack.clear();
+    // Import 声明在 Core 阶段已展开依赖，这里直接消费合并后的 Module，无需额外处理。
+    if (mod.decls != null) {
+      for (var d : mod.decls) {
+        if (d instanceof CoreModel.Func fn) {
+          ensureWorkflowEffects(fn);
+        }
+      }
+    }
+    this.dataTypeIndex = new java.util.LinkedHashMap<>();
+    if (mod.decls != null) {
+      for (var d : mod.decls) {
+        if (d instanceof CoreModel.Data data) {
+          dataTypeIndex.put(data.name, data);
+        }
+      }
+    }
     // collect enum variants mapping
     this.enumVariantToEnum = new java.util.HashMap<>();
     if (mod.decls != null) for (var d : mod.decls) if (d instanceof CoreModel.Enum en) for (var v : en.variants) enumVariantToEnum.put(v, en.name);
@@ -126,7 +144,8 @@ public final class Loader {
             lambdaFuncName,
             params.size(),
             0,  // captureCount = 0 for top-level functions
-            body
+            body,
+            extractParamTypes(fn.params)
         );
 
         // Get CallTarget
@@ -175,6 +194,34 @@ public final class Loader {
   private static int score(String raw, CoreModel.Type ty) {
     if (raw == null) return 0;
     String t = raw.trim();
+    if (ty instanceof CoreModel.PiiType pii) {
+      return score(t, pii.baseType);
+    }
+    if (ty instanceof CoreModel.TypeVar) {
+      // 泛型参数宽松匹配，始终赋予最低优先级
+      return 1;
+    }
+    if (ty instanceof CoreModel.TypeApp app) {
+      int baseScore = (app.base != null) ? score(t, app.base) : 0;
+      if (baseScore > 0) {
+        return baseScore;
+      }
+      if (app.args != null && !app.args.isEmpty()) {
+        int best = 0;
+        for (CoreModel.Type arg : app.args) {
+          best = Math.max(best, score(t, arg));
+        }
+        return best;
+      }
+      return 0;
+    }
+    if (ty instanceof CoreModel.FuncType funcType) {
+      String lower = t.toLowerCase(java.util.Locale.ROOT);
+      if (lower.contains("lambda") || lower.contains("function") || lower.contains("->") || lower.contains("=>")) {
+        return 3;
+      }
+      return 0;
+    }
     if (ty instanceof CoreModel.TypeName tn) {
       String n = tn.name;
       if ("Int".equals(n)) return looksInt(t) ? 3 : 0;
@@ -216,6 +263,8 @@ public final class Loader {
   private CoreModel.Func entryFunction;
   private java.util.Map<String,Integer> entryParamSlots;
   private final java.util.Deque<java.util.Map<String,Integer>> paramSlotStack = new java.util.ArrayDeque<>();
+  private final java.util.Deque<CoreModel.Type> returnTypeStack = new java.util.ArrayDeque<>();
+  private java.util.Map<String, CoreModel.Data> dataTypeIndex;
 
   private Node buildBlock(CoreModel.Block b) {
     if (b == null || b.statements == null || b.statements.isEmpty()) return LiteralNode.create(null);
@@ -224,7 +273,9 @@ public final class Loader {
 
     for (var s : b.statements) {
       if (s instanceof CoreModel.Return r) {
-        list.add(new ReturnNode(buildExpr(r.expr)));
+        AsterExpressionNode returnExpr = buildExpr(r.expr);
+        returnExpr = maybeWrapForType(returnExpr, currentReturnType());
+        list.add(new ReturnNode(returnExpr));
       } else if (s instanceof CoreModel.If iff) {
         list.add(IfNode.create(buildExpr(iff.cond), buildBlock(iff.thenBlock), buildBlock(iff.elseBlock)));
       } else if (s instanceof CoreModel.Let let) {
@@ -251,9 +302,51 @@ public final class Loader {
         list.add(new StartNode(env, st.name, buildExpr(st.expr)));
       } else if (s instanceof CoreModel.Wait wt) {
         list.add(new WaitNode(env, ((wt.names != null) ? wt.names : java.util.List.<String>of()).toArray(new String[0])));
+      } else if (s instanceof CoreModel.Workflow wf) {
+        list.add(buildWorkflow(wf));
       }
     }
     return BlockNode.create(list);
+  }
+
+  private Node buildWorkflow(CoreModel.Workflow wf) {
+    if (wf == null || wf.steps == null || wf.steps.isEmpty()) {
+      return LiteralNode.create(null);
+    }
+    java.util.List<CoreModel.Step> steps = wf.steps;
+    Node[] stepBodies = new Node[steps.size()];
+    String[] stepNames = new String[steps.size()];
+    java.util.Map<String, java.util.Set<String>> dependencies = new java.util.LinkedHashMap<>();
+
+    for (int i = 0; i < steps.size(); i++) {
+      CoreModel.Step step = steps.get(i);
+      if (step == null) {
+        stepBodies[i] = LiteralNode.create(null);
+        stepNames[i] = null;
+        continue;
+      }
+      stepBodies[i] = buildBlock(step.body);
+      stepNames[i] = step.name;
+      java.util.List<String> deps = step.dependencies;
+      if (deps != null && !deps.isEmpty() && step.name != null) {
+        java.util.LinkedHashSet<String> depSet = new java.util.LinkedHashSet<>();
+        for (String dep : deps) {
+          if (dep != null && !dep.isEmpty()) {
+            depSet.add(dep);
+          }
+        }
+        if (!depSet.isEmpty()) {
+          dependencies.put(step.name, depSet);
+        }
+      }
+    }
+
+    long timeoutMs = 0L;
+    if (wf.timeout != null) {
+      timeoutMs = wf.timeout.milliseconds;
+    }
+
+    return new WorkflowNode(env, stepBodies, stepNames, dependencies, timeoutMs);
   }
 
   private AsterExpressionNode buildExpr(CoreModel.Expr e) {
@@ -297,7 +390,7 @@ public final class Loader {
 
         // Build body node with parameter and capture slots in scope
         java.util.Map<String,Integer> lambdaSlots = slotBuilder.getSymbolTable();
-        Node body = withParamSlots(lambdaSlots, () -> buildBlock(lam.body));
+        Node body = withReturnType(lam.ret, () -> withParamSlots(lambdaSlots, () -> buildBlock(lam.body)));
 
         // Create LambdaRootNode
         String lambdaName = "lambda@" + System.identityHashCode(lam);
@@ -307,7 +400,8 @@ public final class Loader {
             lambdaName,
             params.size(),
             caps.size(),
-            body
+            body,
+            extractParamTypes(lam.params)
         );
 
         // Get CallTarget
@@ -417,12 +511,22 @@ public final class Loader {
     this.env = scopeEnv;
     try {
       if (sc.statements != null) for (var s : sc.statements) {
-        if (s instanceof CoreModel.Return r) list.add(new ReturnNode(buildExpr(r.expr)));
+        if (s instanceof CoreModel.Return r) {
+          AsterExpressionNode returnExpr = buildExpr(r.expr);
+          returnExpr = maybeWrapForType(returnExpr, currentReturnType());
+          list.add(new ReturnNode(returnExpr));
+        }
         else if (s instanceof CoreModel.Let let) {
           scopeLocals.add(let.name);
           list.add(new LetNodeEnv(let.name, buildExpr(let.expr), scopeEnv));
         }
         else if (s instanceof CoreModel.If iff) list.add(IfNode.create(buildExpr(iff.cond), buildBlock(iff.thenBlock), buildBlock(iff.elseBlock)));
+        else if (s instanceof CoreModel.Match match) {
+          list.add(buildMatch(match));
+        }
+        else if (s instanceof CoreModel.Scope nestedScope) {
+          list.add(buildScope(nestedScope));
+        }
         else if (s instanceof CoreModel.Set set) {
           AsterExpressionNode valueNode = buildExpr(set.expr);
           if (!scopeLocals.contains(set.name) && slots != null && slots.containsKey(set.name)) {
@@ -433,6 +537,7 @@ public final class Loader {
         }
         else if (s instanceof CoreModel.Start st) list.add(new StartNode(scopeEnv, st.name, buildExpr(st.expr)));
         else if (s instanceof CoreModel.Wait wt) list.add(new WaitNode(scopeEnv, ((wt.names != null) ? wt.names : java.util.List.<String>of()).toArray(new String[0])));
+        else if (s instanceof CoreModel.Workflow wf) list.add(buildWorkflow(wf));
       }
     } finally {
       this.env = previousEnv;
@@ -441,9 +546,9 @@ public final class Loader {
   }
 
   private AsterExpressionNode buildConstruct(CoreModel.Construct cons) {
-    var fields = new java.util.LinkedHashMap<String, AsterExpressionNode>();
-    if (cons.fields != null) for (var f : cons.fields) fields.put(f.name, buildExpr(f.expr));
-    return ConstructNode.create(cons.typeName, fields);
+    CoreModel.Data dataDefinition = requireDataDefinition(cons.typeName);
+    java.util.LinkedHashMap<String, AsterExpressionNode> orderedFields = prepareDataFields(cons, dataDefinition);
+    return ConstructNode.create(cons.typeName, orderedFields, dataDefinition);
   }
 
   private AsterExpressionNode buildName(String name) {
@@ -451,7 +556,7 @@ public final class Loader {
     if (enumVariantToEnum != null) {
       String en = enumVariantToEnum.get(name);
       if (en != null) {
-        return LiteralNode.create(new java.util.LinkedHashMap<String,Object>() {{ put("_enum", en); put("value", name); }});
+        return LiteralNode.create(new AsterEnumValue(en, name));
       }
     }
     // If name contains '.', treat as fully-qualified enum value string literal
@@ -465,10 +570,12 @@ public final class Loader {
 
   private Node buildFunctionBody(CoreModel.Func fn) {
     if (fn == null) return LiteralNode.create(null);
-    if (fn == entryFunction && entryParamSlots != null && !entryParamSlots.isEmpty()) {
-      return withParamSlots(entryParamSlots, () -> buildBlock(fn.body));
-    }
-    return buildBlock(fn.body);
+    return withReturnType(fn.ret, () -> {
+      if (fn == entryFunction && entryParamSlots != null && !entryParamSlots.isEmpty()) {
+        return withParamSlots(entryParamSlots, () -> buildBlock(fn.body));
+      }
+      return buildBlock(fn.body);
+    });
   }
 
   private <T> T withParamSlots(java.util.Map<String,Integer> slots, java.util.function.Supplier<T> supplier) {
@@ -483,6 +590,62 @@ public final class Loader {
 
   private java.util.Map<String,Integer> currentParamSlots() {
     return paramSlotStack.isEmpty() ? null : paramSlotStack.peek();
+  }
+
+  private <T> T withReturnType(CoreModel.Type type, java.util.function.Supplier<T> supplier) {
+    if (type == null) {
+      return supplier.get();
+    }
+    returnTypeStack.push(type);
+    try {
+      return supplier.get();
+    } finally {
+      returnTypeStack.pop();
+    }
+  }
+
+  private CoreModel.Type currentReturnType() {
+    return returnTypeStack.isEmpty() ? null : returnTypeStack.peek();
+  }
+
+  private void ensureWorkflowEffects(CoreModel.Func fn) {
+    if (fn == null) return;
+    if (!blockContainsWorkflow(fn.body)) return;
+    if (fn.effects == null) {
+      fn.effects = new java.util.ArrayList<>();
+    } else if (!(fn.effects instanceof java.util.ArrayList)) {
+      fn.effects = new java.util.ArrayList<>(fn.effects);
+    }
+    if (!fn.effects.contains("Async")) {
+      fn.effects.add("Async");
+    }
+  }
+
+  private boolean blockContainsWorkflow(CoreModel.Block block) {
+    if (block == null || block.statements == null) return false;
+    for (var stmt : block.statements) {
+      if (stmtContainsWorkflow(stmt)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean stmtContainsWorkflow(CoreModel.Stmt stmt) {
+    if (stmt == null) return false;
+    if (stmt instanceof CoreModel.Workflow) return true;
+    if (stmt instanceof CoreModel.If iff) {
+      if (blockContainsWorkflow(iff.thenBlock) || blockContainsWorkflow(iff.elseBlock)) return true;
+    } else if (stmt instanceof CoreModel.Scope sc && sc.statements != null) {
+      for (var nested : sc.statements) {
+        if (stmtContainsWorkflow(nested)) return true;
+      }
+    } else if (stmt instanceof CoreModel.Match mm && mm.cases != null) {
+      for (var c : mm.cases) {
+        if (stmtContainsWorkflow(c.body)) return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -526,5 +689,84 @@ public final class Loader {
       }
       // Set/Return/Wait/Start 不声明新变量，跳过
     }
+  }
+
+  private static CoreModel.Type[] extractParamTypes(java.util.List<CoreModel.Param> params) {
+    if (params == null || params.isEmpty()) {
+      return new CoreModel.Type[0];
+    }
+    CoreModel.Type[] types = new CoreModel.Type[params.size()];
+    for (int i = 0; i < params.size(); i++) {
+      types[i] = params.get(i).type;
+    }
+    return types;
+  }
+
+  private AsterExpressionNode maybeWrapForType(AsterExpressionNode node, CoreModel.Type type) {
+    if (node == null || type == null) {
+      return node;
+    }
+    if (!PiiSupport.containsPii(type)) {
+      return node;
+    }
+    return PiiWrapNode.create(node, type);
+  }
+
+  private CoreModel.Data requireDataDefinition(String typeName) {
+    if (typeName == null || typeName.isBlank()) {
+      throw new IllegalArgumentException("Construct 缺少数据类型名称");
+    }
+    if (dataTypeIndex == null) {
+      throw new IllegalStateException("Data 类型索引未初始化");
+    }
+    CoreModel.Data data = dataTypeIndex.get(typeName);
+    if (data == null) {
+      throw new IllegalArgumentException("未定义的数据类型：" + typeName);
+    }
+    return data;
+  }
+
+  private java.util.LinkedHashMap<String, AsterExpressionNode> prepareDataFields(CoreModel.Construct cons, CoreModel.Data dataDefinition) {
+    java.util.LinkedHashMap<String, CoreModel.Field> declared = new java.util.LinkedHashMap<>();
+    if (dataDefinition.fields != null) {
+      for (CoreModel.Field field : dataDefinition.fields) {
+        if (field != null && field.name != null) {
+          declared.put(field.name, field);
+        }
+      }
+    }
+    java.util.LinkedHashMap<String, AsterExpressionNode> provided = new java.util.LinkedHashMap<>();
+    java.util.LinkedHashSet<String> seen = new java.util.LinkedHashSet<>();
+    if (cons.fields != null) {
+      for (CoreModel.FieldInit init : cons.fields) {
+        if (init == null) continue;
+        if (!declared.containsKey(init.name)) {
+          throw new IllegalArgumentException("数据类型 " + dataDefinition.name + " 不存在字段：" + init.name);
+        }
+        if (!seen.add(init.name)) {
+          throw new IllegalArgumentException("数据类型 " + dataDefinition.name + " 字段重复：" + init.name);
+        }
+        AsterExpressionNode valueNode = buildExpr(init.expr);
+        CoreModel.Field declaredField = declared.get(init.name);
+        valueNode = maybeWrapForType(valueNode, declaredField != null ? declaredField.type : null);
+        provided.put(init.name, valueNode);
+      }
+    }
+    if (declared.size() != provided.size()) {
+      java.util.ArrayList<String> missing = new java.util.ArrayList<>();
+      for (String fieldName : declared.keySet()) {
+        if (!provided.containsKey(fieldName)) {
+          missing.add(fieldName);
+        }
+      }
+      if (!missing.isEmpty()) {
+        throw new IllegalArgumentException("数据类型 " + dataDefinition.name + " 缺少字段：" + String.join(", ", missing));
+      }
+    }
+    java.util.LinkedHashMap<String, AsterExpressionNode> ordered = new java.util.LinkedHashMap<>();
+    for (String fieldName : declared.keySet()) {
+      ordered.put(fieldName, provided.get(fieldName));
+    }
+    return ordered;
   }
 }

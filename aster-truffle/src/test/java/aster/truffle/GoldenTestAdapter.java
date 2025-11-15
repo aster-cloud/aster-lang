@@ -1,5 +1,7 @@
 package aster.truffle;
 
+import aster.truffle.core.CoreModel;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.graalvm.polyglot.Context;
@@ -42,7 +44,8 @@ public class GoldenTestAdapter {
 
   private static final String GOLDEN_DIR = "../test/e2e/golden/core";
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final ObjectMapper MAPPER = new ObjectMapper()
+    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
   private static final Map<String, CategoryStats> CATEGORY_STATS = new ConcurrentHashMap<>();
 
@@ -57,12 +60,7 @@ public class GoldenTestAdapter {
    * 已知限制 - 暂时跳过的测试模式
    * 随着 stdlib 完善，这个列表应该逐渐减少
    */
-  private static final String[] KNOWN_LIMITATIONS = {
-    // PII 类型系统未在 Truffle 后端实现
-    "pii_",
-    // Workflow 语法未在 Core IR 中实现（应由前端编译器处理）
-    "workflow"
-  };
+  private static final String[] KNOWN_LIMITATIONS = {};
 
   @TestFactory
   Stream<DynamicTest> goldenCoreTests() throws IOException {
@@ -211,50 +209,30 @@ public class GoldenTestAdapter {
    */
   private EntryFunctionInfo getEntryFunctionInfo(String json) {
     try {
-      JsonNode root = MAPPER.readTree(json);
-      JsonNode decls = root.path("decls");
-      if (!decls.isArray()) {
+      CoreModel.Module module = MAPPER.readValue(json, CoreModel.Module.class);
+      if (module == null || module.decls == null) {
         return null;
       }
 
-      JsonNode entry = null;
-      String entryName = null;
-
-      // 优先查找 main 函数，否则使用第一个函数
-      for (JsonNode decl : decls) {
-        if (!"Func".equals(decl.path("kind").asText())) {
-          continue;
-        }
-
-        String name = decl.path("name").asText();
-        if (entry == null) {
-          entry = decl;
-          entryName = name;
-        }
-
-        if ("main".equals(name)) {
-          entry = decl;
-          entryName = name;
-          break;
+      CoreModel.Func chosen = null;
+      for (CoreModel.Decl decl : module.decls) {
+        if (decl instanceof CoreModel.Func fn) {
+          if (chosen == null) {
+            chosen = fn;
+          }
+          if ("main".equals(fn.name)) {
+            chosen = fn;
+            break;
+          }
         }
       }
 
-      if (entry == null) {
+      if (chosen == null) {
         return null;
       }
 
-      // 解析参数列表
-      List<ParamInfo> params = new ArrayList<>();
-      JsonNode paramsNode = entry.path("params");
-      if (paramsNode.isArray()) {
-        for (JsonNode param : paramsNode) {
-          String paramName = param.path("name").asText();
-          JsonNode paramType = param.path("type");
-          params.add(new ParamInfo(paramName, paramType));
-        }
-      }
-
-      return new EntryFunctionInfo(entryName, params);
+      java.util.List<CoreModel.Param> params = (chosen.params != null) ? chosen.params : java.util.List.of();
+      return new EntryFunctionInfo(chosen.name, params);
 
     } catch (IOException e) {
       System.err.println("⚠️ 无法解析 JSON 以获取入口函数信息: " + e.getMessage());
@@ -265,7 +243,7 @@ public class GoldenTestAdapter {
   /**
    * 根据参数类型生成默认测试值
    */
-  private Object[] generateDefaultArgs(List<ParamInfo> params) {
+  private Object[] generateDefaultArgs(List<CoreModel.Param> params) {
     Object[] args = new Object[params.size()];
     for (int i = 0; i < params.size(); i++) {
       args[i] = generateDefaultValue(params.get(i).type);
@@ -276,41 +254,48 @@ public class GoldenTestAdapter {
   /**
    * 根据类型节点生成默认值
    */
-  private Object generateDefaultValue(JsonNode typeNode) {
-    String kind = typeNode.path("kind").asText();
-
-    switch (kind) {
-      case "TypeName": {
-        String typeName = typeNode.path("name").asText();
-        switch (typeName) {
-          case "Int": return 0;
-          case "Text": return "";
-          case "Bool": return false;
-          case "Float": return 0.0;
-          default: return null; // 未知类型返回 null
-        }
-      }
-
-      case "List":
-        // 返回空列表（使用 java.util.ArrayList，Builtins.java 期望 List<?> 类型）
-        return new java.util.ArrayList<>();
-
-      case "Maybe":
-        // Maybe 类型默认返回 null (None)
-        return null;
-
-      case "Result":
-        // Result 类型默认返回 null（可以改为返回 Ok(null) 或 Err(null)）
-        return null;
-
-      case "Map":
-        // 返回空 Map（使用 java.util.HashMap，Builtins.java 期望 Map<?,?> 类型）
-        return new java.util.HashMap<>();
-
-      default:
-        // 未知类型返回 null
-        return null;
+  private Object generateDefaultValue(CoreModel.Type type) {
+    if (type == null) {
+      return null;
     }
+
+    if (type instanceof CoreModel.PiiType pii) {
+      return generateDefaultValue(pii.baseType);
+    }
+    if (type instanceof CoreModel.TypeName typeName) {
+      String name = typeName.name;
+      if ("Int".equals(name)) return 0;
+      if ("Text".equals(name)) return "";
+      if ("Bool".equals(name) || "Boolean".equals(name)) return false;
+      if ("Float".equals(name) || "Double".equals(name)) return 0.0;
+      if ("Long".equals(name)) return 0L;
+      return null;
+    }
+    if (type instanceof CoreModel.Maybe) {
+      return null;
+    }
+    if (type instanceof CoreModel.Option option) {
+      return generateDefaultValue(option.type);
+    }
+    if (type instanceof CoreModel.ListT) {
+      return new java.util.ArrayList<>();
+    }
+    if (type instanceof CoreModel.MapT) {
+      return new java.util.HashMap<>();
+    }
+    if (type instanceof CoreModel.Result) {
+      return null;
+    }
+    if (type instanceof CoreModel.TypeVar) {
+      return null;
+    }
+    if (type instanceof CoreModel.TypeApp app) {
+      return app.base != null ? generateDefaultValue(app.base) : null;
+    }
+    if (type instanceof CoreModel.FuncType) {
+      return null;
+    }
+    return null;
   }
 
   /**
@@ -492,24 +477,11 @@ public class GoldenTestAdapter {
    */
   private static final class EntryFunctionInfo {
     final String name;
-    final List<ParamInfo> params;
+    final List<CoreModel.Param> params;
 
-    EntryFunctionInfo(String name, List<ParamInfo> params) {
+    EntryFunctionInfo(String name, List<CoreModel.Param> params) {
       this.name = name;
-      this.params = params;
-    }
-  }
-
-  /**
-   * 参数信息
-   */
-  private static final class ParamInfo {
-    final String name;
-    final JsonNode type;
-
-    ParamInfo(String name, JsonNode type) {
-      this.name = name;
-      this.type = type;
+      this.params = params != null ? params : List.of();
     }
   }
 }

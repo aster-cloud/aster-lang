@@ -1,6 +1,8 @@
 package aster.truffle.nodes;
 
 import aster.truffle.runtime.AsterConfig;
+import aster.truffle.runtime.AsterDataValue;
+import aster.truffle.runtime.AsterEnumValue;
 import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -71,7 +73,7 @@ public abstract class MatchNode extends AsterExpressionNode {
     @Override public boolean matchesAndBind(Object s, Env env) { return s == null; }
   }
 
-  // ctor match: match map with _type == typeName; bind positional names if present
+  // ctor match: match Data 值或旧 Map，按字段顺序依次绑定
   public static final class PatCtorNode extends PatternNode {
     private final String typeName;
     private final java.util.List<String> bindNames;
@@ -79,25 +81,38 @@ public abstract class MatchNode extends AsterExpressionNode {
     public PatCtorNode(String typeName, java.util.List<String> bindNames) { this(typeName, bindNames, java.util.List.of()); }
     public PatCtorNode(String typeName, java.util.List<String> bindNames, java.util.List<PatternNode> args) { this.typeName = typeName; this.bindNames = bindNames; this.args = (args == null ? java.util.List.of() : args); }
     @Override @SuppressWarnings("unchecked") public boolean matchesAndBind(Object s, Env env) {
+      if (s instanceof AsterDataValue dataValue) {
+        if (!typeName.equals(dataValue.getTypeName())) return false;
+        return matchOrderedFields(dataValue.fieldCount(), idx -> dataValue.fieldValue(idx), env);
+      }
       if (!(s instanceof java.util.Map)) return false;
       var m = (java.util.Map<String,Object>) s;
       Object t = m.get("_type");
       if (!(t instanceof String) || !typeName.equals(t)) return false;
-      // Iterate insertion order, skipping _type; bind names and recurse into args when present.
-      int idx = 0;
+      java.util.ArrayList<Object> values = new java.util.ArrayList<>();
       for (var e : m.entrySet()) {
         if ("_type".equals(e.getKey())) continue;
+        values.add(e.getValue());
+      }
+      return matchOrderedFields(values.size(), values::get, env);
+    }
+
+    private boolean matchOrderedFields(int fieldCount, java.util.function.IntFunction<Object> valueProvider, Env env) {
+      int idx = 0;
+      for (int i = 0; i < fieldCount; i++) {
+        Object value = valueProvider.apply(i);
         if (idx < args.size()) {
           PatternNode pn = args.get(idx);
-          if (pn instanceof PatNameNode) {
-            String bn = ((PatNameNode)pn).name; // access private via same top-level class
-            if (!(bn == null || bn.isEmpty() || "_".equals(bn))) env.set(bn, e.getValue());
-          } else {
-            if (!pn.matchesAndBind(e.getValue(), env)) return false;
+          if (pn instanceof PatNameNode patName) {
+            if (!(patName.name == null || patName.name.isEmpty() || "_".equals(patName.name))) {
+              env.set(patName.name, value);
+            }
+          } else if (!pn.matchesAndBind(value, env)) {
+            return false;
           }
         } else if (idx < (bindNames == null ? 0 : bindNames.size())) {
           String bn = bindNames.get(idx);
-          if (bn != null && !bn.isEmpty() && !"_".equals(bn)) env.set(bn, e.getValue());
+          if (bn != null && !bn.isEmpty() && !"_".equals(bn)) env.set(bn, value);
         }
         idx++;
       }
@@ -112,6 +127,12 @@ public abstract class MatchNode extends AsterExpressionNode {
     @Override @SuppressWarnings("unchecked") public boolean matchesAndBind(Object s, Env env) {
       if (s == null) return false;
       if (s instanceof String) return name.equals(s);
+      if (s instanceof AsterEnumValue enumValue) {
+        return name.equals(enumValue.getVariantName()) || name.equals(enumValue.getEnumName());
+      }
+      if (s instanceof AsterDataValue dataValue) {
+        return name.equals(dataValue.getTypeName());
+      }
       if (s instanceof java.util.Map) {
         var m = (java.util.Map<String,Object>) s;
         Object v = m.get("value");
