@@ -56,28 +56,16 @@ public class InboxGuard {
             return false;
         }
         String normalizedKey = normalizeKey(idempotencyKey, tenantId);
-        Number existing = (Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM inbox_events WHERE idempotency_key = :key")
-            .setParameter("key", normalizedKey)
-            .getSingleResult();
-        if (existing.longValue() > 0) {
-            return false;
-        }
         String storedTenant = (tenantId == null || tenantId.isBlank()) ? "default" : tenantId.trim();
-        try {
-            entityManager.createNativeQuery(
-                    "INSERT INTO inbox_events (idempotency_key, event_type, tenant_id, processed_at, created_at) " +
-                        "VALUES (:key, :eventType, :tenantId, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)")
-                .setParameter("key", normalizedKey)
-                .setParameter("eventType", eventType)
-                .setParameter("tenantId", storedTenant)
-                .executeUpdate();
-            return true;
-        } catch (Exception ex) {
-            if (isUniqueViolation(ex)) {
-                return false;
-            }
-            throw ex;
-        }
+        int inserted = entityManager.createNativeQuery(
+                "INSERT INTO inbox_events (idempotency_key, event_type, tenant_id, processed_at, created_at) " +
+                    "VALUES (:key, :eventType, :tenantId, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) " +
+                    "ON CONFLICT (idempotency_key) DO NOTHING")
+            .setParameter("key", normalizedKey)
+            .setParameter("eventType", eventType)
+            .setParameter("tenantId", storedTenant)
+            .executeUpdate();
+        return inserted > 0;
     }
 
     /**

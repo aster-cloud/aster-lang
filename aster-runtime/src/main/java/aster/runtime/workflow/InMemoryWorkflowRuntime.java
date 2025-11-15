@@ -1,8 +1,12 @@
 package aster.runtime.workflow;
 
 import io.aster.workflow.DeterminismContext;
+import io.aster.workflow.IdempotencyKeyManager;
+import jakarta.inject.Inject;
 
+import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,9 +20,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class InMemoryWorkflowRuntime implements WorkflowRuntime {
 
     private final Map<String, WorkflowExecutionState> executions = new ConcurrentHashMap<>();
-    private final Map<String, String> idempotencyKeys = new ConcurrentHashMap<>();
     private final InMemoryEventStore eventStore = new InMemoryEventStore();
     private final DeterminismContext context = new DeterminismContext();
+    private final IdempotencyKeyManager idempotencyManager;
+
+    public InMemoryWorkflowRuntime() {
+        this(new IdempotencyKeyManager());
+    }
+
+    @Inject
+    public InMemoryWorkflowRuntime(IdempotencyKeyManager idempotencyManager) {
+        this.idempotencyManager = idempotencyManager;
+    }
 
     /**
      * 调度 workflow 执行
@@ -31,11 +44,19 @@ public class InMemoryWorkflowRuntime implements WorkflowRuntime {
     @Override
     public ExecutionHandle schedule(String workflowId, String idempotencyKey, WorkflowMetadata metadata) {
         // 幂等性检查
-        if (idempotencyKey != null && idempotencyKeys.containsKey(idempotencyKey)) {
-            String existingWorkflowId = idempotencyKeys.get(idempotencyKey);
-            WorkflowExecutionState state = executions.get(existingWorkflowId);
-            if (state != null) {
-                return state.handle;
+        if (idempotencyKey != null) {
+            Optional<String> existing = idempotencyManager.tryAcquire(
+                    idempotencyKey,
+                    workflowId,
+                    Duration.ofHours(1)
+            );
+            if (existing.isPresent()) {
+                String existingWorkflowId = existing.get();
+                WorkflowExecutionState state = executions.get(existingWorkflowId);
+                if (state != null) {
+                    return state.handle;
+                }
+                idempotencyManager.release(idempotencyKey);
             }
         }
 
@@ -44,13 +65,8 @@ public class InMemoryWorkflowRuntime implements WorkflowRuntime {
         InMemoryExecutionHandle handle = new InMemoryExecutionHandle(workflowId, resultFuture);
 
         // 记录执行状态
-        WorkflowExecutionState state = new WorkflowExecutionState(handle, metadata);
+        WorkflowExecutionState state = new WorkflowExecutionState(handle, metadata, idempotencyKey);
         executions.put(workflowId, state);
-
-        // 记录幂等性键
-        if (idempotencyKey != null) {
-            idempotencyKeys.put(idempotencyKey, workflowId);
-        }
 
         // 追加 WorkflowStarted 事件
         eventStore.appendEvent(workflowId, WorkflowEvent.Type.WORKFLOW_STARTED, metadata);
@@ -98,8 +114,12 @@ public class InMemoryWorkflowRuntime implements WorkflowRuntime {
                 state.handle.cancel();
             }
         });
+        executions.values().forEach(state -> {
+            if (state.idempotencyKey != null) {
+                idempotencyManager.release(state.idempotencyKey);
+            }
+        });
         executions.clear();
-        idempotencyKeys.clear();
     }
 
     /**
@@ -113,6 +133,9 @@ public class InMemoryWorkflowRuntime implements WorkflowRuntime {
         if (state != null) {
             state.handle.complete(result);
             eventStore.appendEvent(workflowId, WorkflowEvent.Type.WORKFLOW_COMPLETED, result);
+            if (state.idempotencyKey != null) {
+                idempotencyManager.release(state.idempotencyKey);
+            }
         }
     }
 
@@ -127,6 +150,9 @@ public class InMemoryWorkflowRuntime implements WorkflowRuntime {
         if (state != null) {
             state.handle.fail(error);
             eventStore.appendEvent(workflowId, WorkflowEvent.Type.WORKFLOW_FAILED, error.getMessage());
+            if (state.idempotencyKey != null) {
+                idempotencyManager.release(state.idempotencyKey);
+            }
         }
     }
 
@@ -138,10 +164,12 @@ public class InMemoryWorkflowRuntime implements WorkflowRuntime {
     private static class WorkflowExecutionState {
         final InMemoryExecutionHandle handle;
         final WorkflowMetadata metadata;
+        final String idempotencyKey;
 
-        WorkflowExecutionState(InMemoryExecutionHandle handle, WorkflowMetadata metadata) {
+        WorkflowExecutionState(InMemoryExecutionHandle handle, WorkflowMetadata metadata, String idempotencyKey) {
             this.handle = handle;
             this.metadata = metadata;
+            this.idempotencyKey = idempotencyKey;
         }
     }
 

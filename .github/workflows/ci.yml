@@ -18,63 +18,33 @@ env:
 jobs:
   build:
     name: Build TypeScript
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build TypeScript
-        run: npm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: dist/
-          retention-days: 1
+    uses: ./.github/workflows/_reusable-build.yml
+    with:
+      node-version: '22'
+      artifact-name: build-artifacts
 
   test:
-    name: Test (Node ${{ matrix.node-version }})
+    name: Node 质量检查
     runs-on: ubuntu-latest
     needs: build
-    strategy:
-      matrix:
-        node-version: [22]
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          enable-java: 'false'
 
-      - name: Download build artifacts
+      - name: 下载 TypeScript 产物
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: dist/
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Audit dependencies
+      - name: 审核依赖
         run: npm run audit
 
-      - name: Type check
+      - name: 类型检查
         run: npm run typecheck
-      
+
       - name: Lint (auto-fix on failure)
         id: lint
         shell: bash
@@ -86,9 +56,7 @@ jobs:
           else
             echo "Lint issues found. Attempting auto-fix..."
             npm run -s lint:fix || true
-            # Save the diff as a patch artifact for contributors
             git diff --patch > eslint-fix.patch || true
-            # Re-run lint; fail only if it still isn't clean
             if npm run -s lint; then
               echo "Auto-fix applied successfully. Proceeding with CI."
               echo "fixed=true" >> "$GITHUB_OUTPUT"
@@ -98,13 +66,13 @@ jobs:
             fi
           fi
 
-      - name: Upload lint patch
+      - name: 上传 Lint 修复补丁
         if: steps.lint.outputs.fixed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: eslint-fixes
           path: eslint-fix.patch
-      
+
       - name: Format check (auto-fix on failure)
         id: format
         shell: bash
@@ -115,11 +83,8 @@ jobs:
             echo "fixed=false" >> "$GITHUB_OUTPUT"
           else
             echo "Format issues found. Attempting auto-fix..."
-            # Try to fix formatting
             npm run -s format
-            # Save the diff as a patch artifact for contributors
             git diff --patch > prettier-fix.patch || true
-            # Re-check formatting; fail only if it still isn't clean
             if npm run -s format:check; then
               echo "Auto-fix applied successfully. Proceeding with CI."
               echo "fixed=true" >> "$GITHUB_OUTPUT"
@@ -129,20 +94,20 @@ jobs:
             fi
           fi
 
-      - name: Upload formatting patch
+      - name: 上传格式化补丁
         if: steps.format.outputs.fixed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: prettier-fixes
           path: prettier-fix.patch
 
-      - name: Validate error codes
+      - name: 校验错误码
         run: npm run verify:error-codes
 
-      - name: Test
+      - name: 单元测试
         run: npm run test
-      
-      - name: Test CLI tools
+
+      - name: 测试 CLI 工具
         run: |
           echo "Testing AST CLI..."
           node dist/scripts/cli.js test/cnl/programs/examples/greet.aster > /tmp/greet-ast.json
@@ -154,50 +119,34 @@ jobs:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
     needs: build
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          node-version: 22
-          cache: 'npm'
+          enable-java: 'false'
 
-      - name: Download build artifacts
+      - name: 下载 TypeScript 产物
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: dist/
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run benchmarks
+      - name: 运行基准测试
         run: npm run bench
 
   security:
     name: Security Audit
     runs-on: ubuntu-latest
     continue-on-error: true
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          node-version: 22
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Security audit
+          enable-java: 'false'
+
+      - name: npm 审计
         run: npm audit --audit-level=high
-      
+
       - name: Check for known vulnerabilities
         run: npx audit-ci --high
 
@@ -206,34 +155,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 25 (GraalVM)
-        uses: graalvm/setup-graalvm@v1
+      - name: 初始化 GraalVM + Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          java-version: '25'
-          distribution: 'graalvm-community'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cache: 'gradle'
+          enable-java: 'true'
+          enable-gradle: 'true'
 
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Download build artifacts
+      - name: 下载 TypeScript 产物
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: dist/
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Ensure gradlew is executable
-        run: chmod +x ./gradlew
 
       - name: Emit classfiles from example
         run: npm run emit:class test/cnl/programs/examples/greet.aster
@@ -270,30 +202,19 @@ jobs:
       JAVA_TYPECHECK_CMD: ${{ vars.JAVA_TYPECHECK_CMD || '' }}
       TS_TYPECHECK_CMD: ${{ vars.TS_TYPECHECK_CMD || '' }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+      - name: 初始化 Node + Temurin 环境
+        uses: ./.github/actions/setup-env
         with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Setup Java 21
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
+          enable-java: 'true'
+          java-provider: 'temurin'
+          java-distribution: 'temurin'
           java-version: '21'
-          cache: 'gradle'
 
-      - name: Download build artifacts
+      - name: 下载 TypeScript 产物
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: dist/
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Show cross-validate configuration
         run: |
@@ -312,52 +233,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Gradle cache
-        uses: actions/cache@v4
+      - name: 初始化 GraalVM + Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          enable-java: 'true'
+          enable-gradle: 'true'
 
-      - name: Setup npm cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      - name: Setup Java 25 (GraalVM)
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '25'
-          distribution: 'graalvm-community'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cache: 'gradle'
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Download build artifacts
+      - name: 下载 TypeScript 产物
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: dist/
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Ensure gradlew is executable
-        run: chmod +x ./gradlew
 
       - name: Run Quarkus policy API service tests
         run: ./gradlew :quarkus-policy-api:test --tests "io.aster.policy.api.*" --no-configuration-cache
@@ -382,8 +268,12 @@ jobs:
           - arch: arm64
             platform: linux/arm64
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout 代码
+        uses: ./.github/actions/setup-env
+        with:
+          enable-node: 'false'
+          npm-ci: 'false'
+          enable-java: 'false'
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
@@ -518,8 +408,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: quarkus-policy-api
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout 代码
+        uses: ./.github/actions/setup-env
+        with:
+          enable-node: 'false'
+          npm-ci: 'false'
+          enable-java: 'false'
 
       - name: Start build timer
         id: local-build-start
@@ -550,19 +444,13 @@ jobs:
         run: |
           set -euo pipefail
           docker network create policy-ci || true
-
-          # Start PostgreSQL
           docker run -d --name policy-ci-postgres --network policy-ci \
             -e POSTGRESQL_USERNAME=postgres \
             -e POSTGRESQL_PASSWORD=postgres \
             -e POSTGRESQL_DATABASE=aster_policy \
             docker.io/bitnami/postgresql:latest
-
-          # Start Redis
           docker run -d --name policy-ci-redis --network policy-ci \
             docker.io/redis:7-alpine
-
-          # Wait for PostgreSQL to be ready
           for i in {1..12}; do
             if docker exec policy-ci-postgres pg_isready -U postgres >/dev/null 2>&1; then
               break
@@ -570,8 +458,6 @@ jobs:
             echo "Waiting for Postgres..."
             sleep 5
           done
-
-          # Wait for Redis to be ready
           for i in {1..12}; do
             if docker exec policy-ci-redis redis-cli ping >/dev/null 2>&1; then
               echo "Redis is ready"
@@ -580,8 +466,6 @@ jobs:
             echo "Waiting for Redis..."
             sleep 2
           done
-
-          # Start application
           docker run -d --name policy-ci-app --network policy-ci -p 8080:8080 \
             -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://policy-ci-postgres:5432/aster_policy \
             -e QUARKUS_DATASOURCE_REACTIVE_URL=postgresql://policy-ci-postgres:5432/aster_policy \
@@ -605,8 +489,6 @@ jobs:
           done
           line=$(docker logs policy-ci-app 2>&1 | grep "started in" | tail -n 1)
           startup=$(echo "$line" | grep -oE '[0-9]+\.[0-9]+s' | sed 's/s$//')
-
-          # Wait for health endpoint to be ready (with retry)
           health_timeout=30
           health_start=$(date +%s)
           health_ready=false
@@ -624,12 +506,10 @@ jobs:
             echo "Waiting for health endpoint to be ready..."
             sleep 2
           done
-
           if [ "$health_ready" = true ]; then
             echo "✓ Health endpoint ready"
             curl -f http://localhost:8080/q/health
           fi
-
           echo "startup=$startup" >> "$GITHUB_OUTPUT"
           echo "::notice::Policy API startup ${startup}s"
 
@@ -671,35 +551,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 25 (GraalVM)
-        uses: graalvm/setup-graalvm@v1
+      - name: 初始化 GraalVM + Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          java-version: '25'
-          distribution: 'graalvm-community'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cache: 'gradle'
+          enable-java: 'true'
+          enable-gradle: 'true'
           native-image-job-reports: 'true'
 
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Download build artifacts
+      - name: 下载 TypeScript 产物
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: dist/
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Ensure gradlew is executable
-        run: chmod +x ./gradlew
 
       - name: Run Truffle tests
         run: ./gradlew :aster-truffle:test --no-configuration-cache

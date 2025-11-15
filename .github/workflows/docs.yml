@@ -15,14 +15,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
         with:
-          node-version: 22
-          cache: 'npm'
+          enable-node: 'true'
+          enable-java: 'false'
+          node-version: '22'
+          npm-ci: 'false'
 
       - name: Install deps
         run: |

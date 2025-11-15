@@ -217,7 +217,19 @@ public final class AsyncTaskRegistry {
         if (failed.isPresent()) {
           throw new RuntimeException("Task failed: " + failed.get().taskId, failed.get().exception);
         }
-        throw new IllegalStateException("Deadlock detected: no ready tasks but graph still has nodes");
+        StringBuilder pending = new StringBuilder();
+        tasks.forEach((taskId, state) -> {
+          TaskStatus status = state.getStatus();
+          if (status != TaskStatus.COMPLETED && status != TaskStatus.CANCELLED) {
+            TaskInfo info = taskInfos.get(taskId);
+            pending.append(taskId)
+                .append('[').append(status).append(" deps=")
+                .append(info != null ? info.dependencies : Collections.emptySet())
+                .append("], ");
+          }
+        });
+        throw new IllegalStateException(
+            "Deadlock detected: no ready tasks but graph still has nodes. Pending=" + pending);
       }
 
       List<CompletableFuture<Object>> batchFutures = new ArrayList<>(readyTasks.size());

@@ -1,0 +1,110 @@
+name: 设置统一运行环境
+description: 统一执行 checkout、Node.js、Java/GraalVM、Gradle 权限以及 npm ci，减少各工作流重复配置
+inputs:
+  checkout:
+    description: 是否自动执行 actions/checkout
+    default: 'true'
+    required: false
+  fetch-depth:
+    description: checkout 的 fetch 深度
+    default: '1'
+    required: false
+  enable-node:
+    description: 是否安装 Node.js
+    default: 'true'
+    required: false
+  node-version:
+    description: Node.js 版本
+    default: '22'
+    required: false
+  cache-dependency-path:
+    description: Node 缓存依赖文件
+    default: 'package-lock.json'
+    required: false
+  registry-url:
+    description: npm registry
+    default: 'https://registry.npmjs.org'
+    required: false
+  enable-java:
+    description: 是否安装 Java/GraalVM
+    default: 'false'
+    required: false
+  java-provider:
+    description: graalvm 或 temurin
+    default: 'graalvm'
+    required: false
+  java-version:
+    description: Java 版本
+    default: '25'
+    required: false
+  java-distribution:
+    description: Java 发行版（temurin、graalvm-community 等）
+    default: 'graalvm-community'
+    required: false
+  native-image-job-reports:
+    description: 是否输出 native-image job 报告
+    default: 'false'
+    required: false
+  npm-ci:
+    description: 是否执行 npm ci
+    default: 'true'
+    required: false
+  enable-gradle:
+    description: 是否为 gradlew 设置执行权限
+    default: 'false'
+    required: false
+  working-directory:
+    description: npm/gradle 命令执行目录
+    default: '.'
+    required: false
+  github-token:
+    description: 供 GraalVM 下载使用的 GitHub Token
+    default: ''
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      if: ${{ inputs.checkout == 'true' }}
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+
+    - name: 安装 GraalVM
+      if: ${{ inputs.enable-java == 'true' && inputs.java-provider == 'graalvm' }}
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.java-distribution }}
+        github-token: ${{ inputs.github-token != '' && inputs.github-token || github.token }}
+        cache: gradle
+        native-image-job-reports: ${{ inputs.native-image-job-reports }}
+
+    - name: 安装通用 Java
+      if: ${{ inputs.enable-java == 'true' && inputs.java-provider != 'graalvm' }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.java-distribution }}
+        cache: gradle
+
+    - name: 安装 Node.js
+      if: ${{ inputs.enable-node == 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+        registry-url: ${{ inputs.registry-url }}
+
+    - name: 安装 npm 依赖
+      if: ${{ inputs.npm-ci == 'true' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci
+
+    - name: 设置 gradlew 权限
+      if: ${{ inputs.enable-gradle == 'true' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: chmod +x ./gradlew

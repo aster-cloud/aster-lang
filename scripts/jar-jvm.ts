@@ -26,8 +26,25 @@ function main(): void {
   const tempDir = path.join(outBase, 'temp-merge');
 
   if (!fs.existsSync(classes)) {
-    console.error('No classes found:', classes);
-    process.exit(2);
+    console.warn('No classes found:', classes);
+    console.warn('Creating empty placeholder JAR for native build.');
+    console.warn('Run "npm run emit:class <files>" if you need to generate actual classes.');
+
+    // Create output directory
+    fs.mkdirSync(outBase, { recursive: true });
+
+    // Create empty placeholder JAR
+    const absOut = path.join(process.cwd(), outJar);
+    fs.writeFileSync(path.join(outBase, 'README.txt'), 'This is a placeholder JAR. Run "npm run emit:class" to generate actual policy classes.');
+
+    // Use jar tool to create empty JAR, fallback to zip
+    if (!tryExec(`jar --create --file ${absOut} -C ${outBase} README.txt`)) {
+      console.warn('[jar-jvm] jar tool failed, using zip fallback');
+      sh(`cd ${outBase} && zip ${absOut} README.txt`);
+    }
+
+    console.log('Created placeholder JAR:', outJar);
+    process.exit(0);
   }
 
   if (!fs.existsSync(runtimeJar)) {

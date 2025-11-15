@@ -1,5 +1,4 @@
-import java.io.File
-import org.gradle.api.GradleException
+import dev.aster.build.GenerateAsterJarTask
 
 plugins {
     id("java")
@@ -59,6 +58,7 @@ dependencies {
 
     // Aster运行时和编译后的策略
     implementation(project(":aster-runtime"))
+    implementation(project(":aster-truffle"))
     implementation(project(":aster-validation"))
     implementation(project(":aster-policy-common"))
     implementation(project(":aster-finance"))
@@ -75,12 +75,17 @@ dependencies {
     testImplementation("io.quarkus:quarkus-jdbc-h2")
     testImplementation("org.awaitility:awaitility:4.2.0")
     testImplementation(project(":aster-ecommerce"))
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.2.1")
 
     // Testcontainers - PostgreSQL 测试环境（Phase 3.4）
     testImplementation("org.testcontainers:testcontainers:1.19.3")
     testImplementation("org.testcontainers:postgresql:1.19.3")
     testImplementation("org.testcontainers:junit-jupiter:1.19.3")
     testImplementation("com.redis:testcontainers-redis:2.0.1")
+}
+
+configurations.configureEach {
+    exclude(group = "org.jboss.slf4j", module = "slf4j-jboss-logmanager")
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -92,6 +97,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    systemProperty("quarkus.test.flat-class-path", "true")
     jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
 }
 
@@ -100,34 +106,43 @@ tasks.withType<Test> {
 // 重要：必须一次性传递所有 .aster 文件给 emit:class，因为 emit:class 会清空 build/jvm-classes 目录
 val skipGenerateAsterJar = providers.environmentVariable("SKIP_GENERATE_ASTER_JAR").isPresent
 
-val generateAsterJar by tasks.registering(Exec::class) {
-    notCompatibleWithConfigurationCache("Aster JAR 生成依赖动态扫描策略文件并调用 npm 脚本")
+val workflowDeps = configurations.detachedConfiguration(
+    dependencies.create("io.quarkus:quarkus-cache:3.28.3"),
+    dependencies.create("jakarta.enterprise:jakarta.enterprise.cdi-api:4.0.1"),
+    dependencies.create("jakarta.inject:jakarta.inject-api:2.0.1")
+).apply {
+    isCanBeConsumed = false
+}
 
-    onlyIf {
-        if (skipGenerateAsterJar) {
-            logger.lifecycle("Skipping generateAsterJar because SKIP_GENERATE_ASTER_JAR is set")
-            false
-        } else {
-            true
-        }
-    }
-    workingDir = rootProject.projectDir
+if (skipGenerateAsterJar) {
+    logger.lifecycle("Skipping generateAsterJar because SKIP_GENERATE_ASTER_JAR is set")
+}
 
-    commandLine = if (System.getProperty("os.name").lowercase().contains("win")) {
-        listOf("cmd", "/c", """
-            set FILES=
-            for /r quarkus-policy-api\src\main\resources\policies %%f in (*.aster) do set FILES=!FILES! %%f
-            npm run emit:class !FILES! && npm run jar:jvm
-        """.trimIndent())
-    } else {
-        listOf("sh", "-c", """
-            FILES=$(find quarkus-policy-api/src/main/resources/policies -name '*.aster' -type f | sort | tr '\n' ' ')
-            npm run emit:class ${'$'}FILES && npm run jar:jvm
-        """.trimIndent())
-    }
+val policySources = layout.projectDirectory
+    .dir("src/main/resources/policies")
+    .asFileTree
+    .matching { include("**/*.aster") }
+val sharedAsterOut = rootProject.layout.buildDirectory.dir("aster-out")
+
+val generateAsterJar by tasks.registering(GenerateAsterJarTask::class) {
+    description = "扫描 policies 目录并生成最新的 aster.jar"
+    enabled = !skipGenerateAsterJar
+    workingDirectory.set(rootProject.layout.projectDirectory)
+    outputDirectory.set(sharedAsterOut)
+    outputJar.set(sharedAsterOut.map { it.file("aster.jar") })
+    asterSources.from(policySources)
+    workflowClasspath.from(workflowDeps)
 }
 
 tasks.named("compileJava") {
+    dependsOn(generateAsterJar)
+}
+
+// 修复 Gradle 9.0 对 Quarkus 任务的依赖检测
+tasks.named("quarkusGenerateAppModel") {
+    dependsOn(generateAsterJar)
+}
+tasks.named("quarkusGenerateTestAppModel") {
     dependsOn(generateAsterJar)
 }
 

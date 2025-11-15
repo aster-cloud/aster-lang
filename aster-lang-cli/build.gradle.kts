@@ -123,11 +123,10 @@ generateAsterJar.configure {
   }
 }
 
-// 注意：不强制 JavaCompile 依赖 generateAsterJar，因为测试环境会按需生成
-// 如需手动构建 JAR，运行: ./gradlew :aster-lang-cli:generateAsterJar
-// tasks.withType<JavaCompile>().configureEach {
-//   dependsOn(generateAsterJar)
-// }
+// JavaCompile 依赖 quarkus-policy-api 生成的 JAR（修复 Gradle 9.0 依赖检测）
+tasks.withType<JavaCompile>().configureEach {
+  dependsOn(":quarkus-policy-api:generateAsterJar")
+}
 
 // 性能测试任务
 val benchmarkStartupTime by tasks.registering(Exec::class) {

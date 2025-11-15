@@ -41,7 +41,7 @@ public class TimerSchedulerService {
             }
 
             if (!expired.isEmpty()) {
-                Log.debugf("Processed %d expired timers", expired.isEmpty());
+                Log.debugf("Processed %d expired timers", expired.size());
             }
 
         } catch (Exception e) {

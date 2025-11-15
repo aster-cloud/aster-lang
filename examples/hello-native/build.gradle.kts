@@ -1,3 +1,5 @@
+import dev.aster.build.GenerateAsterJarTask
+
 plugins {
   application
   id("org.graalvm.buildtools.native")
@@ -34,27 +36,26 @@ graalvmNative {
         "--no-fallback",
         "--strict-image-heap",
         "-H:+ReportExceptionStackTraces",
-        "--initialize-at-build-time=aster.runtime"
+        "--initialize-at-build-time=org.slf4j.impl.Slf4jLogger",
+        "--initialize-at-build-time=org.jboss.logmanager.Level",
+        "--initialize-at-build-time=org.jboss.logmanager",
+        "--initialize-at-build-time=io.quarkus.bootstrap.logging.QuarkusDelayedHandler",
+        "--initialize-at-build-time=io.quarkus.bootstrap.logging",
+        "--initialize-at-build-time=io.smallrye.common.ref",
+        "--initialize-at-build-time=io.quarkus.vertx.mdc.provider"
       ))
       resources.autodetect()
     }
   }
 }
 
-// Ensure generated Aster jar exists before compiling
-val generateAsterJar by tasks.registering(Exec::class) {
-  workingDir = rootProject.projectDir
-  commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
-    listOf("cmd", "/c", "npm", "run", "emit:class", "test/cnl/programs/examples/greet.aster", "&&", "npm", "run", "jar:jvm")
-  else listOf("sh", "-c", "ASTER_OUT_DIR=examples/hello-native/build/aster-out npm run emit:class test/cnl/programs/examples/greet.aster && ASTER_OUT_DIR=examples/hello-native/build/aster-out npm run jar:jvm")
-  // 输出声明：生成合并 Jar
-  outputs.file(moduleOut.map { it.file("aster.jar") })
-  // 只有在产物缺失时才需要强制执行；缓存存在时 Gradle 可跳过
-  onlyIf { !moduleOut.get().file("aster.jar").asFile.exists() }
-}
-generateAsterJar.configure {
-  // 配置缓存不兼容：该任务依赖外部 Node/Gradle 进程与工作目录副作用
-  notCompatibleWithConfigurationCache("Exec uses external processes and dynamic file IO")
+val greetSource = rootProject.layout.projectDirectory.file("test/cnl/programs/examples/greet.aster")
+val generateAsterJar by tasks.registering(GenerateAsterJarTask::class) {
+  description = "为 hello-native 示例生成独立的 aster.jar"
+  workingDirectory.set(rootProject.layout.projectDirectory)
+  outputDirectory.set(moduleOut)
+  outputJar.set(moduleOut.map { it.file("aster.jar") })
+  asterSources.from(greetSource)
 }
 tasks.withType<JavaCompile>().configureEach {
   dependsOn(generateAsterJar)

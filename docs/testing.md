@@ -2,6 +2,12 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-15 PIIRedactionIntegrationTest 脱敏验证
+- 日期：2025-11-15 21:17 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `SKIP_GENERATE_ASTER_JAR=true ./gradlew :quarkus-policy-api:test --tests PIIRedactionIntegrationTest --rerun-tasks` → 通过（6 个直接调用 PIIRedactor.redact 的场景全部通过，验证 SSN/邮箱/电话/信用卡/IP 及组合脱敏逻辑，避免 LogCaptor 引起的 classloader 冲突）
+
 ## 2025-11-15 TimerIntegrationTest 周期重调度验证
 - 日期：2025-11-15 17:42 NZDT
 - 执行者：Codex

@@ -8,7 +8,9 @@ import io.aster.audit.service.AnomalyActionExecutor;
 import io.aster.policy.entity.PolicyVersion;
 import io.aster.policy.service.PolicyVersionService;
 import io.aster.test.PostgresTestResource;
+import io.aster.workflow.WorkflowEventEntity;
 import io.aster.workflow.WorkflowStateEntity;
+import io.aster.workflow.WorkflowTimerEntity;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -83,6 +85,8 @@ public class IdempotencyIntegrationTest {
         }
         if (!workflowIdsToClean.isEmpty()) {
             for (UUID workflowId : workflowIdsToClean) {
+                WorkflowEventEntity.delete("workflowId = ?1", workflowId);
+                WorkflowTimerEntity.delete("workflowId = ?1", workflowId);
                 WorkflowStateEntity.delete("workflowId = ?1", workflowId);
             }
             workflowIdsToClean.clear();

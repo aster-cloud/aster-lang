@@ -6,6 +6,6 @@
 
 > **EffectCaps** = readonly [`CapabilityKind`](CapabilityKind.md)[]
 
-Defined in: [types.ts:59](https://github.com/wontlost-ltd/aster-lang/blob/1bf231501298c8356da6c07e4bf89f297ebdc5b7/src/types.ts#L59)
+Defined in: [types.ts:59](https://github.com/wontlost-ltd/aster-lang/blob/0c307273fd09aa4d31968abdaff80950a9db9b7f/src/types.ts#L59)
 
 Effect capability 列表的统一别名

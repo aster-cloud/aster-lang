@@ -69,11 +69,7 @@ public class InboxEvent extends PanacheEntityBase {
      * @return 成功返回插入的实体，重复返回 null
      */
     public static Uni<InboxEvent> tryInsert(String key, String eventType, String tenantId, String payload) {
-        return Panache.withTransaction(() ->
-            persistEvent(key, eventType, tenantId, payload)
-        )
-        .onFailure(InboxEvent::isUniqueViolation)
-        .recoverWithNull();
+        return Panache.withTransaction(() -> persistEvent(key, eventType, tenantId, payload));
     }
 
     private static Uni<InboxEvent> persistEvent(String key, String eventType, String tenantId, String payload) {
@@ -85,8 +81,19 @@ public class InboxEvent extends PanacheEntityBase {
         event.createdAt = Instant.now();
         event.payload = payload;
 
-        return event.persist()
-            .map(ignored -> event);
+        return Panache.getSession()
+            .onItem().transformToUni(session ->
+                session.createNativeQuery(
+                        "INSERT INTO inbox_events (idempotency_key, event_type, tenant_id, processed_at, created_at, payload) " +
+                            "VALUES (:key, :eventType, :tenantId, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CAST(:payload AS JSONB)) " +
+                            "ON CONFLICT (idempotency_key) DO NOTHING")
+                    .setParameter("key", key)
+                    .setParameter("eventType", eventType)
+                    .setParameter("tenantId", tenantId)
+                    .setParameter("payload", payload)
+                    .executeUpdate()
+                    .map(inserted -> inserted > 0 ? event : null)
+            );
     }
 
     /**
@@ -107,7 +114,9 @@ public class InboxEvent extends PanacheEntityBase {
      * @return 存在返回 true，否则返回 false
      */
     public static Uni<Boolean> exists(String key) {
-        return findById(key).map(entity -> entity != null);
+        return find("idempotencyKey", key)
+            .count()
+            .map(count -> count != null && count > 0);
     }
 
     /**
