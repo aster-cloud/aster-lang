@@ -17,6 +17,8 @@ public final class DependencyGraph {
 
   // 就绪任务队列（依赖已满足的任务）
   private final Set<String> readyQueue = new LinkedHashSet<>();
+  // 已完成（或被取消）任务集：支持先完成后注册的依赖
+  private final Set<String> completedNodes = new HashSet<>();
 
   /**
    * 任务节点 - 封装任务的依赖关系和状态
@@ -60,8 +62,15 @@ public final class DependencyGraph {
     TaskNode node = new TaskNode(taskId, deps);
     nodes.put(taskId, node);
 
-    // 无依赖任务直接加入就绪队列
-    if (deps.isEmpty()) {
+    if (!deps.isEmpty()) {
+      for (String dep : deps) {
+        if (completedNodes.contains(dep) && node.remainingDeps > 0) {
+          node.remainingDeps--;
+        }
+      }
+    }
+
+    if (node.remainingDeps == 0) {
       readyQueue.add(taskId);
     }
   }
@@ -76,12 +85,17 @@ public final class DependencyGraph {
       return;
     }
 
+    if (!completedNodes.add(taskId)) {
+      readyQueue.remove(taskId);
+      return;
+    }
+
     // 从就绪队列移除
     readyQueue.remove(taskId);
 
     // 遍历所有节点，减少依赖此任务的节点的计数
     for (TaskNode node : nodes.values()) {
-      if (node.dependencies.contains(taskId)) {
+      if (node.remainingDeps > 0 && node.dependencies.contains(taskId)) {
         node.remainingDeps--;
 
         // 依赖全部满足，加入就绪队列
