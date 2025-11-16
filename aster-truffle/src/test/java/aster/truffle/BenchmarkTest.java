@@ -1,6 +1,7 @@
 package aster.truffle;
 
 import aster.truffle.nodes.Profiler;
+import aster.truffle.runtime.AsyncTaskRegistry;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -10,7 +11,15 @@ import org.junit.jupiter.api.TestInfo;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1832,5 +1841,196 @@ public class BenchmarkTest {
       // 更宽松的阈值，因为列表更大
       assertTrue(avgMs < 0.2, "Performance regression: " + avgMs + " ms >= 0.2 ms");
     }
+  }
+
+  /**
+   * 调度基准：验证 AsyncTaskRegistry 单次 workflow 的吞吐量（95th percentile ≥ 100 workflows/sec）。
+   */
+  @Test
+  public void benchmarkSchedulerThroughput() {
+    int workflows = 150;
+    double[] timingsMs = new double[workflows];
+
+    for (int i = 0; i < workflows; i++) {
+      AsyncTaskRegistry registry = new AsyncTaskRegistry(8);
+      try {
+        registerSyntheticWorkflow(registry, i);
+        long start = System.nanoTime();
+        registry.executeUntilComplete();
+        long end = System.nanoTime();
+        timingsMs[i] = (end - start) / 1_000_000.0;
+      } finally {
+        registry.shutdown();
+      }
+    }
+
+    java.util.Arrays.sort(timingsMs);
+    double p95Ms = percentile95(timingsMs);
+    double throughput = 1000.0 / Math.max(p95Ms, 0.001);
+    System.out.printf("Scheduler throughput benchmark: 95th%% %.4f ms (%.2f workflows/sec)%n", p95Ms, throughput);
+
+    assertTrue(throughput >= 100.0,
+        String.format("Performance regression: throughput %.2f workflows/sec < 100", throughput));
+  }
+
+  /**
+   * 调度基准：对比 PriorityQueue 与 LinkedHashSet 就绪队列实现的 95th percentile 开销。
+   */
+  @Test
+  public void benchmarkPriorityQueueOverhead() {
+    Random random = new Random(42L);
+    int iterations = 300;
+    int taskCount = 4000;
+    double[] pqTimes = new double[iterations];
+    double[] linkedTimes = new double[iterations];
+
+    for (int i = 0; i < iterations; i++) {
+      long seed = random.nextLong();
+      pqTimes[i] = measurePriorityQueueCost(seed, taskCount);
+      linkedTimes[i] = measureLinkedHashSetCost(seed, taskCount);
+    }
+
+    java.util.Arrays.sort(pqTimes);
+    java.util.Arrays.sort(linkedTimes);
+    double pqP95 = percentile95(pqTimes);
+    double linkedP95 = percentile95(linkedTimes);
+
+    System.out.printf(
+        "Ready queue overhead benchmark (95th%%): PriorityQueue=%.4f ms, LinkedHashSet=%.4f ms%n",
+        pqP95, linkedP95);
+
+    // 允许 PriorityQueue 比 LinkedHashSet 慢 100%，因为优先级调度需要额外的排序开销
+    assertTrue(pqP95 <= linkedP95 * 2.0,
+        String.format("PriorityQueue regression: %.4f ms vs LinkedHashSet %.4f ms", pqP95, linkedP95));
+  }
+
+  private static final long WORK_SIMULATION_NANOS = TimeUnit.MICROSECONDS.toNanos(200);
+
+  private static void registerSyntheticWorkflow(AsyncTaskRegistry registry, int workflowIndex) {
+    String prefix = "wf-" + workflowIndex + "-";
+
+    registry.registerTaskWithDependencies(
+        prefix + "start",
+        () -> {
+          simulateWork();
+          return prefix + "start";
+        },
+        Set.of(),
+        0L,
+        null,
+        workflowIndex % 3);
+
+    registry.registerTaskWithDependencies(
+        prefix + "fan-a",
+        () -> {
+          simulateWork();
+          return prefix + "fan-a";
+        },
+        Set.of(prefix + "start"),
+        0L,
+        null,
+        0);
+
+    registry.registerTaskWithDependencies(
+        prefix + "fan-b",
+        () -> {
+          simulateWork();
+          return prefix + "fan-b";
+        },
+        Set.of(prefix + "start"),
+        0L,
+        null,
+        1);
+
+    registry.registerTaskWithDependencies(
+        prefix + "fan-c",
+        () -> {
+          simulateWork();
+          return prefix + "fan-c";
+        },
+        Set.of(prefix + "start"),
+        0L,
+        null,
+        2);
+
+    registry.registerTaskWithDependencies(
+        prefix + "join-left",
+        () -> {
+          simulateWork();
+          return prefix + "join-left";
+        },
+        Set.of(prefix + "fan-a", prefix + "fan-b"),
+        0L,
+        null,
+        0);
+
+    registry.registerTaskWithDependencies(
+        prefix + "join-right",
+        () -> {
+          simulateWork();
+          return prefix + "join-right";
+        },
+        Set.of(prefix + "fan-b", prefix + "fan-c"),
+        0L,
+        null,
+        0);
+
+    registry.registerTaskWithDependencies(
+        prefix + "final",
+        () -> {
+          simulateWork();
+          return prefix + "final";
+        },
+        Set.of(prefix + "join-left", prefix + "join-right"),
+        0L,
+        null,
+        0);
+  }
+
+  private static void simulateWork() {
+    LockSupport.parkNanos(WORK_SIMULATION_NANOS);
+  }
+
+  private static double percentile95(double[] sortedValues) {
+    if (sortedValues.length == 0) {
+      return 0.0;
+    }
+    int index = (int) Math.ceil(sortedValues.length * 0.95) - 1;
+    if (index < 0) {
+      index = 0;
+    }
+    if (index >= sortedValues.length) {
+      index = sortedValues.length - 1;
+    }
+    return sortedValues[index];
+  }
+
+  private static double measurePriorityQueueCost(long seed, int taskCount) {
+    Random random = new Random(seed);
+    PriorityQueue<int[]> queue = new PriorityQueue<>(Comparator.comparingInt(entry -> entry[1]));
+    long start = System.nanoTime();
+    for (int i = 0; i < taskCount; i++) {
+      queue.offer(new int[]{i, random.nextInt(taskCount)});
+    }
+    while (!queue.isEmpty()) {
+      queue.poll();
+    }
+    long end = System.nanoTime();
+    return (end - start) / 1_000_000.0;
+  }
+
+  private static double measureLinkedHashSetCost(long seed, int taskCount) {
+    Random random = new Random(seed);
+    LinkedHashSet<Integer> ready = new LinkedHashSet<>();
+    long start = System.nanoTime();
+    for (int i = 0; i < taskCount; i++) {
+      ready.add(random.nextInt(taskCount * 2));
+    }
+    for (Iterator<Integer> iterator = ready.iterator(); iterator.hasNext(); ) {
+      iterator.next();
+      iterator.remove();
+    }
+    long end = System.nanoTime();
+    return (end - start) / 1_000_000.0;
   }
 }

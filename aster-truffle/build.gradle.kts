@@ -36,6 +36,8 @@ tasks.test {
     exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     showStandardStreams = true
   }
+  jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
+  jvmArgs("--add-opens", "java.base/java.util=ALL-UNNAMED")
   // Phase 3C P0-2: 支持 Profiler 数据收集
   // 通过 -Daster.profiler.enabled=true 启用 profiling
   systemProperty("aster.profiler.enabled", System.getProperty("aster.profiler.enabled", "false"))

@@ -673,6 +673,10 @@ public final class AsyncTaskRegistry {
     }
 
     cancelDownstreamTasks(taskId);
+
+    // 触发补偿栈（Traditional Saga 模式：超时失败时回滚已完成任务）
+    executeCompensations();
+
     // 注意：不递减 remainingTasks，runTask 的 finally 块会处理
   }
 

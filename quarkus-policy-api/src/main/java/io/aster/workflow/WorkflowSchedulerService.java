@@ -560,11 +560,12 @@ public class WorkflowSchedulerService {
         Log.infof("Resuming workflow %s at step %s", workflowId, stepId);
 
         // 追加 TIMER_TRIGGERED 事件
+        // 注意：payload 仅包含 stepId，不包含 timestamp，确保重试时 idempotency key 一致
         try {
             eventStore.appendEvent(
                 workflowId,
                 "TIMER_TRIGGERED",
-                String.format("{\"stepId\":\"%s\",\"timestamp\":\"%s\"}", stepId, Instant.now())
+                String.format("{\"stepId\":\"%s\"}", stepId)
             );
         } catch (Exception e) {
             Log.warnf(e, "Failed to append TIMER_TRIGGERED event for workflow %s step %s", workflowId, stepId);

@@ -31,9 +31,9 @@ public class DependencyGraphTest {
    */
   @Test
   public void testLinearChain() {
-    graph.addTask("A", Collections.emptySet());
-    graph.addTask("B", Set.of("A"));
-    graph.addTask("C", Set.of("B"));
+    graph.addTask("A", Set.of(), 0);
+    graph.addTask("B", Set.of("A"), 0);
+    graph.addTask("C", Set.of("B"), 0);
 
     assertEquals(3, graph.getTaskCount(), "应成功注册三个节点");
     assertEquals(1, graph.getReadyCount(), "初始仅有根节点就绪");
@@ -56,10 +56,10 @@ public class DependencyGraphTest {
    */
   @Test
   public void testDiamondDependency() {
-    graph.addTask("A", Collections.emptySet());
-    graph.addTask("B", Set.of("A"));
-    graph.addTask("C", Set.of("A"));
-    graph.addTask("D", Set.of("B", "C"));
+    graph.addTask("A", Set.of(), 0);
+    graph.addTask("B", Set.of("A"), 0);
+    graph.addTask("C", Set.of("A"), 0);
+    graph.addTask("D", Set.of("B", "C"), 0);
 
     assertEquals(List.of("A"), graph.getReadyTasks(), "初始仅 A 可执行");
 
@@ -86,16 +86,16 @@ public class DependencyGraphTest {
    */
   @Test
   public void testCycleDetection() {
-    graph.addTask("A", Set.of("B"));  // 先注册 A，允许引用尚未存在的 B
+    graph.addTask("A", Set.of("B"), 0);  // 先注册 A，允许引用尚未存在的 B
 
     IllegalArgumentException mutualCycle = assertThrows(IllegalArgumentException.class, () -> {
-      graph.addTask("B", Set.of("A"));  // 注册 B 时应检测到 A↔B 循环
+      graph.addTask("B", Set.of("A"), 0);  // 注册 B 时应检测到 A↔B 循环
     });
     assertTrue(mutualCycle.getMessage().contains("Circular"), "应提示循环依赖");
 
     DependencyGraph fresh = new DependencyGraph();
     IllegalArgumentException selfCycle = assertThrows(IllegalArgumentException.class, () -> {
-      fresh.addTask("Self", Set.of("Self"));
+      fresh.addTask("Self", Set.of("Self"), 0);
     });
     assertTrue(selfCycle.getMessage().contains("Circular"), "自引用也应被阻止");
   }
@@ -105,10 +105,10 @@ public class DependencyGraphTest {
    */
   @Test
   public void testMarkCompleted() {
-    graph.addTask("root", Collections.emptySet());
-    graph.addTask("left", Set.of("root"));
-    graph.addTask("right", Set.of("root"));
-    graph.addTask("leaf", Set.of("left", "right"));
+    graph.addTask("root", Set.of(), 0);
+    graph.addTask("left", Set.of("root"), 0);
+    graph.addTask("right", Set.of("root"), 0);
+    graph.addTask("leaf", Set.of("left", "right"), 0);
 
     assertEquals(List.of("root"), graph.getReadyTasks(), "开始仅 root 可执行");
 
@@ -129,11 +129,11 @@ public class DependencyGraphTest {
    */
   @Test
   public void testGetReadyTasks() {
-    graph.addTask("A", null);                 // null 依赖应视为空
-    graph.addTask("B", Collections.emptySet());
-    graph.addTask("C", Set.of("A"));
-    graph.addTask("D", Set.of("A", "B"));
-    graph.addTask("E", Set.of("D"));
+    graph.addTask("A", null, 0);                 // null 依赖应视为空
+    graph.addTask("B", Set.of(), 0);
+    graph.addTask("C", Set.of("A"), 0);
+    graph.addTask("D", Set.of("A", "B"), 0);
+    graph.addTask("E", Set.of("D"), 0);
 
     List<String> initialReady = graph.getReadyTasks();
     assertEquals(2, initialReady.size(), "A/B 同时就绪");
@@ -155,9 +155,9 @@ public class DependencyGraphTest {
   @Test
   public void testPerformance() {
     long startNs = System.nanoTime();
-    graph.addTask("task-0", Collections.emptySet());
+    graph.addTask("task-0", Set.of(), 0);
     for (int i = 1; i < 100; i++) {
-      graph.addTask("task-" + i, Set.of("task-" + (i - 1)));
+      graph.addTask("task-" + i, Set.of("task-" + (i - 1)), 0);
     }
     long durationMs = (System.nanoTime() - startNs) / 1_000_000;
 
