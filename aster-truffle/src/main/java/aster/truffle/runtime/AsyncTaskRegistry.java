@@ -2,6 +2,9 @@ package aster.truffle.runtime;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -12,9 +15,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,6 +52,10 @@ public final class AsyncTaskRegistry {
   private final boolean singleThreadMode;
   // graph 同步锁，DependencyGraph 非线程安全
   private final Object graphLock = new Object();
+  // 补偿 LIFO 栈
+  private final Deque<String> compensationStack = new ConcurrentLinkedDeque<>();
+  // 默认超时时间（毫秒），0 表示无限制
+  private final long defaultTimeoutMs;
 
   /**
    * 并发调度需要的任务元数据
@@ -57,11 +66,18 @@ public final class AsyncTaskRegistry {
     final Set<String> dependencies;
     final CompletableFuture<Object> future = new CompletableFuture<>();
     final AtomicBoolean submitted = new AtomicBoolean(false);
+    final long timeoutMs;
+    final Runnable compensationCallback;
+    final int priority;
 
-    TaskInfo(String taskId, Callable<?> callable, Set<String> dependencies) {
+    TaskInfo(String taskId, Callable<?> callable, Set<String> dependencies, long timeoutMs,
+             Runnable compensationCallback, int priority) {
       this.taskId = taskId;
       this.callable = callable;
       this.dependencies = Collections.unmodifiableSet(new LinkedHashSet<>(dependencies));
+      this.timeoutMs = timeoutMs;
+      this.compensationCallback = compensationCallback;
+      this.priority = priority;
     }
   }
 
@@ -110,13 +126,18 @@ public final class AsyncTaskRegistry {
   }
 
   public AsyncTaskRegistry() {
-    this(Runtime.getRuntime().availableProcessors());
+    this(loadThreadPoolSize(), loadDefaultTimeout());
   }
 
   public AsyncTaskRegistry(int threadPoolSize) {
+    this(threadPoolSize, loadDefaultTimeout());
+  }
+
+  private AsyncTaskRegistry(int threadPoolSize, long defaultTimeoutMs) {
     int normalizedSize = Math.max(1, threadPoolSize);
     this.executor = Executors.newFixedThreadPool(normalizedSize);
     this.singleThreadMode = normalizedSize == 1;
+    this.defaultTimeoutMs = Math.max(0L, defaultTimeoutMs);
   }
 
   /**
@@ -130,7 +151,7 @@ public final class AsyncTaskRegistry {
       taskBody.run();
       return null;
     };
-    registerInternal(taskId, callable, Collections.emptySet());
+    registerInternal(taskId, callable, Collections.emptySet(), defaultTimeoutMs, null, 0);
     return taskId;
   }
 
@@ -139,10 +160,37 @@ public final class AsyncTaskRegistry {
    */
   public String registerTaskWithDependencies(
       String taskId, Callable<?> callable, Set<String> dependencies) {
+    return registerTaskWithDependencies(taskId, callable, dependencies, 0L, null, 0);
+  }
+
+  /**
+   * 依赖感知注册接口（可指定超时）
+   */
+  public String registerTaskWithDependencies(
+      String taskId, Callable<?> callable, Set<String> dependencies, long timeoutMs) {
+    return registerTaskWithDependencies(taskId, callable, dependencies, timeoutMs, null, 0);
+  }
+
+  /**
+   * 依赖感知注册接口（可指定超时与补偿回调）
+   */
+  public String registerTaskWithDependencies(
+      String taskId, Callable<?> callable, Set<String> dependencies, long timeoutMs,
+      Runnable compensationCallback) {
+    return registerTaskWithDependencies(taskId, callable, dependencies, timeoutMs, compensationCallback, 0);
+  }
+
+  /**
+   * 依赖感知注册接口（可指定超时、补偿回调与优先级）
+   */
+  public String registerTaskWithDependencies(
+      String taskId, Callable<?> callable, Set<String> dependencies, long timeoutMs,
+      Runnable compensationCallback, int priority) {
     Objects.requireNonNull(taskId, "taskId");
     Objects.requireNonNull(callable, "callable");
     Set<String> deps = (dependencies == null) ? Collections.emptySet() : new LinkedHashSet<>(dependencies);
-    registerInternal(taskId, callable, deps);
+    long effectiveTimeout = timeoutMs > 0 ? timeoutMs : defaultTimeoutMs;
+    registerInternal(taskId, callable, deps, effectiveTimeout, compensationCallback, priority);
     return taskId;
   }
 
@@ -209,53 +257,103 @@ public final class AsyncTaskRegistry {
    * 并发调度主入口：按依赖拓扑批量调度所有任务
    */
   public void executeUntilComplete() {
-    while (remainingTasks.get() > 0) {
-      List<String> readyTasks = snapshotReadyTasks();
-      if (readyTasks.isEmpty()) {
-        Optional<TaskState> failed =
-            tasks.values().stream().filter(state -> state.getStatus() == TaskStatus.FAILED).findFirst();
-        if (failed.isPresent()) {
-          throw new RuntimeException("Task failed: " + failed.get().taskId, failed.get().exception);
-        }
-        StringBuilder pending = new StringBuilder();
-        tasks.forEach((taskId, state) -> {
-          TaskStatus status = state.getStatus();
-          if (status != TaskStatus.COMPLETED && status != TaskStatus.CANCELLED) {
-            TaskInfo info = taskInfos.get(taskId);
-            pending.append(taskId)
-                .append('[').append(status).append(" deps=")
-                .append(info != null ? info.dependencies : Collections.emptySet())
-                .append("], ");
+    try {
+      while (remainingTasks.get() > 0) {
+        List<String> readyTasks = snapshotReadyTasks();
+        if (readyTasks.isEmpty()) {
+          // 1. 检查失败任务（保持现有逻辑）
+          Optional<TaskState> failed =
+              tasks.values().stream().filter(state -> state.getStatus() == TaskStatus.FAILED).findFirst();
+          if (failed.isPresent()) {
+            throw new RuntimeException("Task failed: " + failed.get().taskId, failed.get().exception);
           }
-        });
-        throw new IllegalStateException(
-            "Deadlock detected: no ready tasks but graph still has nodes. Pending=" + pending);
-      }
 
-      List<CompletableFuture<Object>> batchFutures = new ArrayList<>(readyTasks.size());
-      for (String taskId : readyTasks) {
-        TaskInfo info = taskInfos.get(taskId);
-        if (info == null) {
+          // 2. 收集详细诊断信息（增强）
+          List<String> runningTasks = new ArrayList<>();
+          Map<String, Set<String>> pendingTaskDeps = new LinkedHashMap<>();
+
+          for (Map.Entry<String, TaskInfo> entry : taskInfos.entrySet()) {
+            String taskId = entry.getKey();
+            TaskState state = tasks.get(taskId);
+            if (state != null) {
+              TaskStatus status = state.getStatus();
+              if (status == TaskStatus.RUNNING) {
+                runningTasks.add(taskId);
+              } else if (status == TaskStatus.PENDING) {
+                Set<String> uncompletedDeps = getUncompletedDependencies(entry.getValue().dependencies);
+                pendingTaskDeps.put(taskId, uncompletedDeps);
+              }
+            }
+          }
+
+          // 3. 检测循环依赖（增强）
+          List<List<String>> cycles = detectCycles();
+
+          // 4. 构建详细错误消息（增强）
+          StringBuilder errorMsg = new StringBuilder();
+          errorMsg.append("死锁检测：无就绪任务但仍有 ").append(remainingTasks.get()).append(" 个任务待完成\n");
+
+          errorMsg.append("运行中任务：").append(runningTasks).append("\n");
+
+          errorMsg.append("待处理任务及其依赖：\n");
+          for (Map.Entry<String, Set<String>> entry : pendingTaskDeps.entrySet()) {
+            TaskInfo info = taskInfos.get(entry.getKey());
+            int priority = (info != null) ? info.priority : 0;
+            errorMsg.append("  - ").append(entry.getKey())
+                .append(" (优先级 ").append(priority).append(") 等待: ")
+                .append(entry.getValue()).append("\n");
+          }
+
+          if (!cycles.isEmpty()) {
+            errorMsg.append("检测到循环依赖：\n");
+            for (List<String> cycle : cycles) {
+              errorMsg.append("  - ");
+              for (int i = 0; i < cycle.size(); i++) {
+                if (i > 0) {
+                  errorMsg.append(" -> ");
+                }
+                errorMsg.append(cycle.get(i));
+              }
+              errorMsg.append(" -> ").append(cycle.get(0)).append("\n");
+            }
+          }
+
+          // 防止 race condition：在抛出异常前再次检查 remainingTasks
+          if (remainingTasks.get() == 0) {
+            // 最后一个任务刚完成，退出循环
+            break;
+          }
+          throw new IllegalStateException(errorMsg.toString());
+        }
+
+        List<CompletableFuture<Object>> batchFutures = new ArrayList<>(readyTasks.size());
+        for (String taskId : readyTasks) {
+          TaskInfo info = taskInfos.get(taskId);
+          if (info == null) {
+            continue;
+          }
+          if (canSchedule(taskId)) {
+            batchFutures.add(submitTask(info));
+          }
+        }
+
+        if (batchFutures.isEmpty()) {
+          // 所有 ready 节点都处于非 PENDING 状态，说明等待上轮运行结束
+          LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
           continue;
         }
-        if (canSchedule(taskId)) {
-          batchFutures.add(submitTask(info));
+
+        CompletableFuture<Void> barrier =
+            CompletableFuture.allOf(batchFutures.toArray(new CompletableFuture[0]));
+        try {
+          barrier.join();
+        } catch (CompletionException ex) {
+          throw unwrapCompletion(ex);
         }
       }
-
-      if (batchFutures.isEmpty()) {
-        // 所有 ready 节点都处于非 PENDING 状态，说明等待上轮运行结束
-        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
-        continue;
-      }
-
-      CompletableFuture<Void> barrier =
-          CompletableFuture.allOf(batchFutures.toArray(new CompletableFuture[0]));
-      try {
-        barrier.join();
-      } catch (CompletionException ex) {
-        throw unwrapCompletion(ex);
-      }
+    } catch (RuntimeException | Error ex) {
+      executeCompensations();
+      throw ex;
     }
   }
 
@@ -353,17 +451,18 @@ public final class AsyncTaskRegistry {
 
   // ========= 内部工具方法 =========
 
-  private void registerInternal(String taskId, Callable<?> callable, Set<String> deps) {
+  private void registerInternal(String taskId, Callable<?> callable, Set<String> deps, long timeoutMs,
+      Runnable compensationCallback, int priority) {
     if (tasks.putIfAbsent(taskId, new TaskState(taskId)) != null) {
       throw new IllegalArgumentException("Task already exists: " + taskId);
     }
 
-    TaskInfo info = new TaskInfo(taskId, callable, deps);
+    TaskInfo info = new TaskInfo(taskId, callable, deps, Math.max(0L, timeoutMs), compensationCallback, priority);
     taskInfos.put(taskId, info);
     remainingTasks.incrementAndGet();
 
     synchronized (graphLock) {
-      dependencyGraph.addTask(taskId, deps);
+      dependencyGraph.addTask(taskId, deps, priority);
     }
   }
 
@@ -392,8 +491,30 @@ public final class AsyncTaskRegistry {
     if (!info.submitted.compareAndSet(false, true)) {
       return info.future;
     }
+
+    CompletableFuture<Object> trackedFuture = info.future;
+    if (info.timeoutMs > 0) {
+      trackedFuture = info.future
+          .orTimeout(info.timeoutMs, TimeUnit.MILLISECONDS)
+          .handle((result, throwable) -> {
+            if (throwable == null) {
+              return result;
+            }
+            Throwable actual = throwable instanceof CompletionException
+                ? throwable.getCause()
+                : throwable;
+            if (actual instanceof TimeoutException timeout) {
+              TimeoutException enriched = new TimeoutException("任务超时: " + info.taskId);
+              enriched.initCause(timeout);
+              handleTaskTimeout(info.taskId, enriched);
+              throw new CompletionException(enriched);
+            }
+            throw new CompletionException(actual);
+          });
+    }
+
     executor.submit(() -> runTask(info));
-    return info.future;
+    return trackedFuture;
   }
 
   private void runTaskInline(TaskInfo info) {
@@ -450,18 +571,28 @@ public final class AsyncTaskRegistry {
       if (callResult != null && state.result == null) {
         state.result = callResult;
       }
-      state.status.set(TaskStatus.COMPLETED);
-      info.future.complete(state.result);
-      synchronized (graphLock) {
-        dependencyGraph.markCompleted(info.taskId);
+      if (state.status.compareAndSet(TaskStatus.RUNNING, TaskStatus.COMPLETED)) {
+        info.future.complete(state.result);
+        if (info.compensationCallback != null) {
+          compensationStack.push(info.taskId);
+        }
+        synchronized (graphLock) {
+          dependencyGraph.markCompleted(info.taskId);
+        }
       }
     } catch (Throwable t) {
-      state.exception = t;
-      state.status.set(TaskStatus.FAILED);
-      info.future.completeExceptionally(t);
-      // 取消所有依赖于失败任务的下游任务
-      cancelDownstreamTasks(info.taskId);
+      if (state.status.compareAndSet(TaskStatus.RUNNING, TaskStatus.FAILED)) {
+        state.exception = t;
+        info.future.completeExceptionally(t);
+        // 标记失败任务为已完成（让依赖图更新）
+        synchronized (graphLock) {
+          dependencyGraph.markCompleted(info.taskId);
+        }
+        // 取消所有依赖于失败任务的下游任务
+        cancelDownstreamTasks(info.taskId);
+      }
     } finally {
+      // 无条件递减计数器，避免 TimeoutException 导致的计数器泄漏
       remainingTasks.decrementAndGet();
     }
   }
@@ -511,5 +642,186 @@ public final class AsyncTaskRegistry {
       return (RuntimeException) cause;
     }
     return new RuntimeException("Async task execution failed", cause);
+  }
+
+  /**
+   * 处理任务超时：标记失败、触发补偿链并抛出带 taskId 的异常
+   * 注意：不递减 remainingTasks，因为 runTask 的 finally 块会处理
+   */
+  private void handleTaskTimeout(String taskId, TimeoutException timeoutException) {
+    TaskState state = tasks.get(taskId);
+    if (state == null) {
+      return;
+    }
+
+    boolean updated =
+        state.status.compareAndSet(TaskStatus.RUNNING, TaskStatus.FAILED)
+            || state.status.compareAndSet(TaskStatus.PENDING, TaskStatus.FAILED);
+    if (!updated) {
+      return;
+    }
+
+    state.exception = timeoutException;
+    TaskInfo info = taskInfos.get(taskId);
+    if (info != null) {
+      info.future.obtrudeException(timeoutException);
+    }
+
+    // 标记超时任务为已完成（让依赖图更新）
+    synchronized (graphLock) {
+      dependencyGraph.markCompleted(taskId);
+    }
+
+    cancelDownstreamTasks(taskId);
+    // 注意：不递减 remainingTasks，runTask 的 finally 块会处理
+  }
+
+  /**
+   * 执行补偿栈中的回调（LIFO 顺序）
+   */
+  private void executeCompensations() {
+    while (true) {
+      String taskId = compensationStack.poll();
+      if (taskId == null) {
+        break;
+      }
+      TaskInfo info = taskInfos.get(taskId);
+      if (info == null || info.compensationCallback == null) {
+        continue;
+      }
+      try {
+        info.compensationCallback.run();
+      } catch (Throwable t) {
+        String message = t.getMessage();
+        System.err.println("补偿失败 [" + taskId + "]: " + (message != null ? message : t.getClass().getSimpleName()));
+      }
+    }
+  }
+
+  /**
+   * 查询给定依赖集合中尚未完成的任务
+   *
+   * @param dependencies 依赖任务 ID 集合
+   * @return 状态不为 COMPLETED 的任务 ID 集合（包括 PENDING/RUNNING/FAILED/CANCELLED 或不存在的任务）
+   */
+  private Set<String> getUncompletedDependencies(Set<String> dependencies) {
+    Set<String> uncompleted = new HashSet<>();
+    for (String depId : dependencies) {
+      TaskState state = tasks.get(depId);
+      // null 状态或非 COMPLETED 状态均视为未完成
+      if (state == null || state.status.get() != TaskStatus.COMPLETED) {
+        uncompleted.add(depId);
+      }
+    }
+    return uncompleted;
+  }
+
+  /**
+   * 检测任务依赖图中的循环依赖
+   * <p>
+   * 使用深度优先搜索（DFS）算法遍历依赖图，识别反向边以检测循环。
+   * 仅检查未完成的依赖（状态不为 COMPLETED），因为已完成的任务不会导致死锁。
+   * 时间复杂度：O(V+E)，V=任务数，E=依赖边数
+   *
+   * @return 检测到的所有循环列表，每个循环是一个任务 ID 列表
+   */
+  private List<List<String>> detectCycles() {
+    Set<String> visited = new HashSet<>();
+    Set<String> recStack = new HashSet<>();
+    List<List<String>> cycles = new ArrayList<>();
+
+    for (String taskId : taskInfos.keySet()) {
+      if (!visited.contains(taskId)) {
+        List<String> path = new ArrayList<>();
+        dfsCycleDetect(taskId, visited, recStack, path, cycles);
+      }
+    }
+    return cycles;
+  }
+
+  /**
+   * DFS 递归方法，检测从指定任务开始的循环依赖
+   *
+   * @param taskId 当前访问的任务 ID
+   * @param visited 已访问节点集合（全局）
+   * @param recStack 当前递归路径上的节点集合（用于检测反向边）
+   * @param path 当前路径上的节点列表（用于提取循环）
+   * @param cycles 存储检测到的循环列表
+   * @return 如果检测到循环返回 true，否则返回 false
+   */
+  private boolean dfsCycleDetect(String taskId, Set<String> visited, Set<String> recStack,
+                                 List<String> path, List<List<String>> cycles) {
+    visited.add(taskId);
+    recStack.add(taskId);
+    path.add(taskId);
+
+    TaskInfo info = taskInfos.get(taskId);
+    if (info != null && info.dependencies != null) {
+      for (String depId : info.dependencies) {
+        TaskState depState = tasks.get(depId);
+        // 仅检查未完成的依赖，已完成的任务不会导致死锁
+        if (depState == null || depState.status.get() != TaskStatus.COMPLETED) {
+          if (!visited.contains(depId)) {
+            // 递归访问未访问的依赖
+            if (dfsCycleDetect(depId, visited, recStack, path, cycles)) {
+              return true;
+            }
+          } else if (recStack.contains(depId)) {
+            // 发现反向边，提取循环路径
+            int cycleStartIndex = path.indexOf(depId);
+            List<String> cycle = new ArrayList<>(path.subList(cycleStartIndex, path.size()));
+            cycles.add(cycle);
+            return true;
+          }
+        }
+      }
+    }
+
+    // 回溯：从路径和递归栈中移除当前节点
+    path.remove(path.size() - 1);
+    recStack.remove(taskId);
+    return false;
+  }
+
+  /**
+   * 读取线程池大小（环境变量 ASTER_THREAD_POOL_SIZE，默认 CPU 核心数）
+   */
+  private static int loadThreadPoolSize() {
+    String env = System.getenv("ASTER_THREAD_POOL_SIZE");
+    if (env == null || env.isEmpty()) {
+      return Runtime.getRuntime().availableProcessors();
+    }
+    try {
+      int size = Integer.parseInt(env);
+      if (size > 0) {
+        return size;
+      }
+      System.err.println("警告：ASTER_THREAD_POOL_SIZE 必须 > 0，使用默认值");
+      return Runtime.getRuntime().availableProcessors();
+    } catch (NumberFormatException e) {
+      System.err.println("警告：ASTER_THREAD_POOL_SIZE 解析失败，使用默认值: " + env);
+      return Runtime.getRuntime().availableProcessors();
+    }
+  }
+
+  /**
+   * 读取默认超时时间（环境变量 ASTER_DEFAULT_TIMEOUT_MS，0 表示无限制）
+   */
+  private static long loadDefaultTimeout() {
+    String env = System.getenv("ASTER_DEFAULT_TIMEOUT_MS");
+    if (env == null || env.isEmpty()) {
+      return 0L;
+    }
+    try {
+      long timeout = Long.parseLong(env);
+      if (timeout >= 0) {
+        return timeout;
+      }
+      System.err.println("警告：ASTER_DEFAULT_TIMEOUT_MS 必须 >= 0，使用默认值");
+      return 0L;
+    } catch (NumberFormatException e) {
+      System.err.println("警告：ASTER_DEFAULT_TIMEOUT_MS 解析失败，使用默认值: " + env);
+      return 0L;
+    }
   }
 }

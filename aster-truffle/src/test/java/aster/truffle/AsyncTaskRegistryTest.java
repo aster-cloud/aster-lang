@@ -5,10 +5,23 @@ import aster.truffle.runtime.AsyncTaskRegistry.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static aster.truffle.EnvTestSupport.restoreEnv;
+import static aster.truffle.EnvTestSupport.setEnvVar;
+import static aster.truffle.EnvTestSupport.snapshotEnv;
 
 /**
  * 单元测试：AsyncTaskRegistry 基础功能
@@ -230,4 +243,389 @@ public class AsyncTaskRegistryTest {
 
     assertTrue(thrown.getMessage().contains("Task not found"));
   }
+
+  @Test
+  public void testTaskTimeoutCancelsDependents() {
+    AtomicInteger downstreamCounter = new AtomicInteger(0);
+
+    registry.registerTaskWithDependencies("slow", () -> {
+      try {
+        Thread.sleep(150);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      registry.setResult("slow", "late");
+      return null;
+    }, Collections.emptySet(), 20L);
+
+    registry.registerTaskWithDependencies("downstream", () -> {
+      downstreamCounter.incrementAndGet();
+      registry.setResult("downstream", "should-not-run");
+      return null;
+    }, Set.of("slow"));
+
+    RuntimeException thrown =
+        assertThrows(RuntimeException.class, () -> registry.executeUntilComplete());
+    assertTrue(thrown.getCause() instanceof TimeoutException);
+    assertTrue(thrown.getCause().getMessage().contains("slow"));
+    assertTrue(registry.isFailed("slow"));
+    assertTrue(registry.isCancelled("downstream"));
+    assertEquals(0, downstreamCounter.get(), "下游任务应在超时后被取消");
+  }
+
+  @Test
+  public void testTimeoutDisabledWhenZero() {
+    AtomicInteger counter = new AtomicInteger(0);
+
+    registry.registerTaskWithDependencies("no-timeout", () -> {
+      try {
+        Thread.sleep(30);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      counter.incrementAndGet();
+      registry.setResult("no-timeout", "done");
+      return null;
+    }, Collections.emptySet(), 0L);
+
+    assertDoesNotThrow(() -> registry.executeUntilComplete());
+    assertEquals(1, counter.get());
+    assertTrue(registry.isCompleted("no-timeout"));
+  }
+
+  @Test
+  public void testCompensationLifoOrder() {
+    List<String> compensationOrder = Collections.synchronizedList(new ArrayList<>());
+
+    registry.registerTaskWithDependencies(
+        "taskA",
+        () -> {
+          registry.setResult("taskA", "A");
+          return null;
+        },
+        Collections.emptySet(),
+        0L,
+        () -> compensationOrder.add("A"));
+
+    registry.registerTaskWithDependencies(
+        "taskB",
+        () -> {
+          registry.setResult("taskB", "B");
+          return null;
+        },
+        Set.of("taskA"),
+        0L,
+        () -> compensationOrder.add("B"));
+
+    registry.registerTaskWithDependencies(
+        "taskC",
+        () -> {
+          registry.setResult("taskC", "C");
+          return null;
+        },
+        Set.of("taskB"),
+        0L,
+        () -> compensationOrder.add("C"));
+
+    registry.registerTaskWithDependencies(
+        "taskFail",
+        () -> {
+          throw new RuntimeException("boom");
+        },
+        Set.of("taskC"));
+
+    assertThrows(RuntimeException.class, () -> registry.executeUntilComplete());
+    assertEquals(List.of("C", "B", "A"), compensationOrder);
+  }
+
+  @Test
+  public void testCompensationFailureIsolation() {
+    List<String> compensationOrder = Collections.synchronizedList(new ArrayList<>());
+
+    registry.registerTaskWithDependencies(
+        "task1",
+        () -> {
+          registry.setResult("task1", "ok1");
+          return null;
+        },
+        Collections.emptySet(),
+        0L,
+        () -> compensationOrder.add("task1"));
+
+    registry.registerTaskWithDependencies(
+        "task2",
+        () -> {
+          registry.setResult("task2", "ok2");
+          return null;
+        },
+        Set.of("task1"),
+        0L,
+        () -> {
+          compensationOrder.add("task2");
+          throw new RuntimeException("compensation boom");
+        });
+
+    registry.registerTaskWithDependencies(
+        "taskFail",
+        () -> {
+          throw new RuntimeException("fail");
+        },
+        Set.of("task2"));
+
+    assertThrows(RuntimeException.class, () -> registry.executeUntilComplete());
+    assertEquals(List.of("task2", "task1"), compensationOrder);
+  }
+
+  @Test
+  public void testTasksWithoutCompensationDoNotAffectStack() {
+    List<String> compensationOrder = Collections.synchronizedList(new ArrayList<>());
+
+    registry.registerTaskWithDependencies(
+        "taskX",
+        () -> {
+          registry.setResult("taskX", "x");
+          return null;
+        },
+        Collections.emptySet(),
+        0L,
+        null);
+
+    registry.registerTaskWithDependencies(
+        "taskY",
+        () -> {
+          registry.setResult("taskY", "y");
+          return null;
+        },
+        Set.of("taskX"),
+        0L,
+        null);
+
+    registry.registerTaskWithDependencies(
+        "taskFail",
+        () -> {
+          throw new RuntimeException("fail");
+        },
+        Set.of("taskY"),
+        0L,
+        () -> compensationOrder.add("fail-comp")); // 仅失败任务有补偿
+
+    assertThrows(RuntimeException.class, () -> registry.executeUntilComplete());
+    // 传统 Saga 模式：仅成功任务执行补偿（用于回滚），失败任务不执行补偿
+    // 如需清理失败任务的资源，应在任务内部使用 try-finally
+    assertEquals(Collections.emptyList(), compensationOrder);
+  }
+
+  @Test
+  public void testHigherPriorityRunsFirstWhenReady() {
+    AsyncTaskRegistry singleThreadRegistry = new AsyncTaskRegistry(1);
+    List<String> executionOrder = Collections.synchronizedList(new ArrayList<>());
+
+    singleThreadRegistry.registerTaskWithDependencies(
+        "low",
+        () -> {
+          executionOrder.add("low");
+          singleThreadRegistry.setResult("low", "l");
+          return null;
+        },
+        Collections.emptySet(),
+        0L,
+        null,
+        5);
+
+    singleThreadRegistry.registerTaskWithDependencies(
+        "high",
+        () -> {
+          executionOrder.add("high");
+          singleThreadRegistry.setResult("high", "h");
+          return null;
+        },
+        Collections.emptySet(),
+        0L,
+        null,
+        0);
+
+    singleThreadRegistry.executeUntilComplete();
+    assertEquals(List.of("high", "low"), executionOrder);
+  }
+
+  @Test
+  public void testDependencyRespectedOverPriority() {
+    AsyncTaskRegistry singleThreadRegistry = new AsyncTaskRegistry(1);
+    List<String> executionOrder = Collections.synchronizedList(new ArrayList<>());
+
+    singleThreadRegistry.registerTaskWithDependencies(
+        "root",
+        () -> {
+          executionOrder.add("root");
+          singleThreadRegistry.setResult("root", "r");
+          return null;
+        },
+        Collections.emptySet(),
+        0L,
+        null,
+        5);
+
+    singleThreadRegistry.registerTaskWithDependencies(
+        "child",
+        () -> {
+          executionOrder.add("child");
+          singleThreadRegistry.setResult("child", "c");
+          return null;
+        },
+        Set.of("root"),
+        0L,
+        null,
+        0);
+
+    singleThreadRegistry.executeUntilComplete();
+    assertEquals(List.of("root", "child"), executionOrder);
+  }
+
+  @Test
+  public void testLoadThreadPoolSizeFromEnv() throws Exception {
+    Map<String, String> originalEnv = snapshotEnv();
+    try {
+      setEnvVar("ASTER_THREAD_POOL_SIZE", "3");
+      int size = invokeLoadThreadPoolSize();
+      assertEquals(3, size);
+    } finally {
+      restoreEnv(originalEnv);
+    }
+  }
+
+  @Test
+  public void testLoadThreadPoolSizeInvalidLogsWarning() throws Exception {
+    Map<String, String> originalEnv = snapshotEnv();
+    PrintStream originalErr = System.err;
+    ByteArrayOutputStream errCapture = new ByteArrayOutputStream();
+    System.setErr(new PrintStream(errCapture, true, StandardCharsets.UTF_8));
+    try {
+      setEnvVar("ASTER_THREAD_POOL_SIZE", "0");
+      int size = invokeLoadThreadPoolSize();
+      assertEquals(Runtime.getRuntime().availableProcessors(), size);
+      assertTrue(errCapture.toString(StandardCharsets.UTF_8).contains("ASTER_THREAD_POOL_SIZE 必须 > 0"));
+    } finally {
+      System.setErr(originalErr);
+      restoreEnv(originalEnv);
+    }
+  }
+
+  @Test
+  public void testLoadDefaultTimeoutFromEnv() throws Exception {
+    Map<String, String> originalEnv = snapshotEnv();
+    try {
+      setEnvVar("ASTER_DEFAULT_TIMEOUT_MS", "1234");
+      long timeout = invokeLoadDefaultTimeout();
+      assertEquals(1234L, timeout);
+    } finally {
+      restoreEnv(originalEnv);
+    }
+  }
+
+  @Test
+  public void testLoadDefaultTimeoutInvalidLogsWarning() throws Exception {
+    Map<String, String> originalEnv = snapshotEnv();
+    PrintStream originalErr = System.err;
+    ByteArrayOutputStream errCapture = new ByteArrayOutputStream();
+    System.setErr(new PrintStream(errCapture, true, StandardCharsets.UTF_8));
+    try {
+      setEnvVar("ASTER_DEFAULT_TIMEOUT_MS", "-5");
+      long timeout = invokeLoadDefaultTimeout();
+      assertEquals(0L, timeout);
+      assertTrue(errCapture.toString(StandardCharsets.UTF_8).contains("ASTER_DEFAULT_TIMEOUT_MS 必须 >= 0"));
+    } finally {
+      System.setErr(originalErr);
+      restoreEnv(originalEnv);
+    }
+  }
+
+  /**
+   * 测试增强的死锁诊断功能
+   *
+   * 构造死锁场景：注册任务但不注册其依赖，导致依赖永远无法满足
+   * 验证错误消息包含：
+   * 1. 死锁检测提示
+   * 2. 待处理任务及其依赖列表（带优先级）
+   *
+   * 注意：这个测试验证的是死锁诊断的信息输出，而非循环依赖检测
+   * （循环依赖在注册时就会被 DependencyGraph 拒绝）
+   */
+  @Test
+  public void testDeadlockDiagnostics() {
+    // 注册几个任务，它们依赖一个未注册的任务 "ghost"
+    // 这会导致死锁：readyTasks 为空，但 remainingTasks > 0
+
+    registry.registerTaskWithDependencies(
+        "taskA",
+        () -> {
+          registry.setResult("taskA", "A");
+          return null;
+        },
+        Set.of("ghost"),  // 依赖不存在的任务
+        0L,
+        null,
+        1  // 优先级 1
+    );
+
+    registry.registerTaskWithDependencies(
+        "taskB",
+        () -> {
+          registry.setResult("taskB", "B");
+          return null;
+        },
+        Set.of("ghost"),  // 依赖不存在的任务
+        0L,
+        null,
+        2  // 优先级 2
+    );
+
+    registry.registerTaskWithDependencies(
+        "taskC",
+        () -> {
+          registry.setResult("taskC", "C");
+          return null;
+        },
+        Set.of("taskA"),  // taskC 依赖 taskA（也无法执行）
+        0L,
+        null,
+        3  // 优先级 3
+    );
+
+    // 验证抛出 IllegalStateException（死锁检测）
+    IllegalStateException exception =
+        assertThrows(IllegalStateException.class, () -> registry.executeUntilComplete());
+
+    // 验证错误消息包含增强的诊断信息
+    String message = exception.getMessage();
+    assertNotNull(message, "错误消息不应为 null");
+
+    // 验证包含关键诊断信息
+    assertTrue(message.contains("死锁检测"), "错误消息应包含'死锁检测'提示");
+    assertTrue(message.contains("待处理任务及其依赖"), "错误消息应包含待处理任务列表标题");
+
+    // 验证包含任务名称和依赖信息
+    assertTrue(message.contains("taskA") || message.contains("taskB") || message.contains("taskC"),
+        "错误消息应包含至少一个待处理任务的名称");
+
+    // 验证包含优先级信息
+    assertTrue(message.contains("优先级"),
+        "错误消息应包含优先级信息");
+
+    // 验证包含依赖关系信息（等待）
+    assertTrue(message.contains("等待"),
+        "错误消息应包含'等待'关键字表示依赖关系");
+  }
+
+  private static int invokeLoadThreadPoolSize() throws Exception {
+    Method method = AsyncTaskRegistry.class.getDeclaredMethod("loadThreadPoolSize");
+    method.setAccessible(true);
+    return (int) method.invoke(null);
+  }
+
+  private static long invokeLoadDefaultTimeout() throws Exception {
+    Method method = AsyncTaskRegistry.class.getDeclaredMethod("loadDefaultTimeout");
+    method.setAccessible(true);
+    return (long) method.invoke(null);
+  }
+
 }
