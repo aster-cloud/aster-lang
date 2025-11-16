@@ -17,7 +17,7 @@ public final class DependencyGraph {
 
   // 就绪任务队列（依赖已满足的任务）
   private final Set<String> readyQueue = new LinkedHashSet<>();
-  // 已完成（或被取消）任务集：支持先完成后注册的依赖
+// 已完成（或被取消）任务集：支持先完成后注册的依赖
   private final Set<String> completedNodes = new HashSet<>();
 
   /**

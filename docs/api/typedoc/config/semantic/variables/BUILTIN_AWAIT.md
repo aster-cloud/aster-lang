@@ -6,7 +6,7 @@
 
 > `const` **BUILTIN\_AWAIT**: `"await"` = `'await'`
 
-Defined in: [config/semantic.ts:284](https://github.com/wontlost-ltd/aster-lang/blob/0c307273fd09aa4d31968abdaff80950a9db9b7f/src/config/semantic.ts#L284)
+Defined in: [config/semantic.ts:284](https://github.com/wontlost-ltd/aster-lang/blob/23eb6a773fc1e04c4b93f4380fd9d1f84e496756/src/config/semantic.ts#L284)
 
 内置异步函数名。
 
