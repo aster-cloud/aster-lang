@@ -15,10 +15,21 @@ public final class DependencyGraph {
   // 任务节点存储：task_id -> TaskNode
   private final Map<String, TaskNode> nodes = new HashMap<>();
 
-  // 就绪任务队列（依赖已满足的任务）
-  private final Set<String> readyQueue = new LinkedHashSet<>();
+  // 就绪任务队列（依赖已满足的任务），按优先级升序（数字越小优先级越高）
+  private final PriorityQueue<PrioritizedTask> readyQueue =
+      new PriorityQueue<>(Comparator.comparingInt(t -> t.priority));
 // 已完成（或被取消）任务集：支持先完成后注册的依赖
   private final Set<String> completedNodes = new HashSet<>();
+
+  private static final class PrioritizedTask {
+    final String taskId;
+    final int priority;
+
+    PrioritizedTask(String taskId, int priority) {
+      this.taskId = taskId;
+      this.priority = priority;
+    }
+  }
 
   /**
    * 任务节点 - 封装任务的依赖关系和状态
@@ -27,11 +38,13 @@ public final class DependencyGraph {
     final String taskId;
     final Set<String> dependencies;  // 依赖的任务 ID 集合
     int remainingDeps;                // 剩余未完成的依赖数量
+    final int priority;
 
-    TaskNode(String taskId, Set<String> dependencies) {
+    TaskNode(String taskId, Set<String> dependencies, int priority) {
       this.taskId = taskId;
       this.dependencies = new HashSet<>(dependencies);
       this.remainingDeps = dependencies.size();
+      this.priority = priority;
     }
   }
 
@@ -40,9 +53,10 @@ public final class DependencyGraph {
    *
    * @param taskId 任务唯一标识符
    * @param dependencies 依赖的任务 ID 集合（可为空）
+   * @param priority 优先级（数值越小优先级越高）
    * @throws IllegalArgumentException 如果检测到循环依赖
    */
-  public void addTask(String taskId, Set<String> dependencies) {
+  public void addTask(String taskId, Set<String> dependencies, int priority) {
     if (taskId == null) {
       throw new IllegalArgumentException("taskId cannot be null");
     }
@@ -59,7 +73,7 @@ public final class DependencyGraph {
     }
 
     // 创建任务节点
-    TaskNode node = new TaskNode(taskId, deps);
+    TaskNode node = new TaskNode(taskId, deps, priority);
     nodes.put(taskId, node);
 
     if (!deps.isEmpty()) {
@@ -71,7 +85,7 @@ public final class DependencyGraph {
     }
 
     if (node.remainingDeps == 0) {
-      readyQueue.add(taskId);
+      readyQueue.offer(new PrioritizedTask(taskId, node.priority));
     }
   }
 
@@ -86,12 +100,12 @@ public final class DependencyGraph {
     }
 
     if (!completedNodes.add(taskId)) {
-      readyQueue.remove(taskId);
+      readyQueue.removeIf(t -> t.taskId.equals(taskId));
       return;
     }
 
     // 从就绪队列移除
-    readyQueue.remove(taskId);
+    readyQueue.removeIf(t -> t.taskId.equals(taskId));
 
     // 遍历所有节点，减少依赖此任务的节点的计数
     for (TaskNode node : nodes.values()) {
@@ -100,7 +114,7 @@ public final class DependencyGraph {
 
         // 依赖全部满足，加入就绪队列
         if (node.remainingDeps == 0) {
-          readyQueue.add(node.taskId);
+          readyQueue.offer(new PrioritizedTask(node.taskId, node.priority));
         }
       }
     }
@@ -109,10 +123,17 @@ public final class DependencyGraph {
   /**
    * 获取所有就绪任务（依赖已满足）
    *
+   * 注意：此方法是非破坏性的，不会从就绪队列中移除任务。
+   * 任务在 markCompleted() 时会从队列中移除。
+   *
    * @return 就绪任务 ID 列表
    */
   public List<String> getReadyTasks() {
-    return new ArrayList<>(readyQueue);
+    List<String> ready = new ArrayList<>();
+    for (PrioritizedTask task : readyQueue) {
+      ready.add(task.taskId);
+    }
+    return ready;
   }
 
   /**
