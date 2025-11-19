@@ -397,11 +397,8 @@ public class BenchmarkTest {
   /**
    * 基准测试：Lambda 高阶函数
    * 测试场景：Lambda 创建和调用开销
-   *
-   * 注意：Lambda benchmark 暂时禁用，等待 Core IR JSON 格式完善
-   * TODO: 修复 Lambda JSON 格式（需要 ret, captures 字段）
    */
-  // @Test
+  @Test
   public void benchmarkLambdaCall() throws IOException {
     String json = """
         {
@@ -440,9 +437,11 @@ public class BenchmarkTest {
                   {
                     "kind": "Let",
                     "name": "double",
-                    "value": {
+                    "expr": {
                       "kind": "Lambda",
                       "params": [{"name": "n"}],
+                      "ret": {"kind": "TypeName", "name": "Int"},
+                      "captures": [],
                       "body": {
                         "kind": "Block",
                         "statements": [{
@@ -627,7 +626,7 @@ public class BenchmarkTest {
                 "kind": "Block",
                 "statements": [{
                   "kind": "Match",
-                  "scrutinee": {"kind": "Name", "name": "n"},
+                  "expr": {"kind": "Name", "name": "n"},
                   "cases": [
                     {
                       "pattern": {"kind": "PatInt", "value": 0},

@@ -39,9 +39,7 @@ const TEST_CASES = [
   // Issue: 未生成预期的 E201 诊断
   // 'effect_missing_cpu',
   'async_missing_wait',
-  // TODO(TypeChecker): PII 流分析未接入 typecheckModule，待 PII 检测实现后恢复
-  // Issue: 未生成预期的 E400 诊断
-  // 'pii_http_violation',
+  'pii_http_violation',
   'return_type_mismatch',
   // TODO(Parser): 暂不支持混合列表字面量 [1, "two"]，待解析器增强后恢复
   // Issue: 解析错误 "Unexpected expression"
