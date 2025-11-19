@@ -1,5 +1,6 @@
 import type { Core, Origin, PiiMeta, PiiLevel, Span, TypecheckDiagnostic } from './types.js';
 import { ErrorCode, ERROR_METADATA, ERROR_MESSAGES } from './error_codes.js';
+import { resolveAlias } from './typecheck.js';
 
 type PiiEnv = Map<string, PiiMeta | null>;
 
@@ -13,6 +14,10 @@ interface FunctionContext {
   readonly signatures: ReadonlyMap<string, FuncPiiSignature>;
   readonly diagnostics: TypecheckDiagnostic[];
   readonly returnMeta: PiiMeta | null;
+  /** Workflow 步骤名称到 PII 环境的映射，用于 Start/Wait 的 PII 传播 */
+  stepEnvs?: Map<string, PiiEnv>;
+  /** 模块 import 别名映射，用于解析 HTTP sink 等调用 */
+  readonly imports: ReadonlyMap<string, string>;
 }
 
 interface AssignmentDecision {
@@ -36,11 +41,17 @@ const SYNTHETIC_ORIGIN: Origin = {
 };
 
 const CONSOLE_SINKS = new Set(['print', 'IO.print', 'IO.println', 'log', 'Log.info', 'Log.debug', 'Console.log']);
-const NETWORK_PREFIXES = ['Http.', 'HTTP.', 'http.'];
-const DATABASE_PREFIXES = ['Sql.', 'SQL.', 'sql.', 'Db.', 'DB.'];
+// 仅数据写入操作视为 sink（POST/PUT/PATCH 发送数据），读取操作（GET）不是 sink
+const NETWORK_SINK_METHODS = ['post', 'put', 'patch', 'delete'];
+// 仅数据写入操作视为 sink（INSERT/UPDATE/DELETE），读取操作（SELECT/QUERY）不是 sink
+const DATABASE_SINK_METHODS = ['insert', 'update', 'delete', 'exec', 'execute'];
 const EMIT_SINKS = new Set(['emit', 'workflow.emit']);
 
-export function checkModulePII(funcs: readonly Core.Func[], diagnostics: TypecheckDiagnostic[]): void {
+export function checkModulePII(
+  funcs: readonly Core.Func[],
+  diagnostics: TypecheckDiagnostic[],
+  imports: ReadonlyMap<string, string> = new Map()
+): void {
   const signatures = buildFuncSignatures(funcs);
   for (const func of funcs) {
     if (!func.body) continue;
@@ -51,6 +62,8 @@ export function checkModulePII(funcs: readonly Core.Func[], diagnostics: Typeche
       signatures,
       diagnostics,
       returnMeta: metaFromType(func.ret, func.body.origin),
+      stepEnvs: new Map(), // 初始化 stepEnvs 用于 workflow Start/Wait PII 传播
+      imports, // 传递 import 别名映射用于解析 HTTP sink
     };
     traverseBlock(func.body, env, ctx);
   }
@@ -119,18 +132,63 @@ function traverseBlock(block: Core.Block, env: PiiEnv, ctx: FunctionContext): vo
         break;
       }
       case 'workflow': {
-        for (const step of stmt.steps) {
-          const stepEnv = cloneEnv(env);
-          traverseBlock(step.body, stepEnv, ctx);
+        // 保存当前的 stepEnvs 状态，创建 workflow 级别的新 stepEnvs
+        const savedStepEnvs = ctx.stepEnvs;
+        ctx.stepEnvs = new Map();
+
+        try {
+          // 收集每个步骤处理后的 PII 环境，用于并行分支合并
+          const stepEnvs: PiiEnv[] = [];
+          for (const step of stmt.steps) {
+            const stepEnv = cloneEnv(env);
+            traverseBlock(step.body, stepEnv, ctx);
+            stepEnvs.push(stepEnv);
+          }
+
+          // 合并所有步骤的 PII 环境（并行分支取最高 PII 等级）
+          if (stepEnvs.length > 0) {
+            const mergedEnv = stepEnvs.reduce((acc, stepEnv) => mergeEnv(acc, stepEnv), new Map<string, PiiMeta | null>());
+            replaceEnv(env, mergedEnv);
+          }
+        } finally {
+          // 恢复原 stepEnvs，防止跨 workflow 污染
+          if (savedStepEnvs !== undefined) {
+            ctx.stepEnvs = savedStepEnvs;
+          } else {
+            delete ctx.stepEnvs;
+          }
         }
         break;
       }
       case 'Start': {
+        // 记录 Start 步骤的 PII 环境，用于后续 Wait 合并
+        const startEnv = cloneEnv(env);
+        ctx.stepEnvs!.set(stmt.name, startEnv);
+
+        // 继续处理 Start 的表达式
         void inferExprPii(stmt.expr, env, ctx);
         break;
       }
-      case 'Wait':
+      case 'Wait': {
+        // 从 stepEnvs 查找等待的步骤环境并合并
+        if (ctx.stepEnvs && stmt.names.length > 0) {
+          let accumulatedEnv: PiiEnv | null = null;
+          for (const stepName of stmt.names) {
+            const stepEnv = ctx.stepEnvs.get(stepName);
+            if (stepEnv) {
+              // 合并步骤环境到累积环境
+              accumulatedEnv = accumulatedEnv ? mergeEnv(accumulatedEnv, stepEnv) : stepEnv;
+            }
+            // 注意：如果 stepEnv 不存在（Wait 了未 Start 的步骤），静默忽略
+            // 类型检查器会在其他地方捕获这种错误
+          }
+          // 将累积的步骤环境合并到当前环境
+          if (accumulatedEnv) {
+            replaceEnv(env, mergeEnv(env, accumulatedEnv));
+          }
+        }
         break;
+      }
     }
   }
 }
@@ -150,7 +208,9 @@ function inferExprPii(expr: Core.Expression, env: PiiEnv, ctx: FunctionContext):
       const argMetas = expr.args.map(arg => inferExprPii(arg, env, ctx));
       const targetName = resolveCallName(expr.target);
       if (targetName) {
-        const sink = classifySink(targetName);
+        // 解析别名（例如：H.post → Http.post）
+        const resolvedName = resolveAlias(targetName, ctx.imports);
+        const sink = classifySink(resolvedName);
         if (sink) {
           const indices = sink.argIndices ?? expr.args.map((_, idx) => idx);
           for (const index of indices) {
@@ -158,6 +218,9 @@ function inferExprPii(expr: Core.Expression, env: PiiEnv, ctx: FunctionContext):
             const argSpan = expr.args[index] ? originToSpan(expr.args[index]!.origin) : originToSpan(expr.origin);
             checkSinkAllowed(sink.label, sink.kind, argMeta, expr.args[index], argSpan, env, ctx);
           }
+          // Sink 函数消费数据但不传播 PII 到返回值
+          // 例如：Http.post 返回响应状态，而非发送的 PII 数据本身
+          return null;
         }
 
         const signature = ctx.signatures.get(targetName);
@@ -192,6 +255,9 @@ function inferExprPii(expr: Core.Expression, env: PiiEnv, ctx: FunctionContext):
         signatures: ctx.signatures,
         diagnostics: ctx.diagnostics,
         returnMeta: metaFromType(expr.ret, expr.body.origin),
+        // 共享父上下文的 stepEnvs，允许 Lambda 内使用 Start/Wait
+        ...(ctx.stepEnvs !== undefined ? { stepEnvs: ctx.stepEnvs } : {}),
+        imports: ctx.imports, // 共享父上下文的 imports，用于解析别名
       };
       traverseBlock(expr.body, lambdaEnv, lambdaCtx);
       return null;
@@ -298,6 +364,13 @@ function checkSinkAllowed(
     });
     return;
   }
+  if (kind === 'network' && (meta.level === 'L2' || meta.level === 'L1')) {
+    emitDiagnostic(ctx.diagnostics, ErrorCode.PII_HTTP_UNENCRYPTED, span, {
+      level: meta.level,
+      sinkKind: sinkLabel,
+    });
+    return;
+  }
   if (kind === 'console' && meta.level === 'L2') {
     emitDiagnostic(ctx.diagnostics, ErrorCode.PII_SINK_UNSANITIZED, span, {
       level: meta.level,
@@ -399,13 +472,28 @@ function bindPattern(pattern: Core.Pattern, meta: PiiMeta | null, env: PiiEnv): 
 function classifySink(targetName: string): SinkDescriptor | null {
   if (CONSOLE_SINKS.has(targetName)) return { label: targetName, kind: 'console' };
   if (EMIT_SINKS.has(targetName)) return { label: targetName, kind: 'emit' };
-  if (NETWORK_PREFIXES.some(prefix => targetName.startsWith(prefix))) {
-    const indices = targetName.startsWith('Http.') ? ([1] as const) : undefined;
-    return { label: targetName, kind: 'network', argIndices: indices };
+
+  // 检查是否为网络写入操作 (Http.post, Http.put, Http.patch, Http.delete)
+  const httpMatch = targetName.match(/^(?:Http|HTTP|http)\.(\w+)$/);
+  if (httpMatch) {
+    const method = httpMatch[1]!.toLowerCase();
+    if (NETWORK_SINK_METHODS.includes(method)) {
+      const indices = ([1] as const); // Http.* 的第二个参数通常是数据
+      return { label: targetName, kind: 'network', argIndices: indices };
+    }
+    return null; // Http.get 等读取操作不是 sink
   }
-  if (DATABASE_PREFIXES.some(prefix => targetName.startsWith(prefix))) {
-    return { label: targetName, kind: 'database' };
+
+  // 检查是否为数据库写入操作 (Sql.insert, Sql.update, Sql.delete)
+  const dbMatch = targetName.match(/^(?:Sql|SQL|sql|Db|DB)\.(\w+)$/);
+  if (dbMatch) {
+    const method = dbMatch[1]!.toLowerCase();
+    if (DATABASE_SINK_METHODS.includes(method)) {
+      return { label: targetName, kind: 'database' };
+    }
+    return null; // Sql.select, Sql.query 等读取操作不是 sink
   }
+
   return null;
 }
 

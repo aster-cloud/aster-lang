@@ -36,15 +36,36 @@ export type { TypecheckDiagnostic };
  * @param imports 别名映射（如 {H: "Http"}）
  * @returns 解析后的名称（如 "Http.get"）
  */
-export function resolveAlias(name: string, imports: Map<string, string>): string {
+export function resolveAlias(name: string, imports: ReadonlyMap<string, string>): string {
   if (!name.includes('.')) return name;
   const [prefix, ...rest] = name.split('.');
   const resolved = imports.get(prefix!);
   return resolved ? `${resolved}.${rest.join('.')}` : name;
 }
 
+/**
+ * 判断是否启用 PII 检查
+ *
+ * 采用渐进式启用策略，默认禁用 PII 检查，需显式启用：
+ * - ENFORCE_PII=true 或 ASTER_ENFORCE_PII=true: 启用 PII 检查（大小写不敏感）
+ * - 其他情况: 禁用 PII 检查（默认）
+ *
+ * 设计理由：
+ * 1. 兼容性：避免破坏现有项目，给团队时间逐步迁移
+ * 2. 渐进式：允许团队按自己的节奏采纳 PII 检查
+ * 3. 明确性：需要显式声明启用，避免意外启用
+ * 4. 统一性：与 Java 编译器的 shouldEnforcePii() 保持一致（大小写无关匹配）
+ *
+ * @returns true 表示启用 PII 检查，false 表示禁用
+ */
 export function shouldEnforcePii(): boolean {
-  return process.env.ENFORCE_PII === 'true' || process.env.ASTER_ENFORCE_PII === '1';
+  // 明确启用的情况（大小写无关匹配，与 Java 保持一致）
+  if (process.env.ENFORCE_PII?.toLowerCase() === 'true' ||
+      process.env.ASTER_ENFORCE_PII?.toLowerCase() === 'true') {
+    return true;
+  }
+  // 默认禁用 PII 检查（渐进式启用策略）
+  return false;
 }
 
 const typecheckLogger = createLogger('typecheck');
@@ -169,7 +190,7 @@ export function typecheckModule(m: Core.Module, options?: TypecheckOptions): Typ
     if (shouldEnforcePii()) {
       const funcs = m.decls.filter((decl): decl is Core.Func => decl.kind === 'Func');
       if (funcs.length > 0) {
-        checkModulePII(funcs, piiDiagnostics);
+        checkModulePII(funcs, piiDiagnostics, ctx.imports);
       }
     }
     const result = [...diagnostics.getDiagnostics(), ...effectDiags, ...piiDiagnostics];

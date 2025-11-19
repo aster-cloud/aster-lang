@@ -1,8 +1,10 @@
 package io.aster.policy.filter;
 
 import com.wontlost.aster.policy.PIIRedactor;
+import io.aster.policy.config.PIIConfig;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
@@ -24,12 +26,14 @@ import java.io.IOException;
  *
  * 工作机制：
  * 1. 拦截所有 HTTP 响应（通过 @Provider 自动注册）
- * 2. 检查响应体是否包含 PII（仅检查 String 类型响应）
- * 3. 如果检测到 PII，进行脱敏并记录警告日志
- * 4. 对于 JSON 响应，需要序列化后再检查（Quarkus 会自动处理）
+ * 2. 检查 PII 保护是否启用（aster.pii.enforce=true）
+ * 3. 检查响应体是否包含 PII（仅检查 String 类型响应）
+ * 4. 如果检测到 PII，进行脱敏并记录警告日志
+ * 5. 对于 JSON 响应，需要序列化后再检查（Quarkus 会自动处理）
  *
  * 注意：
- * - 此过滤器仅处理文本响应（String, JSON）
+ * - 此过滤器采用渐进式启用策略，默认禁用（需显式 aster.pii.enforce=true 启用）
+ * - 仅处理文本响应（String, JSON）
  * - 二进制响应（图片、文件）会被跳过
  * - 不影响响应状态码和头部
  */
@@ -39,8 +43,16 @@ public class PIIResponseFilter implements ContainerResponseFilter {
     private static final Logger LOG = Logger.getLogger(PIIResponseFilter.class);
     private final PIIRedactor piiRedactor = new PIIRedactor();
 
+    @Inject
+    PIIConfig piiConfig;
+
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
+        // 检查 PII 保护是否启用（渐进式启用策略）
+        if (!piiConfig.enforce()) {
+            return; // PII 保护未启用，跳过检查
+        }
+
         Object entity = responseContext.getEntity();
 
         // 只处理字符串类型的响应体

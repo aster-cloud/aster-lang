@@ -1,7 +1,9 @@
 package io.aster.policy.logging;
 
 import com.wontlost.aster.policy.PIIRedactor;
+import io.aster.policy.config.PIIConfig;
 import jakarta.annotation.Priority;
+import jakarta.inject.Inject;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
@@ -13,11 +15,13 @@ import org.jboss.logging.Logger;
  * 拦截标记了 @NoPII 注解的方法，检测方法执行期间是否产生包含 PII 的日志。
  *
  * 工作机制：
- * 1. 方法执行前：记录当前日志上下文
- * 2. 方法执行中：允许正常记录日志
- * 3. 方法执行后：检查新产生的日志是否包含 PII
+ * 1. 检查 PII 保护是否启用（aster.pii.enforce=true）
+ * 2. 方法执行前：记录当前日志上下文
+ * 3. 方法执行中：允许正常记录日志
+ * 4. 方法执行后：检查新产生的日志是否包含 PII
  *
  * 注意：
+ * - 此拦截器采用渐进式启用策略，默认禁用（需显式 aster.pii.enforce=true 启用）
  * - 此实现依赖于 PIIRedactor 进行 PII 检测
  * - 当前实现为演示版本，实际生产环境需要集成日志框架的 Appender
  * - Task 4.4 的端到端测试会验证完整的日志检测功能
@@ -35,8 +39,16 @@ public class PIILoggingInterceptor {
     private static final Logger LOG = Logger.getLogger(PIILoggingInterceptor.class);
     private final PIIRedactor piiRedactor = new PIIRedactor();
 
+    @Inject
+    PIIConfig piiConfig;
+
     @AroundInvoke
     public Object intercept(InvocationContext context) throws Exception {
+        // 检查 PII 保护是否启用（渐进式启用策略）
+        if (!piiConfig.enforce()) {
+            return context.proceed(); // PII 保护未启用，直接执行方法
+        }
+
         String methodName = context.getMethod().getName();
         String className = context.getMethod().getDeclaringClass().getSimpleName();
 

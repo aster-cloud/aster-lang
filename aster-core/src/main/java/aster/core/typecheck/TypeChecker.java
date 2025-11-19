@@ -343,12 +343,31 @@ public final class TypeChecker {
     }
   }
 
+  /**
+   * 判断是否启用 PII 检查
+   *
+   * 采用渐进式启用策略，默认禁用 PII 检查，需显式启用：
+   * - ENFORCE_PII=true 或 ASTER_ENFORCE_PII=true: 启用 PII 检查
+   * - 其他情况: 禁用 PII 检查（默认）
+   *
+   * 设计理由：
+   * 1. 兼容性：避免破坏现有项目，给团队时间逐步迁移
+   * 2. 渐进式：允许团队按自己的节奏采纳 PII 检查
+   * 3. 明确性：需要显式声明启用，避免意外启用
+   * 4. 统一性：与 TypeScript 编译器的 shouldEnforcePii() 保持一致
+   *
+   * @return true 表示启用 PII 检查，false 表示禁用
+   */
   private boolean shouldEnforcePii() {
     var enforcePii = System.getenv("ENFORCE_PII");
     var asterEnforcePii = System.getenv("ASTER_ENFORCE_PII");
-    if ("true".equalsIgnoreCase(enforcePii)) {
+
+    // 明确启用的情况（与 TypeScript 一致的渐进式启用策略）
+    if ("true".equalsIgnoreCase(enforcePii) || "true".equalsIgnoreCase(asterEnforcePii)) {
       return true;
     }
-    return "1".equals(asterEnforcePii) || "true".equalsIgnoreCase(asterEnforcePii);
+
+    // 默认禁用 PII 检查（渐进式启用策略）
+    return false;
   }
 }
