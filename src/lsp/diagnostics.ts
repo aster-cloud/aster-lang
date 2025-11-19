@@ -340,7 +340,7 @@ export async function computeDiagnostics(
             td.severity === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
           range,
           message: td.message,
-          source: 'aster-typecheck',
+          source: td.source ?? 'aster-typecheck', // P1-3 Task 6: 透传诊断来源标识
         };
         if (td.code !== null && td.code !== undefined) (d as any).code = td.code as string;
         if (td.data !== null && td.data !== undefined) (d as any).data = td.data as any;

@@ -27,6 +27,11 @@ import { getModuleEffectSignatures } from './lsp/module_cache.js';
 const IO_PREFIXES = getIOPrefixes();
 const CPU_PREFIXES = getCPUPrefixes();
 
+// LSP 配置全局注入接口（避免循环依赖）
+declare global {
+  var lspConfig: { enforcePiiChecks?: boolean } | undefined;
+}
+
 // Re-export TypecheckDiagnostic for external use
 export type { TypecheckDiagnostic };
 
@@ -46,25 +51,34 @@ export function resolveAlias(name: string, imports: ReadonlyMap<string, string>)
 /**
  * 判断是否启用 PII 检查
  *
- * 采用渐进式启用策略，默认禁用 PII 检查，需显式启用：
- * - ENFORCE_PII=true 或 ASTER_ENFORCE_PII=true: 启用 PII 检查（大小写不敏感）
- * - 其他情况: 禁用 PII 检查（默认）
+ * 采用渐进式启用策略，默认禁用 PII 检查，需显式启用。
+ * 配置优先级（从高到低）：
+ * 1. LSP 配置注入（globalThis.lspConfig.enforcePiiChecks）
+ * 2. 环境变量（ENFORCE_PII 或 ASTER_ENFORCE_PII，大小写不敏感）
+ * 3. 默认值 false（opt-in 策略）
  *
  * 设计理由：
  * 1. 兼容性：避免破坏现有项目，给团队时间逐步迁移
  * 2. 渐进式：允许团队按自己的节奏采纳 PII 检查
  * 3. 明确性：需要显式声明启用，避免意外启用
  * 4. 统一性：与 Java 编译器的 shouldEnforcePii() 保持一致（大小写无关匹配）
+ * 5. 解耦性：通过 globalThis 注入避免 LSP 与 typecheck 模块循环依赖
  *
  * @returns true 表示启用 PII 检查，false 表示禁用
  */
 export function shouldEnforcePii(): boolean {
-  // 明确启用的情况（大小写无关匹配，与 Java 保持一致）
-  if (process.env.ENFORCE_PII?.toLowerCase() === 'true' ||
-      process.env.ASTER_ENFORCE_PII?.toLowerCase() === 'true') {
+  // 优先级 1: LSP 配置注入（IDE 会话通过 --enforce-pii 参数启用）
+  if (globalThis.lspConfig?.enforcePiiChecks !== undefined) {
+    return globalThis.lspConfig.enforcePiiChecks;
+  }
+
+  // 优先级 2: 环境变量（向后兼容 CLI 工具和测试，大小写无关匹配）
+  const envValue = process.env.ENFORCE_PII || process.env.ASTER_ENFORCE_PII;
+  if (envValue?.toLowerCase() === 'true') {
     return true;
   }
-  // 默认禁用 PII 检查（渐进式启用策略）
+
+  // 优先级 3: 默认禁用 PII 检查（渐进式启用策略）
   return false;
 }
 

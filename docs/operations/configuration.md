@@ -25,7 +25,65 @@
 | `ASTER_ROOT` | 否 | 自动注入 | CLI/脚本推断仓库根目录 | `ASTER_ROOT=/srv/aster` | 无需手动设置 |
 | `INTEROP_NULL_STRICT` | 否 | 关闭 | 互操作空值严格模式验证脚本使用 | `INTEROP_NULL_STRICT=true` | 仅在验收或回归测试时开启 |
 
-### 1.3 CI、发布与集成
+### 1.3 LSP 与 PII 诊断配置
+| 变量/参数 | 必需 | 默认值 | 用途 | 示例值 | 生产建议 |
+| --- | --- | --- | --- | --- | --- |
+| `--enforce-pii` | 否 | `false` | **启用类型层 PII 流分析**，检测隐私数据泄漏（E070/E072/E073） | `aster-lsp --enforce-pii` | 开发环境建议启用 |
+| `ENFORCE_PII` | 否 | `false` | 环境变量方式启用 PII 检查（优先级低于 `--enforce-pii`） | `ENFORCE_PII=true` | 生产审计环境启用 |
+| `ASTER_ENFORCE_PII` | 否 | `false` | 备用环境变量（与 `ENFORCE_PII` 等价，大小写无关） | `ASTER_ENFORCE_PII=true` | 同上 |
+| `--strict-pii` | 否 | `false` | **控制语义层 PII 诊断严重级别**：false=Warning，true=Error | `aster-lsp --strict-pii` | 结合 `--enforce-pii` 使用 |
+
+#### PII 诊断配置详解
+
+**配置优先级**（从高到低）：
+1. LSP 配置注入（`--enforce-pii` CLI 参数）
+2. 环境变量（`ENFORCE_PII` / `ASTER_ENFORCE_PII`，大小写无关）
+3. 默认值：`false`（opt-in 策略，需显式启用）
+
+**--enforce-pii 与 --strict-pii 的区别**：
+
+| 参数 | 作用范围 | 检测层次 | 诊断类型 | 严重级别控制 |
+| --- | --- | --- | --- | --- |
+| `--enforce-pii` | 启用/禁用 PII 检查 | **类型层**（完整流分析） | E070/E072/E073 | 固定为 Error |
+| `--strict-pii` | 控制诊断严重性 | **语义层**（HTTP 场景） | E400（HTTP 未加密） | false=Warning，true=Error |
+
+**类型层 PII 诊断范围**（需启用 `--enforce-pii`）：
+- **E070** (`PII_ASSIGN_DOWNGRADE`)：PII 数据赋值给 plain 变量，导致隐私级别降级
+- **E072** (`PII_SINK_UNSANITIZED`)：PII 数据流向未授权 sink（如 HTTP/日志）
+- **E073** (`PII_ARG_VIOLATION`)：函数参数 PII 级别不匹配，导致污染传播
+
+**推荐配置场景**：
+
+```bash
+# 场景 1：开发环境（全量检查 + 错误级别阻塞）
+aster-lsp --enforce-pii --strict-pii
+
+# 场景 2：CI/CD（启用检查，警告不阻塞构建）
+aster-lsp --enforce-pii
+
+# 场景 3：生产审计（通过环境变量启用）
+export ENFORCE_PII=true
+aster-lsp
+
+# 场景 4：默认行为（仅语义层 HTTP 警告，类型层 PII 检查禁用）
+aster-lsp  # 无参数，向后兼容
+```
+
+**验证配置生效**：
+```bash
+# 1. 创建测试文件 test-pii.aster，包含 PII 违规代码
+echo 'To test with pii@L2, produce Text: Return Http.post("url", pii).' > test-pii.aster
+
+# 2. 启用 PII 检查并验证诊断
+ENFORCE_PII=true npm run typecheck -- test-pii.aster
+# 预期：显示 E072 (PII_SINK_UNSANITIZED) 诊断
+
+# 3. 禁用 PII 检查（默认行为）
+npm run typecheck -- test-pii.aster
+# 预期：不显示类型层 PII 诊断（E070/E072/E073）
+```
+
+### 1.4 CI、发布与集成
 | 变量 | 必需 | 默认值 | 用途 | 示例值 | 生产建议 |
 | --- | --- | --- | --- | --- | --- |
 | `GITHUB_TOKEN` | CI 必需 | GitHub 注入 | Changesets/GitHub Release 工作流推送变更 | `GITHUB_TOKEN=ghp_xxx` | CI 自动提供；本地需申请 PAT |

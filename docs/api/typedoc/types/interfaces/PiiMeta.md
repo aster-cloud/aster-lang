@@ -4,7 +4,7 @@
 
 # Interface: PiiMeta
 
-Defined in: [types.ts:383](https://github.com/wontlost-ltd/aster-lang/blob/f2c88b0f9656f97c1d35afd95f0da3a64883238f/src/types.ts#L383)
+Defined in: [types.ts:384](https://github.com/wontlost-ltd/aster-lang/blob/d5273adf2c0743cd88656e06c420ecec79c0e05e/src/types.ts#L384)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [types.ts:383](https://github.com/wontlost-ltd/aster-lang/blob/f2c88
 
 > `readonly` **level**: `"L1"` \| `"L2"` \| `"L3"`
 
-Defined in: [types.ts:384](https://github.com/wontlost-ltd/aster-lang/blob/f2c88b0f9656f97c1d35afd95f0da3a64883238f/src/types.ts#L384)
+Defined in: [types.ts:385](https://github.com/wontlost-ltd/aster-lang/blob/d5273adf2c0743cd88656e06c420ecec79c0e05e/src/types.ts#L385)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [types.ts:384](https://github.com/wontlost-ltd/aster-lang/blob/f2c88
 
 > `readonly` **categories**: readonly `string`[]
 
-Defined in: [types.ts:385](https://github.com/wontlost-ltd/aster-lang/blob/f2c88b0f9656f97c1d35afd95f0da3a64883238f/src/types.ts#L385)
+Defined in: [types.ts:386](https://github.com/wontlost-ltd/aster-lang/blob/d5273adf2c0743cd88656e06c420ecec79c0e05e/src/types.ts#L386)
 
 ***
 
@@ -28,4 +28,4 @@ Defined in: [types.ts:385](https://github.com/wontlost-ltd/aster-lang/blob/f2c88
 
 > `readonly` `optional` **sourceSpan**: [`Span`](Span.md)
 
-Defined in: [types.ts:386](https://github.com/wontlost-ltd/aster-lang/blob/f2c88b0f9656f97c1d35afd95f0da3a64883238f/src/types.ts#L386)
+Defined in: [types.ts:387](https://github.com/wontlost-ltd/aster-lang/blob/d5273adf2c0743cd88656e06c420ecec79c0e05e/src/types.ts#L387)

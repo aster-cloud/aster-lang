@@ -185,6 +185,51 @@ describe('PII Diagnostics', () => {
       resetConfig({ strictPiiMode: false });
     });
 
+    it('语义层诊断应设置 source="aster-pii" (P1-3 Task 6)', () => {
+      // 启用严格模式以获得 Error 级别诊断
+      resetConfig({ strictPiiMode: true });
+
+      const stringType: Core.TypeName = { kind: 'TypeName', name: 'String' };
+      const piiType: Core.PiiType = {
+        kind: 'PiiType',
+        baseType: stringType,
+        sensitivity: 'L2',
+        category: 'email',
+      };
+      const httpCallWithPii: Core.Call = {
+        kind: 'Call',
+        target: makeName('Http.post'),
+        args: [makeName('userEmail')],
+        origin: makeOrigin('http-call'),
+      };
+
+      const func = makeFunc({
+        name: 'sendEmail',
+        params: [{ name: 'userEmail', type: piiType, annotations: [] }],
+        body: makeBlock([makeReturn(httpCallWithPii)]),
+      });
+
+      const module: Core.Module = {
+        kind: 'Module',
+        name: 'TestModule',
+        decls: [func],
+      };
+
+      const diagnostics = checkPiiFlow(module);
+      assert.strictEqual(diagnostics.length, 1, '应检测到 1 条语义层 PII 诊断');
+
+      const diag = diagnostics[0];
+      assert.ok(diag, '诊断对象应存在');
+
+      // 验证 source 字段 (P1-3 Task 6)
+      assert.strictEqual(diag.source, 'aster-pii', '语义层诊断应设置 source="aster-pii"');
+      assert.strictEqual(diag.severity, DiagnosticSeverity.Error, '严格模式下应为 Error');
+      assert.ok(diag.message.includes('PII data transmitted over HTTP'), '消息应包含 PII HTTP 警告');
+
+      // 恢复默认配置
+      resetConfig({ strictPiiMode: false });
+    });
+
     it('无 PII 泄漏时不应产生诊断', () => {
       resetConfig({ strictPiiMode: true });
 

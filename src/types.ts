@@ -134,6 +134,7 @@ export interface TypecheckDiagnostic {
   origin?: Origin;
   help?: string;
   data?: unknown;
+  source?: 'aster-typecheck' | 'aster-pii'; // 诊断来源标识（P1-3 Task 6）
 }
 
 // CNL AST types

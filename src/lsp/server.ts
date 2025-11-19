@@ -66,6 +66,7 @@ import { registerTokensHandlers, SEM_LEGEND } from './tokens.js';
 import { registerHealthHandlers } from './health.js';
 import { ConfigService } from '../config/config-service.js';
 import { setWarmupPromise } from './shared-state.js';
+import { config } from './config.js';
 // import { lowerModule } from "../lower_to_core";
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -73,6 +74,22 @@ const connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+
+/**
+ * 注入 LSP 配置到全局上下文
+ *
+ * 目的：
+ * - 使 typecheck 模块能够访问 LSP 配置（如 --enforce-pii 参数）
+ * - 避免 LSP 与 typecheck 模块之间的循环依赖
+ * - 保持模块解耦，通过 globalThis 传递配置
+ *
+ * 注入时机：
+ * - 必须在 onInitialize 之前完成
+ * - 确保首次诊断请求时配置已就绪
+ */
+globalThis.lspConfig = {
+  enforcePiiChecks: config.enforcePiiChecks,
+};
 
 type CachedDoc = {
   version: number;

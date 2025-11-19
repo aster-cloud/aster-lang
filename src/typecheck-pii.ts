@@ -588,6 +588,7 @@ function emitDiagnostic(
     severity: metadata.severity,
     message: formatMessage(template, params),
     help: metadata.help,
+    source: 'aster-typecheck', // 类型层诊断标识符（P1-3 Task 6）
   };
   if (span) diagnostic.span = span;
   if (Object.keys(params).length > 0) diagnostic.data = params;
