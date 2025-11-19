@@ -18,6 +18,9 @@ public class WorkflowEvent {
     private final String eventType;
     private final Object payload;
     private final Instant occurredAt;
+    private final Integer attemptNumber;
+    private final Long backoffDelayMs;
+    private final String failureReason;
 
     /**
      * 构造 workflow 事件
@@ -29,11 +32,22 @@ public class WorkflowEvent {
      * @param occurredAt 事件发生时间
      */
     public WorkflowEvent(long sequence, String workflowId, String eventType, Object payload, Instant occurredAt) {
+        this(sequence, workflowId, eventType, payload, occurredAt, 1, null, null);
+    }
+
+    /**
+     * 构造支持重试元数据的 workflow 事件
+     */
+    public WorkflowEvent(long sequence, String workflowId, String eventType, Object payload, Instant occurredAt,
+                         Integer attemptNumber, Long backoffDelayMs, String failureReason) {
         this.sequence = sequence;
         this.workflowId = workflowId;
         this.eventType = eventType;
         this.payload = payload;
         this.occurredAt = occurredAt;
+        this.attemptNumber = attemptNumber != null ? attemptNumber : 1;
+        this.backoffDelayMs = backoffDelayMs;
+        this.failureReason = failureReason;
     }
 
     /**
@@ -98,10 +112,31 @@ public class WorkflowEvent {
         return occurredAt;
     }
 
+    /**
+     * 获取当前重试次数，默认 1
+     */
+    public Integer getAttemptNumber() {
+        return attemptNumber;
+    }
+
+    /**
+     * 获取退避时间（毫秒）
+     */
+    public Long getBackoffDelayMs() {
+        return backoffDelayMs;
+    }
+
+    /**
+     * 获取失败原因
+     */
+    public String getFailureReason() {
+        return failureReason;
+    }
+
     @Override
     public String toString() {
-        return String.format("WorkflowEvent{seq=%d, workflowId='%s', type='%s', occurredAt=%s}",
-                sequence, workflowId, eventType, occurredAt);
+        return String.format("WorkflowEvent{seq=%d, workflowId='%s', type='%s', attempt=%d, occurredAt=%s}",
+                sequence, workflowId, eventType, attemptNumber, occurredAt);
     }
 
     /**

@@ -73,7 +73,7 @@ To processOrder with input: Order, produce Result of Receipt with IO. It perform
   - `max attempts: <int>.` （必须 >0）
   - `backoff: exponential|linear.`
 - `timeout:` 为单行语句，格式 `timeout: <seconds> seconds.`，编译器会转换为毫秒。
-- Retry/Timeout 元数据存入 Core IR，并由 JVM emitter 注释提示运行时策略（Phase 2.2 将真正执行）。
+- Retry/Timeout 元数据存入 Core IR，并由 JVM emitter 生成重试循环代码，运行时执行。
 - 配置示例：
 
 ```text
@@ -83,6 +83,58 @@ To processOrder with input: Order, produce Result of Receipt with IO. It perform
 
   timeout: 45 seconds.
 ```
+
+#### 运行时重试行为
+
+当工作流步骤失败时，运行时会按照以下流程执行重试：
+
+1. **失败检测**：步骤抛出异常时，AsyncTaskRegistry 捕获异常并检查 RetryPolicy
+2. **尝试次数检查**：
+   - 如果当前尝试次数 < max attempts，执行重试
+   - 如果达到 max attempts，抛出 MaxRetriesExceededException
+3. **Backoff 计算**：
+   - **Exponential backoff**：`delay = baseDelay * 2^(attempt-1) + jitter`
+   - **Linear backoff**：`delay = baseDelay * attempt + jitter`
+   - **Jitter**：随机值在 `[0, baseDelay/2)` 范围内，使用 DeterminismContext 确保重放一致性
+   - **Base delay**：默认 1000ms（1秒）
+4. **延迟调度**：将重试任务加入 DelayedTask 队列，等待 timer 触发
+5. **事件记录**：记录 RETRY_SCHEDULED 事件，包含 attemptNumber、backoffDelayMs、failureReason
+6. **重放一致性**：重放时使用事件日志中记录的 backoff_delay_ms，而不是重新计算
+
+#### Backoff 计算示例
+
+假设 baseDelay = 1000ms，max attempts = 3：
+
+**Exponential backoff**：
+- 第1次失败 → 第2次尝试：delay = 1000 * 2^0 + jitter = 1000ms ~ 1500ms
+- 第2次失败 → 第3次尝试：delay = 1000 * 2^1 + jitter = 2000ms ~ 2500ms
+- 第3次失败 → 抛出异常
+
+**Linear backoff**：
+- 第1次失败 → 第2次尝试：delay = 1000 * 1 + jitter = 1000ms ~ 1500ms
+- 第2次失败 → 第3次尝试：delay = 1000 * 2 + jitter = 2000ms ~ 2500ms
+- 第3次失败 → 抛出异常
+
+#### 最佳实践
+
+1. **选择 max attempts**：
+   - 瞬时故障（网络抖动）：2-3 次
+   - 外部服务超时：3-5 次
+   - 避免设置过高，导致工作流长时间悬挂
+
+2. **选择 backoff 策略**：
+   - **Exponential**：适合外部服务过载场景，快速减轻压力
+   - **Linear**：适合瞬时故障，保持稳定重试间隔
+
+3. **重试与补偿的配合**：
+   - Retry 用于处理瞬时故障（自动恢复）
+   - Compensate 用于处理永久失败（业务回滚）
+   - 达到 max attempts 后，工作流失败，触发 Compensate 流程
+
+4. **超时与重试的协调**：
+   - Timeout 应设置为合理值，避免单次尝试耗时过长
+   - 总超时时间 ≈ timeout * max attempts * average backoff
+   - 示例：timeout = 30s, max attempts = 3, exponential backoff → 总时间约 2-3 分钟
 
 ## 完整示例
 

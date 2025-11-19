@@ -69,6 +69,8 @@ public enum ErrorCode {
   ASYNC_WAIT_BEFORE_START("E504", Category.ASYNC, Severity.ERROR, "Wait for async task '%s' occurs before any matching start", "在 wait for 之前先执行 start，并确保两者位于兼容的控制路径。"),
   PII_IMPLICIT_UPLEVEL("W071", Category.TYPE, Severity.WARNING, "检测到隐式 PII 等级提升: %s -> %s", "为等级变化添加显式类型注解以便审计。"),
   PII_SINK_UNKNOWN("W074", Category.TYPE, Severity.WARNING, "可能有 PII 数据流向 %s 但缺少注解", "为数据增加 @pii 注解以追踪敏感数据流。"),
+  WORKFLOW_RETRY_INCONSISTENT("W105", Category.TYPE, Severity.WARNING, "Workflow retry 配置可能不合理: %s", "检查 retry 总等待时间、maxAttempts 与 backoff 策略的组合是否合理。"),
+  WORKFLOW_TIMEOUT_UNREASONABLE("W106", Category.TYPE, Severity.WARNING, "Workflow timeout 配置可能不合理: %s", "检查 timeout 值是否过大或过小。"),
   ;
 
   private final String code;

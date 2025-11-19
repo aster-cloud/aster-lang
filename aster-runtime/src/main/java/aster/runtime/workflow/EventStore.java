@@ -25,7 +25,23 @@ public interface EventStore {
      * @param payload 事件负载数据
      * @return 事件序列号
      */
-    long appendEvent(String workflowId, String eventType, Object payload);
+    default long appendEvent(String workflowId, String eventType, Object payload) {
+        return appendEvent(workflowId, eventType, payload, 1, null, null);
+    }
+
+    /**
+     * 追加事件到 workflow 事件流（带重试元数据）
+     *
+     * @param workflowId workflow 唯一标识符
+     * @param eventType 事件类型（如 WorkflowStarted, StepCompleted 等）
+     * @param payload 事件负载数据
+     * @param attemptNumber 当前重试次数，默认 1
+     * @param backoffDelayMs 退避延迟（毫秒）
+     * @param failureReason 失败原因
+     * @return 事件序列号
+     */
+    long appendEvent(String workflowId, String eventType, Object payload,
+                     Integer attemptNumber, Long backoffDelayMs, String failureReason);
 
     /**
      * 获取 workflow 的事件历史

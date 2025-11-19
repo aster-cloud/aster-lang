@@ -22,6 +22,7 @@ import { DiagnosticError } from '../diagnostics.js';
 import { collectSemanticDiagnostics } from './analysis.js';
 import type { CapabilityManifest } from '../capabilities.js';
 import { ConfigService } from '../config/config-service.js';
+import { invalidateModuleEffectsByUri } from './module_cache.js';
 
 /**
  * 表示诊断模块的配置选项。
@@ -175,6 +176,7 @@ export function invalidateDiagnosticCache(uri: string): void {
  * @param uri 文档 URI
  */
 export function invalidateTypecheckCache(uri: string): void {
+  invalidateModuleEffectsByUri(uri);
   const cached = typecheckCache.get(uri);
   if (!cached) {
     return; // 没有缓存，无需失效
@@ -290,9 +292,10 @@ export async function computeDiagnostics(
         // 缓存未命中或版本不匹配，执行类型检查
         const typecheckStart = Date.now();
         const manifest = await loadCapabilityManifest();
+        const typecheckOptions = { uri };
         tdiags = manifest
-          ? typecheckModuleWithCapabilities(core, manifest)
-          : typecheckModule(core);
+          ? typecheckModuleWithCapabilities(core, manifest, typecheckOptions)
+          : typecheckModule(core, typecheckOptions);
         const typecheckTime = Date.now() - typecheckStart;
 
         // 更新类型检查缓存

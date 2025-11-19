@@ -33,6 +33,8 @@ const TEST_CASES = [
   // 'type_mismatch_assign',
   'capability_missing_decl',
   'effect_missing_io',
+  'cross-module/module_b',
+  'cross_module/module_b',
   // TODO(TypeChecker): CPU 效应检测未接入 typecheckModule，待类型检查器增强后恢复
   // Issue: 未生成预期的 E201 诊断
   // 'effect_missing_cpu',
@@ -51,7 +53,11 @@ const TEST_CASES = [
   'workflow-type-mismatch',
   'workflow-missing-io',
   'workflow-undeclared-capability',
-  'workflow-compensate-new-cap'
+  'workflow-compensate-new-cap',
+  'workflow_retry_many_attempts',
+  'workflow_retry_timeout_conflict',
+  'workflow_timeout_too_short',
+  'workflow_timeout_too_long'
 ] as const;
 
 const GOLDEN_DIR = path.join(TYPE_CHECKER_DIR, 'golden');

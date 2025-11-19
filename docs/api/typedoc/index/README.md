@@ -467,6 +467,12 @@ Re-exports [TypeVar](../types/interfaces/TypeVar.md)
 
 ***
 
+### EffectVar
+
+Re-exports [EffectVar](../types/interfaces/EffectVar.md)
+
+***
+
 ### TypeApp
 
 Re-exports [TypeApp](../types/interfaces/TypeApp.md)

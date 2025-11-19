@@ -20,6 +20,8 @@ import { DiagnosticBuilder } from './typecheck/diagnostics.js';
 import { TypeSystem } from './typecheck/type_system.js';
 import { checkModulePII } from './typecheck-pii.js';
 import { ErrorCode } from './error_codes.js';
+import type { EffectSignature } from './effect_signature.js';
+import { getModuleEffectSignatures } from './lsp/module_cache.js';
 
 // 从配置获取效果推断前缀（模块级，避免重复调用）
 const IO_PREFIXES = getIOPrefixes();
@@ -109,15 +111,26 @@ interface ModuleContext {
   enums: Map<string, Core.Enum>;
   imports: Map<string, string>; // alias -> module name (or module name -> module name if no alias)
   funcSignatures: Map<string, FunctionSignature>;
+  importedEffects: Map<string, EffectSignature>;
 }
 
-export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
+export interface TypecheckOptions {
+  uri?: string | null;
+}
+
+export function typecheckModule(m: Core.Module, options?: TypecheckOptions): TypecheckDiagnostic[] {
   const moduleName = m.name ?? '<anonymous>';
   const startTime = performance.now();
   typecheckLogger.info('开始类型检查模块', { moduleName });
   try {
     const diagnostics = new DiagnosticBuilder();
-    const ctx: ModuleContext = { datas: new Map(), enums: new Map(), imports: new Map(), funcSignatures: new Map() };
+    const ctx: ModuleContext = {
+      datas: new Map(),
+      enums: new Map(),
+      imports: new Map(),
+      funcSignatures: new Map(),
+      importedEffects: new Map(),
+    };
     for (const d of m.decls) {
       if (d.kind === 'Func') {
         const params = d.params.map(param => normalizeType(param.type as Core.Type));
@@ -145,7 +158,13 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
         typecheckFunc(ctx, d, diagnostics);
       }
     }
-    const effectDiags = inferEffects(m, ctx.imports);
+    loadImportedEffects(ctx);
+    const effectDiags = inferEffects(m, {
+      moduleName,
+      imports: ctx.imports,
+      importedEffects: ctx.importedEffects,
+      moduleUri: options?.uri ?? null,
+    });
     const piiDiagnostics: TypecheckDiagnostic[] = [];
     if (shouldEnforcePii()) {
       const funcs = m.decls.filter((decl): decl is Core.Func => decl.kind === 'Func');
@@ -173,12 +192,29 @@ export function typecheckModule(m: Core.Module): TypecheckDiagnostic[] {
   }
 }
 
+export function loadImportedEffects(ctx: ModuleContext): void {
+  ctx.importedEffects.clear();
+  if (ctx.imports.size === 0) return;
+
+  const visited = new Set<string>();
+  for (const moduleName of ctx.imports.values()) {
+    if (!moduleName || visited.has(moduleName)) continue;
+    visited.add(moduleName);
+    const cached = getModuleEffectSignatures(moduleName);
+    if (!cached) continue;
+    for (const [qualifiedName, signature] of cached) {
+      ctx.importedEffects.set(qualifiedName, signature);
+    }
+  }
+}
+
 export function typecheckModuleWithCapabilities(
   m: Core.Module,
-  manifest: CapabilityManifest | null
+  manifest: CapabilityManifest | null,
+  options?: TypecheckOptions
 ): TypecheckDiagnostic[] {
   const normalizedManifest = manifest ? normalizeManifest(manifest) : null;
-  const baseDiagnostics = typecheckModule(m);
+  const baseDiagnostics = typecheckModule(m, options);
   if (!normalizedManifest) return baseDiagnostics;
 
   const builder = new DiagnosticBuilder();
@@ -296,6 +332,24 @@ class TypeParamCollector extends DefaultTypeVisitor<Set<string>> {
   }
 }
 
+class EffectParamCollector extends DefaultTypeVisitor<Set<string>> {
+  override visitTypeVar(_v: Core.TypeVar, _ctx: Set<string>): void {}
+  override visitEffectVar(ev: Core.EffectVar, ctx: Set<string>): void {
+    // EffectVar 独立于 TypeVar，仍沿用首字母大写约定
+    ctx.add(ev.name);
+  }
+  override visitFuncType(ft: Core.FuncType, ctx: Set<string>): void {
+    // 收集函数类型中的 declaredEffects 引用
+    if (Array.isArray(ft.declaredEffects)) {
+      for (const eff of ft.declaredEffects) {
+        const asText = String(eff);
+        if (/^[A-Z][A-Za-z0-9_]*$/.test(asText)) ctx.add(asText);
+      }
+    }
+    super.visitFuncType?.(ft, ctx);
+  }
+}
+
 /**
  * 未知类型名称查找器：查找可能是类型变量但未声明的 TypeName
  */
@@ -367,6 +421,25 @@ function checkGenericTypeParameters(
         name: nm,
         func: f.name,
       });
+    }
+  }
+
+  // 效应类型参数声明与使用校验
+  const effectParams = (f as unknown as { effectParams?: readonly string[] }).effectParams ?? [];
+  const declaredEffectVars = new Set<string>(effectParams);
+  const usedEffectVars = new Set<string>();
+  const effCollector = new EffectParamCollector();
+  for (const p of f.params) effCollector.visitType(p.type, usedEffectVars);
+  effCollector.visitType(f.ret, usedEffectVars);
+
+  for (const ev of usedEffectVars) {
+    if (!declaredEffectVars.has(ev)) {
+      diagnostics.error(ErrorCode.EFFECT_VAR_UNDECLARED, f.span, { func: f.name, var: ev });
+    }
+  }
+  for (const ev of declaredEffectVars) {
+    if (!usedEffectVars.has(ev)) {
+      diagnostics.warning(ErrorCode.TYPE_PARAM_UNUSED, f.span, { name: ev, func: f.name });
     }
   }
 }
@@ -848,7 +921,129 @@ class TypecheckVisitor extends DefaultCoreVisitor<TypecheckWalkerContext> {
   }
 }
 
+/**
+ * 检查 workflow 的 retry 配置合理性
+ */
+const RETRY_RECOMMENDED_MAX_ATTEMPTS = 10;
+const RETRY_BASE_DELAY_MS = 1_000;
+const RETRY_LINEAR_WAIT_LIMIT_MS = 5 * 60_000; // 5 分钟
+const RETRY_EXPONENTIAL_WAIT_LIMIT_MS = 15 * 60_000; // 15 分钟
+
+function estimateRetryWaitMs(retry: Core.RetryPolicy): number {
+  const attempts = Math.max(0, Math.floor(retry.maxAttempts));
+  if (attempts <= 1) return 0;
+  if (retry.backoff === 'linear') {
+    const waitUnits = (attempts * (attempts - 1)) / 2;
+    return waitUnits * RETRY_BASE_DELAY_MS;
+  }
+  if (attempts > 30) {
+    // 2^30 已超过 10 分钟数量级，直接视为超大延迟
+    return Number.POSITIVE_INFINITY;
+  }
+  const waitUnits = Math.pow(2, attempts - 1) - 1;
+  return waitUnits * RETRY_BASE_DELAY_MS;
+}
+
+function describeDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms === Number.POSITIVE_INFINITY) {
+    return '不可估算';
+  }
+  if (ms < 1_000) return `${ms}ms`;
+  if (ms < 600_000) return `${Math.round(ms / 1_000)}秒`;
+  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}分钟`;
+  if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)}小时`;
+  return `${Math.round(ms / 86_400_000)}天`;
+}
+
+function checkRetrySemantics(
+  workflow: Core.Workflow,
+  diagnostics: DiagnosticBuilder
+): void {
+  if (!workflow.retry) return;
+
+  const { retry, timeout } = workflow;
+  const { maxAttempts, backoff } = retry;
+
+  // 基础合法性由 E024 负责，这里仅做合理性提示
+  if (maxAttempts <= 0) return;
+
+  const estimatedWaitMs = estimateRetryWaitMs(retry);
+  const timeoutMs = timeout?.milliseconds ?? null;
+  const reasonPrefix = `retry(backoff=${backoff}, maxAttempts=${maxAttempts})`;
+
+  if (timeoutMs && timeoutMs > 0 && estimatedWaitMs > timeoutMs) {
+    diagnostics.warning(
+      ErrorCode.WORKFLOW_RETRY_INCONSISTENT,
+      originToSpan(workflow.origin),
+      {
+        reason: `${reasonPrefix} 预估累计等待 ${describeDuration(estimatedWaitMs)}，超过 timeout=${describeDuration(timeoutMs)}`,
+      }
+    );
+    return;
+  }
+
+  if (maxAttempts > RETRY_RECOMMENDED_MAX_ATTEMPTS) {
+    diagnostics.warning(
+      ErrorCode.WORKFLOW_RETRY_INCONSISTENT,
+      originToSpan(workflow.origin),
+      {
+        reason: `${reasonPrefix} 预计累计等待 ${describeDuration(estimatedWaitMs)}，建议最多 ${RETRY_RECOMMENDED_MAX_ATTEMPTS} 次`,
+      }
+    );
+    return;
+  }
+
+  const waitLimit = backoff === 'linear' ? RETRY_LINEAR_WAIT_LIMIT_MS : RETRY_EXPONENTIAL_WAIT_LIMIT_MS;
+  if (estimatedWaitMs > waitLimit) {
+    diagnostics.warning(
+      ErrorCode.WORKFLOW_RETRY_INCONSISTENT,
+      originToSpan(workflow.origin),
+      {
+        reason: `${reasonPrefix} 预计累计等待 ${describeDuration(estimatedWaitMs)}，超过推荐窗口 ${describeDuration(waitLimit)}`,
+      }
+    );
+  }
+}
+
+/**
+ * 检查 workflow 的 timeout 配置合理性
+ */
+function checkTimeoutSemantics(
+  workflow: Core.Workflow,
+  diagnostics: DiagnosticBuilder
+): void {
+  if (!workflow.timeout) return;
+
+  const { milliseconds } = workflow.timeout;
+
+  // 基础合法性由 E025 负责，这里仅做合理性提示
+  if (milliseconds <= 0) return;
+
+  if (milliseconds <= 1_000) {
+    diagnostics.warning(
+      ErrorCode.WORKFLOW_TIMEOUT_UNREASONABLE,
+      originToSpan(workflow.origin),
+      {
+        reason: `timeout=${milliseconds}ms (${Math.round(milliseconds / 1_000)}秒) 过短，可能导致正常操作超时`,
+      }
+    );
+  }
+
+  if (milliseconds > 3_600_000) {
+    diagnostics.warning(
+      ErrorCode.WORKFLOW_TIMEOUT_UNREASONABLE,
+      originToSpan(workflow.origin),
+      {
+        reason: `timeout=${milliseconds}ms (${Math.round(milliseconds / 60_000)}分钟) 过长，建议不超过 1 小时`,
+      }
+    );
+  }
+}
+
 function typecheckWorkflow(context: TypecheckWalkerContext, workflow: Core.Workflow): Core.Type {
+  checkRetrySemantics(workflow, context.diagnostics);
+  checkTimeoutSemantics(workflow, context.diagnostics);
+
   let resultType: Core.Type = unknownType();
   const stepEffects = new Map<Core.Step, Set<'io' | 'cpu'>>();
   for (const step of workflow.steps) {
@@ -1361,6 +1556,8 @@ class TypeOfExprVisitor extends DefaultCoreVisitor<TypecheckWalkerContext> {
           kind: 'FuncType',
           params,
           ret: normalizeType(expression.ret as Core.Type),
+          effectParams: [],
+          declaredEffects: [],
         };
         this.result = funcType;
         this.handled = true;

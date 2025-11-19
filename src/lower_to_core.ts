@@ -19,6 +19,7 @@
 
 import { Core } from './core_ir.js';
 import { parseEffect, getAllEffects, inferCapabilityFromName } from './config/semantic.js';
+import type { Effect } from './config/semantic.js';
 import { Diagnostics } from './diagnostics.js';
 import type { Span, Origin } from './types.js';
 import type {
@@ -286,19 +287,39 @@ function lowerFunc(f: Func): import('./types.js').Core.Func {
     annotations: lowerAnnotations(p.annotations),
   }));
   const ret = lowerTypeWithVars(f.retType, tvars);
-  // 严格校验效果字符串，拒绝未知值
-  const effects = (f.effects || []).map(e => {
+  // 严格校验效果字符串，拒绝未知值，同时将效应变量保留到声明列表
+  const effectParamSet = new Set(f.effectParams ?? []);
+  const declaredEffects: Array<Effect | import('./types.js').Core.EffectVar> = [];
+  const effects: Effect[] = [];
+  for (const e of f.effects ?? []) {
     const effect = parseEffect(e.toLowerCase());
-    if (effect === null) {
-      const validEffects = getAllEffects().join(', ');
-      const { span } = extractMetadata(f);
-      Diagnostics.unknownEffect(e, validEffects, span?.start ?? { line: 0, col: 0 }).throw();
-      throw new Error('unreachable'); // For TypeScript's control flow analysis
+    if (effect !== null) {
+      effects.push(effect);
+      declaredEffects.push(effect);
+      continue;
     }
-    return effect;
-  });
+    if (effectParamSet.has(e)) {
+      declaredEffects.push({ kind: 'EffectVar', name: e } as import('./types.js').Core.EffectVar);
+      continue;
+    }
+    const validEffects = getAllEffects().join(', ');
+    const { span } = extractMetadata(f);
+    Diagnostics.unknownEffect(e, validEffects, span?.start ?? { line: 0, col: 0 }).throw();
+    throw new Error('unreachable'); // For TypeScript's control flow analysis
+  }
   const body = f.body ? lowerBlock(f.body) : Core.Block([]);
-  const out = Core.Func(f.name, f.typeParams ?? [], params, ret, effects, body);
+  const out = Core.Func(
+    f.name,
+    f.typeParams ?? [],
+    params,
+    ret,
+    effects,
+    body,
+    f.effectCaps,
+    f.effectCapsExplicit,
+    f.effectParams,
+    declaredEffects
+  );
   // 传递能力与 PII 元数据，并附带源位置信息
   const enriched = withFuncPiiMetadata(withEffectCaps(out, f));
   return withOrigin(enriched, f);
@@ -583,6 +604,8 @@ function lowerTypeWithVars(t: Type, vars: Set<string>): import('./types.js').Cor
       return vars.has(t.name)
         ? ({ kind: 'TypeVar', name: t.name } as import('./types.js').Core.TypeVar)
         : Core.TypeName(t.name);
+    case 'EffectVar':
+      return { kind: 'EffectVar', name: t.name } as import('./types.js').Core.EffectVar;
     case 'Maybe':
       return Core.Maybe(lowerTypeWithVars(t.type, vars));
     case 'Option':

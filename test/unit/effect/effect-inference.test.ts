@@ -90,6 +90,16 @@ function makeBlock(statements: Core.Statement[]): Core.Block {
   return { kind: 'Block', statements };
 }
 
+function makeLambda(body: Core.Block): Core.Lambda {
+  return {
+    kind: 'Lambda',
+    params: [],
+    retType: UNIT_TYPE,
+    ret: UNIT_TYPE,
+    body,
+  };
+}
+
 interface FuncOptions {
   name: string;
   declaredEffects?: ReadonlyArray<Effect>;
@@ -119,7 +129,8 @@ function buildModule(funcs: Core.Func[]): Core.Module {
 }
 
 function runInference(funcs: Core.Func[], imports?: Map<string, string>): ReturnType<InferEffectsFn> {
-  return inferEffects(buildModule(funcs), imports && imports.size > 0 ? imports : undefined);
+  const options = imports && imports.size > 0 ? { imports } : undefined;
+  return inferEffects(buildModule(funcs), options);
 }
 
 function matchesFuncDiagnostic(diag: Diagnostic, code: ErrorCode, funcName: string): boolean {
@@ -311,6 +322,30 @@ describe('effect_inference 推断', () => {
     assert.deepStrictEqual(codes, [ErrorCode.EFF_INFER_MISSING_IO, ErrorCode.EFF_INFER_REDUNDANT_CPU_WITH_IO]);
   });
 
+  it('未绑定的效应变量应报 E211', () => {
+    const poly = makeFunc({ name: 'polyVar' });
+    (poly as any).effectParams = ['E'];
+    (poly as any).declaredEffects = [{ kind: 'EffectVar', name: 'E' } as Core.EffectVar];
+
+    const diagnostics = runInference([poly]);
+    assert.ok(findDiagnostic(diagnostics, ErrorCode.EFFECT_VAR_UNRESOLVED, 'polyVar'));
+  });
+
+  it('效应变量绑定到传递效果时不报未解析错误', () => {
+    const callee = makeFunc({
+      name: 'ioProvider',
+      declaredEffects: [Effect.IO],
+      body: makeBlock([makeReturn(makeCall('Http.get'))]),
+    });
+    const wrapper = makeFunc({ name: 'wrapper' });
+    (wrapper as any).effectParams = ['E'];
+    (wrapper as any).declaredEffects = [{ kind: 'EffectVar', name: 'E' } as Core.EffectVar];
+    (wrapper as any).body = makeBlock([makeReturn(makeCall('ioProvider'))]);
+
+    const diagnostics = runInference([callee, wrapper]);
+    assert.equal(findDiagnostic(diagnostics, ErrorCode.EFFECT_VAR_UNRESOLVED, 'wrapper'), false);
+  });
+
   it('菱形拓扑应同时传播 CPU 与 IO', () => {
     const ioLeaf = makeFunc({
       name: 'network.fetch',
@@ -471,5 +506,70 @@ describe('effect_inference 推断', () => {
     const codes = relevant.map(d => d.code);
 
     assert.deepStrictEqual(codes, [ErrorCode.EFF_INFER_REDUNDANT_IO, ErrorCode.EFF_INFER_REDUNDANT_CPU]);
+  });
+
+  it('Lambda body 的 IO 效应应传播到外层函数', () => {
+    // Lambda body 调用 Http.get (IO)
+    const lambdaBody = makeBlock([makeReturn(makeCall('Http.get'))]);
+    const lambda = makeLambda(lambdaBody);
+
+    // 外层函数定义 Lambda 但未声明 IO 效应
+    const withLambda = makeFunc({
+      name: 'withLambda',
+      body: makeBlock([makeLet('f', lambda), makeReturn(NULL_EXPR)]),
+    });
+
+    const diagnostics = runInference([withLambda]);
+    assert.ok(findDiagnostic(diagnostics, ErrorCode.EFF_INFER_MISSING_IO, 'withLambda'));
+  });
+
+  it('Lambda body 的 CPU 效应应传播到外层函数', () => {
+    // Lambda body 调用 CpuTask.run (CPU)
+    const lambdaBody = makeBlock([makeReturn(makeCall('CpuTask.run'))]);
+    const lambda = makeLambda(lambdaBody);
+
+    // 外层函数定义 Lambda 但未声明 CPU 效应
+    const withLambda = makeFunc({
+      name: 'withLambda',
+      body: makeBlock([makeLet('f', lambda), makeReturn(NULL_EXPR)]),
+    });
+
+    const diagnostics = runInference([withLambda]);
+    assert.ok(findDiagnostic(diagnostics, ErrorCode.EFF_INFER_MISSING_CPU, 'withLambda'));
+  });
+
+  it('嵌套 Lambda 的效应应传播到最外层函数', () => {
+    // 内层 Lambda 调用 Http.get
+    const innerLambdaBody = makeBlock([makeReturn(makeCall('Http.get'))]);
+    const innerLambda = makeLambda(innerLambdaBody);
+
+    // 外层 Lambda 包含内层 Lambda
+    const outerLambdaBody = makeBlock([makeLet('inner', innerLambda), makeReturn(NULL_EXPR)]);
+    const outerLambda = makeLambda(outerLambdaBody);
+
+    // 最外层函数定义嵌套 Lambda 但未声明 IO 效应
+    const withNestedLambda = makeFunc({
+      name: 'withNestedLambda',
+      body: makeBlock([makeLet('outer', outerLambda), makeReturn(NULL_EXPR)]),
+    });
+
+    const diagnostics = runInference([withNestedLambda]);
+    assert.ok(findDiagnostic(diagnostics, ErrorCode.EFF_INFER_MISSING_IO, 'withNestedLambda'));
+  });
+
+  it('声明了 IO 效应的函数不应对 Lambda 的 IO 调用报错', () => {
+    // Lambda body 调用 Http.get
+    const lambdaBody = makeBlock([makeReturn(makeCall('Http.get'))]);
+    const lambda = makeLambda(lambdaBody);
+
+    // 外层函数已声明 IO 效应
+    const withLambda = makeFunc({
+      name: 'withLambda',
+      declaredEffects: [Effect.IO],
+      body: makeBlock([makeLet('f', lambda), makeReturn(NULL_EXPR)]),
+    });
+
+    const diagnostics = runInference([withLambda]);
+    assert.ok(!findDiagnostic(diagnostics, ErrorCode.EFF_INFER_MISSING_IO, 'withLambda'));
   });
 });

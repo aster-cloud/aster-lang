@@ -24,11 +24,11 @@ import java.util.stream.Collectors;
 public class DeterminismSnapshot {
 
     /**
-     * clockTimes 与 uuids 均限制 500 条，randoms 每个 source 限制 100 条。
+     * clockTimes 与 uuids 均限制 500 条，randoms 每个 source 限制 500 条。
      */
     private static final int MAX_CLOCK_RECORDS = 500;
     private static final int MAX_UUID_RECORDS = 500;
-    private static final int MAX_RANDOM_RECORDS_PER_SOURCE = 100;
+    private static final int MAX_RANDOM_RECORDS_PER_SOURCE = 500;
 
     @JsonProperty("clockTimes")
     private List<String> clockTimes;

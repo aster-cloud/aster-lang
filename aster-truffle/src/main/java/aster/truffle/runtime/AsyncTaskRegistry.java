@@ -1,15 +1,20 @@
 package aster.truffle.runtime;
 
+import aster.core.exceptions.MaxRetriesExceededException;
+import io.aster.workflow.DeterminismContext;
+import aster.runtime.workflow.WorkflowEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -21,9 +26,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * 异步任务注册表 - 负责任务注册、状态跟踪与调度
@@ -37,6 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * - 暴露 registerTaskWithDependencies 支撑 Workflow emitter
  */
 public final class AsyncTaskRegistry {
+  private static final Logger logger = Logger.getLogger(AsyncTaskRegistry.class.getName());
   private static final long DEFAULT_TTL_MILLIS = 60_000L;
 
   // 任务状态存储：task_id -> TaskState
@@ -45,6 +55,12 @@ public final class AsyncTaskRegistry {
   private final ConcurrentHashMap<String, TaskInfo> taskInfos = new ConcurrentHashMap<>();
   // 依赖图：内部自管理，避免依赖外部 WorkflowScheduler
   private final DependencyGraph dependencyGraph = new DependencyGraph();
+  // 重试策略存储
+  private final Map<String, RetryPolicy> retryPolicies = new ConcurrentHashMap<>();
+  private final Map<String, Integer> attemptCounters = new ConcurrentHashMap<>();
+  private final Set<String> failedTasks = ConcurrentHashMap.newKeySet();
+  private volatile String workflowId;
+  private PostgresEventStore eventStore;
   // 剩余待完成任务计数
   private final AtomicInteger remainingTasks = new AtomicInteger();
   // 线程池（默认 CPU 核数，可配置），size=1 时即单线程回退模式
@@ -56,6 +72,12 @@ public final class AsyncTaskRegistry {
   private final Deque<String> compensationStack = new ConcurrentLinkedDeque<>();
   // 默认超时时间（毫秒），0 表示无限制
   private final long defaultTimeoutMs;
+  private final PriorityQueue<DelayedTask> delayQueue = new PriorityQueue<>();
+  private final ReentrantLock delayQueueLock = new ReentrantLock();
+  private Thread pollThread;
+  private volatile boolean running = false;
+  private final DeterminismContext determinismContext;
+  private volatile boolean replayMode = false;
 
   /**
    * 并发调度需要的任务元数据
@@ -125,19 +147,73 @@ public final class AsyncTaskRegistry {
     CANCELLED
   }
 
+  /**
+   * 重试策略配置
+   */
+  public static class RetryPolicy {
+    public final int maxAttempts;
+    public final String backoff; // "exponential" or "linear"
+    public final long baseDelayMs;
+
+    public RetryPolicy(int maxAttempts, String backoff, long baseDelayMs) {
+      this.maxAttempts = maxAttempts;
+      this.backoff = backoff;
+      this.baseDelayMs = baseDelayMs;
+    }
+  }
+
   public AsyncTaskRegistry() {
-    this(loadThreadPoolSize(), loadDefaultTimeout());
+    this(loadThreadPoolSize(), loadDefaultTimeout(), new DeterminismContext());
   }
 
   public AsyncTaskRegistry(int threadPoolSize) {
-    this(threadPoolSize, loadDefaultTimeout());
+    this(threadPoolSize, loadDefaultTimeout(), new DeterminismContext());
+  }
+
+  public AsyncTaskRegistry(int threadPoolSize, DeterminismContext determinismContext) {
+    this(threadPoolSize, loadDefaultTimeout(), determinismContext);
   }
 
   private AsyncTaskRegistry(int threadPoolSize, long defaultTimeoutMs) {
+    this(threadPoolSize, defaultTimeoutMs, new DeterminismContext());
+  }
+
+  private AsyncTaskRegistry(int threadPoolSize, long defaultTimeoutMs, DeterminismContext determinismContext) {
     int normalizedSize = Math.max(1, threadPoolSize);
     this.executor = Executors.newFixedThreadPool(normalizedSize);
     this.singleThreadMode = normalizedSize == 1;
     this.defaultTimeoutMs = Math.max(0L, defaultTimeoutMs);
+    this.determinismContext = Objects.requireNonNull(determinismContext, "determinismContext cannot be null");
+  }
+
+  /**
+   * 设置 workflowId（用于重试日志记录）
+   */
+  public void setWorkflowId(String workflowId) {
+    this.workflowId = workflowId;
+  }
+
+  /**
+   * 注入事件存储
+   */
+  public void setEventStore(PostgresEventStore eventStore) {
+    this.eventStore = eventStore;
+  }
+
+  /**
+   * 获取当前的 DeterminismContext。
+   *
+   * @return 确定性上下文
+   */
+  public DeterminismContext getDeterminismContext() {
+    return determinismContext;
+  }
+
+  /**
+   * 切换重放模式：开启后重试退避从事件日志读取，而非重新计算。
+   */
+  public void setReplayMode(boolean replayMode) {
+    this.replayMode = replayMode;
   }
 
   /**
@@ -192,6 +268,21 @@ public final class AsyncTaskRegistry {
     long effectiveTimeout = timeoutMs > 0 ? timeoutMs : defaultTimeoutMs;
     registerInternal(taskId, callable, deps, effectiveTimeout, compensationCallback, priority);
     return taskId;
+  }
+
+  /**
+   * 注册带重试策略的任务
+   */
+  public String registerTaskWithRetry(String taskId, Supplier<?> task, Set<String> dependencies,
+      RetryPolicy policy) {
+    Objects.requireNonNull(taskId, "taskId");
+    Objects.requireNonNull(task, "task");
+    if (policy != null) {
+      retryPolicies.put(taskId, policy);
+      attemptCounters.putIfAbsent(taskId, 1);
+    }
+    Callable<Object> callable = task::get;
+    return registerTaskWithDependencies(taskId, callable, dependencies);
   }
 
   /**
@@ -566,6 +657,8 @@ public final class AsyncTaskRegistry {
       return;
     }
 
+    boolean retryScheduled = false;
+    Throwable failure = null;
     try {
       Object callResult = info.callable.call();
       if (callResult != null && state.result == null) {
@@ -576,25 +669,58 @@ public final class AsyncTaskRegistry {
         if (info.compensationCallback != null) {
           compensationStack.push(info.taskId);
         }
+        cleanupRetryState(info.taskId);
         synchronized (graphLock) {
           dependencyGraph.markCompleted(info.taskId);
         }
       }
     } catch (Throwable t) {
-      if (state.status.compareAndSet(TaskStatus.RUNNING, TaskStatus.FAILED)) {
-        state.exception = t;
-        info.future.completeExceptionally(t);
-        // 标记失败任务为已完成（让依赖图更新）
-        synchronized (graphLock) {
-          dependencyGraph.markCompleted(info.taskId);
+      failure = t;
+      RetryPolicy policy = retryPolicies.get(info.taskId);
+      if (policy != null) {
+        failedTasks.add(info.taskId);
+        Exception failureException = (t instanceof Exception) ? (Exception) t : new Exception(t);
+        try {
+          onTaskFailed(info.taskId, failureException, replayMode);
+          retryScheduled = true;
+        } catch (MaxRetriesExceededException maxEx) {
+          failure = maxEx;
+          retryPolicies.remove(info.taskId);
+          attemptCounters.remove(info.taskId);
+          failedTasks.remove(info.taskId);
         }
-        // 取消所有依赖于失败任务的下游任务
-        cancelDownstreamTasks(info.taskId);
+      }
+
+      if (retryScheduled) {
+        state.exception = t;
+        state.status.set(TaskStatus.PENDING);
+      } else {
+        handleFinalTaskFailure(info, state, failure);
       }
     } finally {
-      // 无条件递减计数器，避免 TimeoutException 导致的计数器泄漏
-      remainingTasks.decrementAndGet();
+      if (!retryScheduled) {
+        // 仅在任务真正结束时递减计数器
+        remainingTasks.decrementAndGet();
+      }
     }
+  }
+
+  private void handleFinalTaskFailure(TaskInfo info, TaskState state, Throwable error) {
+    if (state.status.compareAndSet(TaskStatus.RUNNING, TaskStatus.FAILED)) {
+      state.exception = error;
+      info.future.completeExceptionally(error);
+      synchronized (graphLock) {
+        dependencyGraph.markCompleted(info.taskId);
+      }
+      cancelDownstreamTasks(info.taskId);
+    }
+    cleanupRetryState(info.taskId);
+  }
+
+  private void cleanupRetryState(String taskId) {
+    retryPolicies.remove(taskId);
+    attemptCounters.remove(taskId);
+    failedTasks.remove(taskId);
   }
 
   /**
@@ -785,6 +911,264 @@ public final class AsyncTaskRegistry {
     path.remove(path.size() - 1);
     recStack.remove(taskId);
     return false;
+  }
+
+  /**
+   * 计算 backoff 延迟（确定性版本）
+   *
+   * 使用 DeterminismContext 确保重放时 jitter 一致
+   */
+  private long calculateBackoff(int attempt, String strategy, long baseDelayMs, DeterminismContext ctx) {
+    long normalizedAttempt = Math.max(1, attempt);
+    long backoffBase;
+    if ("exponential".equalsIgnoreCase(strategy)) {
+      backoffBase = (long) (baseDelayMs * Math.pow(2, normalizedAttempt - 1));
+    } else {
+      backoffBase = baseDelayMs * normalizedAttempt;
+    }
+    long jitterBound = Math.max(0L, baseDelayMs / 2);
+    // 优先使用传入的 ctx，否则使用实例字段（保证非 null）
+    DeterminismContext targetCtx = ctx != null ? ctx : this.determinismContext;
+    long jitter = 0L;
+    if (jitterBound > 0) {
+      long raw = targetCtx.random().nextLong("async-task-backoff");
+      jitter = Math.floorMod(raw, jitterBound);
+    }
+    return backoffBase + jitter;
+  }
+
+  private void onTaskFailed(String taskId, Exception exception, boolean isReplay) {
+    RetryPolicy policy = retryPolicies.get(taskId);
+    if (policy == null) {
+      throw new RuntimeException("Task failed: " + taskId, exception);
+    }
+
+    int attempt = attemptCounters.getOrDefault(taskId, 1);
+    if (attempt >= policy.maxAttempts) {
+      throw new MaxRetriesExceededException(policy.maxAttempts, exception.getMessage(), exception);
+    }
+
+    long delayMs = isReplay
+        ? getBackoffFromLog(taskId, attempt)
+        : calculateBackoff(attempt, policy.backoff, policy.baseDelayMs, determinismContext);
+    String failureReason = exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName();
+
+    if (eventStore != null && workflowId != null) {
+      try {
+        eventStore.appendEvent(
+            workflowId,
+            "RETRY_SCHEDULED",
+            Map.of("taskId", taskId, "reason", failureReason),
+            attempt + 1,
+            delayMs,
+            failureReason
+        );
+      } catch (Exception logEx) {
+        logger.log(Level.WARNING, String.format("Failed to log retry event for task %s", taskId), logEx);
+      }
+    }
+
+    if (workflowId == null) {
+      throw new IllegalStateException("workflowId must be set before scheduling retries");
+    }
+
+    attemptCounters.put(taskId, attempt + 1);
+    scheduleRetry(workflowId, delayMs, attempt + 1, failureReason);
+
+    logger.info(String.format("Task %s failed (attempt %d/%d), retrying in %dms",
+        taskId, attempt, policy.maxAttempts, delayMs));
+  }
+
+  /**
+   * 从事件日志恢复重试状态
+   *
+   * @param events 事件列表（按序列号升序）
+   */
+  public void restoreRetryState(List<WorkflowEvent> events) {
+    if (events == null || events.isEmpty()) {
+      return;
+    }
+    for (WorkflowEvent event : events) {
+      if ("RETRY_SCHEDULED".equals(event.getEventType())) {
+        Object payload = event.getPayload();
+        String taskId = null;
+        if (payload instanceof Map<?, ?> map) {
+          Object raw = map.get("taskId");
+          if (raw != null) {
+            taskId = raw.toString();
+          }
+        }
+        if (taskId == null) {
+          continue;
+        }
+        Integer attemptNumber = event.getAttemptNumber();
+        if (attemptNumber != null) {
+          int normalizedAttempt = Math.max(1, attemptNumber - 1);
+          int merged = attemptCounters.merge(taskId, normalizedAttempt, Math::min);
+          logger.fine(String.format("Restored retry state for task %s: attempt=%d, backoff=%dms",
+              taskId, merged, event.getBackoffDelayMs()));
+        }
+      }
+    }
+  }
+
+  private long getBackoffFromLog(String taskId, int attempt) {
+    if (eventStore == null || workflowId == null) {
+      throw new IllegalStateException("eventStore 和 workflowId 未设置，无法从日志恢复 backoff");
+    }
+    List<WorkflowEvent> events = eventStore.getEvents(workflowId, 0L);
+    int expectedAttemptNumber = attempt + 1;
+    for (WorkflowEvent event : events) {
+      if (!"RETRY_SCHEDULED".equals(event.getEventType())) {
+        continue;
+      }
+      Integer attemptNumber = event.getAttemptNumber();
+      if (!Objects.equals(attemptNumber, expectedAttemptNumber)) {
+        continue;
+      }
+      Object payload = event.getPayload();
+      if (payload instanceof Map<?, ?> map) {
+        Object rawTaskId = map.get("taskId");
+        if (rawTaskId != null && taskId.equals(rawTaskId.toString())) {
+          Long delay = event.getBackoffDelayMs();
+          if (delay != null) {
+            return delay;
+          }
+        }
+      }
+    }
+    throw new IllegalStateException("未找到任务 " + taskId + " 第 " + expectedAttemptNumber + " 次重试的 backoff 记录");
+  }
+
+  /**
+   * 调度延迟重试任务
+   *
+   * @param workflowId workflow 唯一标识符
+   * @param delayMs 延迟时间（毫秒）
+   * @param attemptNumber 重试次数（从1开始）
+   * @param failureReason 失败原因
+   */
+  public void scheduleRetry(String workflowId, long delayMs, int attemptNumber, String failureReason) {
+    long triggerAt = this.determinismContext.clock().now().toEpochMilli() + delayMs;
+
+    delayQueueLock.lock();
+    try {
+      DelayedTask task = new DelayedTask(workflowId, triggerAt, attemptNumber, failureReason);
+      delayQueue.offer(task);
+      logger.fine(String.format("Scheduled retry for workflow %s in %dms (attempt %d)",
+          workflowId, delayMs, attemptNumber));
+    } finally {
+      delayQueueLock.unlock();
+    }
+  }
+
+  /**
+   * 启动延迟任务轮询线程
+   *
+   * 注意：需在 WorkflowSchedulerService 启动时调用
+   */
+  public synchronized void startPolling() {
+    if (running) {
+      return;
+    }
+
+    running = true;
+    pollThread = new Thread(this::pollDelayedTasks, "workflow-delay-poller");
+    pollThread.setDaemon(true);
+    pollThread.start();
+    logger.info("Started workflow delay task poller");
+  }
+
+  /**
+   * 停止延迟任务轮询线程
+   *
+   * 注意：需在 WorkflowSchedulerService 关闭时调用
+   */
+  public synchronized void stopPolling() {
+    running = false;
+    if (pollThread != null) {
+      pollThread.interrupt();
+      try {
+        pollThread.join(5000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        pollThread = null;
+      }
+    }
+    logger.info("Stopped workflow delay task poller");
+  }
+
+  /**
+   * 后台轮询延迟任务队列，触发到期任务
+   */
+  private void pollDelayedTasks() {
+    while (running) {
+      try {
+        delayQueueLock.lock();
+        try {
+          DelayedTask task = delayQueue.peek();
+          long now = this.determinismContext.clock().now().toEpochMilli();
+
+          if (task != null && task.triggerAtMs <= now) {
+            delayQueue.poll();
+            logger.fine(String.format("Triggering delayed retry for workflow %s (attempt %d)",
+                task.workflowId, task.attemptNumber));
+
+            // 触发 workflow 恢复（简化实现：重新调度任务）
+            // TODO: 后续集成到 WorkflowScheduler.handleRetry
+            resumeWorkflow(task.workflowId, task.attemptNumber);
+          }
+        } finally {
+          delayQueueLock.unlock();
+        }
+
+        // 轮询间隔 100ms
+        Thread.sleep(100);
+
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      } catch (Exception e) {
+        logger.log(Level.SEVERE, "Error polling delayed tasks", e);
+      }
+    }
+  }
+
+  /**
+   * 恢复 workflow 执行（由 timer 触发）
+   */
+  private void resumeWorkflow(String workflowId, int attemptNumber) {
+    logger.info(String.format("Resuming workflow %s (attempt %d)", workflowId, attemptNumber));
+
+    Set<String> tasksToRetry = new HashSet<>();
+    Iterator<String> iterator = failedTasks.iterator();
+    while (iterator.hasNext()) {
+      String taskId = iterator.next();
+      tasksToRetry.add(taskId);
+      iterator.remove();
+    }
+
+    for (String taskId : tasksToRetry) {
+      scheduleTask(taskId);
+    }
+  }
+
+  private void scheduleTask(String taskId) {
+    TaskInfo info = taskInfos.get(taskId);
+    TaskState state = tasks.get(taskId);
+    if (info == null || state == null) {
+      return;
+    }
+    if (state.status.get() != TaskStatus.PENDING) {
+      return;
+    }
+    if (!isDependencySatisfied(taskId)) {
+      failedTasks.add(taskId);
+      return;
+    }
+    info.submitted.set(false);
+    submitTask(info);
   }
 
   /**

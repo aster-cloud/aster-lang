@@ -1,5 +1,7 @@
 package io.aster.workflow;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.persistence.*;
@@ -8,9 +10,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Workflow 状态实体 - 使用 Panache Active Record 模式
@@ -21,6 +21,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "workflow_state")
 public class WorkflowStateEntity extends PanacheEntityBase {
+
+    private static final ObjectMapper SNAPSHOT_MAPPER = new ObjectMapper();
 
     @Id
     @Column(name = "workflow_id")
@@ -42,6 +44,13 @@ public class WorkflowStateEntity extends PanacheEntityBase {
 
     @Column(name = "snapshot_seq")
     public Long snapshotSeq;
+
+    /**
+     * 最后一次快照的时间戳（P0-2 criterion 4）
+     * 用于基于时间间隔的快照触发
+     */
+    @Column(name = "last_snapshot_at")
+    public Instant lastSnapshotAt;
 
     @Column(name = "lock_owner", length = 64)
     public String lockOwner;
@@ -113,6 +122,32 @@ public class WorkflowStateEntity extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "clock_times", columnDefinition = "jsonb")
     public String clockTimes;
+
+    /**
+     * 读取 snapshot 中的 retry_context 字段，缺省返回空 Map 避免 NPE
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getRetryContext() {
+        Map<String, Object> snapshotMap = readSnapshotAsMap();
+        Object retry = snapshotMap.get("retry_context");
+        if (retry instanceof Map<?, ?> retryMap) {
+            return Collections.unmodifiableMap(new HashMap<>((Map<String, Object>) retryMap));
+        }
+        return Collections.emptyMap();
+    }
+
+    /**
+     * 更新 snapshot 中的 retry_context 字段，保持其他字段不变
+     */
+    public void setRetryContext(Map<String, Object> retryContext) {
+        Map<String, Object> snapshotMap = readSnapshotAsMap();
+        if (retryContext == null || retryContext.isEmpty()) {
+            snapshotMap.remove("retry_context");
+        } else {
+            snapshotMap.put("retry_context", new HashMap<>(retryContext));
+        }
+        this.snapshot = writeSnapshot(snapshotMap);
+    }
 
     /**
      * 根据 workflow ID 查询状态
@@ -232,5 +267,25 @@ public class WorkflowStateEntity extends PanacheEntityBase {
         this.completedAt = Instant.now();
         this.status = finalStatus;
         updateDuration();
+    }
+
+    private Map<String, Object> readSnapshotAsMap() {
+        if (this.snapshot == null || this.snapshot.isBlank()) {
+            return new HashMap<>();
+        }
+        try {
+            return SNAPSHOT_MAPPER.readValue(this.snapshot, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            // 解析失败时返回空 Map，避免影响调用方
+            return new HashMap<>();
+        }
+    }
+
+    private String writeSnapshot(Map<String, Object> snapshotMap) {
+        try {
+            return SNAPSHOT_MAPPER.writeValueAsString(snapshotMap);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize snapshot with retry_context", e);
+        }
     }
 }

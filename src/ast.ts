@@ -41,7 +41,8 @@ export const Node = {
     effects: readonly string[],
     effectCaps: readonly AST.CapabilityKind[],
     effectCapsExplicit: boolean,
-    body: AST.Block | null
+    body: AST.Block | null,
+    effectParams?: readonly string[]
   ): AST.Func => ({
     kind: 'Func',
     name,
@@ -52,6 +53,7 @@ export const Node = {
     effectCaps,
     effectCapsExplicit,
     body,
+    ...(effectParams && effectParams.length > 0 ? { effectParams } : {}),
     span: createEmptySpan(),
   }),
   Block: (statements: readonly AST.Statement[]): AST.Block => ({
@@ -188,6 +190,7 @@ export const Node = {
     span: createEmptySpan(),
   }),
   TypeVar: (name: string): AST.TypeVar => ({ kind: 'TypeVar', name, span: createEmptySpan() }),
+  EffectVar: (name: string): AST.EffectVar => ({ kind: 'EffectVar', name, span: createEmptySpan() }),
   TypePii: (
     baseType: AST.Type,
     sensitivity: AST.PiiSensitivityLevel,

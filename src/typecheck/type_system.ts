@@ -8,6 +8,7 @@ function cloneType(type: Type): Type {
   switch (type.kind) {
     case 'TypeName':
     case 'TypeVar':
+    case 'EffectVar':
       return { ...type };
     case 'Maybe':
     case 'Option':
@@ -35,6 +36,10 @@ function cloneType(type: Type): Type {
         ...type,
         params: type.params.map(param => cloneType(param as Type)) as readonly Core.Type[],
         ret: cloneType(type.ret as Type),
+        ...(type.effectParams ? { effectParams: [...type.effectParams] as readonly string[] } : {}),
+        ...(type.declaredEffects
+          ? { declaredEffects: [...type.declaredEffects] as readonly EffectDeclaration[] }
+          : {}),
       };
     case 'PiiType':
       return {
@@ -53,9 +58,59 @@ function isUnknown(type: Type | undefined | null): boolean {
   return false;
 }
 
+type EffectDeclaration = NonNullable<Core.FuncType['declaredEffects']>[number];
+
+function normalizeEffectList(list: readonly EffectDeclaration[] | undefined): readonly string[] {
+  if (!list || list.length === 0) return [];
+  return list.map(effect => String(effect));
+}
+
+function effectListsEqual(
+  a: readonly EffectDeclaration[] | undefined,
+  b: readonly EffectDeclaration[] | undefined
+): boolean {
+  const left = normalizeEffectList(a);
+  const right = normalizeEffectList(b);
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i] !== right[i]) return false;
+  }
+  return true;
+}
+
+function stringListsEqual(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
+  const left = (a ?? []) as readonly string[];
+  const right = (b ?? []) as readonly string[];
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i] !== right[i]) return false;
+  }
+  return true;
+}
+
 export class TypeSystem {
   static unknown(): Core.Type {
     return UNKNOWN_TYPENAME;
+  }
+
+  private static effectRank(type: Type): number | null {
+    if (type.kind === 'EffectVar') return null;
+    if (type.kind === 'TypeName') {
+      switch (type.name) {
+        case 'PURE':
+          return 0;
+        case 'CPU':
+          return 1;
+        case 'IO':
+          return 2;
+        case 'Workflow':
+          return 3;
+        default:
+          return null;
+      }
+    }
+    if (type.kind === 'TypeApp' && type.base === 'Workflow') return 3;
+    return null;
   }
 
   static equals(t1: Type, t2: Type, strict = false): boolean {
@@ -66,6 +121,8 @@ export class TypeSystem {
         return (t1 as Core.TypeName).name === (t2 as Core.TypeName).name;
       case 'TypeVar':
         return (t1 as Core.TypeVar).name === (t2 as Core.TypeVar).name;
+      case 'EffectVar':
+        return (t1 as Core.EffectVar).name === (t2 as Core.EffectVar).name;
       case 'TypeApp': {
         const a = t1 as Core.TypeApp;
         const b = t2 as Core.TypeApp;
@@ -112,6 +169,8 @@ export class TypeSystem {
         for (let i = 0; i < a.params.length; i++) {
           if (!TypeSystem.equals(a.params[i] as Type, b.params[i] as Type, strict)) return false;
         }
+        if (!stringListsEqual(a.effectParams, b.effectParams)) return false;
+        if (!effectListsEqual(a.declaredEffects, b.declaredEffects)) return false;
         return TypeSystem.equals(a.ret as Type, b.ret as Type, strict);
       }
       case 'PiiType': {
@@ -136,6 +195,12 @@ export class TypeSystem {
     }
     if (t2.kind === 'TypeVar') {
       return TypeSystem.bindTypeVar(t2 as Core.TypeVar, t1, bindings);
+    }
+    if (t1.kind === 'EffectVar') {
+      return TypeSystem.bindEffectVar(t1 as Core.EffectVar, t2, bindings);
+    }
+    if (t2.kind === 'EffectVar') {
+      return TypeSystem.bindEffectVar(t2 as Core.EffectVar, t1, bindings);
     }
     if (t1.kind !== t2.kind) return false;
 
@@ -186,6 +251,8 @@ export class TypeSystem {
         for (let i = 0; i < a.params.length; i++) {
           if (!TypeSystem.unify(a.params[i] as Type, b.params[i] as Type, bindings)) return false;
         }
+        if (!stringListsEqual(a.effectParams, b.effectParams)) return false;
+        if (!effectListsEqual(a.declaredEffects, b.declaredEffects)) return false;
         return TypeSystem.unify(a.ret as Type, b.ret as Type, bindings);
       }
       case 'PiiType': {
@@ -209,10 +276,31 @@ export class TypeSystem {
     return TypeSystem.equals(current, type);
   }
 
+  private static bindEffectVar(ev: Core.EffectVar, type: Type, bindings: Map<string, Type>): boolean {
+    const key = `$effect:${ev.name}`;
+    const current = bindings.get(key);
+    if (!current) {
+      bindings.set(key, type);
+      return true;
+    }
+    const rankA = TypeSystem.effectRank(current);
+    const rankB = TypeSystem.effectRank(type);
+    if (rankA !== null && rankB !== null) {
+      return rankA === rankB;
+    }
+    return TypeSystem.equals(current, type, true);
+  }
+
   static isSubtype(sub: Type, sup: Type): boolean {
     if (TypeSystem.equals(sub, sup)) return true;
     if (isUnknown(sup)) return true;
     if (isUnknown(sub)) return false;
+
+    const leftEffect = TypeSystem.effectRank(sub);
+    const rightEffect = TypeSystem.effectRank(sup);
+    if (leftEffect !== null && rightEffect !== null) {
+      return leftEffect <= rightEffect;
+    }
 
     // Option<T> and Maybe<T> are considered subtypes when inner types match.
     if (sup.kind === 'Option' && sub.kind === 'Maybe') {
@@ -230,6 +318,16 @@ export class TypeSystem {
         TypeSystem.isSubtype(s.ok as Type, t.ok as Type) &&
         TypeSystem.isSubtype(s.err as Type, t.err as Type)
       );
+    }
+
+    if (sub.kind === 'TypeApp' && sup.kind === 'TypeApp') {
+      const s = sub as Core.TypeApp;
+      const t = sup as Core.TypeApp;
+      if (s.base === 'Workflow' && t.base === 'Workflow' && s.args.length >= 2 && t.args.length >= 2) {
+        const [sRes, sEff] = s.args;
+        const [tRes, tEff] = t.args;
+        return TypeSystem.isSubtype(sRes as Type, tRes as Type) && TypeSystem.isSubtype(sEff as Type, tEff as Type);
+      }
     }
 
     return false;
@@ -393,7 +491,11 @@ export class TypeSystem {
       case 'Lambda': {
         const params = expr.params.map(p => cloneType(p.type as Type)) as readonly Core.Type[];
         const ret = cloneType(expr.ret as Type);
-        return { kind: 'FuncType', params, ret };
+        return {
+          kind: 'FuncType',
+          params,
+          ret,
+        };
       }
       case 'Construct':
         return { kind: 'TypeName', name: expr.typeName };

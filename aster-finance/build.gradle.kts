@@ -143,6 +143,11 @@ private fun Project.dtoTargets(): List<DtoTarget> = listOf(
 )
 
 val generateFinanceDtos by tasks.registering {
+    // 确保先同步 policy classes，避免使用未生成的 DSL 输出
+    dependsOn(
+        ":quarkus-policy-api:syncPolicyClasses",
+        ":quarkus-policy-api:syncPolicyJar"
+    )
     val targets = dtoTargets()
     targets.forEach { target ->
         inputs.dir(target.sourceDir)

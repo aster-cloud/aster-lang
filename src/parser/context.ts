@@ -14,6 +14,7 @@ export interface ParserContext {
   moduleName: string | null;
   declaredTypes: Set<string>;
   currentTypeVars: Set<string>;
+  currentEffectVars: Set<string>;
   collectedEffects: string[] | null;
   effectSnapshots: Array<string[] | null>;
   debug: { enabled: boolean; depth: number; log(message: string): void };
@@ -75,6 +76,7 @@ export function createParserContext(tokens: readonly Token[]): ParserContext {
     moduleName: null,
     declaredTypes: new Set<string>(),
     currentTypeVars: new Set<string>(),
+    currentEffectVars: new Set<string>(),
     collectedEffects: null,
     effectSnapshots: [],
     debug: {

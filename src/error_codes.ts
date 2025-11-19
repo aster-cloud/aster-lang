@@ -51,6 +51,8 @@ export const enum ErrorCode {
   EFF_INFER_REDUNDANT_IO = "E207",
   EFF_INFER_REDUNDANT_CPU = "E208",
   EFF_INFER_REDUNDANT_CPU_WITH_IO = "E209",
+  EFFECT_VAR_UNDECLARED = "E210",
+  EFFECT_VAR_UNRESOLVED = "E211",
   CAPABILITY_NOT_ALLOWED = "E300",
   EFF_CAP_MISSING = "E301",
   EFF_CAP_SUPERFLUOUS = "E302",
@@ -66,6 +68,8 @@ export const enum ErrorCode {
   ASYNC_WAIT_BEFORE_START = "E504",
   PII_IMPLICIT_UPLEVEL = "W071",
   PII_SINK_UNKNOWN = "W074",
+  WORKFLOW_RETRY_INCONSISTENT = "W105",
+  WORKFLOW_TIMEOUT_UNREASONABLE = "W106",
 }
 
 export interface ErrorMetadata {
@@ -122,6 +126,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.EFF_INFER_REDUNDANT_IO]: "函数 '{func}' 声明了 @io，但推断未发现 IO 副作用。",
   [ErrorCode.EFF_INFER_REDUNDANT_CPU]: "函数 '{func}' 声明了 @cpu，但推断未发现 CPU 副作用。",
   [ErrorCode.EFF_INFER_REDUNDANT_CPU_WITH_IO]: "函数 '{func}' 同时声明 @cpu 和 @io；由于需要 @io，@cpu 可移除。",
+  [ErrorCode.EFFECT_VAR_UNDECLARED]: "效应变量 {var} 未声明",
+  [ErrorCode.EFFECT_VAR_UNRESOLVED]: "效应变量 {vars} 无法推断出具体效果",
   [ErrorCode.CAPABILITY_NOT_ALLOWED]: "Function '{func}' requires {cap} capability but manifest for module '{module}' denies it.",
   [ErrorCode.EFF_CAP_MISSING]: "Function '{func}' uses {cap} capability but header declares [{declared}].",
   [ErrorCode.EFF_CAP_SUPERFLUOUS]: "Function '{func}' declares {cap} capability but it is not used.",
@@ -137,6 +143,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.ASYNC_WAIT_BEFORE_START]: "Wait for async task '{task}' occurs before any matching start",
   [ErrorCode.PII_IMPLICIT_UPLEVEL]: "检测到隐式 PII 等级提升: {source} -> {target}",
   [ErrorCode.PII_SINK_UNKNOWN]: "可能有 PII 数据流向 {sinkKind} 但缺少注解",
+  [ErrorCode.WORKFLOW_RETRY_INCONSISTENT]: "Workflow retry 配置可能不合理: {reason}",
+  [ErrorCode.WORKFLOW_TIMEOUT_UNREASONABLE]: "Workflow timeout 配置可能不合理: {reason}",
 };
 
 export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
@@ -455,6 +463,20 @@ export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
     message: "函数 '{func}' 同时声明 @cpu 和 @io；由于需要 @io，@cpu 可移除。",
     help: "保留 @io 即可满足需求，移除多余的 @cpu。",
   },
+  [ErrorCode.EFFECT_VAR_UNDECLARED]: {
+    code: ErrorCode.EFFECT_VAR_UNDECLARED,
+    category: 'type',
+    severity: 'error',
+    message: '效应变量 {var} 未声明',
+    help: "在函数签名的效果参数列表中添加效应类型参数，例如：fn foo<E>(...) with E",
+  },
+  [ErrorCode.EFFECT_VAR_UNRESOLVED]: {
+    code: ErrorCode.EFFECT_VAR_UNRESOLVED,
+    category: 'type',
+    severity: 'error',
+    message: '效应变量 {vars} 无法推断出具体效果',
+    help: '参考调用或声明补充明确的效果（pure/cpu/io/workflow），或移除未使用的效应变量。',
+  },
   [ErrorCode.CAPABILITY_NOT_ALLOWED]: {
     code: ErrorCode.CAPABILITY_NOT_ALLOWED,
     category: 'capability',
@@ -559,6 +581,20 @@ export const ERROR_METADATA: Record<ErrorCode, ErrorMetadata> = {
     severity: 'warning',
     message: "可能有 PII 数据流向 {sinkKind} 但缺少注解",
     help: "为数据增加 @pii 注解以追踪敏感数据流。",
+  },
+  [ErrorCode.WORKFLOW_RETRY_INCONSISTENT]: {
+    code: ErrorCode.WORKFLOW_RETRY_INCONSISTENT,
+    category: 'type',
+    severity: 'warning',
+    message: "Workflow retry 配置可能不合理: {reason}",
+    help: "检查 retry 总等待时间、maxAttempts 与 backoff 策略的组合是否合理。",
+  },
+  [ErrorCode.WORKFLOW_TIMEOUT_UNREASONABLE]: {
+    code: ErrorCode.WORKFLOW_TIMEOUT_UNREASONABLE,
+    category: 'type',
+    severity: 'warning',
+    message: "Workflow timeout 配置可能不合理: {reason}",
+    help: "检查 timeout 值是否过大或过小。",
   },
 };
 

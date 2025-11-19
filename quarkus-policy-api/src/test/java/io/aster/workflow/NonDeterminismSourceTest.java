@@ -120,13 +120,14 @@ class NonDeterminismSourceTest {
     void testIdempotencyKeyDeterministic() throws Exception {
         PostgresEventStore store = new PostgresEventStore();
         Method method = PostgresEventStore.class.getDeclaredMethod(
-                "generateIdempotencyKey", String.class, String.class, String.class);
+                "generateIdempotencyKey", String.class, String.class, String.class,
+                Integer.class, Long.class, String.class);
         method.setAccessible(true);
 
         String payload = "{\"result\":\"ok\"}";
-        String key1 = (String) method.invoke(store, "wf-1", "WorkflowStarted", payload);
-        String key2 = (String) method.invoke(store, "wf-1", "WorkflowStarted", payload);
-        String key3 = (String) method.invoke(store, "wf-1", "WorkflowStarted", payload + "x");
+        String key1 = (String) method.invoke(store, "wf-1", "WorkflowStarted", payload, null, null, null);
+        String key2 = (String) method.invoke(store, "wf-1", "WorkflowStarted", payload, null, null, null);
+        String key3 = (String) method.invoke(store, "wf-1", "WorkflowStarted", payload + "x", null, null, null);
 
         Assertions.assertThat(key1).isEqualTo(key2);
         Assertions.assertThat(key3).isNotEqualTo(key1);

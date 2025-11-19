@@ -1,0 +1,9 @@
+This module is tests.lambda_effects.
+
+To fetch_data with url: Text, produce Text. It performs io:
+  Return Http.get(url).
+
+To process_with_lambda, produce Text. It performs io:
+  Let fetcher be function with endpoint: Text, produce Text:
+    Return fetch_data(endpoint).
+  Return fetcher("/api/data").

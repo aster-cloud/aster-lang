@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/23eb6a773fc1e04c4b93f4380fd9d1f84e496756/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/fd95cfef5bdde57ff61442c12f0f7eb090f06322/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -84,7 +84,7 @@ readonly `string`[]
 
 ### Func()
 
-> **Func**: (`name`, `typeParams`, `params`, `ret`, `effects`, `body`, `effectCaps`, `effectCapsExplicit`) => [`Func`](../../types/namespaces/Core/interfaces/Func.md)
+> **Func**: (`name`, `typeParams`, `params`, `ret`, `effects`, `body`, `effectCaps`, `effectCapsExplicit`, `effectParams?`, `declaredEffects?`) => [`Func`](../../types/namespaces/Core/interfaces/Func.md)
 
 #### Parameters
 
@@ -119,6 +119,14 @@ readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md
 ##### effectCapsExplicit
 
 `boolean` = `false`
+
+##### effectParams?
+
+readonly `string`[]
+
+##### declaredEffects?
+
+readonly ([`EffectVar`](../../types/namespaces/Core/interfaces/EffectVar.md) \| [`Effect`](../../config/semantic/enumerations/Effect.md))[]
 
 #### Returns
 

@@ -400,6 +400,53 @@ function emitBlock(b: Core.Block, locals: string[], helpers: EmitHelpers, indent
   return b.statements.map(s => emitStatement(s, locals, helpers, indent)).join('');
 }
 
+function emitRetryLoop(
+  workflow: Core.Workflow,
+  workflowBody: string,
+  schedulerVar: string,
+  workflowIdExpr: string,
+  indent: string
+): string {
+  const retry = workflow.retry!;
+  const lines: string[] = [];
+  const baseDelayMs = 1000;
+
+  lines.push(`${indent}// 重试循环：maxAttempts=${retry.maxAttempts}, backoff=${retry.backoff}`);
+  lines.push(`${indent}for (int __retryAttempt = 1; __retryAttempt <= ${retry.maxAttempts}; __retryAttempt++) {`);
+  lines.push(`${indent}  try {`);
+  workflowBody.split('\n').forEach(line => {
+    if (line.trim()) {
+      lines.push(`${indent}    ${line}`);
+    } else {
+      lines.push(`${indent}    `);
+    }
+  });
+  lines.push(`${indent}    break; // 成功退出重试循环`);
+  lines.push(`${indent}  } catch (Exception __retryException) {`);
+  lines.push(`${indent}    if (__retryAttempt == ${retry.maxAttempts}) {`);
+  lines.push(
+    `${indent}      throw new aster.core.exceptions.MaxRetriesExceededException(${retry.maxAttempts}, __retryException.getMessage(), __retryException);`
+  );
+  lines.push(`${indent}    }`);
+  lines.push(`${indent}    long __backoffBase;`);
+  if (retry.backoff === 'exponential') {
+    lines.push(`${indent}    __backoffBase = ${baseDelayMs}L * (long)Math.pow(2, __retryAttempt - 1);`);
+  } else {
+    lines.push(`${indent}    __backoffBase = ${baseDelayMs}L * __retryAttempt;`);
+  }
+  lines.push(`${indent}    long __jitter = (long)(Math.random() * (${baseDelayMs} / 2)); // TODO: 使用 DeterminismContext.random()`);
+  lines.push(`${indent}    long __backoffMs = __backoffBase + __jitter;`);
+  lines.push(`${indent}    String __workflowId = ${workflowIdExpr}; // TODO: 从 runtime 获取 workflowId`);
+  lines.push(
+    `${indent}    ${schedulerVar}.scheduleRetry(__workflowId, __backoffMs, __retryAttempt + 1, __retryException.getMessage());`
+  );
+  lines.push(`${indent}    return; // 等待 timer 触发重试`);
+  lines.push(`${indent}  }`);
+  lines.push(`${indent}}`);
+
+  return lines.join('\n');
+}
+
 function emitWorkflowStatement(
   workflow: Core.Workflow,
   locals: string[],
@@ -416,48 +463,50 @@ function emitWorkflowStatement(
   lines.push(
     `${indent}  var ${base}Scheduler = new aster.truffle.runtime.WorkflowScheduler(${base}Registry);`
   );
-  if (workflow.retry) {
-    lines.push(
-      `${indent}  // retry 未在 JVM emitter MVP 中实现：maxAttempts=${workflow.retry.maxAttempts}, backoff=${workflow.retry.backoff}`
-    );
-  }
+  const workflowBodyLines: string[] = [];
   workflow.steps.forEach((step, index) => {
     const supplierVar = `${base}Step${index}`;
     const compensateVar = step.compensate ? `${base}Compensate${index}` : null;
     // 根据 DSL 声明为当前任务构造依赖集合
     const dependencies = step.dependencies ?? [];
     const depsLiteral = workflowDependencyLiteral(dependencies);
-    lines.push(`${indent}  java.util.function.Supplier<Object> ${supplierVar} = () -> {`);
-    lines.push(emitBlock(step.body, locals, helpers, `${indent}    `));
-    lines.push(`${indent}  };`);
+    workflowBodyLines.push(`java.util.function.Supplier<Object> ${supplierVar} = () -> {`);
+    workflowBodyLines.push(emitBlock(step.body, locals, helpers, `    `).trimEnd());
+    workflowBodyLines.push(`};`);
     if (compensateVar && step.compensate) {
-      lines.push(`${indent}  java.util.function.Supplier<Object> ${compensateVar} = () -> {`);
-      lines.push(emitBlock(step.compensate, locals, helpers, `${indent}    `));
-      lines.push(`${indent}  };`);
+      workflowBodyLines.push(`java.util.function.Supplier<Object> ${compensateVar} = () -> {`);
+      workflowBodyLines.push(emitBlock(step.compensate, locals, helpers, `    `).trimEnd());
+      workflowBodyLines.push(`};`);
     }
-    lines.push(
-      `${indent}  ${base}Registry.registerTaskWithDependencies("${step.name}", () -> {`
-    );
-    lines.push(`${indent}    try {`);
-    lines.push(`${indent}      Object result = ${supplierVar}.get();`);
-    lines.push(`${indent}      ${base}Registry.setResult("${step.name}", result);`);
-    lines.push(`${indent}    } catch (RuntimeException ex) {`);
+    workflowBodyLines.push(`${base}Registry.registerTaskWithDependencies("${step.name}", () -> {`);
+    workflowBodyLines.push(`  try {`);
+    workflowBodyLines.push(`    Object result = ${supplierVar}.get();`);
+    workflowBodyLines.push(`    ${base}Registry.setResult("${step.name}", result);`);
+    workflowBodyLines.push(`  } catch (RuntimeException ex) {`);
     if (compensateVar) {
-      lines.push(`${indent}      ${compensateVar}.get();`);
+      workflowBodyLines.push(`    ${compensateVar}.get();`);
     }
-    lines.push(`${indent}      throw ex;`);
-    lines.push(`${indent}    } catch (Throwable t) {`);
+    workflowBodyLines.push(`    throw ex;`);
+    workflowBodyLines.push(`  } catch (Throwable t) {`);
     if (compensateVar) {
-      lines.push(`${indent}      ${compensateVar}.get();`);
+      workflowBodyLines.push(`    ${compensateVar}.get();`);
     }
-    lines.push(
-      `${indent}      throw new RuntimeException("workflow step failed: ${step.name}", t);`
+    workflowBodyLines.push(
+      `    throw new RuntimeException("workflow step failed: ${step.name}", t);`
     );
-    lines.push(`${indent}    }`);
-    lines.push(`${indent}    return null;`);
-    lines.push(`${indent}  }, ${depsLiteral});`);
+    workflowBodyLines.push(`  }`);
+    workflowBodyLines.push(`  return null;`);
+    workflowBodyLines.push(`}, ${depsLiteral});`);
   });
-  lines.push(`${indent}  ${base}Scheduler.executeUntilComplete();`);
+  workflowBodyLines.push(`${base}Scheduler.executeUntilComplete();`);
+  const workflowBody = workflowBodyLines.join('\n');
+  if (workflow.retry) {
+    lines.push(
+      emitRetryLoop(workflow, workflowBody, `${base}Scheduler`, `"TODO_GET_WORKFLOW_ID"`, `${indent}  `)
+    );
+  } else {
+    lines.push(`${indent}  ${workflowBody.split('\n').join(`\n${indent}  `)}`);
+  }
   lines.push(`${indent}}\n`);
   return lines.join('\n');
 }

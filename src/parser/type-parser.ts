@@ -111,10 +111,17 @@ export function parseEffectList(
  */
 export function separateEffectsAndCaps(
   effects: string[],
-  error: (msg: string) => never
-): { baseEffects: string[]; effectCaps: CapabilityKind[]; hasExplicitCaps: boolean } {
+  error: (msg: string) => never,
+  effectVars?: ReadonlySet<string>
+): {
+  baseEffects: string[];
+  effectCaps: CapabilityKind[];
+  hasExplicitCaps: boolean;
+  effectVars: string[];
+} {
   const baseEffects: string[] = [];
   const rawCaps: string[] = [];
+  const effectVarRefs: string[] = [];
   const baseEffectSet = new Set(['io', 'cpu', 'pure']);
 
   for (const eff of effects) {
@@ -123,6 +130,10 @@ export function separateEffectsAndCaps(
       baseEffects.push(lower);
       continue;
     }
+     if (effectVars?.has(eff)) {
+       effectVarRefs.push(eff);
+       continue;
+     }
     rawCaps.push(eff);
   }
 
@@ -142,6 +153,10 @@ export function separateEffectsAndCaps(
         appendCaps([capText as CapabilityKind]);
         continue;
       }
+      if (effectVars?.has(capText)) {
+        if (!effectVarRefs.includes(capText)) effectVarRefs.push(capText);
+        continue;
+      }
       error(`Unknown capability '${capText}'`);
     }
   } else {
@@ -152,7 +167,12 @@ export function separateEffectsAndCaps(
     }
   }
 
-  return { baseEffects, effectCaps, hasExplicitCaps: rawCaps.length > 0 };
+  return {
+    baseEffects,
+    effectCaps,
+    hasExplicitCaps: rawCaps.length > 0,
+    effectVars: effectVarRefs,
+  };
 }
 
 /**
@@ -306,6 +326,11 @@ function parseTypePrimary(
       const node = Node.TypeVar(name);
       assignSpan(node, spanFromTokens(typeTok, typeTok));
       return node;
+    }
+    if (ctx.currentEffectVars.has(name)) {
+      const ev = Node.EffectVar(name);
+      assignSpan(ev, spanFromTokens(typeTok, typeTok));
+      return ev;
     }
     const node = Node.TypeName(name);
     assignSpan(node, spanFromTokens(typeTok, typeTok));

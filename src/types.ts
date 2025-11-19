@@ -170,6 +170,7 @@ export interface Func extends Base.BaseFunc<Span, readonly string[], Type> {
   readonly retType: Type;
   readonly body: Block | null;
   readonly params: readonly Parameter[];
+  readonly effectParams?: readonly string[];
   span: Span;
 }
 
@@ -342,7 +343,18 @@ export interface None extends Base.BaseNone<Span> {
   span: Span;
 }
 
-export type Type = TypeName | Maybe | Option | Result | List | Map | TypeApp | TypeVar | FuncType | TypePii;
+export type Type =
+  | TypeName
+  | Maybe
+  | Option
+  | Result
+  | List
+  | Map
+  | TypeApp
+  | TypeVar
+  | EffectVar
+  | FuncType
+  | TypePii;
 
 /**
  * PII 敏感级别
@@ -395,6 +407,12 @@ export interface TypeVar extends Base.BaseTypeVar<Span> {
   span: Span;
 }
 
+export interface EffectVar extends AstNode {
+  readonly kind: 'EffectVar';
+  readonly name: string;
+  span: Span;
+}
+
 export interface TypeApp extends Base.BaseTypeApp<Span, Type> {
   span: Span;
 }
@@ -420,6 +438,8 @@ export interface Map extends Base.BaseMap<Span, Type> {
 }
 
 export interface FuncType extends Base.BaseFuncType<Span, Type> {
+  readonly effectParams?: readonly EffectVar[];
+  readonly declaredEffects?: readonly (EffectEnum | EffectVar)[];
   span: Span;
 }
 
@@ -451,6 +471,8 @@ export namespace Core {
     readonly effects: readonly EffectEnum[];
     readonly body: Block;
     readonly params: readonly Parameter[];
+    readonly effectParams?: readonly string[];
+    readonly declaredEffects?: readonly (EffectEnum | EffectVar)[];
     readonly piiLevel?: PiiSensitivityLevel;
     readonly piiCategories?: readonly string[];
   }
@@ -568,7 +590,18 @@ export namespace Core {
   export interface Await extends Base.BaseAwait<Origin, Expression> {}
 
   // Extended with generics (preview)
-  export type Type = TypeName | Maybe | Option | Result | List | Map | TypeApp | TypeVar | FuncType | PiiType;
+  export type Type =
+    | TypeName
+    | Maybe
+    | Option
+    | Result
+    | List
+    | Map
+    | TypeApp
+    | TypeVar
+    | EffectVar
+    | FuncType
+    | PiiType;
 
   /**
    * PII 类型（Core IR 层）
@@ -585,6 +618,11 @@ export namespace Core {
 
   export interface TypeVar extends Base.BaseTypeVar<Origin> {}
 
+  export interface EffectVar extends CoreNode {
+    readonly kind: 'EffectVar';
+    readonly name: string;
+  }
+
   export interface TypeApp extends Base.BaseTypeApp<Origin, Type> {}
 
   export interface Maybe extends Base.BaseMaybe<Origin, Type> {}
@@ -597,5 +635,8 @@ export namespace Core {
 
   export interface Map extends Base.BaseMap<Origin, Type> {}
 
-  export interface FuncType extends Base.BaseFuncType<Origin, Type> {}
+  export interface FuncType extends Base.BaseFuncType<Origin, Type> {
+    readonly effectParams?: readonly string[];
+    readonly declaredEffects?: readonly (EffectEnum | string)[];
+  }
 }

@@ -163,7 +163,10 @@
             }
           }
         ]
-      }
+      },
+      "declaredEffects": [
+        "IO"
+      ]
     }
   ]
 }

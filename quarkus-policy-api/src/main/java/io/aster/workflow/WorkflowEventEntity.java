@@ -48,6 +48,24 @@ public class WorkflowEventEntity extends PanacheEntityBase {
     public String idempotencyKey;
 
     /**
+     * 重试尝试次数，默认为 1，向后兼容无重试场景
+     */
+    @Column(name = "attempt_number")
+    public Integer attemptNumber = 1;
+
+    /**
+     * 上一次退避时间（毫秒），用于诊断与回溯重试策略
+     */
+    @Column(name = "backoff_delay_ms")
+    public Long backoffDelayMs;
+
+    /**
+     * 失败原因，扩大长度以兼容堆栈信息
+     */
+    @Column(name = "failure_reason", length = 10000)
+    public String failureReason;
+
+    /**
      * 策略版本 ID（Phase 3.1）
      * NULL 表示版本化功能上线前的事件
      */
@@ -63,6 +81,17 @@ public class WorkflowEventEntity extends PanacheEntityBase {
      */
     public static List<WorkflowEventEntity> findByWorkflowId(UUID workflowId, long fromSeq) {
         return find("workflowId = ?1 AND sequence >= ?2 ORDER BY sequence", workflowId, fromSeq).list();
+    }
+
+    /**
+     * 查询指定 workflow 下某次重试的事件历史
+     *
+     * @param workflowId workflow 唯一标识符
+     * @param attemptNumber 重试次数
+     * @return 事件列表
+     */
+    public static List<WorkflowEventEntity> findByWorkflowIdAndAttempt(UUID workflowId, int attemptNumber) {
+        return find("workflowId = ?1 AND attemptNumber = ?2 ORDER BY sequence", workflowId, attemptNumber).list();
     }
 
     /**
@@ -99,5 +128,29 @@ public class WorkflowEventEntity extends PanacheEntityBase {
      */
     public static boolean hasEvent(UUID workflowId, String eventType) {
         return count("workflowId = ?1 AND eventType = ?2", workflowId, eventType) > 0;
+    }
+
+    public Integer getAttemptNumber() {
+        return attemptNumber;
+    }
+
+    public void setAttemptNumber(Integer attemptNumber) {
+        this.attemptNumber = attemptNumber;
+    }
+
+    public Long getBackoffDelayMs() {
+        return backoffDelayMs;
+    }
+
+    public void setBackoffDelayMs(Long backoffDelayMs) {
+        this.backoffDelayMs = backoffDelayMs;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
+    }
+
+    public void setFailureReason(String failureReason) {
+        this.failureReason = failureReason;
     }
 }

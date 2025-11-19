@@ -1,0 +1,9 @@
+This module is test.data.
+
+Define Person with name: Text, age: Int, email: Text.
+
+To createPerson with name: Text, age: Int, email: Text, produce Person:
+  Return Person with name = name, age = age, email = email.
+
+To getPersonName with person: Person, produce Text:
+  Return person.name.

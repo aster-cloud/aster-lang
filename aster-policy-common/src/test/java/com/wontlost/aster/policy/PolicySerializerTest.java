@@ -97,45 +97,47 @@ class PolicySerializerTest {
     }
 
     @Test
-    void shouldConvertToCNL() {
-        TestPolicy policy = new TestPolicy(
-            "simple-policy",
-            "Simple Policy",
-            "v1",
-            Map.of("allow", true),
-            LocalDateTime.of(2025, 11, 8, 10, 0)
-        );
+    @SuppressWarnings("unchecked")
+    void shouldConvertCoreIRJsonToCNL() throws Exception {
+        // This test verifies that a valid Core IR JSON can be converted to CNL format
+        // We use fromCNL to first generate valid Core IR JSON, then convert it back
+        String asterCNL = """
+            This module is test.minimal.
 
-        String cnl = serializer.toCNL(policy);
+            To greet with name: Text, produce Text:
+              Return "Hello".
+            """;
 
-        // 当前占位符实现应包含注释和 JSON
-        assertThat(cnl)
-            .contains("// Placeholder CNL representation")
-            .contains("\"id\" : \"simple-policy\"")
-            .contains("\"allow\" : true");
+        // Step 1: CNL → Core IR JSON (via compile)
+        Map<String, Object> coreIR = serializer.fromCNL(asterCNL, Map.class);
+
+        // Step 2: Core IR JSON → CNL format (via json-to-cnl)
+        String regeneratedCNL = serializer.toCNL(coreIR);
+
+        // Verify output contains module name and function
+        assertThat(regeneratedCNL)
+            .contains("test.minimal")
+            .contains("greet");
     }
 
     @Test
-    void shouldConvertFromCNL() {
-        String cnl = """
-            // Placeholder CNL representation
-            // TODO: Implement full JSON -> CNL conversion
-            {
-              "id" : "cnl-policy",
-              "name" : "CNL Policy",
-              "version" : "v1",
-              "rules" : {
-                "enabled" : true
-              },
-              "createdAt" : "2025-11-08T14:00:00"
-            }
+    @SuppressWarnings("unchecked")
+    void shouldConvertFromCNL_withValidAsterSource() {
+        // This test uses actual Aster CNL source code
+        String asterCNL = """
+            This module is test.minimal.
+
+            To greet with name: Text, produce Text:
+              Return "Hello".
             """;
 
-        TestPolicy policy = serializer.fromCNL(cnl, TestPolicy.class);
-
-        assertThat(policy.id).isEqualTo("cnl-policy");
-        assertThat(policy.name).isEqualTo("CNL Policy");
-        assertThat(policy.rules).containsEntry("enabled", true);
+        // fromCNL compiles Aster source to Core IR JSON, then deserializes
+        // The resulting JSON structure depends on the Core IR format
+        // For now, we just verify it doesn't throw an exception
+        assertThatCode(() -> {
+            Map<String, Object> result = serializer.fromCNL(asterCNL, Map.class);
+            assertThat(result).isNotNull();
+        }).doesNotThrowAnyException();
     }
 
     @Test

@@ -51,6 +51,7 @@
 - [PiiType](interfaces/PiiType.md)
 - [TypeName](interfaces/TypeName.md)
 - [TypeVar](interfaces/TypeVar.md)
+- [EffectVar](interfaces/EffectVar.md)
 - [TypeApp](interfaces/TypeApp.md)
 - [Maybe](interfaces/Maybe.md)
 - [Option](interfaces/Option.md)

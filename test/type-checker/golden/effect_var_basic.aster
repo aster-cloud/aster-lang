@@ -1,0 +1,7 @@
+This module is test.effect_var.
+
+fn identity of T, E(x: T with E): T with E.
+  Return x.
+
+fn caller(): Unit with IO.
+  Call identity(42).

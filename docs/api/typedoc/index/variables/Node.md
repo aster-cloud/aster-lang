@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/23eb6a773fc1e04c4b93f4380fd9d1f84e496756/src/ast.ts#L11)
+Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/fd95cfef5bdde57ff61442c12f0f7eb090f06322/src/ast.ts#L11)
 
 ## Type Declaration
 
@@ -84,7 +84,7 @@ readonly `string`[]
 
 ### Func()
 
-> **Func**: (`name`, `typeParams`, `params`, `retType`, `effects`, `effectCaps`, `effectCapsExplicit`, `body`) => [`Func`](../../types/interfaces/Func.md)
+> **Func**: (`name`, `typeParams`, `params`, `retType`, `effects`, `effectCaps`, `effectCapsExplicit`, `body`, `effectParams?`) => [`Func`](../../types/interfaces/Func.md)
 
 #### Parameters
 
@@ -119,6 +119,10 @@ readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md
 ##### body
 
 [`Block`](../../types/interfaces/Block.md) | `null`
+
+##### effectParams?
+
+readonly `string`[]
 
 #### Returns
 
@@ -663,6 +667,20 @@ readonly [`Type`](../../types/type-aliases/Type.md)[]
 #### Returns
 
 [`TypeVar`](../../types/interfaces/TypeVar.md)
+
+### EffectVar()
+
+> **EffectVar**: (`name`) => [`EffectVar`](../../types/interfaces/EffectVar.md)
+
+#### Parameters
+
+##### name
+
+`string`
+
+#### Returns
+
+[`EffectVar`](../../types/interfaces/EffectVar.md)
 
 ### TypePii()
 

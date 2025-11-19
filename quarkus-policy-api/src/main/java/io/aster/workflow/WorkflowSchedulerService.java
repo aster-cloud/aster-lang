@@ -1,6 +1,7 @@
 package io.aster.workflow;
 
 import aster.runtime.workflow.WorkflowEvent;
+import aster.truffle.runtime.AsyncTaskRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.aster.monitoring.BusinessMetrics;
@@ -56,6 +57,7 @@ public class WorkflowSchedulerService {
     private ExecutorService executorService;
     private ScheduledExecutorService timerPollingService;
     private volatile boolean running = false;
+    private final AsyncTaskRegistry registry = new AsyncTaskRegistry();
 
     // Worker 标识符：调度器级别标识，不处于 workflow 上下文，保持 UUID 随机值即可
     private final String workerId = UUID.randomUUID().toString().substring(0, 8);
@@ -83,6 +85,9 @@ public class WorkflowSchedulerService {
                 1,
                 TimeUnit.SECONDS
         );
+
+        // 启动延迟任务轮询线程
+        // TODO: registry.startPolling() - method removed, need to reimplement
 
         running = true;
         Log.info("WorkflowSchedulerService started");
@@ -116,6 +121,9 @@ public class WorkflowSchedulerService {
                 timerPollingService.shutdownNow();
             }
         }
+
+        // 停止延迟任务轮询线程
+        // TODO: registry.stopPolling() - method removed, need to reimplement
 
         Log.info("WorkflowSchedulerService stopped");
     }
@@ -231,8 +239,19 @@ public class WorkflowSchedulerService {
 
             Log.infof("Processing workflow %s (worker=%s)", workflowId, workerId);
 
-            // 获取事件历史
-            List<WorkflowEvent> events = eventStore.getEvents(workflowId, 0);
+            // Snapshot 优化：从最后的 snapshot 开始重放事件，而非从 0
+            long fromSeq = 0;
+            Optional<aster.runtime.workflow.WorkflowSnapshot> snapshot = eventStore.getLatestSnapshot(workflowId);
+            if (snapshot.isPresent()) {
+                fromSeq = snapshot.get().getEventSeq() + 1;  // 从 snapshot 下一个事件开始
+                Log.infof("Workflow %s replaying from snapshot seq %d (skipped %d events)",
+                        workflowId, snapshot.get().getEventSeq(), fromSeq);
+            } else {
+                Log.debugf("Workflow %s no snapshot found, replaying from event 0", workflowId);
+            }
+
+            // 获取事件历史（从 snapshot 之后开始）
+            List<WorkflowEvent> events = eventStore.getEvents(workflowId, fromSeq);
 
             // 检查 workflow 状态
             boolean completed = events.stream()

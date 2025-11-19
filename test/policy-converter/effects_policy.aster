@@ -1,0 +1,7 @@
+This module is test.effects.
+
+To pureFunction with x: Int, produce Int:
+  Return x * 2.
+
+To ioFunction with message: Text, produce Text with IO. It performs io:
+  Return "Processed: " + message.

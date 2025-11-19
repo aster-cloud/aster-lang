@@ -115,7 +115,7 @@ class DeterminismSnapshotTest {
         expected.put("alpha", new ArrayList<>());
         expected.put("beta", new ArrayList<>());
 
-        for (int i = 0; i < 150; i++) {
+        for (int i = 0; i < 600; i++) {
             long alpha = random.nextLong("alpha");
             expected.get("alpha").add(alpha);
             long beta = random.nextLong("beta");
@@ -125,9 +125,9 @@ class DeterminismSnapshotTest {
         DeterminismSnapshot snapshot = DeterminismSnapshot.from(null, null, random);
         assertThat(snapshot.getRandoms()).containsKeys("alpha", "beta");
         assertThat(snapshot.getRandoms().get("alpha"))
-                .containsExactlyElementsOf(expected.get("alpha").subList(0, 100));
+                .containsExactlyElementsOf(expected.get("alpha").subList(0, 500));
         assertThat(snapshot.getRandoms().get("beta"))
-                .containsExactlyElementsOf(expected.get("beta").subList(0, 100));
+                .containsExactlyElementsOf(expected.get("beta").subList(0, 500));
     }
 
     @Test
@@ -167,5 +167,85 @@ class DeterminismSnapshotTest {
         String json = mapper.writeValueAsString(snapshot);
         DeterminismSnapshot restored = mapper.readValue(json, DeterminismSnapshot.class);
         assertThat(restored.getClockTimes()).containsExactly("2025-04-01T00:00:00Z");
+    }
+
+    @Test
+    void testSizeLimitBoundaryExactly500() {
+        // 测试恰好 500 条记录（边界值）
+        ReplayDeterministicRandom random = new ReplayDeterministicRandom();
+        List<Long> expected = new ArrayList<>();
+
+        for (int i = 0; i < 500; i++) {
+            expected.add(random.nextLong("gamma"));
+        }
+
+        DeterminismSnapshot snapshot = DeterminismSnapshot.from(null, null, random);
+        assertThat(snapshot.getRandoms().get("gamma")).hasSize(500);
+        assertThat(snapshot.getRandoms().get("gamma")).containsExactlyElementsOf(expected);
+    }
+
+    @Test
+    void testSizeLimitBoundary501Records() {
+        // 测试超出限制 1 条（501 条记录）
+        ReplayDeterministicRandom random = new ReplayDeterministicRandom();
+        List<Long> expected = new ArrayList<>();
+
+        for (int i = 0; i < 501; i++) {
+            expected.add(random.nextLong("delta"));
+        }
+
+        DeterminismSnapshot snapshot = DeterminismSnapshot.from(null, null, random);
+        // 应该只保留前 500 条
+        assertThat(snapshot.getRandoms().get("delta")).hasSize(500);
+        assertThat(snapshot.getRandoms().get("delta")).containsExactlyElementsOf(expected.subList(0, 500));
+    }
+
+    @Test
+    void testSizeLimitBoundaryZeroRecords() {
+        // 测试空情况（0 条记录）
+        ReplayDeterministicClock clock = new ReplayDeterministicClock();
+        ReplayDeterministicUuid uuid = new ReplayDeterministicUuid();
+        ReplayDeterministicRandom random = new ReplayDeterministicRandom();
+
+        DeterminismSnapshot snapshot = DeterminismSnapshot.from(clock, uuid, random);
+
+        // 当没有记录时，可能返回 null 或空集合
+        assertThat(snapshot.getClockTimes()).isNullOrEmpty();
+        assertThat(snapshot.getUuids()).isNullOrEmpty();
+        assertThat(snapshot.getRandoms()).isNullOrEmpty();
+    }
+
+    @Test
+    void testSizeLimitBoundaryMixedSources() {
+        // 测试混合场景：Clock=500, UUID=501, Random=499
+        ReplayDeterministicClock clock = new ReplayDeterministicClock();
+        for (int i = 0; i < 500; i++) {
+            clock.recordTimeDecision(Instant.ofEpochSecond(1_600_000_000L + i));
+        }
+
+        ReplayDeterministicUuid uuid = new ReplayDeterministicUuid();
+        List<String> uuidRecords = new ArrayList<>();
+        for (int i = 0; i < 501; i++) {
+            uuidRecords.add(uuid.randomUUID().toString());
+        }
+
+        ReplayDeterministicRandom random = new ReplayDeterministicRandom();
+        List<Long> randomRecords = new ArrayList<>();
+        for (int i = 0; i < 499; i++) {
+            randomRecords.add(random.nextLong("epsilon"));
+        }
+
+        DeterminismSnapshot snapshot = DeterminismSnapshot.from(clock, uuid, random);
+
+        // Clock: 恰好 500 条，全部保留
+        assertThat(snapshot.getClockTimes()).hasSize(500);
+
+        // UUID: 501 条，只保留前 500 条
+        assertThat(snapshot.getUuids()).hasSize(500);
+        assertThat(snapshot.getUuids()).containsExactlyElementsOf(uuidRecords.subList(0, 500));
+
+        // Random: 499 条，全部保留
+        assertThat(snapshot.getRandoms().get("epsilon")).hasSize(499);
+        assertThat(snapshot.getRandoms().get("epsilon")).containsExactlyElementsOf(randomRecords);
     }
 }

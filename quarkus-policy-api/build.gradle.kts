@@ -57,12 +57,13 @@ dependencies {
     implementation("io.quarkus:quarkus-scheduler")
 
     // Aster运行时和编译后的策略
+    implementation(project(":aster-core"))
     implementation(project(":aster-runtime"))
     implementation(project(":aster-truffle"))
     implementation(project(":aster-validation"))
     implementation(project(":aster-policy-common"))
     implementation(project(":aster-finance"))
-    implementation(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
+    runtimeOnly(files("${rootProject.projectDir}/build/aster-out/aster.jar"))
 
     // 测试依赖
     testImplementation("io.quarkus:quarkus-junit5")

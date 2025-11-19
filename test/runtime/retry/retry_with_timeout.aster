@@ -1,0 +1,16 @@
+This module is tests.runtime.retry.timeout.
+
+To retryWithTimeout, produce Workflow of Result of Text and Text and IO. It performs io:
+
+  workflow:
+    step apiCall:
+      Return ok of "response".
+
+    timeout:
+      seconds: 30.
+
+    retry:
+      max attempts: 3.
+      backoff: exponential.
+
+  .

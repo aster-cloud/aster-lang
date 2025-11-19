@@ -15,6 +15,43 @@ import { parseBlock, parseParamList } from './expr-stmt-parser.js';
 import { parseFieldList, parseVariantList } from './field-variant-parser.js';
 import { assignSpan, spanFromSources, lastConsumedToken, spanFromTokens } from './span-utils.js';
 
+function parseEffectParams(
+  ctx: ParserContext,
+  skipLayoutTrivia: () => void,
+  error: (msg: string) => never
+): string[] {
+  if (!ctx.at(TokenKind.LT)) return [];
+  const names: string[] = [];
+  ctx.next(); // consume '<'
+  skipLayoutTrivia();
+  let more = true;
+  while (more) {
+    skipLayoutTrivia();
+    if (!ctx.at(TokenKind.TYPE_IDENT)) {
+      error("Expected effect type parameter (capitalized identifier)");
+    }
+    names.push(ctx.next().value as string);
+    skipLayoutTrivia();
+    if (ctx.at(TokenKind.COMMA)) {
+      ctx.next();
+      skipLayoutTrivia();
+      continue;
+    }
+    if (ctx.isKeyword(KW.AND)) {
+      ctx.nextWord();
+      skipLayoutTrivia();
+      continue;
+    }
+    more = false;
+  }
+  if (!ctx.at(TokenKind.GT)) {
+    error("Expected '>' after effect parameter list");
+  }
+  ctx.next(); // consume '>'
+  skipLayoutTrivia();
+  return names;
+}
+
 /**
  * 解析数据类型定义
  * 语法: Define User with name: Text and age: Int.
@@ -198,9 +235,17 @@ export function parseFuncDecl(
 
   skipLayoutTrivia();
 
-  // 保存当前类型变量作用域，设置新的作用域
+  let effectParams: string[] = [];
+  if (ctx.at(TokenKind.LT)) {
+    effectParams = parseEffectParams(ctx, skipLayoutTrivia, error);
+  }
+
+  // 保存当前类型变量与效应变量作用域，设置新的作用域
   const savedTypeVars = new Set(ctx.currentTypeVars);
+  const savedEffectVars = new Set(ctx.currentEffectVars);
   ctx.currentTypeVars = new Set(typeParams);
+  ctx.currentEffectVars = new Set(effectParams);
+  const activeEffectVars = ctx.currentEffectVars;
 
   // 解析参数列表
   skipLayoutTrivia();
@@ -351,7 +396,13 @@ export function parseFuncDecl(
   ctx.currentTypeVars = savedTypeVars;
 
   // 分离基本效果和能力约束
-  const { baseEffects, effectCaps, hasExplicitCaps } = separateEffectsAndCaps(effects, error);
+  const { baseEffects, effectCaps, hasExplicitCaps, effectVars } = separateEffectsAndCaps(
+    effects,
+    error,
+    activeEffectVars
+  );
+  ctx.currentEffectVars = savedEffectVars;
+  const declaredEffects = [...baseEffects, ...effectVars];
 
   // 创建函数节点并附加元数据
   const fn = Node.Func(
@@ -359,10 +410,11 @@ export function parseFuncDecl(
     typeParams,
     params,
     retType,
-    baseEffects,
+    declaredEffects,
     effectCaps,
     hasExplicitCaps,
-    body
+    body,
+    effectParams
   );
   const funcEndSource = body ?? endTok;
   assignSpan(fn, spanFromSources(toTok, funcEndSource, endTok));

@@ -52,7 +52,10 @@
             }
           }
         ]
-      }
+      },
+      "declaredEffects": [
+        "IO"
+      ]
     },
     {
       "kind": "Func",
@@ -90,7 +93,10 @@
             }
           }
         ]
-      }
+      },
+      "declaredEffects": [
+        "IO"
+      ]
     },
     {
       "kind": "Func",
@@ -149,7 +155,10 @@
             }
           }
         ]
-      }
+      },
+      "declaredEffects": [
+        "IO"
+      ]
     },
     {
       "kind": "Func",
@@ -213,7 +222,10 @@
             }
           }
         ]
-      }
+      },
+      "declaredEffects": [
+        "IO"
+      ]
     }
   ]
 }

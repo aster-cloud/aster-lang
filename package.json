@@ -27,15 +27,17 @@
     "aster": "./dist/scripts/aster.js",
     "aster-core": "./dist/scripts/emit-core.js",
     "aster-lsp": "./dist/src/lsp/server.js",
-    "aster-jvm": "./dist/scripts/emit-jvm.js"
+    "aster-jvm": "./dist/scripts/emit-jvm.js",
+    "aster-convert": "./dist/src/cli/policy-converter.js"
   },
   "scripts": {
     "build": "tsc && node dist/scripts/build-peg.js",
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
     "dev": "npm run build:watch",
-    "test": "npm run fmt:examples && npm run build && npm run test:unit && npm run test:integration && npm run test:golden && npm run test:property",
+    "test": "npm run fmt:examples && npm run build && npm run test:unit && npm run test:integration && npm run test:golden && npm run test:property && npm run test:converter",
     "test:unit": "npm run build && node --test 'dist/test/unit/**/*.test.js'",
+    "test:converter": "npm run build && node --test 'dist/test/policy-converter/**/*.test.js'",
     "test:unit:coverage": "npm run build && c8 node --test 'dist/test/unit/**/*.test.js'",
     "test:coverage": "npm run build && c8 node --test 'dist/test/unit/**/*.test.js' 'dist/test/integration/**/*.test.js'",
     "coverage:report": "c8 report --reporter=html --reporter=text",

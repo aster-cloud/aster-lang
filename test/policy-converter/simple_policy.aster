@@ -1,0 +1,7 @@
+This module is test.simple.
+
+To greet with name: Text, produce Text:
+  Return +("Hello, ", +(name, "!")).
+
+To add with x: Int, y: Int, produce Int:
+  Return +(x, y).

@@ -35,7 +35,9 @@ export const Core = {
     effects: readonly Effect[],
     body: CoreTypes.Block,
     effectCaps: readonly import('./types.js').CapabilityKind[] = [],
-    effectCapsExplicit = false
+    effectCapsExplicit = false,
+    effectParams?: readonly string[],
+    declaredEffects?: readonly (Effect | CoreTypes.EffectVar)[]
   ): CoreTypes.Func => ({
     kind: 'Func',
     name,
@@ -46,6 +48,8 @@ export const Core = {
     effectCaps: [...effectCaps],
     effectCapsExplicit,
     body,
+    ...(effectParams && effectParams.length > 0 ? { effectParams } : {}),
+    ...(declaredEffects && declaredEffects.length > 0 ? { declaredEffects } : {}),
   }),
   Block: (statements: readonly CoreTypes.Statement[]): CoreTypes.Block => ({
     kind: 'Block',

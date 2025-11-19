@@ -26,6 +26,12 @@ public class InMemoryEventStore implements EventStore {
      */
     @Override
     public long appendEvent(String workflowId, String eventType, Object payload) {
+        return appendEvent(workflowId, eventType, payload, 1, null, null);
+    }
+
+    @Override
+    public long appendEvent(String workflowId, String eventType, Object payload,
+                            Integer attemptNumber, Long backoffDelayMs, String failureReason) {
         List<WorkflowEvent> eventList = events.computeIfAbsent(workflowId, k -> new ArrayList<>());
 
         long nextSeq = eventList.size() + 1;
@@ -34,7 +40,10 @@ public class InMemoryEventStore implements EventStore {
                 workflowId,
                 eventType,
                 payload,
-                Instant.now()
+                Instant.now(),
+                attemptNumber != null ? attemptNumber : 1,
+                backoffDelayMs,
+                failureReason
         );
 
         eventList.add(event);

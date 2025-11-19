@@ -369,7 +369,7 @@ public class PostgresWorkflowRuntime implements WorkflowRuntime {
      * @param context 确定性上下文
      * @return JSONB 字符串，失败或无数据时返回 null
      */
-    private String serializeDeterminismSnapshot(DeterminismContext context) {
+    public static String serializeDeterminismSnapshot(DeterminismContext context) {
         if (context == null) {
             return null;
         }

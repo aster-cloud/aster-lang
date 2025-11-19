@@ -4,6 +4,8 @@ import { getIOPrefixes, getCPUPrefixes } from './config/effect_config.js';
 import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
 import { resolveAlias } from './typecheck.js';
 import { ErrorCode } from './error_codes.js';
+import type { EffectSignature } from './effect_signature.js';
+import { cacheModuleEffectSignatures } from './lsp/module_cache.js';
 
 export interface EffectConstraint {
   caller: string;
@@ -16,7 +18,37 @@ interface FunctionAnalysis {
   localEffects: Set<Effect>;
 }
 
-export function inferEffects(core: Core.Module, imports?: Map<string, string>): TypecheckDiagnostic[] {
+type EffectAtom = Effect | 'Workflow';
+type EffectRef = EffectAtom | { kind: 'EffectVar'; name: string };
+type EffectBinding = { value: EffectAtom; resolved: boolean };
+type EffectBindingTable = Map<string, Map<string, EffectBinding>>;
+type EffectSetMap = Map<string, Set<EffectRef>>;
+
+function effectRank(atom: EffectAtom): number {
+  switch (atom) {
+    case Effect.PURE:
+      return 0;
+    case Effect.CPU:
+      return 1;
+    case Effect.IO:
+      return 2;
+    default:
+      return 3;
+  }
+}
+
+function strongerEffect(a: EffectAtom, b: EffectAtom): EffectAtom {
+  return effectRank(a) >= effectRank(b) ? a : b;
+}
+
+export interface EffectInferenceOptions {
+  moduleName?: string;
+  moduleUri?: string | null;
+  imports?: Map<string, string>;
+  importedEffects?: Map<string, EffectSignature>;
+}
+
+export function inferEffects(core: Core.Module, options?: EffectInferenceOptions): TypecheckDiagnostic[] {
   const ioPrefixes = getIOPrefixes();
   const cpuPrefixes = getCPUPrefixes();
   const funcIndex = new Map<string, Core.Func>();
@@ -25,18 +57,41 @@ export function inferEffects(core: Core.Module, imports?: Map<string, string>): 
   }
 
   const constraints: EffectConstraint[] = [];
-  const declaredEffects = new Map<string, Set<Effect>>();
-  const inferredEffects = new Map<string, Set<Effect>>();
-  const requiredEffects = new Map<string, Set<Effect>>();
+  const declaredEffects: EffectSetMap = new Map();
+  const inferredEffects: EffectSetMap = new Map();
+  const requiredEffects: EffectSetMap = new Map();
+  const effectParams = new Map<string, Set<string>>();
+  const bindings: EffectBindingTable = new Map();
 
   // 第一遍：收集局部效果和约束
   for (const func of funcIndex.values()) {
-    const analysis = analyzeFunction(func, funcIndex, ioPrefixes, cpuPrefixes, imports);
+    const analysis = analyzeFunction(
+      func,
+      funcIndex,
+      ioPrefixes,
+      cpuPrefixes,
+      options?.imports,
+      options?.importedEffects
+    );
     constraints.push(...analysis.constraints);
 
-    const declared = new Set<Effect>(func.effects);
-    const inferred = new Set<Effect>([...func.effects, ...analysis.localEffects]);
-    const required = new Set<Effect>(analysis.localEffects);
+    const paramSet = new Set<string>(func.effectParams ?? []);
+    effectParams.set(func.name, paramSet);
+    bindings.set(func.name, initBindings(paramSet));
+
+    const declared = new Set<EffectRef>();
+    const declaredSource =
+      (func as unknown as { declaredEffects?: readonly (Effect | Core.EffectVar)[] }).declaredEffects ??
+      func.effects;
+    for (const eff of declaredSource) declared.add(normalizeEffectRef(eff));
+
+    const inferred = new Set<EffectRef>(declared);
+    const required = new Set<EffectRef>();
+    for (const eff of analysis.localEffects) {
+      const ref = normalizeEffectRef(eff);
+      inferred.add(ref);
+      required.add(ref);
+    }
 
     declaredEffects.set(func.name, declared);
     inferredEffects.set(func.name, inferred);
@@ -54,10 +109,38 @@ export function inferEffects(core: Core.Module, imports?: Map<string, string>): 
     }
   }
 
-  propagateEffects(constraints, inferredEffects);
-  propagateEffects(constraints, requiredEffects);
+  propagateEffects(constraints, inferredEffects, bindings);
+  propagateEffects(constraints, requiredEffects, bindings);
 
-  return buildDiagnostics(funcIndex, declaredEffects, inferredEffects, requiredEffects);
+  const resolvedDeclared = resolveEffectMap(declaredEffects, bindings);
+  const resolvedInferred = resolveEffectMap(inferredEffects, bindings);
+  const resolvedRequired = resolveEffectMap(requiredEffects, bindings);
+
+  const diagnostics = buildDiagnostics(
+    funcIndex,
+    resolvedDeclared,
+    resolvedInferred,
+    resolvedRequired,
+    bindings,
+    effectParams
+  );
+
+  if (options?.moduleName) {
+    const signatures = buildEffectSignatureMap(
+      options.moduleName,
+      resolvedDeclared,
+      resolvedInferred,
+      resolvedRequired
+    );
+    cacheModuleEffectSignatures({
+      moduleName: options.moduleName,
+      uri: options.moduleUri ?? null,
+      signatures,
+      imports: options.imports ? Array.from(new Set(options.imports.values())) : [],
+    });
+  }
+
+  return diagnostics;
 }
 
 function analyzeFunction(
@@ -65,7 +148,8 @@ function analyzeFunction(
   index: Map<string, Core.Func>,
   ioPrefixes: readonly string[],
   cpuPrefixes: readonly string[],
-  imports?: Map<string, string>
+  imports?: Map<string, string>,
+  importedEffects?: Map<string, EffectSignature>
 ): FunctionAnalysis {
   const constraints: EffectConstraint[] = [];
   const localEffects = new Set<Effect>();
@@ -97,16 +181,29 @@ function analyzeFunction(
         const calleeName = extractFunctionName(e.target);
         if (calleeName) {
           const resolvedName = imports ? resolveAlias(calleeName, imports) : calleeName;
-          if (!index.has(resolvedName)) {
+          const isLocal = index.has(resolvedName);
+          const imported = importedEffects?.get(resolvedName);
+
+          if (imported) {
+            for (const effect of imported.required) {
+              localEffects.add(effect);
+            }
+          } else if (!isLocal) {
             recordBuiltinEffect(resolvedName, localEffects, ioPrefixes, cpuPrefixes);
           }
-          if (index.has(resolvedName)) {
+
+          if (isLocal) {
             const constraint: EffectConstraint = { caller: func.name, callee: resolvedName };
             const call = e as Core.Call;
             if (call.origin) constraint.location = call.origin as Origin;
             constraints.push(constraint);
           }
         }
+      } else if (e.kind === 'Lambda') {
+        // Lambda表达式：递归收集Lambda body的效应
+        const lambda = e as Core.Lambda;
+        this.visitBlock(lambda.body, context);
+        return; // Lambda body已处理，无需继续默认递归
       }
       // 继续默认递归
       super.visitExpression(e, context);
@@ -134,12 +231,15 @@ function recordBuiltinEffect(
 
 function propagateEffects(
   constraints: EffectConstraint[],
-  effectMap: Map<string, Set<Effect>>
+  effectMap: EffectSetMap,
+  bindings: EffectBindingTable
 ): void {
   if (effectMap.size === 0) return;
 
   const { nodes, adjacency } = buildEffectFlowGraph(constraints, effectMap);
   if (nodes.length === 0) return;
+
+  seedBindingsWithEffects(effectMap, bindings);
 
   const { components, componentByNode } = runTarjan(nodes, adjacency);
   const { componentEdges, indegree } = buildComponentGraph(components, componentByNode, adjacency);
@@ -155,43 +255,136 @@ function propagateEffects(
       while (localChanged) {
         localChanged = false;
         for (const node of members) {
-          const source = effectMap.get(node);
           const neighbors = adjacency.get(node);
-          if (!source || !neighbors) continue;
+          if (!neighbors) continue;
           for (const neighbor of neighbors) {
             if (componentByNode.get(neighbor) !== componentIndex) continue;
-            const target = effectMap.get(neighbor);
-            if (!target) continue;
-            for (const effect of source) {
-              if (!target.has(effect)) {
-                target.add(effect);
-                localChanged = true;
-              }
-            }
+            const changed = mergeEffects(node, neighbor, effectMap, bindings);
+            if (changed) localChanged = true;
           }
         }
       }
     }
 
     for (const node of members) {
-      const source = effectMap.get(node);
       const neighbors = adjacency.get(node);
-      if (!source || !neighbors) continue;
+      if (!neighbors) continue;
       for (const neighbor of neighbors) {
         if (componentByNode.get(neighbor) === componentIndex) continue;
-        const target = effectMap.get(neighbor);
-        if (!target) continue;
-        for (const effect of source) {
-          target.add(effect);
-        }
+        void mergeEffects(node, neighbor, effectMap, bindings);
       }
     }
   }
 }
 
+function effectRefKey(ref: EffectRef): string {
+  if ((ref as { kind?: string }).kind === 'EffectVar') return `var:${(ref as { name: string }).name}`;
+  return String(ref);
+}
+
+function normalizeEffectRef(effect: Effect | Core.EffectVar): EffectRef {
+  if ((effect as { kind?: string }).kind === 'EffectVar') {
+    return { kind: 'EffectVar', name: (effect as Core.EffectVar).name };
+  }
+  return effect as Effect;
+}
+
+function initBindings(params: Set<string>): Map<string, EffectBinding> {
+  const binding = new Map<string, EffectBinding>();
+  for (const name of params) {
+    binding.set(name, { value: Effect.PURE, resolved: false });
+  }
+  return binding;
+}
+
+function resolveEffectRef(
+  ref: EffectRef,
+  binding: Map<string, EffectBinding> | undefined
+): EffectAtom | null {
+  if ((ref as { kind?: string }).kind === 'EffectVar') {
+    const target = binding?.get((ref as { name: string }).name);
+    return target ? target.value : null;
+  }
+  return ref as EffectAtom;
+}
+
+function addEffectAtom(target: Set<EffectRef>, effect: EffectAtom): boolean {
+  for (const existing of target) {
+    if (effectRefKey(existing) === effectRefKey(effect)) return false;
+  }
+  target.add(effect);
+  return true;
+}
+
+function updateBindingsWithEffect(
+  funcName: string,
+  effect: EffectAtom,
+  bindings: EffectBindingTable
+): void {
+  const binding = bindings.get(funcName);
+  if (!binding) return;
+  for (const [name, entry] of binding) {
+    const merged = strongerEffect(entry.value, effect);
+    const resolved = entry.resolved || effectRank(effect) > effectRank(Effect.PURE);
+    if (merged !== entry.value || resolved !== entry.resolved) {
+      binding.set(name, { value: merged, resolved });
+    }
+  }
+}
+
+function seedBindingsWithEffects(effectMap: EffectSetMap, bindings: EffectBindingTable): void {
+  for (const [fn, effects] of effectMap) {
+    const binding = bindings.get(fn);
+    if (!binding) continue;
+    for (const ref of effects) {
+      const atom = resolveEffectRef(ref, binding);
+      if (atom) updateBindingsWithEffect(fn, atom, bindings);
+    }
+  }
+}
+
+function mergeEffects(
+  source: string,
+  target: string,
+  effectMap: EffectSetMap,
+  bindings: EffectBindingTable
+): boolean {
+  const sourceEffects = effectMap.get(source);
+  const targetEffects = effectMap.get(target);
+  if (!sourceEffects || !targetEffects) return false;
+  const binding = bindings.get(source);
+  let changed = false;
+  for (const ref of sourceEffects) {
+    const atom = resolveEffectRef(ref, binding);
+    if (!atom) continue;
+    if (addEffectAtom(targetEffects, atom)) {
+      changed = true;
+      updateBindingsWithEffect(target, atom, bindings);
+    }
+  }
+  return changed;
+}
+
+function resolveEffectMap(
+  effectMap: EffectSetMap,
+  bindings: EffectBindingTable
+): Map<string, Set<EffectAtom>> {
+  const resolved = new Map<string, Set<EffectAtom>>();
+  for (const [fn, effects] of effectMap) {
+    const binding = bindings.get(fn);
+    const set = new Set<EffectAtom>();
+    for (const ref of effects) {
+      const atom = resolveEffectRef(ref, binding);
+      if (atom) set.add(atom);
+    }
+    resolved.set(fn, set);
+  }
+  return resolved;
+}
+
 function buildEffectFlowGraph(
   constraints: EffectConstraint[],
-  effectMap: Map<string, Set<Effect>>
+  effectMap: EffectSetMap
 ): { nodes: string[]; adjacency: Map<string, Set<string>> } {
   const adjacency = new Map<string, Set<string>>();
   const nodes: string[] = [];
@@ -356,16 +549,18 @@ function hasSelfLoop(
 
 function buildDiagnostics(
   funcIndex: Map<string, Core.Func>,
-  declared: Map<string, Set<Effect>>,
-  inferred: Map<string, Set<Effect>>,
-  required: Map<string, Set<Effect>>
+  declared: Map<string, Set<EffectAtom>>,
+  inferred: Map<string, Set<EffectAtom>>,
+  required: Map<string, Set<EffectAtom>>,
+  bindings: EffectBindingTable,
+  effectParams: Map<string, Set<string>>
 ): TypecheckDiagnostic[] {
   const diagnostics: TypecheckDiagnostic[] = [];
 
   for (const [name, func] of funcIndex) {
-    const declaredSet = declared.get(name) ?? new Set<Effect>();
-    const inferredSet = inferred.get(name) ?? new Set<Effect>();
-    const requiredSet = required.get(name) ?? new Set<Effect>();
+    const declaredSet = declared.get(name) ?? new Set<EffectAtom>();
+    const inferredSet = inferred.get(name) ?? new Set<EffectAtom>();
+    const requiredSet = required.get(name) ?? new Set<EffectAtom>();
 
     const inferredHasIO = inferredSet.has(Effect.IO);
     const inferredHasCPU = inferredSet.has(Effect.CPU);
@@ -434,7 +629,60 @@ function buildDiagnostics(
         diagnostics.push(diag);
       }
     }
+
+    const binding = bindings.get(name);
+    const params = effectParams.get(name) ?? new Set<string>();
+    if (binding && params.size > 0) {
+      const unresolved: string[] = [];
+      for (const param of params) {
+        const status = binding.get(param);
+        if (!status || !status.resolved) unresolved.push(param);
+      }
+      if (unresolved.length > 0) {
+        const diag: TypecheckDiagnostic = {
+          severity: 'error',
+          code: ErrorCode.EFFECT_VAR_UNRESOLVED,
+          message: `效应变量 ${unresolved.join(', ')} 无法推断出具体效果`,
+          help: '参考调用或声明补充明确的效果（pure/cpu/io/workflow），或移除未使用的效应变量。',
+          ...(func.span ? { span: func.span } : {}),
+          data: { func: name, vars: unresolved },
+        };
+        diagnostics.push(diag);
+      }
+    }
   }
 
   return diagnostics;
+}
+
+function buildEffectSignatureMap(
+  moduleName: string,
+  declared: Map<string, Set<EffectAtom>>,
+  inferred: Map<string, Set<EffectAtom>>,
+  required: Map<string, Set<EffectAtom>>
+): Map<string, EffectSignature> {
+  const map = new Map<string, EffectSignature>();
+  for (const [fn, requiredSet] of required) {
+    const qualifiedName = moduleName ? `${moduleName}.${fn}` : fn;
+    map.set(qualifiedName, {
+      module: moduleName,
+      function: fn,
+      qualifiedName,
+      declared: toEffectSet(declared.get(fn)),
+      inferred: toEffectSet(inferred.get(fn)),
+      required: toEffectSet(requiredSet),
+    });
+  }
+  return map;
+}
+
+function toEffectSet(source: Set<EffectAtom> | undefined): ReadonlySet<Effect> {
+  const result = new Set<Effect>();
+  if (!source) return result;
+  for (const atom of source) {
+    if (atom === Effect.IO || atom === Effect.CPU || atom === Effect.PURE) {
+      result.add(atom);
+    }
+  }
+  return result;
 }

@@ -163,6 +163,7 @@ class PrettyCoreVisitor extends DefaultCoreVisitor {
     switch (t.kind) {
       case 'TypeName': return t.name;
       case 'TypeVar': return t.name;
+      case 'EffectVar': return t.name;
       case 'TypeApp': return `${t.base}<${t.args.map(tt => this.formatType(tt)).join(', ')}>`;
       case 'Maybe': return `${this.formatType(t.type)}` + '?';
       case 'Option': return `Option<${this.formatType(t.type)}>`;
@@ -174,6 +175,9 @@ class PrettyCoreVisitor extends DefaultCoreVisitor {
         return `(${ps}) -> ${this.formatType(t.ret)}`;
       }
       case 'PiiType': return `@pii(${t.sensitivity}, ${t.category}) ${this.formatType(t.baseType)}`;
+      default:
+        // 运行时后备：处理未知类型
+        return `<unknown type: ${(t as any).kind}>`;
     }
   }
 }
@@ -181,17 +185,3 @@ class PrettyCoreVisitor extends DefaultCoreVisitor {
 export function formatModule(m: Core.Module): string {
   return new PrettyCoreVisitor().formatModule(m);
 }
-
-export function formatDecl(d: Core.Declaration): string {
-  const v = new PrettyCoreVisitor();
-  v.visitDeclaration(d as any, createVisitorContext());
-  return v.out.join('\n');
-}
-
-export function formatFunc(f: Core.Func): string {
-  // 通过模块格式化路径复用实现
-  const v = new PrettyCoreVisitor();
-  return (v as any).formatFunc(f);
-}
-
-// 保留导出签名；内部由 PrettyCoreVisitor 提供实现

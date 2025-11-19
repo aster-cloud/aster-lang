@@ -34,6 +34,7 @@ export interface AstVisitor<Ctx, R = void> {
 export interface TypeVisitor<Ctx, R = void> {
   visitType(t: Core.Type, ctx: Ctx): R;
   visitTypeVar?(v: Core.TypeVar, ctx: Ctx): R;
+  visitEffectVar?(v: Core.EffectVar, ctx: Ctx): R;
   visitTypeName?(n: Core.TypeName, ctx: Ctx): R;
   visitMaybe?(m: Core.Maybe, ctx: Ctx): R;
   visitOption?(o: Core.Option, ctx: Ctx): R;
@@ -56,6 +57,8 @@ export class DefaultTypeVisitor<Ctx> implements TypeVisitor<Ctx, void> {
     switch (t.kind) {
       case 'TypeVar':
         return this.visitTypeVar?.(t as Core.TypeVar, ctx);
+      case 'EffectVar':
+        return this.visitEffectVar?.(t as Core.EffectVar, ctx);
       case 'TypeName':
         return this.visitTypeName?.(t as Core.TypeName, ctx);
       case 'Maybe':
@@ -80,6 +83,10 @@ export class DefaultTypeVisitor<Ctx> implements TypeVisitor<Ctx, void> {
   // 默认实现递归遍历子类型
   visitTypeVar?(_v: Core.TypeVar, _ctx: Ctx): void {
     // TypeVar 是叶节点，无子类型
+  }
+
+  visitEffectVar?(_v: Core.EffectVar, _ctx: Ctx): void {
+    // EffectVar 是叶节点
   }
 
   visitTypeName?(_n: Core.TypeName, _ctx: Ctx): void {

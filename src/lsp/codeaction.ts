@@ -132,6 +132,42 @@ export function registerCodeActionHandlers(
         }
       }
 
+      // 处理效应变量未声明 (E210)
+      if (code === ErrorCode.EFFECT_VAR_UNDECLARED) {
+        const varName = ((d as any).data?.var as string) || '';
+        const func = ((d as any).data?.func as string) || '';
+        if (varName && func) {
+          // 提供添加效应变量声明的Quick Fix
+          const edit = addEffectVarToSignature(text, func, varName);
+          if (edit) {
+            actions.push({
+              title: `Add effect variable '${varName}' to function '${func}'`,
+              kind: CodeActionKind.QuickFix,
+              edit: { changes: { [params.textDocument.uri]: [edit] } },
+              diagnostics: [d],
+            });
+          }
+        }
+      }
+
+      // 处理效应变量无法解析 (E211)
+      if (code === ErrorCode.EFFECT_VAR_UNRESOLVED) {
+        const vars = ((d as any).data?.vars as string) || '';
+        const func = ((d as any).data?.func as string) || '';
+        if (vars && func) {
+          // 为每个可能的具体效应提供Quick Fix选项
+          for (const concreteEffect of ['PURE', 'CPU', 'IO']) {
+            actions.push({
+              title: `Instantiate ${vars} as ${concreteEffect} in '${func}'`,
+              kind: CodeActionKind.QuickFix,
+              diagnostics: [d],
+              // 注意：实际的edit生成较复杂，这里暂时只提供提示
+              // 完整实现需要解析函数调用链并替换效应变量
+            });
+          }
+        }
+      }
+
       // 处理 Interop 数值重载歧义
       if (typeof d.message === 'string' && d.message.startsWith('Ambiguous interop call')) {
         // Advisory hint
@@ -276,6 +312,45 @@ function headerRemoveEffectEdit(text: string, func: string): TextEdit | null {
     if (/^To\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line) && /It performs/i.test(line)) {
       const cleaned = line.replace(/\. It performs (IO|CPU):/i, ':');
       return TextEdit.replace({ start: { line: i, character: 0 }, end: { line: i, character: line.length } }, cleaned);
+    }
+  }
+  return null;
+}
+
+/**
+ * 辅助函数：为函数签名添加效应变量声明
+ */
+function addEffectVarToSignature(text: string, func: string, varName: string): TextEdit | null {
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    // 查找函数签名：支持 CNL 和 formal 两种语法
+    // CNL: "To funcName with params, produce Type:"
+    // Formal: "fn funcName(params): RetType" 或 "fn funcName of T, E(params): RetType"
+
+    if (/^To\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line)) {
+      // CNL 语法暂不支持效应变量，跳过
+      return null;
+    }
+
+    if (/^fn\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line)) {
+      // Formal 语法: fn funcName of T, E(params): RetType
+      // 检查是否已有 "of" 子句
+      if (/\s+of\s+/.test(line)) {
+        // 已有泛型参数，在现有列表中添加效应变量
+        const updated = line.replace(/(\s+of\s+[^(]+)(\()/, `$1, ${varName}$2`);
+        return TextEdit.replace(
+          { start: { line: i, character: 0 }, end: { line: i, character: line.length } },
+          updated
+        );
+      } else {
+        // 没有泛型参数，在函数名后添加 "of E"
+        const updated = line.replace(/(\s+)(\()/, ` of ${varName}$2`);
+        return TextEdit.replace(
+          { start: { line: i, character: 0 }, end: { line: i, character: line.length } },
+          updated
+        );
+      }
     }
   }
   return null;

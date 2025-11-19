@@ -1,5 +1,6 @@
 package io.aster.policy.rest;
 
+import com.wontlost.aster.policy.PolicySerializer;
 import io.aster.monitoring.BusinessMetrics;
 import io.aster.policy.api.PolicyEvaluationService;
 import io.aster.policy.api.model.BatchRequest;
@@ -24,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Collections;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * REST API资源：策略评估服务
@@ -126,6 +129,118 @@ public class PolicyEvaluationResource {
             LOG.errorf(throwable, "Policy evaluation failed after %dms: %s.%s", executionTime, request.policyModule(), request.policyFunction());
             return EvaluationResponse.error(throwable.getMessage());
         });
+    }
+
+    /**
+     * 评估 JSON 格式策略
+     *
+     * POST /api/policies/evaluate-json
+     * Headers: X-Tenant-Id (optional, defaults to "default")
+     * Body: { "policy": "{...Core IR JSON...}", "context": {...} }
+     */
+    @POST
+    @Path("/evaluate-json")
+    public Uni<EvaluationResponse> evaluateJson(@Valid JsonPolicyRequest request) {
+        String tenantId = tenantId();
+        String performedBy = performedBy();
+        long startTime = System.currentTimeMillis();
+        Timer.Sample sample = businessMetrics.startPolicyEvaluation();
+
+        LOG.infof("Evaluating JSON policy for tenant %s", tenantId);
+
+        try {
+            // 1. 将 JSON 转换为 CNL
+            PolicySerializer serializer = new PolicySerializer();
+            String cnl = serializer.toCNL(request.policy());
+
+            // 2. 从 CNL 中提取 module 和 function 名称
+            String policyModule = extractModule(cnl);
+            String policyFunction = extractFunction(cnl);
+
+            LOG.infof("Extracted policy: %s.%s", policyModule, policyFunction);
+
+            // 3. 准备上下文数组
+            Object[] contextArray;
+            if (request.context() instanceof List<?> list) {
+                // JSON 数组被反序列化为 List
+                contextArray = list.toArray();
+            } else if (request.context() instanceof Object[] arr) {
+                // 直接传入数组（不太可能从 REST 请求中出现）
+                contextArray = arr;
+            } else if (request.context() instanceof Map) {
+                // 单个对象包装为数组
+                contextArray = new Object[] { request.context() };
+            } else {
+                // 其他类型也包装为数组
+                contextArray = new Object[] { request.context() };
+            }
+
+            // 4. 执行评估（复用现有逻辑）
+            return evaluationService.evaluatePolicy(
+                    tenantId,
+                    policyModule,
+                    policyFunction,
+                    contextArray
+            )
+            .onItem().transform(result -> {
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                // 记录指标（非阻塞）
+                policyMetrics.recordEvaluation(policyModule, policyFunction, executionTime, true);
+                businessMetrics.recordPolicyEvaluation();
+                businessMetrics.endPolicyEvaluation(sample);
+
+                // 记录业务指标（贷款批准/拒绝）
+                if ("aster.finance.loan".equals(policyModule)) {
+                    recordLoanDecision(result.getResult());
+                }
+
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("sourceFormat", "json");
+
+                publishPolicyEvaluationEvent(
+                    tenantId,
+                    new EvaluationRequest(policyModule, policyFunction, contextArray),
+                    performedBy,
+                    true,
+                    executionTime,
+                    null,
+                    metadata
+                );
+
+                LOG.infof("JSON policy evaluation completed in %dms: %s.%s", executionTime, policyModule, policyFunction);
+                return EvaluationResponse.success(result.getResult(), executionTime);
+            })
+            .onFailure().recoverWithItem(throwable -> {
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                // 记录错误指标（非阻塞）
+                policyMetrics.recordEvaluation(policyModule, policyFunction, executionTime, false);
+                businessMetrics.endPolicyEvaluation(sample);
+
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("sourceFormat", "json");
+
+                publishPolicyEvaluationEvent(
+                    tenantId,
+                    new EvaluationRequest(policyModule, policyFunction, contextArray),
+                    performedBy,
+                    false,
+                    executionTime,
+                    throwable.getMessage(),
+                    metadata
+                );
+
+                LOG.errorf(throwable, "JSON policy evaluation failed after %dms: %s.%s", executionTime, policyModule, policyFunction);
+                return EvaluationResponse.error(throwable.getMessage());
+            });
+        } catch (Exception e) {
+            long executionTime = System.currentTimeMillis() - startTime;
+            businessMetrics.endPolicyEvaluation(sample);
+
+            LOG.errorf(e, "Failed to process JSON policy: %s", e.getMessage());
+            return Uni.createFrom().item(EvaluationResponse.error("JSON 策略解析失败: " + e.getMessage()));
+        }
     }
 
     /**
@@ -478,5 +593,48 @@ public class PolicyEvaluationResource {
         } else {
             policyMetrics.recordLoanRejection();
         }
+    }
+
+    /**
+     * 从 CNL 中提取模块名称
+     *
+     * 匹配 "This module is <module_name>." 语法
+     *
+     * @param cnl CNL 格式的策略代码
+     * @return 模块名称
+     * @throws IllegalArgumentException 如果无法提取模块名称
+     */
+    private String extractModule(String cnl) {
+        // 匹配 "This module is <module_name>." 或 "// module <module_name>"
+        // 使用 [\w.]+ 匹配模块名，但用 \\.? 可选匹配句号（然后不包含在组中）
+        Pattern modulePattern = Pattern.compile("(?:This module is|// module)\\s+([\\w.]+?)(?:\\.\\s|\\s|$)", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = modulePattern.matcher(cnl);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        throw new IllegalArgumentException("无法从 CNL 中提取模块名称");
+    }
+
+    /**
+     * 从 CNL 中提取函数名称
+     *
+     * 匹配 "To <function_name> with..." 或 "func <function_name>(...)" 语法
+     *
+     * @param cnl CNL 格式的策略代码
+     * @return 函数名称
+     * @throws IllegalArgumentException 如果无法提取函数名称
+     */
+    private String extractFunction(String cnl) {
+        // 匹配 "To <function_name> with" 或 "func <function_name>("
+        Pattern functionPattern = Pattern.compile("(?:To|func)\\s+(\\w+)\\s*(?:with|\\()", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = functionPattern.matcher(cnl);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        throw new IllegalArgumentException("无法从 CNL 中提取函数名称");
     }
 }
