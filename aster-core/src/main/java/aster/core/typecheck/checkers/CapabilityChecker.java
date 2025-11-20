@@ -33,7 +33,9 @@ public final class CapabilityChecker {
     Map.entry(CapabilityKind.TIME, List.of("Time.", "Clock.")),
     Map.entry(CapabilityKind.FILES, List.of("Files.", "Fs.")),
     Map.entry(CapabilityKind.SECRETS, List.of("Secrets.")),
-    Map.entry(CapabilityKind.AI_MODEL, List.of("Ai."))
+    Map.entry(CapabilityKind.AI_MODEL, List.of("Ai.")),
+    Map.entry(CapabilityKind.PAYMENT, List.of("Payment.")),
+    Map.entry(CapabilityKind.INVENTORY, List.of("Inventory."))
   );
 
   private final List<Diagnostic> diagnostics = new ArrayList<>();

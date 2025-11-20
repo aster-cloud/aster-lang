@@ -38,6 +38,8 @@ public class FunctionEmitter {
      */
     public record LV(String name, String desc, int slot) {}
 
+    private record StatementResult(boolean shouldReturn, int nextSlot) {}
+
     public FunctionEmitter(Main.Ctx ctx, ContextBuilder contextBuilder,
                           TypeResolver typeResolver, ExpressionEmitter expressionEmitter,
                           MatchEmitter matchEmitter, IfEmitter ifEmitter,
@@ -169,118 +171,14 @@ public class FunctionEmitter {
             var lineNo = new java.util.concurrent.atomic.AtomicInteger(2);
 
             for (var st : fn.body.statements) {
-                var _lbl = new Label();
-                mv.visitLabel(_lbl);
-                mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
-
-                if (st instanceof CoreModel.If iff) {
-                    // Batch 4: 使用 IfEmitter 处理 If 语句
-                    // 同步 EmitContext 的 nextSlot 状态
-                    emitCtx.setNextSlot(nextSlot);
-                    ifEmitter.emitIf(mv, iff, emitCtx, scopeStack, lvars, fnHints, lineNo);
-                    // 同步回 nextSlot 状态
-                    nextSlot = emitCtx.peekNextSlot();
-                    continue;
-                } else if (st instanceof CoreModel.Let let) {
-                    // 类型推断
-                    Character inferred = typeResolver.inferType(let.expr);
-                    if (inferred == null && Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
-                    inferred = 'Z';
-                    }
-                    if (inferred == null) {
-                        Character hint = fnHints.get(let.name);
-                        if (hint != null) inferred = hint;
-                    }
-
-                    // 确定描述符和存储指令
-                    String expectedDesc = null;
-                    String localDesc = "Ljava/lang/Object;";
-                    int storeOpcode = ASTORE;
-
-                    if (inferred != null) {
-                        switch (inferred) {
-                            case 'D' -> {
-                                expectedDesc = "D";
-                                localDesc = "D";
-                                storeOpcode = DSTORE;
-                            }
-                            case 'J' -> {
-                                expectedDesc = "J";
-                                localDesc = "J";
-                                storeOpcode = LSTORE;
-                            }
-                            case 'Z' -> {
-                                expectedDesc = "Z";
-                                localDesc = "Z";
-                                storeOpcode = ISTORE;
-                            }
-                            case 'I' -> {
-                                expectedDesc = "I";
-                                localDesc = "I";
-                                storeOpcode = ISTORE;
-                            }
-                            default -> { /* fall back to object */ }
-                        }
-                    }
-
-                    // 发射表达式
-                    if (expectedDesc != null) {
-                        emitExpr(mv, let.expr, expectedDesc, pkg, env, scopeStack);
-                    } else {
-                        emitExpr(mv, let.expr, null, pkg, env, scopeStack);
-                        localDesc = Main.resolveObjectDescriptor(let.expr, pkg, scopeStack, ctx);
-                    }
-
-                    // 存储变量并更新环境
-                    mv.visitVarInsn(storeOpcode, nextSlot);
-                    env.put(let.name, nextSlot);
-                    lvars.add(new LV(let.name, localDesc, nextSlot));
-                    scopeStack.declare(let.name, nextSlot, localDesc, Main.kindForDescriptor(localDesc));
-                    nextSlot++;
-                    continue;
-                } else if (st instanceof CoreModel.Match match) {
-                    // Batch 3: 使用 MatchEmitter 处理 Match 语句
-                    // 同步 EmitContext 的 nextSlot 状态
-                    emitCtx.setNextSlot(nextSlot);
-                    matchEmitter.emitMatch(mv, match, emitCtx, scopeStack, lvars);
-                    // 同步回 nextSlot 状态
-                    nextSlot = emitCtx.peekNextSlot();
-                    continue;
-                } else if (st instanceof CoreModel.Return ret) {
-                    // Batch 4: 使用 ReturnEmitter 统一处理 Return 语句
-                    // Phase 6: 创建 ExprEmitter 适配器，优先使用 ExpressionEmitter 处理已迁移的表达式类型
-                    final int[] nextSlotBox = {nextSlot};  // Mutable wrapper for lambda
-                    ReturnEmitter.emitReturn(
-                        mv, ret, retDesc, pkg, env, scopeStack, ctx, typeResolver,
-                        () -> nextSlotBox[0]++,  // SlotProvider
-                        (ctx2, mv2, expr, expectedDesc2, pkg2, paramBase, env2, scopeStack2, typeResolver2) -> {
-                            // ExprEmitter 适配器：根据表达式类型路由到 ExpressionEmitter 或 Main.emitExpr
-                            expressionEmitter.updateEnvironment(env2);
-                            if (isMigratedExpressionType(expr)) {
-                                expressionEmitter.emitExpression(expr, mv2, scopeStack2, expectedDesc2);
-                            } else {
-                                Main.emitExpr(ctx2, mv2, expr, expectedDesc2, pkg2, paramBase, env2, scopeStack2, typeResolver2);
-                            }
-                        }
-                    );
-                    nextSlot = nextSlotBox[0];  // 更新 nextSlot
-
-                    var lEndReturn = new Label();
-                    mv.visitLabel(lEndReturn);
-                    for (var lv : lvars) {
-                        mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEndReturn, lv.slot);
-                    }
-                    mv.visitMaxs(0, 0);
-                    mv.visitEnd();
-
-                    var bytes = cw.toByteArray();
-                    AsmUtilities.writeClass(ctx.outDir().toString(), internal, bytes);
+                var result = emitStatement(
+                    mv, st, pkg, env, scopeStack, emitCtx, lvars, lStart, cw, internal,
+                    retDesc, fnHints, lineNo, nextSlot
+                );
+                nextSlot = result.nextSlot();
+                if (result.shouldReturn()) {
                     return;
                 }
-
-                // TODO: Batch 6 - 其他语句类型处理
-                // 如果遇到其他语句类型，暂时抛出异常
-                throw new UnsupportedOperationException("Statement type not yet supported in FunctionEmitter: " + st.getClass().getSimpleName());
             }
         }
 
@@ -295,6 +193,289 @@ public class FunctionEmitter {
             mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEnd, lv.slot);
         }
 
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+
+        var bytes = cw.toByteArray();
+        AsmUtilities.writeClass(ctx.outDir().toString(), internal, bytes);
+    }
+
+    private StatementResult emitStatement(MethodVisitor mv, CoreModel.Stmt st, String pkg,
+        Map<String, Integer> env, ScopeStack scopeStack, EmitContext emitCtx, java.util.List<LV> lvars,
+        Label lStart, ClassWriter cw, String internal, String retDesc,
+        Map<String, Character> fnHints, java.util.concurrent.atomic.AtomicInteger lineNo,
+        int nextSlot) throws IOException {
+        if (st == null) {
+            return new StatementResult(false, nextSlot);
+        }
+
+        var _lbl = new Label();
+        mv.visitLabel(_lbl);
+        mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
+
+        if (st instanceof CoreModel.If iff) {
+            emitCtx.setNextSlot(nextSlot);
+            ifEmitter.emitIf(mv, iff, emitCtx, scopeStack, lvars, fnHints, lineNo);
+            nextSlot = emitCtx.peekNextSlot();
+            return new StatementResult(false, nextSlot);
+        } else if (st instanceof CoreModel.Let let) {
+            Character inferred = typeResolver.inferType(let.expr);
+            if (inferred == null && Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
+                inferred = 'Z';
+            }
+            if (inferred == null) {
+                Character hint = fnHints.get(let.name);
+                if (hint != null) inferred = hint;
+            }
+
+            String expectedDesc = null;
+            String localDesc = "Ljava/lang/Object;";
+            int storeOpcode = ASTORE;
+
+            if (inferred != null) {
+                switch (inferred) {
+                    case 'D' -> {
+                        expectedDesc = "D";
+                        localDesc = "D";
+                        storeOpcode = DSTORE;
+                    }
+                    case 'J' -> {
+                        expectedDesc = "J";
+                        localDesc = "J";
+                        storeOpcode = LSTORE;
+                    }
+                    case 'Z' -> {
+                        expectedDesc = "Z";
+                        localDesc = "Z";
+                        storeOpcode = ISTORE;
+                    }
+                    case 'I' -> {
+                        expectedDesc = "I";
+                        localDesc = "I";
+                        storeOpcode = ISTORE;
+                    }
+                    default -> { /* fall back to object */ }
+                }
+            }
+
+            if (expectedDesc != null) {
+                emitExpr(mv, let.expr, expectedDesc, pkg, env, scopeStack);
+            } else {
+                emitExpr(mv, let.expr, null, pkg, env, scopeStack);
+                localDesc = Main.resolveObjectDescriptor(let.expr, pkg, scopeStack, ctx);
+            }
+
+            mv.visitVarInsn(storeOpcode, nextSlot);
+            env.put(let.name, nextSlot);
+            lvars.add(new LV(let.name, localDesc, nextSlot));
+            scopeStack.declare(let.name, nextSlot, localDesc, Main.kindForDescriptor(localDesc));
+            nextSlot++;
+            return new StatementResult(false, nextSlot);
+        } else if (st instanceof CoreModel.Set set) {
+            Integer existingSlot = env.get(set.name);
+            if (existingSlot == null) {
+                throw new IllegalStateException("Set statement error: variable '" + set.name + "' not declared");
+            }
+
+            String existingDesc = scopeStack.getDescriptor(set.name);
+            Character existingKind = scopeStack.getType(set.name);
+            String expectedDesc = existingDesc;
+
+            if (expectedDesc == null || "Ljava/lang/Object;".equals(expectedDesc)) {
+                Character inferred = typeResolver.inferType(set.expr);
+                if (inferred == null) {
+                    Character hint = fnHints.get(set.name);
+                    if (hint != null) inferred = hint;
+                }
+                if (inferred != null) {
+                    expectedDesc = switch (inferred) {
+                        case 'D' -> "D";
+                        case 'J' -> "J";
+                        case 'Z' -> "Z";
+                        case 'I' -> "I";
+                        default -> "Ljava/lang/Object;";
+                    };
+                }
+            }
+
+            int storeOpcode = ASTORE;
+            if (existingKind != null) {
+                storeOpcode = switch (existingKind) {
+                    case 'D' -> DSTORE;
+                    case 'J' -> LSTORE;
+                    case 'I', 'Z' -> ISTORE;
+                    default -> ASTORE;
+                };
+            } else if (expectedDesc != null && !expectedDesc.isEmpty()) {
+                storeOpcode = switch (expectedDesc.charAt(0)) {
+                    case 'D' -> DSTORE;
+                    case 'J' -> LSTORE;
+                    case 'I', 'Z' -> ISTORE;
+                    default -> ASTORE;
+                };
+            }
+
+            emitExpr(mv, set.expr, expectedDesc, pkg, env, scopeStack);
+            mv.visitVarInsn(storeOpcode, existingSlot);
+            return new StatementResult(false, nextSlot);
+        } else if (st instanceof CoreModel.Match match) {
+            emitCtx.setNextSlot(nextSlot);
+            matchEmitter.emitMatch(mv, match, emitCtx, scopeStack, lvars);
+            nextSlot = emitCtx.peekNextSlot();
+            return new StatementResult(false, nextSlot);
+        } else if (st instanceof CoreModel.Return ret) {
+            final int[] nextSlotBox = {nextSlot};
+            ReturnEmitter.emitReturn(
+                mv, ret, retDesc, pkg, env, scopeStack, ctx, typeResolver,
+                () -> nextSlotBox[0]++,
+                (ctx2, mv2, expr, expectedDesc2, pkg2, paramBase, env2, scopeStack2, typeResolver2) -> {
+                    expressionEmitter.updateEnvironment(env2);
+                    if (isMigratedExpressionType(expr)) {
+                        expressionEmitter.emitExpression(expr, mv2, scopeStack2, expectedDesc2);
+                    } else {
+                        Main.emitExpr(ctx2, mv2, expr, expectedDesc2, pkg2, paramBase, env2, scopeStack2, typeResolver2);
+                    }
+                }
+            );
+            nextSlot = nextSlotBox[0];
+            finalizeFunctionAfterReturn(cw, mv, lvars, lStart, internal);
+            return new StatementResult(true, nextSlot);
+        } else if (st instanceof CoreModel.Scope scope) {
+            var savedEnv = new LinkedHashMap<>(env);
+            scopeStack.pushScope();
+            try {
+                if (scope.statements != null && !scope.statements.isEmpty()) {
+                    for (var innerSt : scope.statements) {
+                        var innerResult = emitStatement(
+                            mv, innerSt, pkg, env, scopeStack, emitCtx, lvars, lStart, cw, internal,
+                            retDesc, fnHints, lineNo, nextSlot
+                        );
+                        nextSlot = innerResult.nextSlot();
+                        if (innerResult.shouldReturn()) {
+                            return new StatementResult(true, nextSlot);
+                        }
+                    }
+                }
+            } finally {
+                scopeStack.popScope();
+                env.clear();
+                env.putAll(savedEnv);
+            }
+            return new StatementResult(false, nextSlot);
+        } else if (st instanceof CoreModel.Block block) {
+            // Block 不创建新作用域，内部变量对外可见
+            // 不需要保存/恢复 env，不需要 push/pop scopeStack
+            if (block.statements != null && !block.statements.isEmpty()) {
+                for (var innerSt : block.statements) {
+                    var innerResult = emitStatement(
+                        mv, innerSt, pkg, env, scopeStack, emitCtx, lvars, lStart, cw, internal,
+                        retDesc, fnHints, lineNo, nextSlot
+                    );
+                    nextSlot = innerResult.nextSlot();
+                    if (innerResult.shouldReturn()) {
+                        return new StatementResult(true, nextSlot);
+                    }
+                }
+            }
+            return new StatementResult(false, nextSlot);
+        } else if (st instanceof CoreModel.Start start) {
+            // Start 语句：启动异步任务
+            // 语义：start taskName = asyncExpr
+            // 实现：生成 asyncExpr 的字节码（期望得到 CompletableFuture），存储到局部变量
+
+            expressionEmitter.emitExpression(start.expr, mv, scopeStack, "Ljava/util/concurrent/CompletableFuture;");
+
+            // 存储 CompletableFuture 到局部变量
+            String desc = "Ljava/util/concurrent/CompletableFuture;";
+            mv.visitVarInsn(ASTORE, nextSlot);
+            env.put(start.name, nextSlot);
+            lvars.add(new LV(start.name, desc, nextSlot));
+            scopeStack.declare(start.name, nextSlot, desc, Main.kindForDescriptor(desc));
+            nextSlot++;
+            return new StatementResult(false, nextSlot);
+        } else if (st instanceof CoreModel.Wait wait) {
+            // Wait 语句：等待多个异步任务完成
+            // 语义：wait [task1, task2, ...]
+            // 实现：使用 CompletableFuture.allOf() 合并所有任务，然后 join() 阻塞等待
+
+            int numTasks = wait.names.size();
+
+            // 1. 创建 CompletableFuture 数组
+            AsmUtilities.emitConstInt(mv, numTasks);
+            mv.visitTypeInsn(ANEWARRAY, "java/util/concurrent/CompletableFuture");
+
+            // 2. 填充数组：对每个任务名，从 env 加载并存入数组
+            for (int i = 0; i < numTasks; i++) {
+                String taskName = wait.names.get(i);
+                Integer slot = env.get(taskName);
+                if (slot == null) {
+                    throw new IllegalStateException("Wait statement error: task '" + taskName + "' not started");
+                }
+
+                mv.visitInsn(DUP);  // 复制数组引用
+                AsmUtilities.emitConstInt(mv, i);  // 数组索引
+                mv.visitVarInsn(ALOAD, slot);  // 加载 CompletableFuture
+                mv.visitInsn(AASTORE);  // 存入数组
+            }
+
+            // 3. 调用 CompletableFuture.allOf(array) -> CompletableFuture<Void>
+            mv.visitMethodInsn(
+                INVOKESTATIC,
+                "java/util/concurrent/CompletableFuture",
+                "allOf",
+                "([Ljava/util/concurrent/CompletableFuture;)Ljava/util/concurrent/CompletableFuture;",
+                false
+            );
+
+            // 4. 调用 join() 阻塞等待所有任务完成
+            mv.visitMethodInsn(
+                INVOKEVIRTUAL,
+                "java/util/concurrent/CompletableFuture",
+                "join",
+                "()Ljava/lang/Object;",
+                false
+            );
+
+            // 5. 丢弃返回值（allOf 返回 CompletableFuture<Void>，join() 后得到 null）
+            mv.visitInsn(POP);
+
+            return new StatementResult(false, nextSlot);
+        } else if (st instanceof CoreModel.Workflow workflow) {
+            // Workflow 语句：工作流执行（简化版）
+            // 完整语义：带重试、超时、依赖关系的步骤序列
+            // 简化实现：仅顺序执行 steps，忽略 retry/timeout/dependencies
+            // TODO: 未来需要实现重试策略、超时控制和步骤依赖图
+
+            if (workflow.steps != null && !workflow.steps.isEmpty()) {
+                for (var step : workflow.steps) {
+                    // 每个 Step 包含 body (Block)，忽略 compensate 和 dependencies
+                    if (step.body != null && step.body.statements != null) {
+                        for (var stepSt : step.body.statements) {
+                            var stepResult = emitStatement(
+                                mv, stepSt, pkg, env, scopeStack, emitCtx, lvars, lStart, cw, internal,
+                                retDesc, fnHints, lineNo, nextSlot
+                            );
+                            nextSlot = stepResult.nextSlot();
+                            if (stepResult.shouldReturn()) {
+                                return new StatementResult(true, nextSlot);
+                            }
+                        }
+                    }
+                }
+            }
+            return new StatementResult(false, nextSlot);
+        }
+
+        throw new UnsupportedOperationException("Statement type not yet supported in FunctionEmitter: " + st.getClass().getSimpleName());
+    }
+
+    private void finalizeFunctionAfterReturn(ClassWriter cw, MethodVisitor mv, java.util.List<LV> lvars,
+        Label lStart, String internal) throws IOException {
+        var lEndReturn = new Label();
+        mv.visitLabel(lEndReturn);
+        for (var lv : lvars) {
+            mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEndReturn, lv.slot);
+        }
         mv.visitMaxs(0, 0);
         mv.visitEnd();
 

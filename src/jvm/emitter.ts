@@ -100,6 +100,8 @@ function emitExpr(e: Core.Expression, helpers: EmitHelpers): string {
       return e.value ? 'true' : 'false';
     case 'Int':
       return String(e.value);
+    case 'Double':
+      return String(e.value);
     case 'String':
       return JSON.stringify(e.value);
     case 'Null':
@@ -598,7 +600,11 @@ function emitFunc(pkgDecl: string, f: Core.Func, helpers: EmitHelpers): string {
   const params = f.params.map(p => `${javaType(p.type, helpers)} ${p.name}`).join(', ');
   const body = emitBlock(f.body, [], helpers, '    ');
   const fallback = `    return ${ret === 'int' ? '0' : ret === 'boolean' ? 'false' : 'null'};\n`;
-  return `${pkgDecl}public final class ${f.name}_fn {\n  private ${f.name}_fn(){}\n  public static ${ret} ${f.name}(${params}) {\n${body}${fallback}  }\n}\n`;
+
+  // Add capability imports for workflow functions
+  const capabilityImports = `import aster.capabilities.Payment;\nimport aster.capabilities.Inventory;\nimport aster.capabilities.List;\n\n`;
+
+  return `${pkgDecl}${capabilityImports}public final class ${f.name}_fn {\n  private ${f.name}_fn(){}\n  public static ${ret} ${f.name}(${params}) {\n${body}${fallback}  }\n}\n`;
 }
 
 export async function emitJava(core: Core.Module, outRoot = 'build/jvm-src'): Promise<void> {

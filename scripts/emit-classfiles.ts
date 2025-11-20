@@ -189,6 +189,9 @@ const WORKFLOW_RUNTIME_FILES = [
   path.resolve('aster-truffle/src/main/java/aster/truffle/runtime/AsyncTaskRegistry.java'),
   path.resolve('aster-truffle/src/main/java/aster/truffle/runtime/DependencyGraph.java'),
   path.resolve('aster-truffle/src/main/java/aster/truffle/runtime/WorkflowScheduler.java'),
+  path.resolve('aster-truffle/src/main/java/aster/truffle/runtime/PostgresEventStore.java'),
+  path.resolve('aster-truffle/src/main/java/aster/truffle/runtime/DelayedTask.java'),
+  path.resolve('aster-core/src/main/java/aster/core/exceptions/MaxRetriesExceededException.java'),
 ];
 
 function ensureJar(
@@ -277,7 +280,7 @@ async function compileWorkflowSources(outDir: string): Promise<void> {
   const workflowRuntimeSources = WORKFLOW_RUNTIME_FILES.filter(f => fs.existsSync(f));
   const javacArgs = [
     '--release',
-    '21',
+    '25',
     '-g',
     '-d',
     outDir,
@@ -294,6 +297,69 @@ async function compileWorkflowSources(outDir: string): Promise<void> {
   });
 }
 
+function generateCapabilityStubs(jvmSrcDir: string): void {
+  // Create aster/capabilities directory
+  const capabilitiesDir = path.join(jvmSrcDir, 'aster', 'capabilities');
+  fs.mkdirSync(capabilitiesDir, { recursive: true });
+
+  // Payment capability facade
+  const paymentStub = `package aster.capabilities;
+
+/**
+ * Payment capability 静态 facade（自动生成的桩实现）
+ */
+public final class Payment {
+    private Payment() {}
+
+    public static String charge(String orderId, Object amount) {
+        return "payment-stub-" + orderId;
+    }
+
+    public static String refund(String paymentId) {
+        return "refund-stub-" + paymentId;
+    }
+}
+`;
+  fs.writeFileSync(path.join(capabilitiesDir, 'Payment.java'), paymentStub);
+
+  // Inventory capability facade
+  const inventoryStub = `package aster.capabilities;
+
+/**
+ * Inventory capability 静态 facade（自动生成的桩实现）
+ */
+public final class Inventory {
+    private Inventory() {}
+
+    public static String reserve(String orderId, Object items) {
+        return "reservation-stub-" + orderId;
+    }
+
+    public static String release(String reservationId) {
+        return "released-" + reservationId;
+    }
+}
+`;
+  fs.writeFileSync(path.join(capabilitiesDir, 'Inventory.java'), inventoryStub);
+
+  // List utility facade
+  const listStub = `package aster.capabilities;
+
+/**
+ * List 工具类静态 facade（自动生成的桩实现）
+ */
+public final class List {
+    private List() {}
+
+    @SuppressWarnings("unchecked")
+    public static <T> java.util.List<T> empty() {
+        return java.util.Collections.emptyList();
+    }
+}
+`;
+  fs.writeFileSync(path.join(capabilitiesDir, 'List.java'), listStub);
+}
+
 async function emitWorkflowModules(
   modules: readonly { core: CoreIR.Module; input: string }[],
   outDir: string
@@ -304,6 +370,10 @@ async function emitWorkflowModules(
   );
   fs.rmSync(JVM_SRC_DIR, { recursive: true, force: true });
   fs.mkdirSync(JVM_SRC_DIR, { recursive: true });
+
+  // Generate capability stub facades
+  generateCapabilityStubs(JVM_SRC_DIR);
+
   for (const { core, input } of modules) {
     console.log(`[emit-classfiles] 生成 workflow Java 源码：${input}`);
     await emitJava(core, JVM_SRC_DIR);

@@ -133,6 +133,8 @@ export enum CapabilityKind {
   SECRETS = 'Secrets',
   AI_MODEL = 'AiModel',
   CPU = 'Cpu',
+  PAYMENT = 'Payment',
+  INVENTORY = 'Inventory',
 }
 
 /**
@@ -148,6 +150,8 @@ export const CAPABILITY_PREFIXES: Record<string, readonly string[]> = {
   Files: ['Files.', 'Fs.'],
   Secrets: ['Secrets.'],
   AiModel: ['Ai.'],
+  Payment: ['Payment.'],
+  Inventory: ['Inventory.'],
 };
 
 /**

@@ -11,10 +11,12 @@ import java.util.Objects;
 import org.objectweb.asm.MethodVisitor;
 
 import static org.objectweb.asm.Opcodes.ACONST_NULL;
+import static org.objectweb.asm.Opcodes.CHECKCAST;
 import static org.objectweb.asm.Opcodes.DUP;
 import static org.objectweb.asm.Opcodes.ICONST_0;
 import static org.objectweb.asm.Opcodes.ICONST_1;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 import static org.objectweb.asm.Opcodes.L2D;
 import static org.objectweb.asm.Opcodes.L2I;
 import static org.objectweb.asm.Opcodes.NEW;
@@ -93,6 +95,7 @@ public final class ExpressionEmitter {
       case CoreModel.Some some -> emitSome(some, mv, effectiveScope, expectedDesc);
       case CoreModel.Construct construct -> emitConstruct(construct, mv, effectiveScope, expectedDesc);
       case CoreModel.Lambda lambda -> emitLambda(lambda, mv, effectiveScope);
+      case CoreModel.Await await -> emitAwait(await, mv, effectiveScope, expectedDesc);
       case null, default -> throw new UnsupportedOperationException("Expression type not yet migrated: " + expr.getClass().getSimpleName());
     }
   }
@@ -308,5 +311,38 @@ public final class ExpressionEmitter {
     // 创建 LambdaEmitter 并执行
     LambdaEmitter lambdaEmitter = new LambdaEmitter(typeResolver, ctx, bodyEmitter);
     lambdaEmitter.emitLambda(mv, lam, currentPkg, baseEnv, scopeStack);
+  }
+
+  /**
+   * 生成 Await 表达式字节码
+   * Await 用于同步阻塞等待 CompletableFuture 完成并获取结果
+   *
+   * @param await Await 表达式
+   * @param mv 方法访问器
+   * @param scopeStack 作用域栈
+   * @param expectedDesc 期望的返回类型描述符
+   */
+  private void emitAwait(CoreModel.Await await, MethodVisitor mv, ScopeStack scopeStack, String expectedDesc) {
+    // 1. 生成 await.expr 的字节码，期望得到 CompletableFuture
+    emitExpression(await.expr, mv, scopeStack, "Ljava/util/concurrent/CompletableFuture;");
+
+    // 2. 调用 CompletableFuture.join() -> Object
+    // join() 会阻塞当前线程直到 CompletableFuture 完成
+    mv.visitMethodInsn(
+      INVOKEVIRTUAL,
+      "java/util/concurrent/CompletableFuture",
+      "join",
+      "()Ljava/lang/Object;",
+      false
+    );
+
+    // 3. 如果有类型期望且不是 Object，做类型转换
+    if (expectedDesc != null &&
+        !expectedDesc.equals("Ljava/lang/Object;") &&
+        expectedDesc.startsWith("L")) {
+      // 提取内部类名（去掉 L 前缀和 ; 后缀）
+      String internalName = expectedDesc.substring(1, expectedDesc.length() - 1);
+      mv.visitTypeInsn(CHECKCAST, internalName);
+    }
   }
 }

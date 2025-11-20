@@ -1118,10 +1118,10 @@ To sync, produce Int. It performs io and cpu and Http.
           parseSource(`
 This module is test.parser.effects.unknown_cap.
 
-To risky, produce Text. It performs io with Payment.
+To risky, produce Text. It performs io with Blockchain.
 `),
         error => {
-          assert.match(String(error), /Unknown capability 'Payment'/);
+          assert.match(String(error), /Unknown capability 'Blockchain'/);
           return true;
         }
       );

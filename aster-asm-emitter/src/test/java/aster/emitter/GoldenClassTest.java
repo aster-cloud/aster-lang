@@ -81,6 +81,21 @@ class GoldenClassTest {
     runGoldenTest("match_ctor", "test/cnl/programs/core-reference/match_ctor_core.json");
   }
 
+  @Test
+  void testSetStatement() throws Exception {
+    runGoldenTest("set_statement", "test/cnl/programs/core-reference/set_statement_core.json");
+  }
+
+  @Test
+  void testAwaitExpression() throws Exception {
+    runGoldenTest("await_expression", "test/cnl/programs/core-reference/await_expr_core.json");
+  }
+
+  @Test
+  void testWorkflowLinear() throws Exception {
+    runGoldenTest("workflow_linear", "test/e2e/golden/core/expected_workflow-linear_core.json");
+  }
+
   /**
    * 统一执行流程：读取基线、重新编译并比较结构。
    */

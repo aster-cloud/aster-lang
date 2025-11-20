@@ -15,7 +15,9 @@ public enum CapabilityKind {
   FILES("Files"),
   SECRETS("Secrets"),
   AI_MODEL("AiModel"),
-  CPU("Cpu");
+  CPU("Cpu"),
+  PAYMENT("Payment"),
+  INVENTORY("Inventory");
 
   private final String displayName;
 

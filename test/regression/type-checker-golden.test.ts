@@ -55,7 +55,11 @@ const TEST_CASES = [
   'workflow_retry_many_attempts',
   'workflow_retry_timeout_conflict',
   'workflow_timeout_too_short',
-  'workflow_timeout_too_long'
+  'workflow_timeout_too_long',
+  'payment_capability_success',
+  'payment_capability_missing_io',
+  'inventory_capability_success',
+  'inventory_capability_missing_io'
 ] as const;
 
 const GOLDEN_DIR = path.join(TYPE_CHECKER_DIR, 'golden');
