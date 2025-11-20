@@ -4,7 +4,7 @@
 
 # Interface: BaseLong\<S\>
 
-Defined in: [types/base.ts:324](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/types/base.ts#L324)
+Defined in: [types/base.ts:324](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types/base.ts#L324)
 
 Long 字面量基础接口。
 
@@ -32,7 +32,7 @@ Long 字面量可能超过 Number.MAX_SAFE_INTEGER (2^53-1)，例如 Long.MAX_VA
 
 > `readonly` `optional` **span**: [`HasFileProp`](../type-aliases/HasFileProp.md)\<`S`\> *extends* `true` ? `never` : [`Span`](../../interfaces/Span.md)
 
-Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/types/base.ts#L41)
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types/base.ts#L41)
 
 #### Inherited from
 
@@ -44,7 +44,7 @@ Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/0
 
 > `readonly` `optional` **origin**: [`HasFileProp`](../type-aliases/HasFileProp.md)\<`S`\> *extends* `true` ? [`Origin`](../../interfaces/Origin.md) : `never`
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -56,7 +56,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/0
 
 > `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types/base.ts#L43)
 
 #### Inherited from
 
@@ -68,7 +68,7 @@ Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/0
 
 > `readonly` **kind**: `"Long"`
 
-Defined in: [types/base.ts:325](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/types/base.ts#L325)
+Defined in: [types/base.ts:325](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types/base.ts#L325)
 
 #### Overrides
 
@@ -80,4 +80,4 @@ Defined in: [types/base.ts:325](https://github.com/wontlost-ltd/aster-lang/blob/
 
 > `readonly` **value**: `string`
 
-Defined in: [types/base.ts:326](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/types/base.ts#L326)
+Defined in: [types/base.ts:326](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types/base.ts#L326)

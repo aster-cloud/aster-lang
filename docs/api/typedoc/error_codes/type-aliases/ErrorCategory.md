@@ -6,4 +6,4 @@
 
 > **ErrorCategory** = `"type"` \| `"effect"` \| `"capability"` \| `"scope"` \| `"pii"` \| `"async"`
 
-Defined in: [error\_codes.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/error_codes.ts#L5)
+Defined in: [error\_codes.ts:5](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/error_codes.ts#L5)

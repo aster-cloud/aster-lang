@@ -13,7 +13,6 @@ import com.oracle.truffle.api.nodes.RootNode;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
 public final class AsterRootNode extends RootNode {
   private final Node body;
   private final Env globalEnv;

@@ -6,7 +6,7 @@
 
 > **HasFileProp**\<`T`\> = `"file"` *extends* keyof `T` ? `true` : `false`
 
-Defined in: [types/base.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/types/base.ts#L31)
+Defined in: [types/base.ts:31](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types/base.ts#L31)
 
 **`Internal`**
 

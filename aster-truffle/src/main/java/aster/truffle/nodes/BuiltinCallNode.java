@@ -1,8 +1,11 @@
 package aster.truffle.nodes;
 
+import aster.truffle.nodes.parallel.ParallelListMapNode;
+import aster.truffle.purity.PurityAnalyzer;
 import aster.truffle.runtime.Builtins;
 import aster.truffle.runtime.ErrorMessages;
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
@@ -28,6 +31,7 @@ import java.util.List;
 public abstract class BuiltinCallNode extends AsterExpressionNode {
   @CompilationFinal protected final String builtinName;
   @Children protected final AsterExpressionNode[] argNodes;
+  @Child private ParallelListMapNode parallelListMapNode;
 
   protected BuiltinCallNode(String builtinName, AsterExpressionNode[] argNodes) {
     this.builtinName = builtinName;
@@ -645,6 +649,12 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
       throw new RuntimeException("List.map: lambda has no call target");
     }
 
+    boolean pureLambda = PurityAnalyzer.isPure(callTarget);
+    ParallelListMapNode parallelNode = getParallelListMapNode();
+    if (pureLambda && parallelNode.shouldParallelize(list.size())) {
+      return parallelNode.execute(list, lambda);
+    }
+
     Object[] capturedValues = lambda.getCapturedValues();
 
     // Map 循环：每次迭代使用 InvokeNode 执行 lambda，享受 DirectCallNode 缓存
@@ -770,6 +780,19 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
     if (callTarget == null) {
       throw new RuntimeException("List.filter: lambda has no call target");
     }
+    boolean purePredicate = PurityAnalyzer.isPure(callTarget);
+    ParallelListMapNode parallelNode = getParallelListMapNode();
+    if (purePredicate && parallelNode.shouldParallelize(list.size())) {
+      List<Object> predicateResults = parallelNode.execute(list, predicate);
+      List<Object> filtered = new ArrayList<>();
+      for (int i = 0; i < list.size(); i++) {
+        if (Boolean.TRUE.equals(predicateResults.get(i))) {
+          filtered.add(list.get(i));
+        }
+      }
+      Profiler.inc("builtin_list_filter_parallel");
+      return filtered;
+    }
 
     Object[] capturedValues = predicate.getCapturedValues();
 
@@ -819,5 +842,13 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
   @Override
   public String toString() {
     return "BuiltinCallNode(" + builtinName + ", " + argNodes.length + " args)";
+  }
+
+  private ParallelListMapNode getParallelListMapNode() {
+    if (parallelListMapNode == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      parallelListMapNode = insert(ParallelListMapNode.create());
+    }
+    return parallelListMapNode;
   }
 }

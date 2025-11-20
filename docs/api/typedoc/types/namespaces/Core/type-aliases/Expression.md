@@ -6,4 +6,4 @@
 
 > **Expression** = [`Name`](../interfaces/Name.md) \| [`Bool`](../interfaces/Bool.md) \| [`Int`](../interfaces/Int.md) \| [`Long`](../interfaces/Long.md) \| [`Double`](../interfaces/Double.md) \| [`String`](../interfaces/String.md) \| [`Null`](../interfaces/Null.md) \| [`Call`](../interfaces/Call.md) \| [`Construct`](../interfaces/Construct.md) \| [`Ok`](../interfaces/Ok.md) \| [`Err`](../interfaces/Err.md) \| [`Some`](../interfaces/Some.md) \| [`None`](../interfaces/None.md) \| [`Lambda`](../interfaces/Lambda.md) \| [`Await`](../interfaces/Await.md)
 
-Defined in: [types.ts:541](https://github.com/wontlost-ltd/aster-lang/blob/0d39658db4faf20f48f10b0c8fb7fe31023ff8e1/src/types.ts#L541)
+Defined in: [types.ts:541](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types.ts#L541)

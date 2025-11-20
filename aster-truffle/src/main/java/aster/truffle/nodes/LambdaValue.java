@@ -1,5 +1,6 @@
 package aster.truffle.nodes;
 
+import aster.truffle.purity.PurityAnalyzer;
 import aster.truffle.runtime.AsterConfig;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -28,6 +29,7 @@ public final class LambdaValue {
     this.capturedValues = capturedValues != null ? capturedValues : new Object[0];
     this.callTarget = callTarget;
     this.requiredEffects = requiredEffects != null ? java.util.Set.copyOf(requiredEffects) : java.util.Set.of();
+    PurityAnalyzer.recordEffects(callTarget, this.requiredEffects);
   }
 
   /**
@@ -43,6 +45,7 @@ public final class LambdaValue {
     this.capturedValues = captures != null ? captures.values().toArray() : new Object[0];
     this.callTarget = callTarget;
     this.requiredEffects = java.util.Set.of();  // 默认无 effect 要求
+    PurityAnalyzer.recordEffects(callTarget, this.requiredEffects);
   }
 
   public CallTarget getCallTarget() {
