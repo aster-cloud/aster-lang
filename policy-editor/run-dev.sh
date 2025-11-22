@@ -4,6 +4,7 @@
         -Dquarkus.http.port=8081 \
         -Dvaadin.devmode.enabled=true \
         -Dvaadin.productionMode=false \
+        -Dvaadin.devmode.optimizeBundle=true \
         -Dvaadin.project.basedir="$(pwd)" \
         -Dvaadin.frontend.generatedDir="$(pwd)/build/vaadin/generated" \
         -Dvaadin.frontend.webComponentsDirectory="$(pwd)/build/vaadin/web-components" \

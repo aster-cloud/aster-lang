@@ -8,12 +8,16 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.shared.ThemeVariant;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
@@ -22,28 +26,37 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import editor.model.Policy;
+import editor.model.PolicyRuleSet;
+import editor.service.PolicyService;
 import editor.template.PolicyTemplate;
 import editor.template.PolicyTemplateService;
 
 import jakarta.inject.Inject;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Aster 策略编辑器（带 Live Preview）
+ * Aster 策略编辑器（带 Live Preview） - 现代化UI版本
  *
  * 功能：
- * - 编辑 Aster 策略代码
+ * - 编辑 Aster 策略代码（Monaco Editor）
  * - 配置示例输入
  * - 实时预览评估结果（通过 WebSocket）
  * - 300ms 防抖
  * - 自动重连
+ * - 现代化卡片式布局
+ * - 响应式设计
  */
 @PageTitle("Aster Policy Editor")
 @Route("aster-editor")
-@JsModule("./src/components/monaco-editor-component.ts")
+@JsModule("./components/monaco-editor-component.ts")
 public class AsterPolicyEditorView extends VerticalLayout {
 
     private static final long serialVersionUID = 1L;
@@ -53,121 +66,78 @@ public class AsterPolicyEditorView extends VerticalLayout {
 
         To evaluateLoanEligibility with applicant, history is
           When applicant.creditScore is over 720 then
-            approve with message \"优先客户，建议极速放款\".
+            approve with message "优先客户，建议极速放款".
         """;
 
-    private final TextField moduleField;
-    private final TextField functionField;
-    private final Element monacoEditorElement;
-    private final TextArea sampleInputArea;
-    private final TemplateSelector templateSelector;
-    private final Div previewResultDiv;
-    private final Div connectionStatusDiv;
+    private TextField moduleField;
+    private TextField functionField;
+    private Element monacoEditorElement;
+    private TextArea sampleInputArea;
+    private TemplateSelector templateSelector;
+    private Div previewResultDiv;
+    private Span statusBadge;
 
     private String webSocketUrl;
     private String policyCodeValue = DEFAULT_POLICY_SNIPPET.trim();
 
     @Inject
+    transient PolicyService policyService;
+
+    @Inject
+    transient ObjectMapper objectMapper;
+
+    private String currentPolicyId;
+
+    @Inject
     public AsterPolicyEditorView(PolicyTemplateService templateService) {
         setSizeFull();
         setPadding(true);
+        setSpacing(true);
+        addClassName(LumoUtility.Background.CONTRAST_5);
 
-        // 标题
-        H3 title = new H3("Aster Policy Editor - Live Preview");
+        // === 页面标题 ===
+        H2 pageTitle = new H2("Aster Policy Editor");
+        pageTitle.getStyle()
+            .set("margin", "0")
+            .set("color", "var(--lumo-primary-text-color)");
 
-        // 模块和函数名
+        // === 配置卡片 ===
+        Div configCard = createCard();
+
         moduleField = new TextField("Policy Module");
         moduleField.setValue("aster.finance.loan");
-        moduleField.setWidth("300px");
+        moduleField.setWidth("250px");
 
         functionField = new TextField("Policy Function");
         functionField.setValue("evaluateLoanEligibility");
-        functionField.setWidth("300px");
-
-        HorizontalLayout headerLayout = new HorizontalLayout(moduleField, functionField);
-        headerLayout.setAlignItems(Alignment.END);
+        functionField.setWidth("250px");
 
         templateSelector = new TemplateSelector(templateService);
         templateSelector.setTemplateApplyListener(this::applyTemplate);
 
-        // 策略代码编辑区（Monaco）
-        monacoEditorElement = new Element("monaco-editor-component");
-        monacoEditorElement.setProperty("value", DEFAULT_POLICY_SNIPPET.trim());
-        monacoEditorElement.setProperty("theme", "vs-dark");
-        monacoEditorElement.setProperty("fontSize", 14);
-        monacoEditorElement.setProperty("minimap", true);
-        monacoEditorElement.setProperty("folding", true);
-        monacoEditorElement.addEventListener("monaco-value-changed", event -> {
-            policyCodeValue = event.getEventData().getString("event.detail.value");
-        }).addEventData("event.detail.value");
+        HorizontalLayout configLayout = new HorizontalLayout(moduleField, functionField, templateSelector);
+        configLayout.setAlignItems(FlexComponent.Alignment.END);
+        configLayout.setSpacing(true);
+        configLayout.setWidthFull();
 
-        Span editorLabel = new Span("Policy Code (.aster)");
-        editorLabel.getStyle()
-            .set("font-weight", "600")
-            .set("font-size", "var(--lumo-font-size-m)");
+        configCard.add(configLayout);
 
-        Div monacoHost = new Div();
-        monacoHost.setWidth("100%");
-        monacoHost.setHeight("480px");
-        monacoHost.getStyle()
-            .set("border", "1px solid #ddd")
-            .set("border-radius", "4px")
-            .set("overflow", "hidden")
-            .set("background", "var(--lumo-base-color)");
-        monacoHost.getElement().appendChild(monacoEditorElement);
-
-        VerticalLayout codeLayout = new VerticalLayout(editorLabel, monacoHost);
-        codeLayout.setPadding(false);
-        codeLayout.setSpacing(false);
-        codeLayout.setWidthFull();
-
-        // 示例输入配置
-        sampleInputArea = new TextArea("Sample Input (JSON Array)");
-        sampleInputArea.setValue("[\n  {\"creditScore\": 750, \"income\": 100000, \"loanAmount\": 300000}\n]");
-        sampleInputArea.setWidth("100%");
-        sampleInputArea.setHeight("150px");
-        sampleInputArea.getStyle().set("font-family", "monospace");
-
-        // 左侧编辑器
-        VerticalLayout editorLayout = new VerticalLayout(templateSelector, codeLayout, sampleInputArea);
-        editorLayout.setSizeFull();
-        editorLayout.setPadding(false);
-
-        // 连接状态
-        connectionStatusDiv = new Div();
-        connectionStatusDiv.setText("🔴 未连接");
-        connectionStatusDiv.getStyle()
-            .set("padding", "8px 12px")
-            .set("background", "#fee")
-            .set("border-radius", "4px")
-            .set("margin-bottom", "8px");
-
-        // 预览结果区
-        previewResultDiv = new Div();
-        previewResultDiv.getStyle()
-            .set("padding", "16px")
-            .set("background", "#f5f5f5")
-            .set("border", "1px solid #ddd")
-            .set("border-radius", "4px")
-            .set("overflow-y", "auto")
-            .set("height", "100%")
-            .set("font-family", "monospace")
-            .set("white-space", "pre-wrap");
-
-        previewResultDiv.setText("等待编辑以触发预览...");
-
-        // 右侧预览区
-        VerticalLayout previewLayout = new VerticalLayout();
-        previewLayout.add(new H3("Live Preview"), connectionStatusDiv, previewResultDiv);
-        previewLayout.setSizeFull();
-        previewLayout.setPadding(false);
-
-        // 分割布局
-        SplitLayout splitLayout = new SplitLayout(editorLayout, previewLayout);
+        // === 编辑器和预览区 ===
+        SplitLayout splitLayout = new SplitLayout();
         splitLayout.setSizeFull();
         splitLayout.setSplitterPosition(60);
+        splitLayout.setOrientation(SplitLayout.Orientation.HORIZONTAL);
 
-        // 按钮
+        // 左侧：代码编辑区
+        VerticalLayout editorPanel = createEditorPanel();
+
+        // 右侧：实时预览区
+        VerticalLayout previewPanel = createPreviewPanel();
+
+        splitLayout.addToPrimary(editorPanel);
+        splitLayout.addToSecondary(previewPanel);
+
+        // === 操作按钮 ===
         Button saveButton = new Button("保存策略", e -> savePolicy());
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
@@ -179,8 +149,151 @@ public class AsterPolicyEditorView extends VerticalLayout {
         Button resetButton = new Button("重置", e -> resetEditor());
 
         HorizontalLayout buttonLayout = new HorizontalLayout(saveButton, exportButton, importButton, resetButton);
+        buttonLayout.setSpacing(true);
 
-        add(title, headerLayout, splitLayout, buttonLayout);
+        add(pageTitle, configCard, splitLayout, buttonLayout);
+        setFlexGrow(1, splitLayout);
+    }
+
+    /**
+     * 创建卡片样式的容器
+     */
+    private Div createCard() {
+        Div card = new Div();
+        card.getStyle()
+            .set("background", "var(--lumo-base-color)")
+            .set("border-radius", "var(--lumo-border-radius-m)")
+            .set("box-shadow", "var(--lumo-box-shadow-s)")
+            .set("padding", "var(--lumo-space-m)");
+        return card;
+    }
+
+    /**
+     * 创建编辑器面板
+     */
+    private VerticalLayout createEditorPanel() {
+        VerticalLayout panel = new VerticalLayout();
+        panel.setSizeFull();
+        panel.setPadding(false);
+        panel.setSpacing(true);
+
+        // 代码编辑器卡片
+        Div editorCard = createCard();
+        editorCard.getStyle()
+            .set("display", "flex")
+            .set("flex-direction", "column")
+            .set("flex-grow", "3")
+            .set("min-height", "400px");
+
+        H4 editorTitle = new H4("Policy Code");
+        editorTitle.getStyle().set("margin", "0 0 var(--lumo-space-s) 0");
+
+        monacoEditorElement = new Element("monaco-editor-component");
+        monacoEditorElement.setProperty("value", DEFAULT_POLICY_SNIPPET.trim());
+        monacoEditorElement.setProperty("theme", "vs-dark");
+        monacoEditorElement.setProperty("fontSize", 14);
+        monacoEditorElement.setProperty("minimap", true);
+        monacoEditorElement.setProperty("folding", true);
+        monacoEditorElement.addEventListener("monaco-value-changed", event -> {
+            policyCodeValue = event.getEventData().getString("event.detail.value");
+        }).addEventData("event.detail.value");
+
+        Div monacoWrapper = new Div();
+        monacoWrapper.getStyle()
+            .set("flex-grow", "1")
+            .set("width", "100%")
+            .set("height", "100%")
+            .set("min-height", "350px")
+            .set("border", "1px solid var(--lumo-contrast-20pct)")
+            .set("border-radius", "var(--lumo-border-radius-s)")
+            .set("overflow", "hidden");
+        monacoWrapper.getElement().appendChild(monacoEditorElement);
+
+        editorCard.add(editorTitle, monacoWrapper);
+
+        // 示例输入卡片
+        Div inputCard = createCard();
+        inputCard.getStyle()
+            .set("display", "flex")
+            .set("flex-direction", "column")
+            .set("flex-grow", "1")
+            .set("min-height", "150px");
+
+        H4 inputTitle = new H4("Sample Input");
+        inputTitle.getStyle().set("margin", "0 0 var(--lumo-space-s) 0");
+
+        sampleInputArea = new TextArea();
+        sampleInputArea.setValue("[\n  {\"creditScore\": 750, \"income\": 100000, \"loanAmount\": 300000}\n]");
+        sampleInputArea.setSizeFull();
+        sampleInputArea.getStyle()
+            .set("font-family", "monospace")
+            .set("font-size", "13px")
+            .set("flex-grow", "1");
+
+        inputCard.add(inputTitle, sampleInputArea);
+
+        panel.add(editorCard, inputCard);
+        panel.setFlexGrow(3, editorCard);
+        panel.setFlexGrow(1, inputCard);
+
+        return panel;
+    }
+
+    /**
+     * 创建预览面板
+     */
+    private VerticalLayout createPreviewPanel() {
+        VerticalLayout panel = new VerticalLayout();
+        panel.setSizeFull();
+        panel.setPadding(false);
+        panel.setSpacing(true);
+
+        Div previewCard = createCard();
+        previewCard.getStyle()
+            .set("display", "flex")
+            .set("flex-direction", "column")
+            .set("height", "100%")
+            .set("min-height", "400px");
+
+        // 头部：仅状态徽章
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
+        header.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+
+        statusBadge = new Span("未连接");
+        statusBadge.getElement().getThemeList().add("badge");
+        statusBadge.getElement().getThemeList().add("error");
+        statusBadge.getStyle()
+            .set("font-size", "var(--lumo-font-size-s)")
+            .set("padding", "var(--lumo-space-xs) var(--lumo-space-s)")
+            .set("border-radius", "var(--lumo-border-radius-m)");
+
+        header.add(statusBadge);
+
+        // 预览结果区域
+        previewResultDiv = new Div();
+        previewResultDiv.getStyle()
+            .set("flex-grow", "1")
+            .set("width", "100%")
+            .set("padding", "var(--lumo-space-m)")
+            .set("background", "var(--lumo-contrast-5pct)")
+            .set("border", "1px solid var(--lumo-contrast-10pct)")
+            .set("border-radius", "var(--lumo-border-radius-s)")
+            .set("font-family", "monospace")
+            .set("font-size", "13px")
+            .set("white-space", "pre-wrap")
+            .set("overflow-y", "auto")
+            .set("min-height", "0");
+
+        previewResultDiv.setText("等待编辑以触发预览...");
+
+        previewCard.add(header, previewResultDiv);
+
+        panel.add(previewCard);
+        panel.setFlexGrow(1, previewCard);
+
+        return panel;
     }
 
     /**
@@ -320,16 +433,22 @@ public class AsterPolicyEditorView extends VerticalLayout {
         getUI().ifPresent(ui -> ui.access(() -> {
             switch (status) {
                 case "connected":
-                    connectionStatusDiv.setText("🟢 已连接");
-                    connectionStatusDiv.getStyle().set("background", "#dfd");
+                    statusBadge.setText("已连接");
+                    statusBadge.getElement().getThemeList().remove("error");
+                    statusBadge.getElement().getThemeList().remove("contrast");
+                    statusBadge.getElement().getThemeList().add("success");
                     break;
                 case "disconnected":
-                    connectionStatusDiv.setText("🔴 已断开（正在重连...）");
-                    connectionStatusDiv.getStyle().set("background", "#fee");
+                    statusBadge.setText("已断开");
+                    statusBadge.getElement().getThemeList().remove("success");
+                    statusBadge.getElement().getThemeList().remove("contrast");
+                    statusBadge.getElement().getThemeList().add("error");
                     break;
                 case "error":
-                    connectionStatusDiv.setText("⚠️ 连接错误");
-                    connectionStatusDiv.getStyle().set("background", "#ffe");
+                    statusBadge.setText("连接错误");
+                    statusBadge.getElement().getThemeList().remove("success");
+                    statusBadge.getElement().getThemeList().remove("error");
+                    statusBadge.getElement().getThemeList().add("contrast");
                     break;
             }
         }));
@@ -353,20 +472,28 @@ public class AsterPolicyEditorView extends VerticalLayout {
                     String resultJson = mapper.writerWithDefaultPrettyPrinter()
                         .writeValueAsString(response.path("result"));
 
-                    previewResultDiv.getStyle().set("background", "#e8f5e9");
+                    previewResultDiv.getStyle()
+                        .set("background", "var(--lumo-success-color-10pct)")
+                        .set("border-color", "var(--lumo-success-color-50pct)");
                     previewResultDiv.setText(String.format("✅ 评估成功 (%dms)\n\n%s",
                         executionTime, resultJson));
                 } else if ("error".equals(status)) {
-                    previewResultDiv.getStyle().set("background", "#ffebee");
+                    previewResultDiv.getStyle()
+                        .set("background", "var(--lumo-error-color-10pct)")
+                        .set("border-color", "var(--lumo-error-color-50pct)");
                     previewResultDiv.setText(String.format("❌ 评估失败 (%dms)\n\n%s",
                         executionTime, message));
                 } else {
-                    previewResultDiv.getStyle().set("background", "#f5f5f5");
+                    previewResultDiv.getStyle()
+                        .set("background", "var(--lumo-contrast-5pct)")
+                        .set("border-color", "var(--lumo-contrast-10pct)");
                     previewResultDiv.setText(message);
                 }
 
             } catch (Exception e) {
-                previewResultDiv.getStyle().set("background", "#ffebee");
+                previewResultDiv.getStyle()
+                    .set("background", "var(--lumo-error-color-10pct)")
+                    .set("border-color", "var(--lumo-error-color-50pct)");
                 previewResultDiv.setText("❌ 响应解析错误: " + e.getMessage());
             }
         }));
@@ -397,16 +524,62 @@ public class AsterPolicyEditorView extends VerticalLayout {
      */
     private void savePolicy() {
         String code = getPolicyCode();
-
         if (code == null || code.isBlank()) {
-            Notification.show("策略代码不能为空", 2000, Notification.Position.TOP_CENTER)
-                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            showError("策略代码不能为空");
             return;
         }
 
-        // TODO: 实现保存逻辑（保存到文件系统或数据库）
-        Notification.show("策略保存功能待实现", 2000, Notification.Position.TOP_CENTER)
-            .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+        String module = moduleField.getValue();
+        String function = functionField.getValue();
+        if (module == null || module.isBlank() || function == null || function.isBlank()) {
+            showError("模块名和函数名不能为空");
+            return;
+        }
+
+        try {
+            String policyName = module + "." + function;
+
+            Map<String, List<String>> allowRules = new HashMap<>();
+            allowRules.put("execution", List.of("*"));
+
+            Policy policy = new Policy(
+                currentPolicyId,
+                policyName,
+                new PolicyRuleSet(allowRules),
+                new PolicyRuleSet(new HashMap<>())
+            );
+
+            if (currentPolicyId == null) {
+                Policy created = policyService.createPolicy(policy);
+                currentPolicyId = created.getId();
+                showSuccess("策略已创建: " + created.getName());
+            } else {
+                Optional<Policy> updated = policyService.updatePolicy(currentPolicyId, policy);
+                if (updated.isPresent()) {
+                    showSuccess("策略已更新: " + updated.get().getName());
+                } else {
+                    showError("更新失败：策略不存在");
+                }
+            }
+        } catch (Exception e) {
+            showError("保存失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 显示错误通知
+     */
+    private void showError(String message) {
+        Notification.show("❌ " + message, 3000, Notification.Position.TOP_CENTER)
+            .addThemeVariants(NotificationVariant.LUMO_ERROR);
+    }
+
+    /**
+     * 显示成功通知
+     */
+    private void showSuccess(String message) {
+        Notification.show("✅ " + message, 2000, Notification.Position.BOTTOM_CENTER)
+            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 
     /**
@@ -508,7 +681,9 @@ public class AsterPolicyEditorView extends VerticalLayout {
         updateEditorContent(DEFAULT_POLICY_SNIPPET.trim());
         sampleInputArea.setValue("[\n  {}\n]");
         previewResultDiv.setText("等待编辑以触发预览...");
-        previewResultDiv.getStyle().set("background", "#f5f5f5");
+        previewResultDiv.getStyle()
+            .set("background", "var(--lumo-contrast-5pct)")
+            .set("border-color", "var(--lumo-contrast-10pct)");
     }
 
     private void applyTemplate(PolicyTemplate template) {

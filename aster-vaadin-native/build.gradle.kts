@@ -11,6 +11,7 @@ java {
 dependencies {
     api(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.28.3"))
     compileOnly("io.quarkus:quarkus-arc")
+    compileOnly("io.quarkus:quarkus-undertow")  // For Jakarta Servlet API
 }
 
 tasks.withType<JavaCompile>().configureEach {

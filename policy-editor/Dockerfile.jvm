@@ -6,7 +6,7 @@
 # Run: docker run -p 8080:8080 policy-editor:jvm
 ####
 
-FROM eclipse-temurin:21-jre-alpine
+FROM azul/zulu-openjdk-alpine:25-jre
 
 LABEL maintainer="Aster Lang Project"
 LABEL description="Policy Editor - Vaadin + Quarkus Web Application"

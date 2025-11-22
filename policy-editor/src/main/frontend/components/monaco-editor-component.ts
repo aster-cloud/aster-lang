@@ -4,7 +4,7 @@ import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
-import 'monaco-editor/esm/vs/editor/editor.main.css';
+// CSS import removed - Monaco styling will be handled by Vaadin theme
 import { AsterLspClient } from '../lsp/lsp-client.js';
 
 const ASTER_LANGUAGE_ID = 'aster';

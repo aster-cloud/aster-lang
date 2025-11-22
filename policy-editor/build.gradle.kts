@@ -1,6 +1,7 @@
 plugins {
     java
     id("io.quarkus") version "3.28.3"
+    id("com.vaadin") version "24.9.2"
 }
 
 repositories {
@@ -28,6 +29,11 @@ val isQuarkusDevTask: Boolean by lazy {
     gradle.startParameter.taskNames.any { it.contains("quarkusDev", ignoreCase = true) }
 }
 
+// 标记当前是否为 Vaadin 生产构建（需生成 flow-build-info.json）
+val isVaadinProductionBuild: Boolean by lazy {
+    project.hasProperty("vaadin.productionMode")
+}
+
 dependencies {
     // Quarkus BOM
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.28.3"))
@@ -36,18 +42,9 @@ dependencies {
     implementation("io.quarkus:quarkus-rest")
     implementation("io.quarkus:quarkus-rest-jackson")
 
-    // Vaadin with Quarkus（在原生镜像构建时禁用；开发模式保留 DevServer）
+    // Vaadin with Quarkus
     if (!isNativeBuild) {
-        if (isQuarkusDevTask) {
-            // 开发模式：不排除 dev-server，确保 DevModeStartupListener 可用
-            implementation("com.vaadin:vaadin-quarkus-extension:24.9.2")
-        } else {
-            // 非开发模式：排除 dev 相关以避免构建时加载
-            implementation("com.vaadin:vaadin-quarkus-extension:24.9.2") {
-                exclude(group = "com.vaadin", module = "vaadin-dev-server")
-                exclude(group = "com.vaadin", module = "vaadin-dev-bundle")
-            }
-        }
+        implementation("com.vaadin:vaadin-quarkus-extension:24.9.2")
         // Aster Vaadin Native integration (runtime artifact brings deployment via quarkus extension mechanism)
         implementation(project(":aster-vaadin-native"))
     }
@@ -72,6 +69,12 @@ dependencies {
     testImplementation("io.quarkus:quarkus-test-security")
     testImplementation("com.github.tomakehurst:wiremock-jre8:3.0.1")
     testRuntimeOnly("com.vaadin:vaadin-dev-server:24.9.2")
+}
+
+vaadin {
+    // CI/生产构建使用 pnpm，避免重复下载 node_modules
+    pnpmEnable = true
+    productionMode = isVaadinProductionBuild
 }
 
 // 移除严格警告依赖于 Vaadin 的编译器提示
@@ -133,5 +136,15 @@ val prepareVaadinDevDirs by tasks.registering {
         val comps = project.layout.projectDirectory.dir("build/vaadin/web-components").asFile
         gen.mkdirs()
         comps.mkdirs()
+    }
+}
+
+if (isVaadinProductionBuild && !isNativeBuild) {
+    // 生产构建确保 Vaadin 前端在打包前完成
+    tasks.named("processResources") {
+        dependsOn("vaadinPrepareFrontend")
+    }
+    tasks.named("quarkusBuild") {
+        dependsOn("vaadinBuildFrontend")
     }
 }
