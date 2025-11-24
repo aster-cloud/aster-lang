@@ -1,0 +1,11 @@
+{
+  "name": "aster.http-client",
+  "version": "1.0.0",
+  "dependencies": {
+    "aster.strings": "^1.0.0"
+  },
+  "effects": [],
+  "capabilities": {
+    "allow": ["Http"]
+  }
+}

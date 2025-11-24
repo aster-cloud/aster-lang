@@ -1,0 +1,11 @@
+{
+  "name": "aster.datetime",
+  "version": "1.0.0",
+  "dependencies": {
+    "aster.strings": "^1.0.0"
+  },
+  "effects": [],
+  "capabilities": {
+    "allow": ["Cpu", "Time"]
+  }
+}

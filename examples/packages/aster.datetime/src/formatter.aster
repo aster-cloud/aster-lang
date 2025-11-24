@@ -1,0 +1,17 @@
+This module is aster.datetime.
+
+Define DateParts with year: Number, month: Number, day: Number, hour: Number, minute: Number, timezone: Text.
+
+// 日期时间格式化，复用 aster.strings 的封装逻辑。
+
+To formatLocalDatetime with parts: DateParts, produce Text:
+  Let dateSection be Text.concat(Number.toString(parts.year), "-", Number.toString(parts.month), "-", Number.toString(parts.day)).
+  Let timeSection be Text.concat(Number.toString(parts.hour), ":", Number.toString(parts.minute)).
+  Let decorated be aster.strings.surroundWithBars(dateSection, 2).
+  Return Text.concat(decorated, " ", timeSection, " ", parts.timezone).
+
+To describeWindow with start: DateParts, end: DateParts, produce Text:
+  Let startText be formatLocalDatetime(start).
+  Let endText be formatLocalDatetime(end).
+  Let summary be Text.concat("窗口从 ", startText, " 至 ", endText).
+  Return aster.strings.describeLength(summary, 3).

@@ -2,6 +2,52 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-25 文档构建与发布指南验证
+- 日期：2025-11-25 09:26 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm run docs:build` → 通过（VitePress 10.11s 内完成客户端与服务端产物构建，新增 `repository-infrastructure` 与 `publishing-guide` 文档成功编译，站点搜索索引已包含最新章节）。
+
+## 2025-11-25 P2-4 CLI search/update 测试覆盖验证
+- 日期：2025-11-25 09:39 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（编译新增 search/update CLI 测试，生成 dist/test/cli/commands/*.js）。
+  - `npm run test:cli:coverage` → 通过（26 项 CLI/集成测试全绿，search.ts/ update.ts 语句覆盖率分别 90.82% / 82.84%，总体 CLI 覆盖率保持 86%+）。
+
+## 2025-11-25 P2-4 CLI install 构建验证
+- 日期：2025-11-25 01:05 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（tsc 编译 + PEG 生成完成，确认 CLI install 命令及辅助模块可成功编译）
+
+## 2025-11-25 P2-4 CLI install 命令验证
+- 日期：2025-11-25 00:45 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（编译 TypeScript 并生成 dist/scripts/aster.js，确保最新 CLI 逻辑落盘）。
+  - `./dist/scripts/aster.js install --help` → 通过（输出 install 子命令中文帮助，确认 --save-dev/--no-lock/--registry 选项展示）。
+  - `mkdir -p test-install && cd test-install && echo '{"name":"demo.app","version":"1.0.0"}' > manifest.json` → 初始化最小工程。
+  - `../dist/scripts/aster.js install aster.math --registry=local` → 通过（从仓库根 `.aster/local-registry` 安装示例包，生成 manifest 依赖、.aster.lock 与 `.aster/packages/aster.math/1.0.0/` 缓存目录）。
+- `cat manifest.json && cat .aster.lock && ls .aster/packages/aster.math` → 通过（确认依赖条目、锁文件与缓存目录均存在）。
+
+## 2025-11-25 Task 4 CLI 测试覆盖验证
+- 日期：2025-11-25 09:17 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（多次执行以编译新增 CLI 测试与 e2e 脚本，确认 dist/scripts/aster.js 与 dist/test/** 均更新）。
+  - `npm run test:cli` → 通过（新增 12 项 CLI/Utils 单元测试全部成功，覆盖 install/list/error-handler 对应 Mock 场景与错误路径）。
+  - `npm run test:cli:coverage` → 通过（使用 `c8 --include 'dist/src/cli/**/*.js'` 捕获 CLI 专属覆盖率，语句 86.71%、分支 75.18%、函数 94.11%、行 86.71%，满足既定阈值）。
+  - `npm run test:e2e:cli` → 通过（在临时目录 + 本地 registry 下调用 `./dist/scripts/aster.js` 完成 install/list 流程验证）。
+
+## 2025-11-24 P2-4 示例包构建验证
+- 日期：2025-11-24 23:22 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（TypeScript 编译与 PEG 构建成功，为示例包脚本生成 dist 产物）
+  - `npm run build:examples` → 通过（脚本扫描 4 个 packages 并输出 `.aster/local-registry/*/1.0.0.tar.gz`）
+  - `tar -tzf .aster/local-registry/aster.math/1.0.0.tar.gz` 等 → 通过（tarball 内包含 manifest.json、README.md、src/）
+
 ## 2025-11-24 PackageRegistry GitHub API 交互层验证
 - 日期：2025-11-24 08:49 NZDT
 - 执行者：Codex

@@ -564,3 +564,9 @@ aster run app.jar arg1 arg2 --main com.example.Main
 - 通过多次 `shell`（`sed`/`nl`）阅读 `aster-truffle` 核心源码、`scripts/aster.ts` 与 `settings.gradle`，记录节点实现与 CLI 集成现状
 - 执行 `mcp__exa__web_search_exa(query='GraalVM Truffle partial evaluation specialization interpreter overview')` 收集 Truffle 部分求值与特化资料
 - 使用 `apply_patch` 新增 `.claude/truffle-analysis-report.md` 与 `.claude/truffle-integration-proposal.md`，输出可行性报告与实验性集成提案
+
+# 2025-11-25 09:17 NZDT — Codex Task 4 CLI 测试覆盖
+
+- 经过 `mcp__sequential-thinking__sequentialthinking` 思考与 `mcp__code-index__find_files`/`search_code_advanced` 勘查后，新增 `test/cli/commands/install.test.ts`、`test/cli/commands/list.test.ts`、`test/cli/utils/error-handler.test.ts`、`test/cli/integration.test.ts` 与 `test/e2e/package-management.test.ts`，并在 `test/cli/registry-utils.ts` 提供本地 registry 封装。
+- 更新 `package.json` 脚本：`test:cli` 直接运行 CLI 单测、`test:cli:coverage` 采用 `c8 --include 'dist/src/cli/**/*.js'` 收敛覆盖范围、`test:e2e:cli` 通过真实 `./dist/scripts/aster.js` 执行 install/list。
+- 多次执行 `npm run build`、`npm run test:cli`、`npm run test:cli:coverage` 与 `npm run test:e2e:cli`，确认 CLI 模块语句 86.71%、分支 75.18%、函数 94.11%、行 86.71%，真实 CLI 在临时目录与 `.aster/local-registry` 下可完成 install+list 流程。

@@ -1,0 +1,11 @@
+{
+  "name": "aster.strings",
+  "version": "1.0.0",
+  "dependencies": {
+    "aster.math": "^1.0.0"
+  },
+  "effects": [],
+  "capabilities": {
+    "allow": ["Cpu"]
+  }
+}

@@ -72,7 +72,7 @@ export function parseManifest(filePath: string): Manifest | Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     for (const error of validateSchema.errors) {
       const fieldPath = error.instancePath || '/';
-      const errorDiagnostic = mapAjvErrorToDiagnostic(error, fieldPath);
+      const errorDiagnostic = mapAjvErrorToDiagnostic(error, fieldPath, manifest);
       diagnostics.push(errorDiagnostic);
     }
     return diagnostics;
@@ -208,32 +208,33 @@ function isValidVersionConstraint(version: string): boolean {
 /**
  * 将ajv验证错误映射为Diagnostic
  */
-function mapAjvErrorToDiagnostic(error: ErrorObject, fieldPath: string): Diagnostic {
+function mapAjvErrorToDiagnostic(error: ErrorObject, fieldPath: string, sourceData: unknown): Diagnostic {
   const pos = dummyPosition();
+  const fieldValue = formatDiagnosticValue(sourceData, fieldPath);
 
   switch (error.keyword) {
     case 'pattern':
       if (fieldPath.includes('/name')) {
         return DiagnosticBuilder.error(DiagnosticCode.M003_InvalidPackageName)
-          .withMessage(`包名称格式无效：${error.data}（必须是小写字母、数字、下划线，用点号分隔）`)
+          .withMessage(`包名称格式无效：${fieldValue}（必须是小写字母、数字、下划线，用点号分隔）`)
           .withPosition(pos)
           .build();
       }
       if (fieldPath.includes('/version')) {
         return DiagnosticBuilder.error(DiagnosticCode.M004_InvalidVersion)
-          .withMessage(`版本格式无效：${error.data}（必须遵循 SemVer 格式，如 1.0.0）`)
+          .withMessage(`版本格式无效：${fieldValue}（必须遵循 SemVer 格式，如 1.0.0）`)
           .withPosition(pos)
           .build();
       }
       if (fieldPath.includes('/dependencies') || fieldPath.includes('/devDependencies')) {
         return DiagnosticBuilder.error(DiagnosticCode.M005_InvalidVersionConstraint)
-          .withMessage(`版本约束格式无效：${error.data}（支持 ^1.0.0、~1.0.0 或 1.0.0 格式）`)
+          .withMessage(`版本约束格式无效：${fieldValue}（支持 ^1.0.0、~1.0.0 或 1.0.0 格式）`)
           .withPosition(pos)
           .build();
       }
       if (fieldPath.includes('/effects')) {
         return DiagnosticBuilder.error(DiagnosticCode.M006_InvalidEffectName)
-          .withMessage(`效果名称格式无效：${error.data}（必须是 PascalCase 格式）`)
+          .withMessage(`效果名称格式无效：${fieldValue}（必须是 PascalCase 格式）`)
           .withPosition(pos)
           .build();
       }
@@ -248,7 +249,7 @@ function mapAjvErrorToDiagnostic(error: ErrorObject, fieldPath: string): Diagnos
     case 'enum':
       if (fieldPath.includes('/capabilities')) {
         return DiagnosticBuilder.error(DiagnosticCode.M008_InvalidCapability)
-          .withMessage(`无效的能力声明：${error.data}（有效值为：Http、Sql、Time、Files、Secrets、AiModel、Cpu）`)
+          .withMessage(`无效的能力声明：${fieldValue}（有效值为：Http、Sql、Time、Files、Secrets、AiModel、Cpu）`)
           .withPosition(pos)
           .build();
       }
@@ -268,4 +269,48 @@ function mapAjvErrorToDiagnostic(error: ErrorObject, fieldPath: string): Diagnos
  */
 function dummyPosition(): Position {
   return { line: 1, col: 1 };
+}
+
+function formatDiagnosticValue(sourceData: unknown, fieldPath: string): string {
+  const raw = resolveJsonPointer(sourceData, fieldPath);
+  if (raw === undefined) {
+    return 'undefined';
+  }
+  if (raw === null) {
+    return 'null';
+  }
+  if (typeof raw === 'string') {
+    return raw;
+  }
+  if (typeof raw === 'number' || typeof raw === 'boolean') {
+    return String(raw);
+  }
+  try {
+    return JSON.stringify(raw);
+  } catch {
+    return String(raw);
+  }
+}
+
+function resolveJsonPointer(data: unknown, pointer: string): unknown {
+  if (!pointer || pointer === '/') {
+    return data;
+  }
+
+  const segments = pointer
+    .split('/')
+    .filter(Boolean)
+    .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
+
+  let current: unknown = data;
+  for (const segment of segments) {
+    if (current && typeof current === 'object') {
+      const container = current as Record<string, unknown>;
+      current = container[segment];
+    } else {
+      return undefined;
+    }
+  }
+
+  return current;
 }

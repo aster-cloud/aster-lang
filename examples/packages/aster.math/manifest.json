@@ -1,0 +1,9 @@
+{
+  "name": "aster.math",
+  "version": "1.0.0",
+  "dependencies": {},
+  "effects": [],
+  "capabilities": {
+    "allow": ["Cpu"]
+  }
+}

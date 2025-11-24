@@ -6,10 +6,11 @@
 
 import { createRequire } from 'node:module';
 import type { IncomingHttpHeaders } from 'node:http';
-import { createWriteStream } from 'node:fs';
-import { mkdtemp, rename, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { createWriteStream, existsSync } from 'node:fs';
+import { mkdtemp, rename, rm, readdir, stat, copyFile } from 'node:fs/promises';
+import { join, resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { parseVersion } from './version-utils.js';
 import {
   type Diagnostic,
@@ -51,6 +52,8 @@ interface JsonResponse<T> {
   readonly headers: IncomingHttpHeaders;
 }
 
+type RegistryMode = 'remote' | 'local';
+
 function buildHttpDiagnostics(
   code: DiagnosticCode,
   message: string
@@ -83,9 +86,23 @@ export class PackageRegistry {
   private readonly baseOrigin: string;
   private readonly timeout: number;
   private readonly githubToken: string | undefined;
+  private readonly mode: RegistryMode;
+  private readonly localRegistryDir?: string;
 
   constructor(config: RegistryConfig = {}) {
-    const normalizedBase = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
+    const rawBase = config.baseUrl?.trim();
+    if (rawBase && this.shouldUseLocalRegistry(rawBase)) {
+      this.mode = 'local';
+      this.localRegistryDir = this.resolveLocalRegistryDir(rawBase);
+      this.baseUrl = new URL(DEFAULT_BASE_URL);
+      this.baseOrigin = this.baseUrl.origin;
+      this.timeout = config.timeout ?? DEFAULT_TIMEOUT;
+      this.githubToken = config.githubToken;
+      return;
+    }
+
+    this.mode = 'remote';
+    const normalizedBase = (rawBase ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
     this.baseUrl = new URL(normalizedBase);
     this.baseOrigin = this.baseUrl.origin;
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT;
@@ -99,6 +116,10 @@ export class PackageRegistry {
    * @returns 版本号数组或诊断错误
    */
   async listVersions(packageName: string): Promise<string[] | Diagnostic[]> {
+    if (this.mode === 'local') {
+      return this.listLocalVersions(packageName);
+    }
+
     const releases = await this.fetchReleases();
     if (Array.isArray(releases) && releases.length > 0 && releases[0] && 'severity' in releases[0]) {
       return releases as Diagnostic[];
@@ -125,6 +146,10 @@ export class PackageRegistry {
    * @param destPath 最终写入路径
    */
   async downloadPackage(packageName: string, version: string, destPath: string): Promise<void | Diagnostic[]> {
+    if (this.mode === 'local') {
+      return this.downloadLocalPackage(packageName, version, destPath);
+    }
+
     const release = await this.fetchReleaseByVersion(version);
     if (Array.isArray(release) && release.length > 0 && release[0] && 'severity' in release[0]) {
       return release as Diagnostic[];
@@ -161,6 +186,10 @@ export class PackageRegistry {
    * 查询 GitHub API 的 rate limit 信息
    */
   async checkRateLimit(): Promise<RateLimitInfo | Diagnostic[]> {
+    if (this.mode === 'local') {
+      return buildHttpDiagnostics(DiagnosticCode.R007_InvalidResponse, '本地注册表不支持速率限制查询');
+    }
+
     const response = await this.getJson<RateApiResponse>('/rate_limit');
     if (Array.isArray(response) && response.length > 0 && response[0] && 'severity' in response[0]) {
       return response as Diagnostic[];
@@ -174,6 +203,124 @@ export class PackageRegistry {
       );
     }
     return info;
+  }
+
+  private shouldUseLocalRegistry(base: string): boolean {
+    if (base === 'local') {
+      return true;
+    }
+    if (base.startsWith('file://')) {
+      return true;
+    }
+    return !/^https?:\/\//i.test(base);
+  }
+
+  private resolveLocalRegistryDir(base: string): string {
+    if (base === 'local') {
+      return this.locateWorkspaceLocalRegistry();
+    }
+    if (base.startsWith('file://')) {
+      return fileURLToPath(base);
+    }
+    return resolve(process.cwd(), base);
+  }
+
+  private locateWorkspaceLocalRegistry(): string {
+    let current = process.cwd();
+    while (true) {
+      const candidate = resolve(current, '.aster', 'local-registry');
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+      const parent = dirname(current);
+      if (parent === current) {
+        break;
+      }
+      current = parent;
+    }
+    return resolve(process.cwd(), '.aster', 'local-registry');
+  }
+
+  private async listLocalVersions(packageName: string): Promise<string[] | Diagnostic[]> {
+    if (!this.localRegistryDir) {
+      return buildHttpDiagnostics(DiagnosticCode.R007_InvalidResponse, '本地注册表目录未配置');
+    }
+    const packageDir = join(this.localRegistryDir, packageName);
+    try {
+      const stats = await stat(packageDir);
+      if (!stats.isDirectory()) {
+        return buildHttpDiagnostics(
+          DiagnosticCode.V003_PackageNotFound,
+          `本地注册表缺少 ${packageName}，请确认 ${packageDir} 是否存在`
+        );
+      }
+    } catch {
+      return buildHttpDiagnostics(
+        DiagnosticCode.V003_PackageNotFound,
+        `本地注册表缺少 ${packageName}，请确认 ${packageDir} 是否存在`
+      );
+    }
+
+    try {
+      const entries = await readdir(packageDir, { withFileTypes: true });
+      const versions: string[] = [];
+      for (const entry of entries) {
+        if (!entry.isFile() || !entry.name.endsWith('.tar.gz')) {
+          continue;
+        }
+        const candidate = entry.name.replace(/\.tar\.gz$/u, '');
+        const parsed = parseVersion(candidate);
+        if (parsed) {
+          versions.push(parsed.version);
+        }
+      }
+
+      if (versions.length === 0) {
+        return buildHttpDiagnostics(
+          DiagnosticCode.V003_PackageNotFound,
+          `本地注册表未找到 ${packageName} 的任何版本：${packageDir}`
+        );
+      }
+
+      versions.sort((a, b) => a.localeCompare(b));
+      return versions;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return buildHttpDiagnostics(DiagnosticCode.R004_DownloadFailed, `读取本地注册表失败：${message}`);
+    }
+  }
+
+  private async downloadLocalPackage(
+    packageName: string,
+    version: string,
+    destPath: string
+  ): Promise<void | Diagnostic[]> {
+    if (!this.localRegistryDir) {
+      return buildHttpDiagnostics(DiagnosticCode.R007_InvalidResponse, '本地注册表目录未配置');
+    }
+    const source = join(this.localRegistryDir, packageName, `${version}.tar.gz`);
+    try {
+      const stats = await stat(source);
+      if (!stats.isFile()) {
+        return buildHttpDiagnostics(
+          DiagnosticCode.V003_PackageNotFound,
+          `本地注册表缺少 ${packageName}@${version}：${source}`
+        );
+      }
+    } catch {
+      return buildHttpDiagnostics(
+        DiagnosticCode.V003_PackageNotFound,
+        `本地注册表缺少 ${packageName}@${version}：${source}`
+      );
+    }
+
+    try {
+      await copyFile(source, destPath);
+      return undefined;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return buildHttpDiagnostics(DiagnosticCode.R004_DownloadFailed, `复制本地包失败：${message}`);
+    }
   }
 
   private async fetchReleases(): Promise<GitHubRelease[] | Diagnostic[]> {

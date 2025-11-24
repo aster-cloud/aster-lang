@@ -47,6 +47,15 @@ export default defineConfig({
             { text: 'Contributing', link: '/guide/contributing' },
           ],
         },
+        {
+          text: 'Package Management',
+          items: [
+            { text: '包管理快速入门', link: '/guide/getting-started-packages' },
+            { text: '包管理系统概述', link: '/guide/package-management/overview' },
+            { text: 'manifest.json 参考', link: '/guide/package-management/manifest-reference' },
+            { text: 'CLI 命令参考', link: '/guide/cli/commands' },
+          ],
+        },
       ],
       '/reference/': [
         {

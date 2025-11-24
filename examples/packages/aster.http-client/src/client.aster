@@ -1,0 +1,14 @@
+This module is aster.http_client.
+
+// HTTP 客户端演示，依赖 aster.strings 做请求描述。
+
+Define HttpRequest with method: Text, url: Text, traceId: Text, body: Text.
+
+To callHealthcheck with baseUrl: Text, path: Text, traceId: Text, produce Result of Text with Http:
+  Let decoratedPath be aster.strings.surroundWithBars(path, 1).
+  Let summary be Text.concat("GET ", baseUrl, decoratedPath, " #", traceId).
+  Return ok of summary.
+
+To buildJsonBody with json: Text, compressLevel: Number, produce Text:
+  Let info be aster.strings.describeLength(json, compressLevel).
+  Return Text.concat("BODY:", json, " | ", info).
