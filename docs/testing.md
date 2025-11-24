@@ -2,6 +2,13 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## 2025-11-24 PackageRegistry GitHub API 交互层验证
+- 日期：2025-11-24 08:49 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `node --test dist/test/unit/package-registry.test.js` → 通过（8 个子测试覆盖 release 解析、rate limit、网络异常、下载与 rate limit 查询流程）
+  - `npm run test:unit` → 通过（525 项 unit/type-checker 测试全部成功，新增 package-registry 覆盖已纳入基线）
+
 ## 2025-11-15 PIIRedactionIntegrationTest 脱敏验证
 - 日期：2025-11-15 21:17 NZDT
 - 执行者：Codex

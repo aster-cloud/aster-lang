@@ -53,6 +53,47 @@ export enum DiagnosticCode {
   W001_UnusedVariable = 'W001',
   W002_PreferredSyntax = 'W002',
   W003_RedundantCode = 'W003',
+
+  // Manifest/Package errors (M001-M099)
+  M001_ManifestParseError = 'M001',
+  M002_ManifestFileNotFound = 'M002',
+  M003_InvalidPackageName = 'M003',
+  M004_InvalidVersion = 'M004',
+  M005_InvalidVersionConstraint = 'M005',
+  M006_InvalidEffectName = 'M006',
+  M007_UnknownManifestField = 'M007',
+  M008_InvalidCapability = 'M008',
+
+  // Package Registry errors (R001-R099)
+  R001_NetworkError = 'R001',
+  R002_RateLimitExceeded = 'R002',
+  R003_PackageNotFoundOnGitHub = 'R003',
+  R004_DownloadFailed = 'R004',
+  R005_InvalidReleaseFormat = 'R005',
+  R006_AuthenticationFailed = 'R006',
+  R007_InvalidResponse = 'R007',
+
+  // Package Cache errors (C001-C099)
+  C001_CacheCorrupted = 'C001',
+  C002_ExtractionFailed = 'C002',
+  C003_DiskSpaceInsufficient = 'C003',
+  C004_ManifestMissing = 'C004',
+  C005_CacheExpired = 'C005',
+  C006_InvalidCacheMetadata = 'C006',
+  C007_CacheWriteFailed = 'C007',
+
+  // Version resolver errors (V001-V099)
+  V001_DependencyResolutionTimeout = 'V001',
+  V002_VersionConflictUnresolvable = 'V002',
+  V003_PackageNotFound = 'V003',
+
+  // Deprecated - use V001-V003 instead
+  /** @deprecated Use V001_DependencyResolutionTimeout */
+  DEPENDENCY_RESOLUTION_TIMEOUT = 'V001',
+  /** @deprecated Use V002_VersionConflictUnresolvable */
+  VERSION_CONFLICT_UNRESOLVABLE = 'V002',
+  /** @deprecated Use V003_PackageNotFound */
+  PACKAGE_NOT_FOUND = 'V003',
 }
 
 export interface FixIt {
@@ -293,4 +334,9 @@ export function formatDiagnostic(diagnostic: Diagnostic, source?: string): strin
   }
 
   return result;
+}
+
+// Utility to create a dummy position for diagnostics without source location
+export function dummyPosition(): Position {
+  return { line: 1, col: 1 };
 }

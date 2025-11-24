@@ -6,7 +6,7 @@
 
 > **CapabilityKind** = [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)
 
-Defined in: [types.ts:56](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/types.ts#L56)
+Defined in: [types.ts:56](https://github.com/wontlost-ltd/aster-lang/blob/0dcc7f727b18f3af07d94dceb461ca4e23de3261/src/types.ts#L56)
 
 能力类型枚举
 

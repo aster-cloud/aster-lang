@@ -10,6 +10,7 @@ import {
 } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { promises as fs, existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { getAllModules } from './index.js';
 import {
   typecheckModule,
@@ -52,6 +53,12 @@ let manifestCache: {
   path: string;
   data: CapabilityManifest | null;
 } | null = null;
+
+let moduleSearchRoots: string[] = [];
+
+export function setModuleSearchRoots(roots: readonly string[]): void {
+  moduleSearchRoots = roots.map(root => resolve(root));
+}
 
 /**
  * 诊断结果缓存，以 URI + 文档版本号为键。
@@ -292,7 +299,8 @@ export async function computeDiagnostics(
         // 缓存未命中或版本不匹配，执行类型检查
         const typecheckStart = Date.now();
         const manifest = await loadCapabilityManifest();
-        const typecheckOptions = { uri };
+        const moduleSearchPaths = buildModuleSearchPaths(uri);
+        const typecheckOptions = { uri, moduleSearchPaths };
         tdiags = manifest
           ? typecheckModuleWithCapabilities(core, manifest, typecheckOptions)
           : typecheckModule(core, typecheckOptions);
@@ -425,6 +433,22 @@ export async function computeDiagnostics(
 }
 
 const BATCH_SIZE = 5;
+
+function buildModuleSearchPaths(uri: string): string[] {
+  const candidates = new Set<string>();
+  const fsPath = uriToFsPath(uri);
+  if (fsPath) {
+    const dir = dirname(fsPath);
+    const resolvedDir = resolve(dir);
+    candidates.add(resolvedDir);
+    candidates.add(join(resolvedDir, '.aster', 'packages'));
+  }
+  for (const root of moduleSearchRoots) {
+    candidates.add(root);
+    candidates.add(join(root, '.aster', 'packages'));
+  }
+  return [...candidates];
+}
 
 /**
  * 将 URI 转换为文件系统路径。

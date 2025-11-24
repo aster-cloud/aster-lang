@@ -254,3 +254,39 @@
 | 2025-10-09 09:47 | shell (sed) | docs/workstreams/P2-4/operations-log.md 1-160 | 确认日志格式 |
 | 2025-10-09 09:48 | apply_patch | 新增 scripts/lsp-client-helper.ts | 构建 LSPClient 类 |
 | 2025-10-09 09:48 | shell (npm run build) | - | 编译通过 |
+| 2025-11-22 18:18 | sequential-thinking | totalThoughts=4 | P2-4 模块系统调研任务初步分析 |
+| 2025-11-22 18:18 | code-index__set_project_path | path=/Users/rpang/IdeaProjects/aster-lang | 重设索引根目录 |
+| 2025-11-22 18:19 | code-index__search_code_advanced | pattern=\"module\" max_results=50 | 粗排模块相关文件 |
+| 2025-11-22 18:19 | code-index__search_code_advanced | pattern=\"This module is\" max_results=20 | 查多词关键字与示例 |
+| 2025-11-22 18:25 | shell (sed) | aster-core/src/main/antlr/AsterParser.g4 24-60 | 阅读模块入口与模块头语法定义 |
+| 2025-11-22 18:25 | shell (sed) | aster-core/src/main/antlr/AsterParser.g4 168-196 | 查看 importDecl 与别名规则 |
+| 2025-11-22 18:26 | shell (sed) | src/parser/import-parser.ts 1-120 | 检查 parseModuleHeader/parseImport 实现细节 |
+| 2025-11-22 18:26 | shell (sed) | src/parser/decl-parser.ts 420-516 | 阅读 collectTopLevelDecls 模块头/导入处理 |
+| 2025-11-22 18:27 | shell (sed) | src/parser/context.ts 1-160 | 确认 ParserContext.moduleName 生命周期 |
+| 2025-11-22 18:27 | shell (sed) | src/parser.ts 1-80 | 查看 parse 入口如何构建 Module AST |
+| 2025-11-22 18:27 | shell (sed) | src/ast.ts 1-80 | 确认 Module/Import AST 构造器 |
+| 2025-11-22 18:28 | shell (sed) | src/typecheck.ts 150-244 | 阅读 ModuleContext import 登记与效果加载 |
+| 2025-11-22 18:28 | shell (sed) | src/typecheck.ts 640-714 | 跟踪 resolveAlias 在效果收集中的使用 |
+| 2025-11-22 18:28 | shell (sed) | src/effect_inference.ts 150-216 | 分析跨模块调用效果推断逻辑 |
+| 2025-11-22 18:28 | shell (sed) | src/typecheck-pii.ts 200-260 | 检查 PII 检查如何解析导入别名 |
+| 2025-11-22 18:29 | shell (sed) | src/lsp/module_cache.ts 1-160 | 分析模块依赖缓存与失效策略 |
+| 2025-11-22 18:29 | shell (sed) | src/lsp/workspace/document-indexer.ts 90-120 | 查看模块名正则提取 |
+| 2025-11-22 18:29 | shell (nl) | test/type-checker/cross-module/module_b.aster | 获取跨模块 import/调用示例 |
+| 2025-11-22 18:29 | shell (nl) | examples/workflow/parallel-tasks.aster | 记录模块声明与 workflow 示例 |
+| 2025-11-22 18:30 | shell (sed) | aster-asm-emitter/src/main/java/aster/emitter/ContextBuilder.java 1-120 | 分析 canonicalKey 如何拼接包名 |
+| 2025-11-22 18:30 | shell (sed) | aster-asm-emitter/src/main/java/aster/emitter/Main.java 160-260 | 记录 JVM 发射器 pkgName 与 package-map 输出 |
+| 2025-11-22 18:30 | shell (sed) | aster-asm-emitter/src/main/java/aster/emitter/ModuleLoader.java 1-120 | 查看 Core 模块加载流程 |
+| 2025-11-22 18:31 | shell (sed) | settings.gradle.kts 1-80 | 确认 Gradle 多模块配置 |
+| 2025-11-22 18:31 | shell (sed) | build.gradle.kts 1-140 | 了解根构建对示例/子模块的 orchestration |
+| 2025-11-22 18:31 | shell (sed) | LANGUAGE_REFERENCE.md 1-40 | 引用官方模块语法描述 |
+| 2025-11-22 18:31 | shell (sed) | manifest.schema.json 1-40 | 检查现有配置仅涵盖 capabilities |
+| 2025-11-22 18:32 | shell (sed) | manifest.example.json 1-20 | 验证配置示例不含依赖管理 |
+| 2025-11-22 18:32 | shell (sed) | ROADMAP_SUMMARY.md 110-118 | 记录 package management/插件系统规划 |
+| 2025-11-22 18:33 | shell (rg --files) | -g 'aster.json' | 仅找到 aster-vscode/snippets/aster.json |
+| 2025-11-22 18:33 | shell (rg --files) | -g 'package.aster' | 未发现类 package.aster 的配置文件 |
+| 2025-11-22 18:34 | shell (ls) | test/type-checker | 记录 cross-module/golden/expected 目录结构 |
+| 2025-11-22 18:34 | shell (ls) | test/type-checker/golden | 确认 golden 目录缺少 cross-module 子路径 |
+| 2025-11-22 18:34 | shell (sed) | src/core_ir.ts 1-80 | 查看 Core.Module/Core.Import 定义 |
+| 2025-11-22 18:35 | shell (sed) | aster-vscode/snippets/aster.json 1-80 | 检查唯一 aster.json 文件内容 |
+| 2025-11-22 18:35 | shell (python3) | 生成 .claude/context-p2-4-initial.json | 写入初始调研 JSON |
+| 2025-11-22 18:35 | shell (cat) | .claude/context-p2-4-initial.json | 校验输出内容 |

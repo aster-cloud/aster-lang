@@ -1,7 +1,7 @@
 plugins {
     java
     id("io.quarkus") version "3.28.3"
-    id("com.vaadin") version "24.9.2"
+    id("com.vaadin") version "24.9.5"
 }
 
 repositories {
@@ -44,7 +44,7 @@ dependencies {
 
     // Vaadin with Quarkus
     if (!isNativeBuild) {
-        implementation("com.vaadin:vaadin-quarkus-extension:24.9.2")
+        implementation("com.vaadin:vaadin-quarkus-extension:24.9.5")
         // Aster Vaadin Native integration (runtime artifact brings deployment via quarkus extension mechanism)
         implementation(project(":aster-vaadin-native"))
     }
@@ -68,7 +68,7 @@ dependencies {
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.quarkus:quarkus-test-security")
     testImplementation("com.github.tomakehurst:wiremock-jre8:3.0.1")
-    testRuntimeOnly("com.vaadin:vaadin-dev-server:24.9.2")
+    testRuntimeOnly("com.vaadin:vaadin-dev-server:24.9.5")
 }
 
 vaadin {

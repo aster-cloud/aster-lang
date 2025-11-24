@@ -49,6 +49,7 @@ import {
   invalidateDiagnosticCache,
   invalidateTypecheckCache,
   computeWorkspaceDiagnostics,
+  setModuleSearchRoots,
 } from './diagnostics.js';
 import { registerCompletionHandlers, typeText } from './completion.js';
 import {
@@ -228,6 +229,7 @@ connection.onInitialize(async (params: InitializeParams) => {
     if (workspaceFolders.length === 0 && root) {
       workspaceFolders.push(root);
     }
+    setModuleSearchRoots(workspaceFolders);
     currentIndexPath = root ? join(root, '.asteri', 'lsp-index.json') : null;
     setIndexConfig({ persistEnabled: true, indexPath: currentIndexPath ?? null, autoSaveDelay: 500 });
     indexPersistenceActive = true;
@@ -258,6 +260,7 @@ connection.onInitialized(() => {
   if (hasWorkspaceFolderCapability) {
     connection.workspace.onDidChangeWorkspaceFolders(() => {
       connection.console.log('Workspace folder change event received.');
+      setModuleSearchRoots(workspaceFolders);
     });
   }
   // Respond to external file changes if client supports it

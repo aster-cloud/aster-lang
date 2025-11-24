@@ -5,7 +5,7 @@ import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
 import { resolveAlias } from './typecheck.js';
 import { ErrorCode } from './error_codes.js';
 import type { EffectSignature } from './effect_signature.js';
-import { cacheModuleEffectSignatures } from './lsp/module_cache.js';
+import { ModuleCache, cacheModuleEffectSignatures } from './lsp/module_cache.js';
 
 export interface EffectConstraint {
   caller: string;
@@ -46,6 +46,7 @@ export interface EffectInferenceOptions {
   moduleUri?: string | null;
   imports?: Map<string, string>;
   importedEffects?: Map<string, EffectSignature>;
+  moduleCache?: ModuleCache;
 }
 
 export function inferEffects(core: Core.Module, options?: EffectInferenceOptions): TypecheckDiagnostic[] {
@@ -132,12 +133,17 @@ export function inferEffects(core: Core.Module, options?: EffectInferenceOptions
       resolvedInferred,
       resolvedRequired
     );
-    cacheModuleEffectSignatures({
+    const cacheOptions = {
       moduleName: options.moduleName,
       uri: options.moduleUri ?? null,
       signatures,
       imports: options.imports ? Array.from(new Set(options.imports.values())) : [],
-    });
+    };
+    if (options.moduleCache) {
+      options.moduleCache.cacheModuleEffectSignatures(cacheOptions);
+    } else {
+      cacheModuleEffectSignatures(cacheOptions);
+    }
   }
 
   return diagnostics;

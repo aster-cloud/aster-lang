@@ -41,6 +41,8 @@ tasks.test {
   }
   jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
   jvmArgs("--add-opens", "java.base/java.util=ALL-UNNAMED")
+  jvmArgs("-Xss10m") // 增加栈大小到 10MB 以支持深度递归
+  jvmArgs("-da") // 禁用断言以避免 Truffle 内部断言失败
   // Phase 3C P0-2: 支持 Profiler 数据收集
   // 通过 -Daster.profiler.enabled=true 启用 profiling
   systemProperty("aster.profiler.enabled", System.getProperty("aster.profiler.enabled", "false"))

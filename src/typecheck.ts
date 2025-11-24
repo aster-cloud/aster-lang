@@ -1,4 +1,5 @@
 import { performance } from 'node:perf_hooks';
+import { join, resolve } from 'node:path';
 import type { Core, Origin, Span, TypecheckDiagnostic } from './types.js';
 import {
   type CapabilityManifest,
@@ -21,7 +22,7 @@ import { TypeSystem } from './typecheck/type_system.js';
 import { checkModulePII } from './typecheck-pii.js';
 import { ErrorCode } from './error_codes.js';
 import type { EffectSignature } from './effect_signature.js';
-import { getModuleEffectSignatures } from './lsp/module_cache.js';
+import { ModuleCache, defaultModuleCache } from './lsp/module_cache.js';
 
 // 从配置获取效果推断前缀（模块级，避免重复调用）
 const IO_PREFIXES = getIOPrefixes();
@@ -82,7 +83,23 @@ export function shouldEnforcePii(): boolean {
   return false;
 }
 
+function defaultModuleSearchPaths(): string[] {
+  const cwd = process.cwd();
+  return [cwd, join(cwd, '.aster', 'packages')];
+}
+
+function normalizeModuleSearchPaths(paths?: readonly string[]): readonly string[] {
+  const source = paths && paths.length > 0 ? paths : defaultModuleSearchPaths();
+  const normalized = new Set<string>();
+  for (const candidate of source) {
+    if (!candidate) continue;
+    normalized.add(resolve(candidate));
+  }
+  return [...normalized];
+}
+
 const typecheckLogger = createLogger('typecheck');
+const MODULE_NOT_FOUND_ERROR = 'MODULE_NOT_FOUND';
 const UNKNOWN_TYPE: Core.Type = TypeSystem.unknown();
 const UNIT_TYPE: Core.Type = { kind: 'TypeName', name: 'Unit' };
 const IO_EFFECT_TYPE: Core.Type = { kind: 'TypeName', name: 'IO' };
@@ -147,10 +164,13 @@ interface ModuleContext {
   imports: Map<string, string>; // alias -> module name (or module name -> module name if no alias)
   funcSignatures: Map<string, FunctionSignature>;
   importedEffects: Map<string, EffectSignature>;
+  moduleSearchPaths: readonly string[];
 }
 
 export interface TypecheckOptions {
   uri?: string | null;
+  moduleSearchPaths?: readonly string[];
+  moduleCache?: ModuleCache;
 }
 
 export function typecheckModule(m: Core.Module, options?: TypecheckOptions): TypecheckDiagnostic[] {
@@ -158,6 +178,8 @@ export function typecheckModule(m: Core.Module, options?: TypecheckOptions): Typ
   const startTime = performance.now();
   typecheckLogger.info('开始类型检查模块', { moduleName });
   try {
+    const moduleCache = options?.moduleCache ?? defaultModuleCache;
+    const moduleSearchPaths = normalizeModuleSearchPaths(options?.moduleSearchPaths);
     const diagnostics = new DiagnosticBuilder();
     const ctx: ModuleContext = {
       datas: new Map(),
@@ -165,7 +187,9 @@ export function typecheckModule(m: Core.Module, options?: TypecheckOptions): Typ
       imports: new Map(),
       funcSignatures: new Map(),
       importedEffects: new Map(),
+      moduleSearchPaths,
     };
+    const importDecls: Core.Import[] = [];
     for (const d of m.decls) {
       if (d.kind === 'Func') {
         const params = d.params.map(param => normalizeType(param.type as Core.Type));
@@ -176,6 +200,7 @@ export function typecheckModule(m: Core.Module, options?: TypecheckOptions): Typ
 
     for (const d of m.decls) {
       if (d.kind === 'Import') {
+        importDecls.push(d);
         const alias = d.asName ?? d.name;
         if (ctx.imports.has(alias)) {
           diagnostics.warning(ErrorCode.DUPLICATE_IMPORT_ALIAS, d.span, { alias });
@@ -193,12 +218,18 @@ export function typecheckModule(m: Core.Module, options?: TypecheckOptions): Typ
         typecheckFunc(ctx, d, diagnostics);
       }
     }
-    loadImportedEffects(ctx);
+    const importedEffectsResult = loadImportedEffects(importDecls, moduleCache, moduleSearchPaths);
+    if (importedEffectsResult instanceof Map) {
+      ctx.importedEffects = importedEffectsResult;
+    } else {
+      return [...diagnostics.getDiagnostics(), importedEffectsResult];
+    }
     const effectDiags = inferEffects(m, {
       moduleName,
       imports: ctx.imports,
       importedEffects: ctx.importedEffects,
       moduleUri: options?.uri ?? null,
+      moduleCache,
     });
     const piiDiagnostics: TypecheckDiagnostic[] = [];
     if (shouldEnforcePii()) {
@@ -227,20 +258,51 @@ export function typecheckModule(m: Core.Module, options?: TypecheckOptions): Typ
   }
 }
 
-export function loadImportedEffects(ctx: ModuleContext): void {
-  ctx.importedEffects.clear();
-  if (ctx.imports.size === 0) return;
+export function loadImportedEffects(
+  imports: readonly Core.Import[],
+  moduleCache: ModuleCache,
+  searchPaths: readonly string[]
+): Map<string, EffectSignature> | TypecheckDiagnostic {
+  const effectMap = new Map<string, EffectSignature>();
+  if (imports.length === 0) return effectMap;
 
   const visited = new Set<string>();
-  for (const moduleName of ctx.imports.values()) {
+  for (const imp of imports) {
+    const moduleName = (imp.name ?? '').trim();
     if (!moduleName || visited.has(moduleName)) continue;
     visited.add(moduleName);
-    const cached = getModuleEffectSignatures(moduleName);
-    if (!cached) continue;
-    for (const [qualifiedName, signature] of cached) {
-      ctx.importedEffects.set(qualifiedName, signature);
+
+    const cached = moduleCache.getModuleEffectSignatures(moduleName, searchPaths);
+    if (cached) {
+      for (const [qualifiedName, signature] of cached) {
+        effectMap.set(qualifiedName, signature);
+      }
+      continue;
+    }
+
+    const loaded = moduleCache.loadModule(moduleName, searchPaths);
+    if (loaded instanceof Error) {
+      if (!moduleName.includes('.')) {
+        continue;
+      }
+      const message = loaded.message.includes(MODULE_NOT_FOUND_ERROR)
+        ? `${MODULE_NOT_FOUND_ERROR}: 找不到模块 ${moduleName}，请检查依赖或运行 aster install`
+        : loaded.message;
+      const diagnostic: TypecheckDiagnostic = {
+        severity: 'error',
+        code: ErrorCode.UNDEFINED_VARIABLE,
+        message,
+      };
+      if (imp.origin) diagnostic.origin = imp.origin;
+      return diagnostic;
+    }
+
+    for (const [qualifiedName, signature] of loaded) {
+      effectMap.set(qualifiedName, signature);
     }
   }
+
+  return effectMap;
 }
 
 export function typecheckModuleWithCapabilities(

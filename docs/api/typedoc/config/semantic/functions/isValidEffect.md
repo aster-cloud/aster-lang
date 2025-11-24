@@ -6,7 +6,7 @@
 
 > **isValidEffect**(`effect`): `effect is string`
 
-Defined in: [config/semantic.ts:60](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/config/semantic.ts#L60)
+Defined in: [config/semantic.ts:60](https://github.com/wontlost-ltd/aster-lang/blob/0dcc7f727b18f3af07d94dceb461ca4e23de3261/src/config/semantic.ts#L60)
 
 验证 effect 字符串是否合法。
 

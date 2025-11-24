@@ -6,4 +6,4 @@
 
 > `const` **ERROR\_MESSAGES**: `Record`\<[`ErrorCode`](../enumerations/ErrorCode.md), `string`\>
 
-Defined in: [error\_codes.ts:83](https://github.com/wontlost-ltd/aster-lang/blob/27d194a2cb2576783cfe795e48f717a4ab5e63c2/src/error_codes.ts#L83)
+Defined in: [error\_codes.ts:83](https://github.com/wontlost-ltd/aster-lang/blob/0dcc7f727b18f3af07d94dceb461ca4e23de3261/src/error_codes.ts#L83)

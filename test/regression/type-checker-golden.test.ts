@@ -15,8 +15,9 @@ import { lex } from '../../src/lexer.js';
 import { parse } from '../../src/parser.js';
 import { lowerModule } from '../../src/lower_to_core.js';
 import { typecheckModule } from '../../src/typecheck.js';
+import { ModuleCache } from '../../src/lsp/module_cache.js';
 
-import type { Module as AstModule, TypecheckDiagnostic } from '../../src/types.js';
+import type { Module as AstModule, TypecheckDiagnostic, Core } from '../../src/types.js';
 
 type DiagnosticView = {
   code?: TypecheckDiagnostic['code'];
@@ -26,6 +27,7 @@ type DiagnosticView = {
 
 const PROJECT_ROOT = process.cwd();
 const TYPE_CHECKER_DIR = path.resolve(PROJECT_ROOT, 'test/type-checker');
+const CROSS_MODULE_DIR = path.join(TYPE_CHECKER_DIR, 'cross-module');
 
 const TEST_CASES = [
   // TODO(Parser): 暂不支持命名参数语法 Entry(id: "123")，待解析器增强后恢复
@@ -33,8 +35,9 @@ const TEST_CASES = [
   // 'type_mismatch_assign',
   'capability_missing_decl',
   'effect_missing_io',
-  'cross-module/module_b',
-  'cross_module/module_b',
+  'module_a',
+  'module_b',
+  'with_external_package',
   // TODO(TypeChecker): CPU 效应检测未接入 typecheckModule，待类型检查器增强后恢复
   // Issue: 未生成预期的 E201 诊断
   // 'effect_missing_cpu',
@@ -62,21 +65,25 @@ const TEST_CASES = [
   'inventory_capability_missing_io'
 ] as const;
 
+type CaseName = (typeof TEST_CASES)[number];
+
 const GOLDEN_DIR = path.join(TYPE_CHECKER_DIR, 'golden');
 const EXPECTED_DIR = path.join(TYPE_CHECKER_DIR, 'expected');
+const EXTERNAL_PACKAGE_DIR = path.join(CROSS_MODULE_DIR, '.aster', 'packages');
+const MODULE_SEARCH_PATHS = [GOLDEN_DIR, CROSS_MODULE_DIR, EXTERNAL_PACKAGE_DIR] as const;
 
-function compileDiagnostics(caseName: (typeof TEST_CASES)[number]): DiagnosticView[] {
-  const sourcePath = path.join(GOLDEN_DIR, `${caseName}.aster`);
-  const source = fs.readFileSync(sourcePath, 'utf8');
-  const canonical = canonicalize(source);
-  const tokens = lex(canonical);
-  const ast = parse(tokens) as AstModule;
-  const core = lowerModule(ast);
-  const diagnostics = typecheckModule(core);
+const sharedModuleCache = new ModuleCache();
+sharedModuleCache.setModuleSearchPaths(MODULE_SEARCH_PATHS);
+
+const MODULE_NAME_BY_CASE = new Map<CaseName, string>();
+const CASE_BY_MODULE_NAME = new Map<string, CaseName>();
+
+function compileDiagnostics(caseName: CaseName): DiagnosticView[] {
+  const diagnostics = runTypecheckWithDependencies(caseName, new Set<CaseName>());
   return diagnostics.map(({ code, severity, message }) => ({ code, severity, message }));
 }
 
-function loadExpectedDiagnostics(caseName: (typeof TEST_CASES)[number]): DiagnosticView[] {
+function loadExpectedDiagnostics(caseName: CaseName): DiagnosticView[] {
   const expectedPath = path.join(EXPECTED_DIR, `${caseName}.errors.json`);
   const raw = JSON.parse(fs.readFileSync(expectedPath, 'utf8')) as {
     diagnostics?: Array<Partial<DiagnosticView>>;
@@ -93,6 +100,75 @@ function loadExpectedDiagnostics(caseName: (typeof TEST_CASES)[number]): Diagnos
     }
     return view;
   });
+}
+
+function runTypecheckWithDependencies(caseName: CaseName, visiting: Set<CaseName>): TypecheckDiagnostic[] {
+  if (visiting.has(caseName)) {
+    const chain = [...visiting, caseName].join(' -> ');
+    throw new Error(`检测到模块循环依赖: ${chain}`);
+  }
+  const core = loadCoreModule(caseName);
+  ensureModuleMetadata(caseName, core);
+  visiting.add(caseName);
+  try {
+    const dependencies = extractImportModuleNames(core);
+    for (const moduleName of dependencies) {
+      const dependencyCase = resolveCaseByModuleName(moduleName);
+      if (dependencyCase && dependencyCase !== caseName) {
+        runTypecheckWithDependencies(dependencyCase, visiting);
+      }
+    }
+    return typecheckModule(core, {
+      moduleCache: sharedModuleCache,
+      moduleSearchPaths: MODULE_SEARCH_PATHS,
+    });
+  } finally {
+    visiting.delete(caseName);
+  }
+}
+
+function loadCoreModule(caseName: CaseName): Core.Module {
+  const sourcePath = path.join(GOLDEN_DIR, `${caseName}.aster`);
+  const source = fs.readFileSync(sourcePath, 'utf8');
+  const canonical = canonicalize(source);
+  const tokens = lex(canonical);
+  const ast = parse(tokens) as AstModule;
+  return lowerModule(ast);
+}
+
+function extractImportModuleNames(module: Core.Module): string[] {
+  const names = new Set<string>();
+  for (const decl of module.decls) {
+    if (decl.kind === 'Import') {
+      const moduleName = (decl.name ?? '').trim();
+      if (moduleName.length > 0) names.add(moduleName);
+    }
+  }
+  return Array.from(names);
+}
+
+function resolveCaseByModuleName(moduleName: string): CaseName | undefined {
+  if (!moduleName) return undefined;
+  const cached = CASE_BY_MODULE_NAME.get(moduleName);
+  if (cached) return cached;
+  for (const caseName of TEST_CASES) {
+    if (!MODULE_NAME_BY_CASE.has(caseName)) {
+      ensureModuleMetadata(caseName);
+    }
+    const resolved = CASE_BY_MODULE_NAME.get(moduleName);
+    if (resolved) return resolved;
+  }
+  return undefined;
+}
+
+function ensureModuleMetadata(caseName: CaseName, module?: Core.Module): void {
+  if (MODULE_NAME_BY_CASE.has(caseName)) return;
+  const resolved = (module ?? loadCoreModule(caseName)).name ?? '';
+  const normalized = resolved.trim();
+  MODULE_NAME_BY_CASE.set(caseName, normalized);
+  if (normalized) {
+    CASE_BY_MODULE_NAME.set(normalized, caseName);
+  }
 }
 
 describe('类型检查 golden 回归测试', () => {

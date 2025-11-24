@@ -49,3 +49,27 @@
 2025-11-08 15:09 NZST Codex
 - 工具: shell `./gradlew :aster-truffle:test --rerun-tasks`
 - 摘要: 依验收要求重新执行测试确保命令可重复，记录已有 Truffle DSL warnings 均来源于 BuiltinCallNode/CallNode 既有守卫
+
+2025-11-23 22:11 NZST Codex
+- 工具: sequential-thinking、update_plan、shell `ls`/`ls docs`/`ls docs/workstreams`/`cat docs/workstreams/P2-2/operations-log.md`、shell `TZ="Pacific/Auckland" date`、apply_patch（更新操作日志）
+- 摘要: 梳理 Task 2.2 初始思路并建立执行计划，巡检仓库结构及工作流日志，记录当前时间
+
+2025-11-23 22:16 NZST Codex
+- 工具: code-index `set_project_path`/`build_deep_index`/`get_file_summary(src/package/version-utils.ts|src/package/dependency-graph.ts|src/error_codes.ts|src/diagnostics.ts|src/manifest.ts)`/`find_files(*version-utils*|*dependency-graph*|*manifest.ts)`/`search_code_advanced(DEPENDENCY_|DependencyMap)`、shell `sed -n src/package/{version-utils.ts,dependency-graph.ts}`/`sed -n src/package/manifest-parser.ts`/`rg "error_codes" -n src`/`sed -n test/unit/{dependency-graph.test.ts,version-utils.test.ts}`/`TZ="Pacific/Auckland" date`
+- 摘要: 收集依赖解析相关模块（版本工具、依赖图、诊断码、manifest解析器、现有单测）上下文，为实现回溯解析器确定接口与测试风格
+
+2025-11-23 22:20 NZST Codex
+- 工具: apply_patch（增补 src/diagnostics.ts 诊断码、创建 src/package/resolver.ts、修订 resolver 回溯逻辑、创建 test/unit/resolver.test.ts）、shell `TZ="Pacific/Auckland" date`
+- 摘要: 新增依赖解析器、Mock 注册表与单测，包含回溯约束合并、冲突检测、超时/深度异常处理，并补齐所需诊断码
+
+2025-11-23 22:22 NZST Codex
+- 工具: shell `npm run build`/`npm run test:unit`（首次失败）/`node --test dist/test/unit/resolver.test.js`（定位失败）/`npm run build`/`node --test dist/test/unit/resolver.test.js`/`npm run test:unit`（通过）/`npm run lint`、shell `TZ="Pacific/Auckland" date`
+- 摘要: 先跑 build+单测发现 resolver suite 新断言未命中 -> 通过定向测试定位错误信息并修正，复跑全量单测与lint均通过
+
+2025-11-23 22:50 NZST Codex
+- 工具: sequential-thinking、update_plan、apply_patch（扩展 dependency-graph API、编写 src/package/lockfile.ts 与 test/unit/lockfile.test.ts、多次修订断言与lint问题）、shell `npm run build`
+- 摘要: 依据 Task 2.3 设计并实现 lockfile 生成/解析/合并/写入逻辑，新增获取直接依赖的图接口并覆盖 6 个单测场景，确保类型约束与持久化格式稳定
+
+2025-11-23 22:50 NZST Codex
+- 工具: shell `npm run build`/`npm run test:unit`/`npm run lint`
+- 摘要: 运行编译、全量单测与 eslint，全通过后确认 lockfile 功能回归稳定

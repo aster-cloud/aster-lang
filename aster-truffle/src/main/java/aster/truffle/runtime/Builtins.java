@@ -710,22 +710,22 @@ public final class Builtins {
     // === IO Operations (需要 IO effect) ===
     register("IO.print", new BuiltinDef(args -> {
       checkArity("IO.print", args, 1);
-      throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
+      throw new UnsupportedOperationException(ioNotSupportedMessage("IO.print"));
     }, Set.of("IO")));
 
     register("IO.readLine", new BuiltinDef(args -> {
       checkArity("IO.readLine", args, 0);
-      throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
+      throw new UnsupportedOperationException(ioNotSupportedMessage("IO.readLine"));
     }, Set.of("IO")));
 
     register("IO.readFile", new BuiltinDef(args -> {
       checkArity("IO.readFile", args, 1);
-      throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
+      throw new UnsupportedOperationException(ioNotSupportedMessage("IO.readFile"));
     }, Set.of("IO")));
 
     register("IO.writeFile", new BuiltinDef(args -> {
       checkArity("IO.writeFile", args, 2);
-      throw new UnsupportedOperationException("IO operations not supported in Truffle backend. Use Java or TypeScript backend for IO.");
+      throw new UnsupportedOperationException(ioNotSupportedMessage("IO.writeFile"));
     }, Set.of("IO")));
 
     // === Async Operations (需要 Async effect) ===
@@ -786,6 +786,17 @@ public final class Builtins {
       throw new BuiltinException(
           ErrorMessages.operationExpectedType(name, min + "-" + max + " args", args.length + " args"));
     }
+  }
+
+  private static String ioNotSupportedMessage(String operation) {
+    return String.format(
+        "IO 操作 '%s' 在 Truffle backend 中不受支持。" +
+            "\n\n原因：Truffle backend 专为纯计算任务设计，不提供 I/O 功能。" +
+            "\n\n替代方案：" +
+            "\n  - 使用 Java backend（支持完整 IO）" +
+            "\n  - 使用 TypeScript backend（支持完整 IO）" +
+            "\n\n了解更多：请参阅文档 'docs/runtime/backend-comparison.md'",
+        operation);
   }
 
   private static boolean toBool(Object o) {
