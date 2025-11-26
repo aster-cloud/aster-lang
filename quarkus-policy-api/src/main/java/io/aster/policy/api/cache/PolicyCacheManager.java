@@ -3,6 +3,10 @@ package io.aster.policy.api.cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import io.aster.policy.api.PolicyCacheKey;
+import io.aster.policy.metrics.PolicyMetrics;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CaffeineCache;
@@ -22,9 +26,10 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 /**
  * 策略缓存管理器，封装生命周期跟踪与租户索引。
@@ -34,6 +39,7 @@ public class PolicyCacheManager {
 
     private static final Logger LOG = Logger.getLogger(PolicyCacheManager.class);
     private static final String INVALIDATION_CHANNEL = "policy-cache:invalidate";
+    private static final String CACHE_NAME = "policy-results";
 
     @Inject
     @CacheName("policy-results")
@@ -42,11 +48,21 @@ public class PolicyCacheManager {
     @Inject
     Instance<RedisDataSource> redisDataSource;
 
+    @Inject
+    MeterRegistry meterRegistry;
+
+    @Inject
+    PolicyMetrics policyMetrics;
+
     private CaffeineCache caffeineCacheDelegate;
 
     private com.github.benmanes.caffeine.cache.Cache<PolicyCacheKey, Boolean> cacheLifecycleTracker;
 
     private final ConcurrentHashMap<String, Set<PolicyCacheKey>> tenantCacheIndex = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Counter> cacheHitCounters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Counter> cacheMissCounters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Counter> cacheEvictionCounters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Counter> remoteInvalidationCounters = new ConcurrentHashMap<>();
     private PubSubCommands<String> pubSubCommands;
     private RedisSubscriber redisSubscriber;
     private ExecutorService invalidationExecutor;
@@ -83,6 +99,7 @@ public class PolicyCacheManager {
 
         cacheLifecycleTracker = builder.removalListener((PolicyCacheKey removedKey, Boolean ignored, RemovalCause cause) -> {
             if (removedKey != null) {
+                recordEviction(removedKey);
                 removeTrackedKey(removedKey);
                 if (LOG.isDebugEnabled()) {
                     LOG.debugf("Caffeine移除缓存键, cause=%s, key=%s", cause, removedKey);
@@ -90,6 +107,7 @@ public class PolicyCacheManager {
             }
         }).build();
 
+        registerCacheMetrics();
         initRedisInvalidationChannel();
     }
 
@@ -198,7 +216,9 @@ public class PolicyCacheManager {
         }
         String normalizedTenant = normalizeTenant(key.getTenantId());
         Set<PolicyCacheKey> keys = tenantCacheIndex.get(normalizedTenant);
-        return keys != null && keys.contains(key);
+        boolean hit = keys != null && keys.contains(key);
+        recordCacheLookup(normalizedTenant, hit);
+        return hit;
     }
 
     public Set<PolicyCacheKey> snapshotTenantCacheKeys(String tenantId) {
@@ -253,7 +273,8 @@ public class PolicyCacheManager {
         return tenantId == null || tenantId.isBlank() ? "default" : tenantId.trim();
     }
 
-    private void handleRemoteInvalidation(String payload) {
+    // 包内可见，便于集成测试直接触发远程失效逻辑
+    void handleRemoteInvalidation(String payload) {
         if (payload == null || payload.isBlank()) {
             return;
         }
@@ -263,6 +284,8 @@ public class PolicyCacheManager {
             String policyModule = message.getString("policyModule");
             String policyFunction = message.getString("policyFunction");
             Integer hash = message.containsKey("hash") ? message.getInteger("hash") : null;
+
+            recordRemoteInvalidation(tenantId);
 
             if (policyModule == null && policyFunction == null && hash == null) {
                 tenantCacheIndex.remove(tenantId);
@@ -326,5 +349,96 @@ public class PolicyCacheManager {
         if (invalidationExecutor != null) {
             invalidationExecutor.shutdownNow();
         }
+    }
+
+    private void registerCacheMetrics() {
+        if (meterRegistry == null) {
+            return;
+        }
+        // 缓存容量 Gauge：实时反映 cacheLifecycleTracker 估算的条目数
+        Gauge.builder("policy_cache_size", () -> cacheLifecycleTracker != null ? cacheLifecycleTracker.estimatedSize() : 0)
+            .description("策略缓存当前条目数量")
+            .tag("cache_name", CACHE_NAME)
+            .register(meterRegistry);
+
+        // 活跃租户 Gauge：跟踪维护索引的租户个数
+        Gauge.builder("policy_cache_active_tenants", tenantCacheIndex, ConcurrentHashMap::size)
+            .description("策略缓存活跃租户数量")
+            .tag("cache_name", CACHE_NAME)
+            .register(meterRegistry);
+
+        // 预注册默认租户计数器，避免冷启动首次命中/未命中时阻塞
+        String defaultTenant = normalizeTenant(null);
+        cacheHitCounters.computeIfAbsent(defaultTenant, this::createHitCounter);
+        cacheMissCounters.computeIfAbsent(defaultTenant, this::createMissCounter);
+        cacheEvictionCounters.computeIfAbsent(defaultTenant, this::createEvictionCounter);
+        remoteInvalidationCounters.computeIfAbsent(defaultTenant, this::createRemoteInvalidationCounter);
+    }
+
+    private void recordCacheLookup(String tenant, boolean hit) {
+        if (meterRegistry == null || tenant == null) {
+            return;
+        }
+        if (hit) {
+            incrementCounter(cacheHitCounters, tenant, this::createHitCounter);
+            if (policyMetrics != null) {
+                policyMetrics.recordCacheHit();
+            }
+        } else {
+            incrementCounter(cacheMissCounters, tenant, this::createMissCounter);
+            if (policyMetrics != null) {
+                policyMetrics.recordCacheMiss();
+            }
+        }
+    }
+
+    private void recordEviction(PolicyCacheKey removedKey) {
+        if (meterRegistry == null || removedKey == null) {
+            return;
+        }
+        incrementCounter(cacheEvictionCounters, normalizeTenant(removedKey.getTenantId()), this::createEvictionCounter);
+    }
+
+    private void recordRemoteInvalidation(String tenant) {
+        if (meterRegistry == null || tenant == null) {
+            return;
+        }
+        incrementCounter(remoteInvalidationCounters, tenant, this::createRemoteInvalidationCounter);
+    }
+
+    private void incrementCounter(ConcurrentHashMap<String, Counter> store, String tenant, Function<String, Counter> factory) {
+        store.computeIfAbsent(tenant, factory).increment();
+    }
+
+    private Counter createHitCounter(String tenant) {
+        return Counter.builder("policy_cache_hits_total")
+            .description("策略缓存命中次数统计")
+            .tag("cache_name", CACHE_NAME)
+            .tag("tenant", tenant)
+            .register(meterRegistry);
+    }
+
+    private Counter createMissCounter(String tenant) {
+        return Counter.builder("policy_cache_misses_total")
+            .description("策略缓存未命中次数统计")
+            .tag("cache_name", CACHE_NAME)
+            .tag("tenant", tenant)
+            .register(meterRegistry);
+    }
+
+    private Counter createEvictionCounter(String tenant) {
+        return Counter.builder("policy_cache_evictions_total")
+            .description("策略缓存移除事件次数")
+            .tag("cache_name", CACHE_NAME)
+            .tag("tenant", tenant)
+            .register(meterRegistry);
+    }
+
+    private Counter createRemoteInvalidationCounter(String tenant) {
+        return Counter.builder("policy_cache_remote_invalidations_total")
+            .description("策略缓存远程失效次数")
+            .tag("cache_name", CACHE_NAME)
+            .tag("tenant", tenant)
+            .register(meterRegistry);
     }
 }

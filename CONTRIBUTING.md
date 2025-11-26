@@ -8,6 +8,7 @@ Thank you for your interest in contributing to Aster! This document provides gui
 - [Development Setup](#development-setup)
 - [Code Style](#code-style)
 - [Testing](#testing)
+- [开发包管理功能](#开发包管理功能)
 - [Pull Request Process](#pull-request-process)
 - [Issue Reporting](#issue-reporting)
 - [Architecture Overview](#architecture-overview)
@@ -153,6 +154,67 @@ npm run bench
 ```
 
 We track performance regressions and maintain throughput targets.
+
+## 开发包管理功能
+
+包管理相关工作必须先完成 CLI 构建与测试，再进行包体验验证。以下流程覆盖运行测试、手动验证命令、构建示例包与 manifest 规范，确保 registry 逻辑稳定。
+
+### 运行 CLI 测试
+
+1. 执行 `npm run build`，生成 `dist/scripts/aster.js` 与 `dist/src/cli/**/*`。任何 CLI 测试都依赖 dist 产物，务必先完成一次完整构建。
+2. 在同一终端运行 `npm run test:cli`，覆盖 install/list/search/update/remove 等命令的单元与集成测试。若新增命令，请同步补充 `test/cli/commands/*.test.ts` 并保持测试全部通过。
+3. 设置 `NODE_V8_COVERAGE=.coverage/cli` 后运行 `npm run test:cli:coverage`，在 PR 中附上覆盖率截图或数值，确保语句和分支覆盖率没有回退。
+4. 需要真实二进制回归时，执行 `npm run test:e2e:cli`。该脚本会在临时目录安装包并验证锁文件写入流程，可捕捉 dist 产物与源码行为不一致的问题。
+
+关键注意事项：
+
+- 在 `git clean -fdx` 后复跑一遍 CLI 测试，确保没有漏掉对生成文件或缓存的依赖。
+- 对涉及网络的命令启用 `MOCK_REGISTRY=1`，防止测试过程中访问真实仓库。
+- 将 CLI 测试结果写入 `docs/testing.md`，便于追踪历史基线。
+
+### 测试 CLI 命令
+
+以下示例展示如何在本地验证常见命令的行为：
+
+```bash
+# 1) 构建 dist 产物
+npm run build
+
+# 2) 安装本地 registry 中的示例包
+node dist/scripts/aster.js install aster.math --registry=.aster/local-registry
+
+# 3) 列出依赖并检查过期版本
+node dist/scripts/aster.js list --outdated --json
+
+# 4) 搜索包并验证远程/本地 fallback
+node dist/scripts/aster.js search math
+
+# 5) 运行 CLI 测试套件
+npm run test:cli && npm run test:cli:coverage
+```
+
+操作建议：
+
+- 使用 `mktemp -d` 或示例项目目录执行上述命令，避免污染仓库根目录。
+- 在修改命令选项或输出格式后，务必记录期望输出并附在 PR 中，方便审查。
+- 本地验证完成后，附加一轮 `npm run docs:build`，确认 CLI 文档中的示例同步更新。
+
+### 创建示例包
+
+1. 运行 `npm run build:examples`，在 `examples/packages/*` 目录下为每个示例生成 tarball，并自动同步到 `.aster/local-registry`。
+2. 新增示例包时，在 `examples/packages/<package>/` 中准备 `manifest.json`、`README.md` 与 `src/*.aster`。保持命名与命令帮助一致，便于文档引用。
+3. 使用 `node dist/scripts/aster.js install <包名> --registry=.aster/local-registry` 验证包是否能正确解压、写入 `.aster/packages/<pkg>/<ver>/`，并更新 `manifest.json` 与 `.aster.lock`。
+4. 将示例包安装场景写入 `test/cli/commands/*.test.ts` 或文档，保证 CI 可重复同样的体验。
+5. 如果示例包会被教程引用，请在 `docs/guide/package-management/` 下补充对应章节，确保用户得到一致的安装指引。
+
+### manifest.json 规范
+
+- 以仓库根目录的 `manifest.schema.json` 为唯一来源，新增字段时需同步修改 schema、TypeScript 类型与 CLI 校验逻辑。
+- 包名必须遵循 `aster.<domain>.<name>`，仅允许小写字母、数字与连字符；违反约束将触发 `[M003]` 诊断并在 CLI 中中止。
+- `version` 采用严格 SemVer，CLI 会拒绝携带构建元数据或 `latest` 这类浮动标识。
+- `dependencies` 与 `devDependencies` 都要求 SemVer 范围，建议使用 `^` 或精确版本，并在示例包中给出最小子集，避免拖慢安装。
+- `registry` 字段用于声明默认获取地址；若指向 GitHub Releases，需提供 `org/repo`、`tag` 与 `asset` 信息，方便 CLI 自动下载。
+- manifest 结构发生变更时，务必同步更新 `docs/guide/package-management/manifest-reference.md` 与 CLI 帮助文本，保证用户文档和实现一致。
 
 ## Pull Request Process
 

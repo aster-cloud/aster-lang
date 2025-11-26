@@ -62,6 +62,12 @@ tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.addAll(listOf("-parameters", "-Xlint:all"))
 }
 
+// Task 1.1 修复：添加对 syncPolicyClasses 和 syncPolicyJar 的依赖，避免 Gradle 配置错误
+tasks.named("processJmhResources") {
+    dependsOn(":quarkus-policy-api:syncPolicyClasses")
+    dependsOn(":quarkus-policy-api:syncPolicyJar")
+}
+
 listOf("compileJava", "jmhCompileGeneratedClasses", "jmhJar", "jmh").forEach { taskName ->
     tasks.matching { it.name == taskName }.configureEach {
         dependsOn(":quarkus-policy-api:generateAsterJar")
@@ -79,7 +85,14 @@ jmh {
     fork.set(1)
     threads.set(1)
     timeUnit.set("ms")
-    includes.set(listOf(".*WorkflowSchedulingBenchmark.*"))
+    includes.set(listOf(".*PolicyEvaluation.*Benchmark.*"))
     resultFormat.set("JSON")
-    resultsFile.set(layout.buildDirectory.file("reports/jmh/workflow-scheduling.json"))
+    resultsFile.set(layout.buildDirectory.file("reports/jmh/policy-evaluation.json"))
+
+    // 修复 JMH 环境中的反射访问问题：允许 SemanticValidator 访问 DTO 私有字段
+    jvmArgs.set(listOf(
+        "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+        "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
+        "--add-opens", "java.base/java.util=ALL-UNNAMED"
+    ))
 }

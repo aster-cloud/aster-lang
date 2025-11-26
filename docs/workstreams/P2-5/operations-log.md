@@ -41,3 +41,47 @@
 | 2025-10-16 08:35 | shell (./gradlew :aster-asm-emitter:test) | - | 编译失败：Main.java pkg 未定义 |
 | 2025-10-16 08:36 | apply_patch | 修复字段描述参数 | 使用 currentPkg 传递模块信息 |
 | 2025-10-16 08:36 | shell (./gradlew :aster-asm-emitter:test) | - | 编译通过 |
+| 2025-11-25 11:04 | sequential-thinking | totalThoughts=5 | 梳理 P2-5 policy-converter 深挖范围与步骤 |
+| 2025-11-25 11:05 | code-index__set_project_path | path=/Users/rpang/IdeaProjects/aster-lang | 索引 2161 个文件，启用 ripgrep |
+| 2025-11-25 11:06 | code-index__find_files | pattern=test/policy-converter/*.aster | 未匹配（需改用其他模式） |
+| 2025-11-25 11:06 | code-index__search_code_advanced | pattern=test.simple, file_pattern=test/policy-converter/*.aster | 未返回结果（记录索引限制） |
+| 2025-11-25 11:07 | code-index__build_deep_index | - | 重新索引 2161 个文件 |
+| 2025-11-25 11:07 | code-index__find_files | pattern=test/policy-converter/*.aster | 仍未匹配，推测该扩展被忽略 |
+| 2025-11-25 11:08 | shell (ls) | repo root | 确认仓库结构与顶层文件 |
+| 2025-11-25 11:09 | shell (sed -n '1,200p') | src/cli/policy-converter.ts | 阅读 CLI 引导、命令实现与 canonicalize→lex→parse→lower 流程 |
+| 2025-11-25 11:09 | shell (sed -n '200,400p') | src/cli/policy-converter.ts | 查看 main() 参数解析与 switch 分支 |
+| 2025-11-25 11:10 | shell (rg -n "policy-converter") | repo | 定位 package.json scripts/test/Java PolicySerializer 引用 |
+| 2025-11-25 11:11 | shell (cat) | package.json | 提取 bin/test:converter 等脚本信息 |
+| 2025-11-25 11:12 | shell (sed -n '1,200p') | test/policy-converter/round-trip.test.ts | 了解 round-trip 测试及 execSync 调用方式 |
+| 2025-11-25 11:12 | shell (ls) | test/policy-converter | 列出 simple/data/effects/async .aster 示例 |
+| 2025-11-25 11:13 | shell (cat) | test/policy-converter/simple_policy.aster | 收集最小函数示例内容 |
+| 2025-11-25 11:13 | shell (cat) | test/policy-converter/data_policy.aster | 收集数据类型示例内容 |
+| 2025-11-25 11:14 | shell (node dist/src/cli/policy-converter.js compile-to-json test/policy-converter/simple_policy.aster) | - | 生成 Core IR JSON，确认 metadata 字段 |
+| 2025-11-25 11:14 | shell (node dist/src/cli/policy-converter.js ... | node dist/src/cli/policy-converter.js json-to-cnl -) | - | 验证 JSON → CNL pretty 输出 |
+| 2025-11-25 11:15 | shell (sed -n '1,160p') | src/canonicalizer.ts | 提取规范化规则（去冠词、空白、注释等） |
+| 2025-11-25 11:15 | shell (sed -n '1,200p') | src/core_ir_json.ts | 记录 JSON 信封结构与元数据字段 |
+| 2025-11-25 11:16 | shell (sed -n '1,220p') | aster-policy-common/.../PolicySerializer.java | 确认 Java 端 CLI 集成方式 |
+| 2025-11-25 11:17 | shell (cat) | .claude/context-p2-5-initial.json | 参考 P2-5 既有上下文结构 |
+| 2025-11-25 11:17 | shell (ls) | .claude | 查看现有 context 文件 |
+| 2025-11-25 11:18 | shell (ls) | docs/workstreams | 确认 P2-5 任务目录 |
+| 2025-11-25 11:18 | shell (ls) | docs/workstreams/P2-5 | 定位 operations-log.md |
+| 2025-11-25 11:18 | shell (sed -n '1,200p') | docs/workstreams/P2-5/operations-log.md | 学习表格格式以追加记录 |
+| 2025-11-25 11:19 | shell (TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M') | - | 获取 NZ 时间戳 |
+| 2025-11-25 11:20 | shell (cat <<'EOF' > .claude/context-p2-5-question1-converter.json) | - | 写入深挖分析 JSON（CLI、格式、数据流、prompt、验证、QA） |
+| 2025-11-25 11:21 | shell (cat) | .claude/context-p2-5-question1-converter.json | 复核输出内容 |
+| 2025-11-25 11:21 | shell (python -m json.tool .claude/context-p2-5-question1-converter.json) | - | 校验 JSON 语法 |
+| 2025-11-25 11:27 | shell (cat <<'EOF' > /tmp/newlog) | - | 准备根 operations-log.md 新条目草稿 |
+| 2025-11-25 11:28 | shell (apply_patch) | operations-log.md | 插入 P2-5 深挖日志（命令、结果） |
+| 2025-11-25 11:29 | shell (apply_patch) | docs/workstreams/P2-5/operations-log.md | 追加本次工具调用记录 |
+| 2025-11-25 11:32 | sequential-thinking | totalThoughts=6 | 规划 test/cnl 深挖子任务 |
+| 2025-11-25 11:33 | code-index__find_files | pattern=test/cnl/** | 首次调用提示需重新设定 project path |
+| 2025-11-25 11:33 | code-index__set_project_path | path=/Users/rpang/IdeaProjects/aster-lang | 重建 2161 文件索引 |
+| 2025-11-25 11:33 | code-index__find_files | pattern=test/cnl/** | 获取 test/cnl 下 tooling/programs 全量文件 |
+| 2025-11-25 11:34 | shell (ls -R test/cnl) | - | 输出目录树（programs/tooling 分类） |
+| 2025-11-25 11:35 | shell (find ... wc) | - | 统计 432 文件、171 个 .aster |
+| 2025-11-25 11:35 | shell (sed -n '1,200p') | test/cnl/README.md 等 | 阅读 README 掌握测试定位 |
+| 2025-11-25 11:36 | shell (sed ...) | examples/effects/patterns/diag | 解析代表性 .aster、expected、diag |
+| 2025-11-25 11:36 | shell (sed -n '1,200p') | test/cnl/tooling/scripts/golden.mjs | 理解 canonicalize→lex→parse→lower→比对流程 |
+| 2025-11-25 11:37 | shell (find '*.ast.json' 等) | - | 统计 AST/CORE/DIAG 文件数量 |
+| 2025-11-25 11:41 | shell (python - <<'PY' ... ) | 生成 .claude/context-p2-5-question2-testdata.json | 汇总目录树、样例、few-shot 评估与策略，并写入 JSON |
+| 2025-11-25 11:41 | shell (python -m json.tool .claude/context-p2-5-question2-testdata.json) | - | 校验分析文件 JSON 语法 |

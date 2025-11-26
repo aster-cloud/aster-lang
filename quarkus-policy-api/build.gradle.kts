@@ -1,4 +1,8 @@
 import dev.aster.build.GenerateAsterJarTask
+import org.gradle.api.attributes.Bundling
+import org.gradle.api.attributes.Category
+import org.gradle.api.attributes.LibraryElements
+import org.gradle.api.attributes.Usage
 
 plugins {
     id("java")
@@ -34,6 +38,10 @@ dependencies {
 
     // Metrics
     implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
+
+    // 链路追踪 - OpenTelemetry
+    implementation("io.quarkus:quarkus-opentelemetry")
+    implementation("io.opentelemetry:opentelemetry-exporter-logging")
 
     // Caching - Caffeine cache + Redis for distributed invalidation
     implementation("io.quarkus:quarkus-cache")
@@ -108,11 +116,17 @@ tasks.withType<Test> {
 val skipGenerateAsterJar = providers.environmentVariable("SKIP_GENERATE_ASTER_JAR").isPresent
 
 val workflowDeps = configurations.detachedConfiguration(
-    dependencies.create("io.quarkus:quarkus-cache:3.28.3"),
+    dependencies.create("io.quarkus:quarkus-cache:3.28.3@jar"),
     dependencies.create("jakarta.enterprise:jakarta.enterprise.cdi-api:4.0.1"),
     dependencies.create("jakarta.inject:jakarta.inject-api:2.0.1")
 ).apply {
     isCanBeConsumed = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+    }
 }
 
 if (skipGenerateAsterJar) {

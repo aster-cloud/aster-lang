@@ -2,6 +2,55 @@
 
 > **注意**：关于 Truffle 后端的异步操作限制，请参阅 [Truffle 后端限制说明](./truffle-backend-limitations.md)。
 
+## AI 代码生成测试
+- 覆盖范围：`test/ai-generation/dev.jsonl` 中 16 个 dev* 用例，使用 `/tmp/run-systematic-tests.mjs` 并发=3 运行，记录 `PASSED/FAILED/ERROR`、缓存命中（⚡）与 Token 耗时。
+- 前置条件：`npm run build`、配置 `OPENAI_API_KEY`（或 `ANTHROPIC_API_KEY`），确保 `.cache/ai-generation/` 可写。
+
+### 系统化测试工作流程
+1. 准备输入：编辑 `test/ai-generation/dev.jsonl`（JSONL，每行一个用例）。
+2. 首轮运行（无缓存）：
+   ```bash
+   export OPENAI_API_KEY="sk-..."
+   node /tmp/run-systematic-tests.mjs
+   ```
+   产出 `/tmp/phase3.4-systematic-test-results.json` 与 `/tmp/phase3.4-*.log`，如遇 429 rate limit 可重跑或调低并发。
+3. 第二轮运行（缓存命中）：无需清空 `.cache/ai-generation/`，再次执行脚本确认 `⚡` 命中率与速度。
+
+### 评估脚本使用
+- 默认命令：`npm run ai:evaluate`（包装 `scripts/evaluate-ai-generation.mjs`，读取 `/tmp/phase3.4-systematic-test-results.json`）。
+- 自定义路径：`npm run ai:evaluate -- /path/to/results.json`，脚本会解析 JSON、合并 `dev.jsonl` 元数据，失败即抛错。
+- 输出：`.claude/evaluation-report.md`，若准确率 ≥80% 退出码 0，否则 1。
+
+### 报告解读
+- `## 📊 总体统计`：关注 `✅ 准确率`（通过/完成）与 `⚡ 缓存命中`（命中率，应在第二轮接近 62.5%+）。
+- `## 🔖 按类别统计`、`## 🧗 按难度统计`：对比与 Phase 3.3 基线差异，定位 regressions。
+- `## ❌ 失败与错误详情`：429 会显示 `Rate limit reached...`；真正逻辑失败（FAILED）需回放缓存文件或重写提示。
+
+### 故障排查
+- **缺少 API Key**：脚本立即退出，stderr 提示 `OPENAI_API_KEY not set`，重新导出环境变量。
+- **JSON 解析失败**：确认 `/tmp/phase3.4-systematic-test-results.json` 未被其他进程写坏，可用 `jq . >/dev/null` 做快速验证。
+- **缓存未生效**：检查描述是否完全一致、CLI 是否使用 `--no-cache`。必要时 `rm -rf .cache/ai-generation` 重建。
+- **评估退出码 1**：表示准确率低于 80% 或脚本校验失败；查看报告 `结论与建议` 段落获取下一步措施。
+
+## 2025-11-26 P2-6 PolicyCacheManager 指标验证
+- 日期：2025-11-26 10:30 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `./gradlew :quarkus-policy-api:compileJava` → 通过（仅出现 `:aster-finance:generateFinanceDtos` 无法写入 configuration cache 的既有告警，不影响编译）
+  - `./gradlew :quarkus-policy-api:test --tests "*PolicyCacheManager*"` → 通过（`PolicyCacheManagerMetricsTest` 反复读取 Micrometer Counter/Gauge 均成功，同样伴随 config cache 告警）
+- 备注：Micrometer 指标在 Quarkus 测试环境可直接经 `MeterRegistry` 读取，Redis/Caffeine 相关日志仅为信息提示，未出现异常。
+
+## 2025-11-25 Phase 3.4 性能优化验证
+- 日期：2025-11-25 20:45 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（TypeScript 编译 + PEG 构建完成，`dist/scripts/aster.js` 已包含 GenerationCache、CLI `--no-cache` 选项与系统测试脚本所需逻辑）。
+  - `rm -rf .cache/ai-generation` → 成功（清空缓存，确保首轮系统测试不命中磁盘结果）。
+  - `node /tmp/run-systematic-tests.mjs > /tmp/phase3.4-first-run.log` → 失败（环境缺少 `OPENAI_API_KEY`，脚本在参数校验阶段立即退出，stdout 日志为空）。
+  - `node /tmp/run-systematic-tests.mjs > /tmp/phase3.4-second-run.log` → 失败（同上，无法进入并发执行/缓存命中流程）。
+  - `diff /tmp/phase3.4-first-run.log /tmp/phase3.4-second-run.log` → 无差异（两份日志均为空；LLM 调用尚未发生）。
+- 备注：需在配置 `OPENAI_API_KEY` 后重新运行两轮系统测试，收集 13/16 通过率与缓存命中耗时数据。
+
 ## 2025-11-25 文档构建与发布指南验证
 - 日期：2025-11-25 09:26 NZST
 - 执行者：Codex

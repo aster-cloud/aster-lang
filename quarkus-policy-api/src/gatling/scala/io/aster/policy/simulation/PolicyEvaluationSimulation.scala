@@ -3,6 +3,7 @@ package io.aster.policy.simulation
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 
+import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
 import scala.concurrent.duration._
 
@@ -17,6 +18,21 @@ class PolicyEvaluationSimulation extends Simulation {
     .contentTypeHeader("application/json")
 
   private case class PolicyRequest(body: String, name: String)
+
+  private def randomTraceId(): String = UUID.randomUUID().toString.replace("-", "").take(32)
+
+  private def randomSpanId(): String = UUID.randomUUID().toString.replace("-", "").take(16)
+
+  // 为 traceparent 注入生成唯一 TraceId/SpanId
+  private val traceContextFeeder = Iterator.continually {
+    val traceId = randomTraceId()
+    val spanId = randomSpanId()
+    Map(
+      "traceId" -> traceId,
+      "spanId" -> spanId,
+      "traceparent" -> s"00-$traceId-$spanId-01"
+    )
+  }
 
   private val loanRestPayload =
     """{
@@ -85,20 +101,24 @@ class PolicyEvaluationSimulation extends Simulation {
   }
 
   private val restScenario = scenario("REST Policy Evaluation")
+    .feed(traceContextFeeder)
     .feed(restFeeder)
     .exec(
       http("REST_${policyName}")
         .post("/api/policies/evaluate")
         .header("X-Tenant-Id", tenant)
+        .header("traceparent", "${traceparent}")
         .body(StringBody("${requestBody}"))
         .check(status.is(200))
     )
 
   private val graphQlScenario = scenario("GraphQL Loan Evaluation")
+    .feed(traceContextFeeder)
     .feed(graphQlFeeder)
     .exec(
       http("GraphQL_Loan")
         .post("/graphql")
+        .header("traceparent", "${traceparent}")
         .body(StringBody("${graphqlBody}"))
         .check(status.is(200))
     )

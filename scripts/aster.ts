@@ -10,6 +10,7 @@ import { installCommand, type InstallOptions } from '../src/cli/commands/install
 import { listCommand, type ListOptions } from '../src/cli/commands/list.js';
 import { updateCommand } from '../src/cli/commands/update.js';
 import { searchCommand } from '../src/cli/commands/search.js';
+import { aiGenerateCommand, type AIGenerateOptions } from '../src/cli/commands/ai-generate.js';
 import { handleError } from '../src/cli/utils/error-handler.js';
 
 function readFileStrict(file: string): string {
@@ -287,6 +288,38 @@ async function main(): Promise<void> {
           installOptions.registry = options.registry;
         }
         await installCommand(pkg, installOptions);
+      })
+    );
+
+  cli
+    .command('ai-generate <description>', '使用 AI 从英文描述生成 Aster 代码')
+    .option('--provider <provider>', 'LLM Provider (openai 或 anthropic)', { default: 'openai' })
+    .option('--model <model>', '模型名称（如 gpt-4-turbo, claude-3-5-sonnet-20241022）')
+    .option('--output <file>', '输出文件路径（不指定则输出到控制台）')
+    .option('--temperature <temp>', '温度参数（0.0-1.0）', { default: undefined })
+    .option('--few-shot-count <count>', 'Few-shot 示例数量', { default: undefined })
+    .option('--no-cache', '禁用生成结果缓存', { default: false })
+    .action(
+      wrapAction(async (description: string, options: Record<string, unknown>) => {
+        const aiOptions: AIGenerateOptions = {
+          provider: options.provider === 'anthropic' ? 'anthropic' : 'openai',
+        };
+        if (typeof options.model === 'string') {
+          aiOptions.model = options.model;
+        }
+        if (typeof options.output === 'string') {
+          aiOptions.output = options.output;
+        }
+        if (typeof options.temperature === 'number') {
+          aiOptions.temperature = options.temperature;
+        }
+        if (typeof options.fewShotCount === 'number') {
+          aiOptions.fewShotCount = options.fewShotCount;
+        }
+        if (typeof options.noCache === 'boolean' && options.noCache) {
+          aiOptions.useCache = false;
+        }
+        await aiGenerateCommand(description, aiOptions);
       })
     );
 

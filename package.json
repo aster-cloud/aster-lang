@@ -31,7 +31,10 @@
     "aster-convert": "./dist/src/cli/policy-converter.js"
   },
   "scripts": {
+    "ai:evaluate": "node scripts/evaluate-ai-generation.mjs",
+    "ai:evaluate:custom": "node scripts/evaluate-ai-generation.mjs",
     "build": "tsc && node dist/scripts/build-peg.js",
+    "build:examples": "tsc && node dist/scripts/build-example-packages.js",
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
     "dev": "npm run build:watch",
@@ -49,6 +52,9 @@
     "test:integration:pipeline": "npm run build && node --test 'dist/test/integration/pipeline/**/*.test.js'",
     "test:integration:capabilities": "npm run build && node --test 'dist/test/integration/capabilities/**/*.test.js'",
     "test:e2e:annotations": "node --test dist/test/e2e/annotation-integration.test.js",
+    "test:cli": "node --test 'dist/test/cli/**/*.test.js' 'dist/test/e2e/package-management.test.js'",
+    "test:cli:coverage": "c8 --include 'dist/src/cli/**/*.js' npm run test:cli",
+    "test:e2e:cli": "node --test dist/test/e2e/package-management.test.js",
     "test:e2e:full": "bash scripts/cross_validate.sh",
     "test:e2e": "npm run build && node dist/test/e2e/runner/golden-runner.js",
     "test:regression": "npm run build && node --test 'dist/test/regression/**/*.test.js'",
@@ -296,10 +302,14 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.9.0",
     "@codingame/monaco-jsonrpc": "^0.4.1",
     "@types/semver": "^7.7.1",
+    "cac": "6.7.14",
     "monaco-editor": "^0.55.1",
     "monaco-languageclient": "^10.3.0",
+    "openai": "^4.20.0",
+    "ora": "^8.0.0",
     "p-limit": "^7.2.0",
     "reconnecting-websocket": "^4.4.0",
     "semver": "^7.7.3",

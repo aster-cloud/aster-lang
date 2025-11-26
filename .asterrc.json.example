@@ -1,0 +1,12 @@
+{
+  "registry": {
+    "url": "https://api.github.com",
+    "timeout": 30000
+  },
+  "cache": {
+    "dir": ".aster/cache",
+    "ttl": 86400000,
+    "maxSize": 1073741824
+  },
+  "concurrency": 5
+}
