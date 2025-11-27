@@ -97,7 +97,10 @@ export function registerHoverHandler(
             if (param) {
               const annots = formatAnnotations(param.annotations);
               const annotPrefix = annots ? `${annots} ` : '';
-              return { contents: { kind: 'markdown', value: `Parameter ${annotPrefix}**${param.name}**: ${typeText(param.type)}` } };
+              // 检查是否是 PII 参数，添加合规提示
+              const piiHint = buildPiiComplianceHint(param);
+              const baseInfo = `Parameter ${annotPrefix}**${param.name}**: ${typeText(param.type)}`;
+              return { contents: { kind: 'markdown', value: piiHint ? `${baseInfo}\n\n${piiHint}` : baseInfo } };
             }
             const localInfo = findLocalLetWithExpr(f.body as AstBlock | null, nameAt);
             if (localInfo) {
@@ -126,4 +129,56 @@ export function registerHoverHandler(
     }
     return null;
   });
+}
+
+/**
+ * 为 PII 参数构建合规提示信息
+ */
+function buildPiiComplianceHint(param: { name: string; type: any; annotations?: readonly any[] | undefined }): string | null {
+  // 检查是否有 @pii 注解
+  const piiAnnot = param.annotations?.find(
+    (a: any) => a.name?.toLowerCase() === 'pii' || a.kind === 'pii'
+  );
+
+  // 检查类型是否为 PII 类型
+  const isPiiType = param.type?.kind === 'PiiType' ||
+    param.type?.name?.toLowerCase()?.includes('pii');
+
+  if (!piiAnnot && !isPiiType) return null;
+
+  // 提取 PII 等级
+  let level = 'L1';
+  if (piiAnnot?.args?.level) {
+    level = piiAnnot.args.level;
+  } else if (param.type?.level) {
+    level = param.type.level;
+  }
+
+  // 根据等级提供不同的合规提示
+  const hints: string[] = [];
+  hints.push(`⚠️ **PII Data** (Level: ${level})`);
+
+  switch (level) {
+    case 'L3':
+      hints.push('- 🔴 High sensitivity: SSN, passport, biometric');
+      hints.push('- GDPR: Requires explicit consent (Art. 9)');
+      hints.push('- HIPAA: PHI - encryption required');
+      hints.push('- Must use `redact()` before logging/transmission');
+      break;
+    case 'L2':
+      hints.push('- 🟠 Medium sensitivity: email, phone, address');
+      hints.push('- GDPR: Lawful basis required (Art. 6)');
+      hints.push('- Consider encryption at rest');
+      break;
+    case 'L1':
+    default:
+      hints.push('- 🟡 Low sensitivity: name, preferences');
+      hints.push('- GDPR: Document processing purpose');
+      break;
+  }
+
+  hints.push('');
+  hints.push('*Use `redact()` or `tokenize()` before external transmission*');
+
+  return hints.join('\n');
 }

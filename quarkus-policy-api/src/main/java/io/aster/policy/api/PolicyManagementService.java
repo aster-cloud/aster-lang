@@ -128,7 +128,7 @@ public class PolicyManagementService {
         Map<String, List<String>> allow = convertRuleSetInput(input.allow);
         Map<String, List<String>> deny = convertRuleSetInput(input.deny);
         String effectiveId = id != null ? id : sanitize(input.id);
-        return new PolicyStorageService.PolicyDocument(effectiveId, name, allow, deny);
+        return new PolicyStorageService.PolicyDocument(effectiveId, name, allow, deny, input.cnl);
     }
 
     /**
@@ -142,7 +142,7 @@ public class PolicyManagementService {
         String name = document.getName() == null ? "" : document.getName();
         Map<String, List<String>> allow = document.getAllow() == null ? new LinkedHashMap<>() : document.getAllow();
         Map<String, List<String>> deny = document.getDeny() == null ? new LinkedHashMap<>() : document.getDeny();
-        return new PolicyTypes.Policy(id, name, convertToGraphQLRuleSet(allow), convertToGraphQLRuleSet(deny));
+        return new PolicyTypes.Policy(id, name, convertToGraphQLRuleSet(allow), convertToGraphQLRuleSet(deny), document.getCnl());
     }
 
     private Map<String, List<String>> convertRuleSetInput(PolicyTypes.PolicyRuleSetInput input) {

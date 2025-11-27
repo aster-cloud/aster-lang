@@ -113,12 +113,19 @@ public class PolicyStorageService {
         private final String name;
         private final Map<String, List<String>> allow;
         private final Map<String, List<String>> deny;
+        private final String cnl;
 
+        // 向后兼容构造函数（不含 cnl）
         public PolicyDocument(String id, String name, Map<String, List<String>> allow, Map<String, List<String>> deny) {
+            this(id, name, allow, deny, null);
+        }
+
+        public PolicyDocument(String id, String name, Map<String, List<String>> allow, Map<String, List<String>> deny, String cnl) {
             this.id = id;
             this.name = Objects.requireNonNull(name, "策略名称不能为空");
             this.allow = sanitizeRuleSet(allow);
             this.deny = sanitizeRuleSet(deny);
+            this.cnl = cnl;
         }
 
         public String getId() {
@@ -137,8 +144,12 @@ public class PolicyStorageService {
             return deepCopy(deny);
         }
 
+        public String getCnl() {
+            return cnl;
+        }
+
         public PolicyDocument withId(String newId) {
-            return new PolicyDocument(newId, this.name, this.allow, this.deny);
+            return new PolicyDocument(newId, this.name, this.allow, this.deny, this.cnl);
         }
 
         private static Map<String, List<String>> sanitizeRuleSet(Map<String, List<String>> source) {

@@ -4,7 +4,7 @@
 
 # Interface: EffectVar
 
-Defined in: [types.ts:411](https://github.com/wontlost-ltd/aster-lang/blob/86a42486bd55428e1a25b42c1154fd2f922f9f45/src/types.ts#L411)
+Defined in: [types.ts:411](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/types.ts#L411)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:411](https://github.com/wontlost-ltd/aster-lang/blob/86a42
 
 > `readonly` **kind**: `"EffectVar"`
 
-Defined in: [types.ts:412](https://github.com/wontlost-ltd/aster-lang/blob/86a42486bd55428e1a25b42c1154fd2f922f9f45/src/types.ts#L412)
+Defined in: [types.ts:412](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/types.ts#L412)
 
 #### Overrides
 
@@ -28,7 +28,7 @@ Defined in: [types.ts:412](https://github.com/wontlost-ltd/aster-lang/blob/86a42
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:413](https://github.com/wontlost-ltd/aster-lang/blob/86a42486bd55428e1a25b42c1154fd2f922f9f45/src/types.ts#L413)
+Defined in: [types.ts:413](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/types.ts#L413)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [types.ts:413](https://github.com/wontlost-ltd/aster-lang/blob/86a42
 
 > **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:414](https://github.com/wontlost-ltd/aster-lang/blob/86a42486bd55428e1a25b42c1154fd2f922f9f45/src/types.ts#L414)
+Defined in: [types.ts:414](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/types.ts#L414)
 
 #### Overrides
 
@@ -48,7 +48,7 @@ Defined in: [types.ts:414](https://github.com/wontlost-ltd/aster-lang/blob/86a42
 
 > `readonly` `optional` **origin**: `undefined`
 
-Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/86a42486bd55428e1a25b42c1154fd2f922f9f45/src/types/base.ts#L42)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/types/base.ts#L42)
 
 #### Inherited from
 
@@ -60,7 +60,7 @@ Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/8
 
 > `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/86a42486bd55428e1a25b42c1154fd2f922f9f45/src/types/base.ts#L43)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/types/base.ts#L43)
 
 #### Inherited from
 

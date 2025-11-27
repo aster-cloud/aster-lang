@@ -58,6 +58,11 @@ public class MainView extends AppLayout {
     private transient GraphQLClient gql;
     private EditorSettings cachedSettings;
 
+    // 用于跨视图导航的组件引用
+    private Tabs tabs;
+    private Tab asterEditorTab;
+    private AsterPolicyEditorView asterEditorContent;
+
     @Inject
     public MainView(PolicyService policyService, Config config, SettingsService settingsService,
                     SecurityIdentity identity, PolicyTemplateService templateService) {
@@ -84,20 +89,20 @@ public class MainView extends AppLayout {
         // 侧边栏 Tabs
         Tab lifeTab = new Tab("人寿保险报价");
         Tab personalLoanTab = new Tab("个人贷款评估");
-        Tab asterEditorTab = new Tab("Aster 编辑器");
+        this.asterEditorTab = new Tab("Aster 编辑器");
         Tab policyTab = new Tab("策略管理");
         Tab syncTab = new Tab("同步");
         Tab auditTab = new Tab("审计日志");
         Tab settingsTab = new Tab("设置");
-        Tabs tabs = new Tabs(lifeTab, personalLoanTab, asterEditorTab, policyTab, syncTab, auditTab, settingsTab);
-        tabs.setOrientation(Tabs.Orientation.VERTICAL);
-        tabs.setWidthFull();
-        addToDrawer(tabs);
+        this.tabs = new Tabs(lifeTab, personalLoanTab, asterEditorTab, policyTab, syncTab, auditTab, settingsTab);
+        this.tabs.setOrientation(Tabs.Orientation.VERTICAL);
+        this.tabs.setWidthFull();
+        addToDrawer(this.tabs);
 
         // 视图内容
         VerticalLayout lifeContent = lifeQuoteForm();
         VerticalLayout loanContent = personalLoanForm();
-        AsterPolicyEditorView asterEditorContent = new AsterPolicyEditorView(templateService);
+        this.asterEditorContent = new AsterPolicyEditorView(templateService);
         VerticalLayout policyContent = policyManageView();
         VerticalLayout syncContent = syncView();
         VerticalLayout auditContent = auditView();
@@ -473,6 +478,22 @@ public class MainView extends AppLayout {
             dialog.open(selected);
         });
 
+        Button editCnlBtn = new Button("编辑 CNL", e -> {
+            Policy selected = grid.asSingleSelect().getValue();
+            if (selected == null) {
+                Notification.show("请先选择一条策略", 2000, Notification.Position.TOP_CENTER)
+                        .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+                return;
+            }
+            // 加载策略到 CNL 编辑器并切换标签页
+            asterEditorContent.loadPolicy(selected);
+            tabs.setSelectedTab(asterEditorTab);
+            setContent(asterEditorContent);
+            Notification.show("已加载策略: " + selected.getName(), 1500, Notification.Position.BOTTOM_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        });
+        editCnlBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
         Button historyBtn = new Button("历史", e -> {
             Policy selected = grid.asSingleSelect().getValue();
             if (selected == null) {
@@ -504,7 +525,7 @@ public class MainView extends AppLayout {
                         .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
                 return;
             }
-            Policy copy = new Policy(null, selected.getName() + " (copy)", selected.getAllow(), selected.getDeny());
+            Policy copy = new Policy(null, selected.getName() + " (copy)", selected.getAllow(), selected.getDeny(), selected.getCnl());
             PolicyEditorDialog dialog = new PolicyEditorDialog(policyService);
             dialog.addSaveListener(ev -> grid.setItems(policyService.getAllPolicies()));
             dialog.open(copy);
@@ -562,7 +583,7 @@ public class MainView extends AppLayout {
         grid.setItems(policyService.getAllPolicies());
         grid.setHeight("420px");
 
-        HorizontalLayout actions = new HorizontalLayout(filter, refresh, add, edit, historyBtn, undoBtn, redoBtn, duplicate, exportZip, upload, del);
+        HorizontalLayout actions = new HorizontalLayout(filter, refresh, add, edit, editCnlBtn, historyBtn, undoBtn, redoBtn, duplicate, exportZip, upload, del);
         actions.setSpacing(true);
         box.add(actions, grid);
         return box;

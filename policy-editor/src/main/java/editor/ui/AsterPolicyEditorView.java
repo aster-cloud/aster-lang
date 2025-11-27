@@ -28,11 +28,14 @@ import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServletRequest;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import editor.converter.CoreIRToPolicyConverter;
+import editor.converter.CoreIRToPolicyConverter.ConversionException;
 import editor.model.Policy;
 import editor.model.PolicyRuleSet;
 import editor.service.PolicyService;
 import editor.template.PolicyTemplate;
 import editor.template.PolicyTemplateService;
+import editor.util.PolicyNameParser;
 
 import jakarta.inject.Inject;
 
@@ -86,7 +89,11 @@ public class AsterPolicyEditorView extends VerticalLayout {
     @Inject
     transient ObjectMapper objectMapper;
 
+    @Inject
+    transient CoreIRToPolicyConverter converter;
+
     private String currentPolicyId;
+    private String originalPolicyName;  // 保存原始策略名，避免无点名称被改变
 
     @Inject
     public AsterPolicyEditorView(PolicyTemplateService templateService) {
@@ -537,17 +544,11 @@ public class AsterPolicyEditorView extends VerticalLayout {
         }
 
         try {
-            String policyName = module + "." + function;
+            // 计算策略名称，保持无点名称的向后兼容
+            String policyName = computePolicyName(module, function);
 
-            Map<String, List<String>> allowRules = new HashMap<>();
-            allowRules.put("execution", List.of("*"));
-
-            Policy policy = new Policy(
-                currentPolicyId,
-                policyName,
-                new PolicyRuleSet(allowRules),
-                new PolicyRuleSet(new HashMap<>())
-            );
+            // 使用 CoreIRToPolicyConverter 将 CNL 转换为 Policy 对象
+            Policy policy = converter.convertCNLToPolicy(code, currentPolicyId, policyName);
 
             if (currentPolicyId == null) {
                 Policy created = policyService.createPolicy(policy);
@@ -561,9 +562,30 @@ public class AsterPolicyEditorView extends VerticalLayout {
                     showError("更新失败：策略不存在");
                 }
             }
+        } catch (ConversionException e) {
+            showError("CNL 编译错误: " + e.getMessage());
         } catch (Exception e) {
             showError("保存失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 计算策略名称，保持无点名称的向后兼容。
+     * 如果原始名称没有点（如 "alpha"），且字段未被用户修改，则保留原始名称。
+     * 否则使用 module.function 格式。
+     */
+    private String computePolicyName(String module, String function) {
+        // 检查是否需要保留原始无点名称
+        if (originalPolicyName != null && !originalPolicyName.contains(".")) {
+            // 原始名称无点，检查字段是否匹配解析结果
+            // 解析 "alpha" 会得到 module="alpha", function="evaluate"
+            if (originalPolicyName.equals(module) && "evaluate".equals(function)) {
+                // 字段未修改，保留原始名称
+                return originalPolicyName;
+            }
+        }
+        // 默认：使用 module.function 格式
+        return module + "." + function;
     }
 
     /**
@@ -717,5 +739,80 @@ public class AsterPolicyEditorView extends VerticalLayout {
             String moduleName = firstLine.substring(prefix.length(), firstLine.length() - 1);
             moduleField.setValue(moduleName);
         }
+    }
+
+    /**
+     * 加载现有策略到编辑器。
+     * 用于从策略管理视图打开策略进行 CNL 编辑。
+     *
+     * @param policy 要加载的策略
+     */
+    public void loadPolicy(Policy policy) {
+        if (policy == null) {
+            return;
+        }
+
+        // 设置当前策略 ID（用于更新而非创建）
+        this.currentPolicyId = policy.getId();
+
+        // 保存原始策略名，用于保存时保持名称一致性
+        String policyName = policy.getName();
+        this.originalPolicyName = policyName;
+
+        // 从策略名称解析模块和函数名（无论是否有 CNL 都要同步）
+        if (policyName == null || policyName.isBlank()) {
+            // 策略名为空时设置默认值，避免使用旧策略的字段值
+            moduleField.setValue("default");
+            functionField.setValue("evaluate");
+        } else {
+            syncFieldsFromPolicyName(policyName);
+        }
+
+        // 加载 CNL 到编辑器
+        String cnl = policy.getCnl();
+        if (cnl != null && !cnl.isBlank()) {
+            // 有 CNL 源码，直接加载
+            updateEditorContent(cnl);
+            // CNL 中可能包含更准确的模块名，尝试从 CNL 中提取
+            updateModuleFieldFromContent(cnl);
+        } else {
+            // 没有 CNL，使用策略名称生成模板
+            String modulePart = moduleField.getValue();
+            String funcPart = functionField.getValue();
+
+            // 生成基础模板
+            String template = "This module is " + modulePart + ".\n\n" +
+                "To " + funcPart + " with input is\n" +
+                "  -- TODO: 添加策略规则\n" +
+                "  input.";
+            updateEditorContent(template);
+        }
+
+        // 更新预览区显示
+        String displayName = (policyName != null && !policyName.isBlank())
+            ? policyName : "(未命名策略)";
+        previewResultDiv.setText("策略已加载：" + displayName);
+        previewResultDiv.getStyle()
+            .set("background", "var(--lumo-contrast-5pct)")
+            .set("border-color", "var(--lumo-contrast-10pct)");
+    }
+
+    /**
+     * 从策略名称同步模块和函数字段。
+     * 策略名称格式：module.submodule.functionName
+     */
+    private void syncFieldsFromPolicyName(String policyName) {
+        PolicyNameParser.ParseResult result = PolicyNameParser.parse(policyName);
+        if (result != null) {
+            moduleField.setValue(result.getModuleName());
+            functionField.setValue(result.getFunctionName());
+        }
+    }
+
+    /**
+     * 获取当前策略 ID（用于外部检查是否已加载策略）。
+     */
+    public String getCurrentPolicyId() {
+        return currentPolicyId;
     }
 }

@@ -64,7 +64,7 @@ import { registerFormattingHandlers } from './formatting.js';
 import { registerCodeActionHandlers } from './codeaction.js';
 import { registerSymbolsHandlers } from './symbols.js';
 import { registerTokensHandlers, SEM_LEGEND } from './tokens.js';
-import { registerHealthHandlers } from './health.js';
+import { registerHealthHandlers, incrementRestartCount } from './health.js';
 import { ConfigService } from '../config/config-service.js';
 import { setWarmupPromise } from './shared-state.js';
 import { config } from './config.js';
@@ -246,6 +246,7 @@ connection.onInitialize(async (params: InitializeParams) => {
 });
 
 connection.onInitialized(() => {
+  incrementRestartCount(); // 記錄進程重啟
   // 初始化任务队列
   configureTaskQueue({
     maxConcurrent: 2,

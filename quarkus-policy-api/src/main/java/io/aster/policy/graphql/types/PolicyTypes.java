@@ -36,15 +36,24 @@ public final class PolicyTypes {
         @Description("拒绝规则集 / Deny rule set")
         public PolicyRuleSet deny;
 
+        @Description("Aster CNL 源代码 / Aster CNL source code")
+        public String cnl;
+
         public Policy() {
-            this("", "", new PolicyRuleSet(), new PolicyRuleSet());
+            this("", "", new PolicyRuleSet(), new PolicyRuleSet(), null);
         }
 
+        // 向后兼容构造函数（不含 cnl）
         public Policy(String id, String name, PolicyRuleSet allow, PolicyRuleSet deny) {
+            this(id, name, allow, deny, null);
+        }
+
+        public Policy(String id, String name, PolicyRuleSet allow, PolicyRuleSet deny, String cnl) {
             this.id = id;
             this.name = name;
             this.allow = allow != null ? allow : new PolicyRuleSet();
             this.deny = deny != null ? deny : new PolicyRuleSet();
+            this.cnl = cnl;
         }
     }
 
@@ -104,15 +113,24 @@ public final class PolicyTypes {
         @Description("拒绝规则集 / Deny rule set")
         public PolicyRuleSetInput deny;
 
+        @Description("Aster CNL 源代码 / Aster CNL source code")
+        public String cnl;
+
         public PolicyInput() {
-            this(null, "", new PolicyRuleSetInput(), new PolicyRuleSetInput());
+            this(null, "", new PolicyRuleSetInput(), new PolicyRuleSetInput(), null);
         }
 
+        // 向后兼容构造函数（不含 cnl）
         public PolicyInput(String id, String name, PolicyRuleSetInput allow, PolicyRuleSetInput deny) {
+            this(id, name, allow, deny, null);
+        }
+
+        public PolicyInput(String id, String name, PolicyRuleSetInput allow, PolicyRuleSetInput deny, String cnl) {
             this.id = id;
             this.name = name;
             this.allow = allow != null ? allow : new PolicyRuleSetInput();
             this.deny = deny != null ? deny : new PolicyRuleSetInput();
+            this.cnl = cnl;
         }
     }
 

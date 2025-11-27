@@ -6,7 +6,7 @@
 
 > `const` **CPU\_PREFIXES**: readonly `string`[] = `[]`
 
-Defined in: [config/semantic.ts:115](https://github.com/wontlost-ltd/aster-lang/blob/86a42486bd55428e1a25b42c1154fd2f922f9f45/src/config/semantic.ts#L115)
+Defined in: [config/semantic.ts:115](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/config/semantic.ts#L115)
 
 已知的 CPU 密集型操作前缀（用于 effect 推断）。
 

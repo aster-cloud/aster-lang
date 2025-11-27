@@ -20,6 +20,10 @@
         "type": "array",
         "items": { "type": "string" }
       }
+    },
+    "cnl": {
+      "type": "string",
+      "description": "Aster CNL source code (optional)"
     }
   },
   "additionalProperties": false

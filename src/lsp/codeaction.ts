@@ -249,6 +249,99 @@ export function registerCodeActionHandlers(
           edit: { changes: { [params.textDocument.uri]: [TextEdit.insert(rng.end, ch)] } },
         });
       }
+
+      // PII compliance Quick Fix: 为 PII sink 警告提供修复建议
+      if (d.source === 'aster-pii') {
+        const sinkKind = ((d as any).data?.sinkKind as string) || '';
+
+        // HTTP 传输 PII：建议使用 HTTPS 或加密
+        if (code === ErrorCode.PII_HTTP_UNENCRYPTED || sinkKind === 'http') {
+          actions.push({
+            title: 'Hint: Use HTTPS or encrypt PII before transmission',
+            kind: CodeActionKind.QuickFix,
+            diagnostics: [d],
+          });
+          // 提供 redact() 包装的 Quick Fix
+          const lineText = text.split(/\r?\n/)[d.range.start.line] || '';
+          const argMatch = lineText.match(/\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)/);
+          if (argMatch && argMatch[1]) {
+            const varName = argMatch[1];
+            const varIndex = lineText.indexOf(varName);
+            if (varIndex >= 0) {
+              actions.push({
+                title: `Fix: Wrap ${varName} with redact() before sending`,
+                kind: CodeActionKind.QuickFix,
+                diagnostics: [d],
+                edit: {
+                  changes: {
+                    [params.textDocument.uri]: [
+                      TextEdit.replace(
+                        { start: { line: d.range.start.line, character: varIndex },
+                          end: { line: d.range.start.line, character: varIndex + varName.length } },
+                        `redact(${varName})`
+                      ),
+                    ],
+                  },
+                },
+              });
+            }
+          }
+        }
+
+        // Console/Log PII：建议脱敏或移除
+        if (sinkKind === 'console') {
+          actions.push({
+            title: 'Hint: Remove PII from logs or use redact()',
+            kind: CodeActionKind.QuickFix,
+            diagnostics: [d],
+          });
+        }
+
+        // Database PII：建议加密存储
+        if (sinkKind === 'database') {
+          actions.push({
+            title: 'Hint: Encrypt PII before database storage (GDPR Art. 32)',
+            kind: CodeActionKind.QuickFix,
+            diagnostics: [d],
+          });
+        }
+
+        // File PII：建议访问控制
+        if (sinkKind === 'file') {
+          actions.push({
+            title: 'Hint: Ensure file access control for PII data',
+            kind: CodeActionKind.QuickFix,
+            diagnostics: [d],
+          });
+        }
+
+        // 缺失同意检查：提供添加注解的 Quick Fix
+        if (code === ErrorCode.PII_MISSING_CONSENT_CHECK || (d as any).data?.missingConsent) {
+          const funcName = ((d as any).data?.func as string) || '';
+          actions.push({
+            title: 'Hint: Add consent check before processing PII (GDPR Art. 6)',
+            kind: CodeActionKind.QuickFix,
+            diagnostics: [d],
+          });
+
+          // 提供添加 @consent_required 注解的 Quick Fix
+          if (funcName) {
+            const edit = addConsentAnnotation(text, funcName);
+            if (edit) {
+              actions.push({
+                title: `Fix: Add @consent_required annotation to '${funcName}'`,
+                kind: CodeActionKind.QuickFix,
+                diagnostics: [d],
+                edit: {
+                  changes: {
+                    [params.textDocument.uri]: [edit],
+                  },
+                },
+              });
+            }
+          }
+        }
+      }
     }
 
     // Bulk numeric overload disambiguation for current selection (no diagnostic required)
@@ -435,4 +528,37 @@ function suggestModuleFromPath(fsPath: string): string {
   } catch {
     return 'main';
   }
+}
+
+/**
+ * 辅助函数：为函数添加 @consent_required 注解
+ */
+function addConsentAnnotation(text: string, func: string): TextEdit | null {
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    // 查找 CNL 语法: "To funcName ..."
+    if (/^To\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line)) {
+      // 在函数定义前插入 @consent_required 注解
+      const indent = line.match(/^(\s*)/)?.[1] || '';
+      return TextEdit.insert(
+        { line: i, character: 0 },
+        `${indent}@consent_required\n`
+      );
+    }
+    // 查找 formal 语法: "fn funcName ..." 或 "@... fn funcName ..."
+    if (/^(\s*)(@\w+\s+)*fn\s+/i.test(line) && new RegExp(`\\b${func}\\b`).test(line)) {
+      // 检查前一行是否已有注解
+      const prevLine = i > 0 ? lines[i - 1] ?? '' : '';
+      if (prevLine.trim().startsWith('@consent_required')) {
+        return null; // 已有注解
+      }
+      const indent = line.match(/^(\s*)/)?.[1] || '';
+      return TextEdit.insert(
+        { line: i, character: 0 },
+        `${indent}@consent_required\n`
+      );
+    }
+  }
+  return null;
 }

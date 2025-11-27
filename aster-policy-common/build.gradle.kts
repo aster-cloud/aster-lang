@@ -19,12 +19,22 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2")
 
+    // Caffeine cache for compilation result caching
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+
+    // Jakarta CDI API (provided scope - only for annotations)
+    compileOnly("jakarta.enterprise:jakarta.enterprise.cdi-api:4.0.1")
+
+    // Logging facade
+    implementation("org.slf4j:slf4j-api:2.0.9")
+
     // Testing dependencies
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.assertj:assertj-core:3.26.0")
     testImplementation("org.skyscreamer:jsonassert:1.5.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.9")
 }
 
 tasks.withType<JavaCompile>().configureEach {

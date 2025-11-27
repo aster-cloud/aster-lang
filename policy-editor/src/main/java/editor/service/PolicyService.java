@@ -34,6 +34,7 @@ public class PolicyService {
     private static final String POLICY_SELECTION = """
         id
         name
+        cnl
         allow { rules { resourceType patterns } }
         deny { rules { resourceType patterns } }
         """;
@@ -355,9 +356,10 @@ public class PolicyService {
     private Policy parsePolicy(JsonNode node) {
         String id = node.path("id").asText();
         String name = node.path("name").asText();
+        String cnl = node.path("cnl").isNull() ? null : node.path("cnl").asText(null);
         PolicyRuleSet allow = parseRuleSet(node.path("allow"));
         PolicyRuleSet deny = parseRuleSet(node.path("deny"));
-        return new Policy(id, name, allow, deny);
+        return new Policy(id, name, allow, deny, cnl);
     }
 
     private PolicyRuleSet parseRuleSet(JsonNode node) {
@@ -385,6 +387,7 @@ public class PolicyService {
             input.put("id", policy.getId());
         }
         input.put("name", policy.getName());
+        input.put("cnl", policy.getCnl());  // 始终发送，允许显式清空为 null
         input.put("allow", toRuleSetInput(policy.getAllow()));
         input.put("deny", toRuleSetInput(policy.getDeny()));
         return input;

@@ -315,6 +315,190 @@ CNL Source → Canonicalizer → Lexer → Parser → CNL AST → Lowering → C
 6. **Lowering**: Update `src/lower_to_core.ts` to handle new nodes
 7. **Tests**: Add golden tests, property tests, and examples
 
+## JVM/Quarkus 模块开发
+
+Aster 包含多个 JVM 模块，使用 Gradle 构建：
+
+### 模块结构
+
+```
+aster-core/          # 核心运行时（调度器、事件存储、重试机制）
+aster-truffle/       # GraalVM Truffle 后端
+aster-lang-cli/      # Java CLI 工具
+quarkus-policy-api/  # Quarkus REST API（策略评估、审计）
+policy-editor/       # Vaadin Policy Editor
+```
+
+### JVM 开发环境
+
+```bash
+# 前置条件
+- JDK 21+
+- GraalVM 21+ (可选，用于 Truffle 后端)
+
+# 构建所有 JVM 模块
+./gradlew build
+
+# 运行特定模块测试
+./gradlew :quarkus-policy-api:test
+./gradlew :aster-truffle:test
+
+# 启动 Quarkus 开发模式
+cd quarkus-policy-api
+./mvnw quarkus:dev
+```
+
+### Quarkus 模块贡献
+
+1. **REST API**: 添加到 `quarkus-policy-api/src/main/java/io/aster/policy/`
+2. **GraphQL 类型**: 更新 `graphql/types/` 目录
+3. **数据库迁移**: 在 `resources/db/migration/` 添加 Flyway 脚本
+4. **测试**: 使用 `@QuarkusTest` 注解编写集成测试
+
+### Truffle 后端贡献
+
+1. **新内置函数**: 在 `Builtins.java` 添加 `@NodeChild` 注解的节点
+2. **性能基准**: 更新 `benchmarks/` 目录
+3. **Golden 测试**: 确保 Core IR 兼容性
+
+---
+
+## AI 代码生成贡献
+
+### AI 模块结构
+
+```
+src/ai/
+├── generator.ts       # 主生成器
+├── llm-provider.ts    # LLM 接口定义
+├── providers/         # OpenAI/Anthropic 实现
+├── prompt-manager.ts  # Few-shot 示例管理
+├── validator.ts       # 代码验证
+├── provenance.ts      # 来源追踪
+└── generation-cache.ts # 缓存机制
+```
+
+### 添加新 LLM Provider
+
+1. 创建 `src/ai/providers/my-provider.ts`：
+
+```typescript
+import { LLMProvider, LLMError } from '../llm-provider.js';
+
+export class MyProvider implements LLMProvider {
+  async generate(prompt: string): Promise<string> {
+    // 实现 API 调用
+  }
+
+  getName(): string { return 'my-provider'; }
+  getModel(): string { return this.model; }
+}
+```
+
+2. 在 `src/cli/commands/ai-generate.ts` 注册
+3. 添加测试到 `test/unit/ai/`
+
+### Few-shot 示例贡献
+
+在 `prompts/few-shot-examples.jsonl` 添加高质量示例：
+
+```jsonl
+{"description": "Your description", "code": "To your_function..."}
+```
+
+示例要求：
+- 描述清晰、具体
+- 代码通过类型检查
+- 覆盖不同业务场景
+
+---
+
+## 合规功能开发
+
+### 审计日志贡献
+
+1. **哈希算法**: 修改 `AuditEventListener.computeHashChain()`
+2. **数据库 Schema**: 添加 `V*__*.sql` 迁移脚本
+3. **验证器**: 更新 `AuditChainVerifier`
+
+### PII 检查贡献
+
+1. **新检测规则**: 修改 `src/lsp/pii_diagnostics.ts`
+2. **Quick Fix**: 更新 `src/lsp/codeaction.ts`
+3. **测试**: 添加到 `test/unit/lsp/pii-diagnostics.test.ts`
+
+### 合规测试
+
+```bash
+# PII 诊断测试
+npm run test:pii-default
+
+# 审计链测试
+./gradlew :quarkus-policy-api:test --tests "*AuditChain*"
+
+# 合规集成测试
+npm run test:compliance
+```
+
+---
+
+## 医疗域库开发
+
+### 现有医疗功能
+
+```
+quarkus-policy-api/src/main/
+├── java/io/aster/policy/graphql/types/HealthcareTypes.java
+├── java/io/aster/policy/graphql/converter/HealthcareConverter.java
+└── resources/policies/healthcare/
+    ├── eligibility.aster
+    └── claims.aster
+```
+
+### 贡献医疗策略
+
+1. 在 `resources/policies/healthcare/` 添加 `.aster` 文件
+2. 更新 `HealthcareTypes.java` 添加新类型
+3. 编写 `*ConverterTest.java` 测试
+4. 确保 HIPAA 合规注释
+
+### HIPAA 合规检查清单
+
+- [ ] 所有 PHI 字段使用 `@pii(L3, ...)` 标注
+- [ ] 不在日志中输出 PHI
+- [ ] 使用 HTTPS 传输
+- [ ] 包含同意检查
+
+---
+
+## 文档贡献
+
+### 文档结构
+
+```
+docs/
+├── guide/           # 用户指南
+├── reference/       # API 参考
+├── operations/      # 运维文档
+└── phase0/          # 技术设计文档
+```
+
+### 文档标准
+
+- 使用简体中文或英文
+- 包含代码示例
+- 添加最后更新日期
+- 链接相关文档
+
+### 构建文档
+
+```bash
+npm run docs:build
+npm run docs:serve  # 本地预览
+```
+
+---
+
 ## Getting Help
 
 - **Discussions**: Use GitHub Discussions for questions

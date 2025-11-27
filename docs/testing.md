@@ -32,6 +32,15 @@
 - **缓存未生效**：检查描述是否完全一致、CLI 是否使用 `--no-cache`。必要时 `rm -rf .cache/ai-generation` 重建。
 - **评估退出码 1**：表示准确率低于 80% 或脚本校验失败；查看报告 `结论与建议` 段落获取下一步措施。
 
+## 2025-11-27 P2-7 LSP 健康檢查資源監控驗證
+- 日期：2025-11-27 08:01 NZST
+- 執行者：Codex
+- 指令與結果：
+  - `npm run build` → 通过（tsc + PEG 產物完成，新增 LSP 健康指標成功編譯進 dist）。
+  - `node scripts/lsp-health-smoke.ts` → 失败（Node 23.5.0 無法直接執行 TypeScript 腳本，拋出 `ERR_UNKNOWN_FILE_EXTENSION`）。
+  - `node dist/scripts/lsp-health-smoke.js` → 通过（初始化健康檢查前/後輸出包含 `process.memory.rss`、`process.cpu.percent`、`process.uptime`、`metadata.restartCount` 等新增欄位，值均在期望範圍，重啟計數 ≥ 1）。
+- 備註：因原始 smoke 腳本為 TypeScript，需要先 `npm run build` 產生 `dist/scripts/lsp-health-smoke.js` 再執行，呼叫多次後 `process.uptime` 會自然大於 0，CPU 百分比在 0-100 之間。
+
 ## 2025-11-26 P2-6 PolicyCacheManager 指标验证
 - 日期：2025-11-26 10:30 NZDT
 - 执行者：Codex
@@ -573,3 +582,120 @@ protected int readInt(VirtualFrame frame) throws FrameSlotTypeException {
 - 执行者：Codex
 - 指令与结果：
   - `./gradlew :quarkus-policy-api:compileJava` → 通过；验证 WorkflowEvent 标准化 payload、PostgresEventStore 序列生成与 Flyway 迁移脚本在编译期无回归，生成的 Aster classfiles 与 Java 模块均成功编译。
+
+## 2025-11-26 P2-7 Policy Editor UI 测试基础设施
+
+- 日期：2025-11-26
+- 执行者：Claude Code
+- 任务：Task 5 - 添加 Policy Editor UI 测试覆盖
+
+### 完成项
+
+1. **Jest 测试框架配置** ✅
+   - 创建 `policy-editor/jest.config.js` 配置文件
+   - 配置 TypeScript 支持 (ts-jest preset)
+   - 设置 JSDOM 测试环境
+   - 配置 70% 覆盖率阈值 (branches, functions, lines, statements)
+   - 创建 module mappers 处理 CSS、Web Workers、Monaco Editor、Lit 库导入
+   - 创建测试 mocks:
+     - `src/test/__mocks__/litMock.ts` - Lit 库 mock
+     - `src/test/__mocks__/litDecoratorsMock.ts` - Lit decorators mock
+     - `src/test/__mocks__/monacoMock.ts` - Monaco Editor API mock
+     - `src/test/__mocks__/workerMock.js` - Web Worker mock
+     - `src/test/__mocks__/styleMock.js` - CSS imports mock
+   - 创建 `src/test/setup.ts` 测试设置文件，包含 custom elements registry mock
+   - 运行 `npm install` 成功安装所有依赖 (371 packages)
+
+2. **TypeScript 单元测试** ✅
+   - 创建 `src/main/frontend/components/monaco-editor-component.spec.ts`
+   - 编写 24 个全面的单元测试，覆盖:
+     - 属性绑定 (value, language, theme, fontSize, minimap, folding, modelUri)
+     - 编辑器初始化
+     - 事件派发 (value-changed, monaco-value-changed)
+     - LSP 客户端集成
+     - 公共 API (setValue, focusEditor)
+     - 生命周期管理 (disconnectedCallback)
+   - 修复 LSP client 导入路径问题 (移除 `.js` 扩展名)
+
+3. **Java 集成测试** ✅
+   - 创建 `src/test/java/editor/ui/AsterPolicyEditorViewTest.java`
+   - 编写 11 个 service-layer 集成测试 (由于 TestBench 不可用)
+   - 测试覆盖:
+     - Policy 创建、更新、删除操作
+     - CNL 字段保留
+     - GraphQL 查询集成
+     - 错误处理 (invalid JSON, converter failure, GraphQL error)
+     - 空 ID 处理
+
+### 已知限制与阻塞因素
+
+1. **Vaadin Gradle Plugin 配置问题** 🚫
+   - **错误**: `Could not create task of type 'VaadinBuildFrontendTask'. DefaultTaskContainer#withType(Class, Action) on task set cannot be executed in the current context.`
+   - **根本原因**: Vaadin Gradle Plugin 24.9.5 与 Gradle 9.0.0 存在 API 不兼容
+   - **影响**: 无法运行 policy-editor 项目的任何 Gradle 任务，包括:
+     - `./gradlew :policy-editor:test`
+     - `./gradlew :policy-editor:compileTestJava`
+     - `./gradlew :policy-editor:compileJava`
+   - **尝试的解决方案** (均失败):
+     - 使用 `--no-configuration-cache` 标志
+     - 尝试仅编译测试类
+     - 检查是否存在已编译的测试类 (不存在)
+   - **技术细节**: 错误发生在 Gradle configuration 阶段，Vaadin 插件尝试调用 `DefaultTaskContainer#withType()` 时违反了 Gradle 的任务配置规则
+   - **参考**: `policy-editor/build.gradle.kts:128-130` 已标记所有任务不兼容 configuration cache
+
+2. **Lit Web Components JSDOM 限制** ⚠️
+   - **问题**: TypeScript 测试运行但全部失败
+   - **错误**: `TypeError: Invalid constructor, the constructor is not part of the custom element registry`
+   - **根本原因**: JSDOM 不完全支持 Custom Elements v1 规范，Lit 组件期望浏览器特定 API
+   - **当前状态**: 24 个测试发现并运行，但都因 custom element registration 失败
+   - **尝试的解决方案**:
+     - 在 `src/test/setup.ts` 中创建 Map-based custom elements registry
+     - Mock `document.createElement` 处理 custom element 实例化
+   - **限制**: Lit web components 在 Jest/JSDOM 中很难测试，可能需要:
+     - @open-wc/testing-helpers 库
+     - Playwright 或 Cypress 进行真实浏览器测试
+     - 专注于 service-layer 测试而非 UI 组件测试
+
+### 下一步行动
+
+要解决这些问题，需要:
+
+1. **Vaadin Gradle 问题**:
+   - 升级 Vaadin Gradle Plugin 到与 Gradle 9.0.0 兼容的版本
+   - 或降级 Gradle 到与 Vaadin 24.9.5 兼容的版本
+   - 或临时禁用 policy-editor 模块的 Vaadin 插件进行测试
+
+2. **TypeScript 测试**:
+   - 考虑使用 @open-wc/testing 替代 Jest 进行 Lit 组件测试
+   - 或使用 Playwright/Cypress 进行端到端浏览器测试
+   - 或接受当前的 service-layer Java 测试作为主要测试策略
+
+### 文件变更清单
+
+#### 新增文件:
+- `policy-editor/jest.config.js` - Jest 配置
+- `policy-editor/src/test/__mocks__/litMock.ts` - Lit library mock
+- `policy-editor/src/test/__mocks__/litDecoratorsMock.ts` - Lit decorators mock
+- `policy-editor/src/test/__mocks__/monacoMock.ts` - Monaco Editor mock
+- `policy-editor/src/test/__mocks__/workerMock.js` - Web Worker mock
+- `policy-editor/src/test/__mocks__/styleMock.js` - CSS mock
+- `policy-editor/src/test/setup.ts` - Jest setup file
+- `policy-editor/src/main/frontend/components/monaco-editor-component.spec.ts` - 24 unit tests
+- `policy-editor/src/test/java/editor/ui/AsterPolicyEditorViewTest.java` - 11 integration tests
+
+#### 修改文件:
+- `policy-editor/package.json` - 添加 Jest dependencies and scripts
+- `policy-editor/src/main/frontend/components/monaco-editor-component.ts` - 修复 LSP client import path
+
+### 验证命令
+
+```bash
+# TypeScript 测试 (当前状态: 运行但失败)
+cd policy-editor && npm test
+
+# Java 测试 (当前状态: 因 Gradle 配置问题被阻塞)
+./gradlew :policy-editor:test --tests editor.ui.AsterPolicyEditorViewTest
+
+# 测试覆盖率报告
+cd policy-editor && npm run test:coverage
+```

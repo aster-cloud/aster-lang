@@ -4,6 +4,29 @@ import type { Core, Origin, Span } from '../types.js';
 import { Effect } from '../types.js';
 import { DefaultCoreVisitor } from '../visitor.js';
 import { config } from './config.js';
+import { ErrorCode } from '../error_codes.js';
+
+// PII 敏感 sink 类型
+type SinkKind = 'http' | 'database' | 'console' | 'file';
+
+// 已知的 console/log sink 函数
+const CONSOLE_SINKS = new Set([
+  'print', 'IO.print', 'IO.println', 'log', 'Log.info', 'Log.debug', 'Log.warn', 'Log.error', 'Console.log'
+]);
+
+// 数据库写入操作（读取操作不视为 sink）
+const DATABASE_WRITE_METHODS = new Set(['insert', 'update', 'delete', 'exec', 'execute', 'save', 'persist']);
+
+// 文件写入操作
+const FILE_WRITE_METHODS = new Set(['write', 'writeFile', 'append', 'save']);
+
+// 同意检查函数（调用这些函数表示已进行同意检查）
+const CONSENT_CHECK_FUNCTIONS = new Set([
+  'checkConsent', 'requireConsent', 'verifyConsent',
+  'Consent.check', 'Consent.require', 'Consent.verify',
+  'GDPR.checkConsent', 'GDPR.requireConsent',
+  'hasConsent', 'isConsentGiven'
+]);
 
 // 使用 Map 记录变量是否带有 PII 污染
 type VarState = { tainted: boolean };
@@ -47,13 +70,22 @@ export function checkPiiFlow(core: Core.Module): Diagnostic[] {
     for (const decl of core.decls) {
       if (decl.kind !== 'Func') continue;
       const env: Env = new Map<string, VarState>();
+      let hasPiiParam = false;
       for (const param of decl.params) {
-        env.set(param.name, { tainted: isTypePii(param.type) });
+        const isPii = isTypePii(param.type);
+        env.set(param.name, { tainted: isPii });
+        if (isPii) hasPiiParam = true;
       }
       const prevEnv = ctx.env;
       ctx.env = env;
       ctx.currentFunc = decl;
       runPiiVisitor(decl.body, env, diagnostics);
+
+      // 检查处理 PII 数据的函数是否有同意检查
+      if (hasPiiParam && !hasConsentAnnotation(decl) && !hasConsentCheckInBody(decl.body)) {
+        diagnostics.push(createConsentMissingDiagnostic(decl));
+      }
+
       ctx.currentFunc = null;
       ctx.env = prevEnv;
     }
@@ -152,21 +184,219 @@ class PiiVisitor extends DefaultCoreVisitor<Env> {
   }
   override visitExpression(expr: Core.Expression, env: Env): void {
     if (expr.kind === 'Call') {
-      if (hasEffect(expr.target, 'IO[Http]') && expr.args.some(arg => evaluateWithEnv(arg, env))) {
-        this.diagnostics.push({
-          severity: config.strictPiiMode ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
-          range: originToRange((expr as { origin?: Origin }).origin),
-          message: 'PII data transmitted over HTTP without encryption',
-          source: 'aster-pii',
-        });
+      const sinkInfo = detectPiiSink(expr, env);
+      if (sinkInfo) {
+        this.diagnostics.push(createPiiDiagnostic(sinkInfo.kind, expr, sinkInfo.funcName));
       }
     }
     super.visitExpression(expr, env);
   }
 }
 
+/**
+ * 检测 PII 数据流向敏感 sink 的情况
+ */
+function detectPiiSink(call: Core.Call, env: Env): { kind: SinkKind; funcName: string } | null {
+  const hasTaintedArg = call.args.some(arg => evaluateWithEnv(arg, env));
+  if (!hasTaintedArg) return null;
+
+  const target = call.target;
+  let funcName = '';
+
+  // 提取函数名
+  if (target.kind === 'Name') {
+    funcName = target.name;
+  } else if (target.kind === 'Call' && target.target.kind === 'Name') {
+    // 处理链式调用如 Http.post(...)
+    funcName = target.target.name;
+  }
+
+  // 检测 HTTP sink
+  if (hasEffect(call.target, 'IO[Http]')) {
+    return { kind: 'http', funcName: funcName || 'Http' };
+  }
+
+  // 检测 console/log sink
+  if (CONSOLE_SINKS.has(funcName)) {
+    return { kind: 'console', funcName };
+  }
+
+  // 检测数据库写入 sink
+  const lowerName = funcName.toLowerCase();
+  if (lowerName.startsWith('db.') || lowerName.startsWith('sql.') || lowerName.startsWith('database.')) {
+    const method = lowerName.split('.')[1] ?? '';
+    if (DATABASE_WRITE_METHODS.has(method)) {
+      return { kind: 'database', funcName };
+    }
+  }
+
+  // 检测文件写入 sink
+  if (lowerName.startsWith('fs.') || lowerName.startsWith('file.') || lowerName.startsWith('io.')) {
+    const method = lowerName.split('.')[1] ?? '';
+    if (FILE_WRITE_METHODS.has(method)) {
+      return { kind: 'file', funcName };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 创建 PII 诊断信息
+ */
+function createPiiDiagnostic(kind: SinkKind, expr: Core.Expression, funcName: string): Diagnostic {
+  const origin = (expr as { origin?: Origin }).origin;
+  const range = originToRange(origin);
+  const severity = config.strictPiiMode ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
+
+  switch (kind) {
+    case 'http':
+      return {
+        severity,
+        range,
+        message: 'PII data transmitted over HTTP without encryption',
+        source: 'aster-pii',
+        code: ErrorCode.PII_HTTP_UNENCRYPTED,
+        data: { sinkKind: 'http', func: funcName },
+      };
+    case 'console':
+      return {
+        severity: DiagnosticSeverity.Warning,
+        range,
+        message: `PII data may be exposed in logs via ${funcName}`,
+        source: 'aster-pii',
+        code: ErrorCode.PII_SINK_UNKNOWN,
+        data: { sinkKind: 'console', func: funcName },
+      };
+    case 'database':
+      return {
+        severity,
+        range,
+        message: `PII data written to database via ${funcName} - ensure proper encryption`,
+        source: 'aster-pii',
+        code: ErrorCode.PII_SINK_UNKNOWN,
+        data: { sinkKind: 'database', func: funcName },
+      };
+    case 'file':
+      return {
+        severity,
+        range,
+        message: `PII data written to file via ${funcName} - ensure proper access control`,
+        source: 'aster-pii',
+        code: ErrorCode.PII_SINK_UNKNOWN,
+        data: { sinkKind: 'file', func: funcName },
+      };
+  }
+}
+
 function runPiiVisitor(block: Core.Block, env: Env, diagnostics: Diagnostic[]): void {
   new PiiVisitor(diagnostics).visitBlock(block, env);
+}
+
+/**
+ * 检查函数是否有同意相关的注解
+ */
+function hasConsentAnnotation(func: Core.Func): boolean {
+  const annotations = (func as any).annotations as readonly any[] | undefined;
+  if (!annotations) return false;
+  return annotations.some((a: any) => {
+    const name = (a.name ?? a.kind ?? '').toLowerCase();
+    return name === 'consent_required' ||
+           name === 'consentrequired' ||
+           name === 'gdpr_consent' ||
+           name === 'requires_consent' ||
+           name === 'consent';
+  });
+}
+
+/**
+ * 检查函数体是否包含同意检查调用
+ */
+function hasConsentCheckInBody(block: Core.Block): boolean {
+  for (const stmt of block.statements) {
+    if (statementHasConsentCheck(stmt)) return true;
+  }
+  return false;
+}
+
+/**
+ * 检查语句是否包含同意检查调用
+ */
+function statementHasConsentCheck(stmt: Core.Statement): boolean {
+  switch (stmt.kind) {
+    case 'Let':
+    case 'Set':
+    case 'Return':
+      return expressionHasConsentCheck(stmt.expr);
+    case 'If':
+      if (expressionHasConsentCheck(stmt.cond)) return true;
+      if (hasConsentCheckInBody(stmt.thenBlock)) return true;
+      if (stmt.elseBlock && hasConsentCheckInBody(stmt.elseBlock)) return true;
+      return false;
+    case 'Match':
+      if (expressionHasConsentCheck(stmt.expr)) return true;
+      for (const kase of stmt.cases) {
+        if (kase.body.kind === 'Return') {
+          if (expressionHasConsentCheck(kase.body.expr)) return true;
+        } else if (hasConsentCheckInBody(kase.body)) {
+          return true;
+        }
+      }
+      return false;
+    case 'Scope':
+      return hasConsentCheckInBody({ kind: 'Block', statements: stmt.statements } as Core.Block);
+    default:
+      return false;
+  }
+}
+
+/**
+ * 检查表达式是否包含同意检查调用
+ */
+function expressionHasConsentCheck(expr: Core.Expression): boolean {
+  switch (expr.kind) {
+    case 'Call': {
+      const target = expr.target;
+      let funcName = '';
+      if (target.kind === 'Name') {
+        funcName = target.name;
+      } else if (target.kind === 'Call' && target.target.kind === 'Name') {
+        funcName = target.target.name;
+      }
+      if (CONSENT_CHECK_FUNCTIONS.has(funcName)) return true;
+      // 递归检查参数
+      for (const arg of expr.args) {
+        if (expressionHasConsentCheck(arg)) return true;
+      }
+      return expressionHasConsentCheck(target);
+    }
+    case 'Lambda':
+      return hasConsentCheckInBody(expr.body);
+    case 'Construct':
+      return expr.fields.some(f => expressionHasConsentCheck(f.expr));
+    case 'Ok':
+    case 'Err':
+    case 'Some':
+      return expressionHasConsentCheck(expr.expr);
+    default:
+      return false;
+  }
+}
+
+/**
+ * 创建缺失同意检查的诊断信息
+ */
+function createConsentMissingDiagnostic(func: Core.Func): Diagnostic {
+  const origin = (func as { origin?: Origin }).origin;
+  const range = originToRange(origin);
+  return {
+    severity: DiagnosticSeverity.Warning,
+    range,
+    message: `Function '${func.name}' processes PII data without consent check (GDPR Art. 6)`,
+    source: 'aster-pii',
+    code: ErrorCode.PII_MISSING_CONSENT_CHECK,
+    data: { func: func.name, missingConsent: true },
+  };
 }
 
 // 旧的 visitStatement/visitExpression 已由 PiiVisitor 替代，移除重复实现

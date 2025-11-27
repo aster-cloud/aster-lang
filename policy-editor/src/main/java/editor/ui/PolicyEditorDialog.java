@@ -147,12 +147,13 @@ public class PolicyEditorDialog extends Dialog {
             Map<String, List<String>> allowRules = parseRulesJson(allowRulesArea.getValue());
             Map<String, List<String>> denyRules = parseRulesJson(denyRulesArea.getValue());
 
-            // 创建或更新策略
+            // 创建或更新策略（保留原 CNL，通过 JSON 编辑不会修改 CNL）
             Policy policy = new Policy(
                     currentPolicy != null ? currentPolicy.getId() : null,
                     nameField.getValue(),
                     new PolicyRuleSet(allowRules),
-                    new PolicyRuleSet(denyRules)
+                    new PolicyRuleSet(denyRules),
+                    currentPolicy != null ? currentPolicy.getCnl() : null
             );
 
             if (currentPolicy == null) {
