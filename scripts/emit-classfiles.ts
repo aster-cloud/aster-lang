@@ -185,6 +185,12 @@ function envWithGradle(): Record<string, string | undefined> {
 
 const JVM_SRC_DIR = path.resolve('build/jvm-src');
 const JAVA_DEP_SOURCE_DIRS = [path.resolve('aster-runtime/src/main/java')];
+// Exclude files that require external dependencies (Quarkus, SmallRye) not available during standalone javac
+const JAVA_DEP_EXCLUSIONS = [
+  /io[/\\]quarkus[/\\]runtime[/\\]graal[/\\]/, // All GraalVM substitution classes (need SmallRye/Quarkus)
+  /io[/\\]aster[/\\]workflow[/\\]IdempotencyKeyManager\.java$/,       // Needs Quarkus cache
+  /aster[/\\]runtime[/\\]workflow[/\\]InMemoryWorkflowRuntime\.java$/, // Depends on IdempotencyKeyManager
+];
 const WORKFLOW_RUNTIME_FILES = [
   path.resolve('aster-truffle/src/main/java/aster/truffle/runtime/AsyncTaskRegistry.java'),
   path.resolve('aster-truffle/src/main/java/aster/truffle/runtime/DependencyGraph.java'),
@@ -252,7 +258,7 @@ function statementHasWorkflow(stmt: CoreIR.Statement): boolean {
   }
 }
 
-function collectJavaSources(dir: string): string[] {
+function collectJavaSources(dir: string, exclusions: RegExp[] = []): string[] {
   if (!fs.existsSync(dir)) return [];
   const result: string[] = [];
   const stack: string[] = [dir];
@@ -264,14 +270,18 @@ function collectJavaSources(dir: string): string[] {
         stack.push(path.join(current, entry));
       }
     } else if (current.endsWith('.java')) {
-      result.push(current);
+      // Skip files matching any exclusion pattern
+      const excluded = exclusions.some(pattern => pattern.test(current));
+      if (!excluded) {
+        result.push(current);
+      }
     }
   }
   return result;
 }
 
 async function compileWorkflowSources(outDir: string): Promise<void> {
-  const dependencySources = JAVA_DEP_SOURCE_DIRS.flatMap(collectJavaSources);
+  const dependencySources = JAVA_DEP_SOURCE_DIRS.flatMap(dir => collectJavaSources(dir, JAVA_DEP_EXCLUSIONS));
   const generatedSources = collectJavaSources(JVM_SRC_DIR);
   if (generatedSources.length === 0) {
     console.warn('[emit-classfiles] 未找到 workflow Java 源文件，跳过 javac。');

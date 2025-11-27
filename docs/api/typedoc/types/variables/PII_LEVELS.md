@@ -6,4 +6,4 @@
 
 > `const` **PII\_LEVELS**: readonly \[`"L1"`, `"L2"`, `"L3"`\]
 
-Defined in: [types.ts:381](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/types.ts#L381)
+Defined in: [types.ts:381](https://github.com/wontlost-ltd/aster-lang/blob/3cf46ba7cdc8f7c8718a89bca05f95ab1872b528/src/types.ts#L381)

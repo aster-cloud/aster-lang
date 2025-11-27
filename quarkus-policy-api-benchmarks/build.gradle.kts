@@ -47,13 +47,11 @@ dependencies {
     jmhImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
 }
 
-// 将主项目的数据库迁移脚本添加到 JMH classpath (Task 4)
-sourceSets {
-    named("jmh") {
-        resources {
-            srcDir("${project(":quarkus-policy-api").projectDir}/src/main/resources")
-        }
-    }
+// 将主项目的数据库迁移脚本复制到 JMH resources (Task 4)
+// 注意：不能用 srcDir 共享目录，否则会导致 IntelliJ "Duplicate content roots" 警告
+val copyFlywayMigrations by tasks.registering(Copy::class) {
+    from("${project(":quarkus-policy-api").projectDir}/src/main/resources/db")
+    into(layout.buildDirectory.dir("resources/jmh/db"))
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -62,8 +60,9 @@ tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.addAll(listOf("-parameters", "-Xlint:all"))
 }
 
-// Task 1.1 修复：添加对 syncPolicyClasses 和 syncPolicyJar 的依赖，避免 Gradle 配置错误
+// Task 1.1 修复：添加对 syncPolicyClasses、syncPolicyJar 和 copyFlywayMigrations 的依赖
 tasks.named("processJmhResources") {
+    dependsOn(copyFlywayMigrations)
     dependsOn(":quarkus-policy-api:syncPolicyClasses")
     dependsOn(":quarkus-policy-api:syncPolicyJar")
 }

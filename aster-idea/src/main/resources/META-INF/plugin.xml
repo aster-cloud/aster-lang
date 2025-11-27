@@ -5,14 +5,54 @@
   <vendor email="dev@aster.io" url="https://github.com/aster-lang">Aster 项目组</vendor>
 
   <description><![CDATA[
-    <p>提供基础的 Aster 语言 IDE 支持：文件类型识别与一键 CLI 类型检查。</p>
+    <p>Aster 语言的完整 IDE 支持：</p>
+    <ul>
+      <li>语法高亮</li>
+      <li>实时类型检查</li>
+      <li>括号匹配</li>
+      <li>注释支持</li>
+      <li>CLI 类型检查集成</li>
+    </ul>
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
   <depends>com.intellij.modules.lang</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <fileType name="Aster" implementationClass="io.aster.idea.lang.AsterFileType" fieldName="INSTANCE" language="TEXT"/>
+    <!-- 文件类型注册 -->
+    <fileType
+        name="Aster"
+        implementationClass="io.aster.idea.lang.AsterFileType"
+        fieldName="INSTANCE"
+        language="Aster"
+        extensions="aster"/>
+
+    <!-- 解析器定义 -->
+    <lang.parserDefinition
+        language="Aster"
+        implementationClass="io.aster.idea.psi.AsterParserDefinition"/>
+
+    <!-- 语法高亮 -->
+    <lang.syntaxHighlighterFactory
+        language="Aster"
+        implementationClass="io.aster.idea.highlighting.AsterSyntaxHighlighterFactory"/>
+
+    <!-- 注释支持 -->
+    <lang.commenter
+        language="Aster"
+        implementationClass="io.aster.idea.editor.AsterCommenter"/>
+
+    <!-- 括号匹配 -->
+    <lang.braceMatcher
+        language="Aster"
+        implementationClass="io.aster.idea.editor.AsterBraceMatcher"/>
+
+    <!-- 类型检查注解器 -->
+    <annotator
+        language="Aster"
+        implementationClass="io.aster.idea.annotator.AsterAnnotator"/>
+
+    <!-- 通知组 -->
     <notificationGroup id="Aster CLI" displayType="BALLOON"/>
   </extensions>
 

@@ -49,7 +49,7 @@ public final class WorkflowScheduler {
     // 使用 registry 的 DeterminismContext 以确保一致性
     DeterminismContext registryContext = registry.getDeterminismContext();
     if (determinismContext != null && registryContext != determinismContext) {
-      io.quarkus.logging.Log.warnf(
+      System.getLogger(WorkflowScheduler.class.getName()).log(System.Logger.Level.WARNING,
           "Provided DeterminismContext differs from registry's context. Using registry's context for consistency.");
     }
     this.determinismContext = registryContext;

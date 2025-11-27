@@ -6,7 +6,7 @@
 
 > **parseEffect**(`effect`): [`Effect`](../enumerations/Effect.md) \| `null`
 
-Defined in: [config/semantic.ts:76](https://github.com/wontlost-ltd/aster-lang/blob/5ce39d5f2a99b2ded2bd237574687609f443e72d/src/config/semantic.ts#L76)
+Defined in: [config/semantic.ts:76](https://github.com/wontlost-ltd/aster-lang/blob/3cf46ba7cdc8f7c8718a89bca05f95ab1872b528/src/config/semantic.ts#L76)
 
 转换 effect 字符串为枚举。
 

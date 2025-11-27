@@ -40,8 +40,8 @@ include ':examples:rest-jvm'
 project(':examples:rest-jvm').projectDir = file('examples/rest-jvm')
 include ':examples:policy-jvm'
 project(':examples:policy-jvm').projectDir = file('examples/policy-jvm')
-include ':policy-editor'
-project(':policy-editor').projectDir = file('policy-editor')
+
+// policy-editor uses Maven (pom.xml), not Gradle
 
 // Phase 1: Quarkus Policy API
 include ':quarkus-policy-api'

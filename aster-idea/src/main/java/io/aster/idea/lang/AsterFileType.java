@@ -1,7 +1,6 @@
 package io.aster.idea.lang;
 
 import com.intellij.openapi.fileTypes.LanguageFileType;
-import com.intellij.openapi.fileTypes.PlainTextLanguage;
 import com.intellij.openapi.util.NlsContexts;
 import io.aster.idea.icons.AsterIcons;
 import org.jetbrains.annotations.NonNls;
@@ -18,7 +17,7 @@ public final class AsterFileType extends LanguageFileType {
   public static final AsterFileType INSTANCE = new AsterFileType();
 
   private AsterFileType() {
-    super(PlainTextLanguage.INSTANCE);
+    super(AsterLanguage.INSTANCE);
   }
 
   @Override
