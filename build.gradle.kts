@@ -42,6 +42,17 @@ val generateAsterJarRoot by tasks.registering(Exec::class) {
   else listOf("sh", "-c", "npm run jar:jvm")
 }
 
+// 验证 aster.jar 的 checksum 一致性（跨工具链校验）
+val verifyAsterJarChecksum by tasks.registering(Exec::class) {
+  group = "verification"
+  description = "验证 aster.jar 的 SHA-256 checksum 未被篡改"
+  dependsOn(generateAsterJarRoot)
+  workingDir = projectDir
+  commandLine = if (System.getProperty("os.name").lowercase().contains("win"))
+    listOf("cmd", "/c", "npm", "run", "verify:jar:checksum")
+  else listOf("sh", "-c", "npm run verify:jar:checksum")
+}
+
 tasks.register("examplesCompileAll") {
   group = "build"
   description = "Builds generated Aster jar then compiles all example projects"

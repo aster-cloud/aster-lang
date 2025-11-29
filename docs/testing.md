@@ -32,6 +32,44 @@
 - **缓存未生效**：检查描述是否完全一致、CLI 是否使用 `--no-cache`。必要时 `rm -rf .cache/ai-generation` 重建。
 - **评估退出码 1**：表示准确率低于 80% 或脚本校验失败；查看报告 `结论与建议` 段落获取下一步措施。
 
+## 2025-11-29 SymbolTable 单测扩充验证
+- 日期：2025-11-29 14:28 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run test:unit:typecheck` → 通过（tsc + PEG 构建完成后执行 dist 下 76 项 Node 测试，新加入的 SymbolTable 套件涵盖 shadow/onShadow、captured、类型别名递归展开与 scope 管理，全部断言通过，总耗时 3.77ms）。
+- 备注：本次运行的日志详见 node --test 输出，覆盖目标为将 `src/typecheck/symbol_table.ts` 行覆盖率从 54.65% 提升至 ≥80%，后续需在 coverage 报告中确认最终比率。
+
+## 2025-11-29 typecheck 拆分阶段 1-3 验证
+- 日期：2025-11-29 18:02 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run test:unit:typecheck` → 通过（经历 `npm run build` 后执行 dist/test/unit/typecheck/** 套件，76 项断言全部成功；日志显示异步纪律补充测试、效应与能力检查、SymbolTable、类型系统与 Workflow 检查均覆盖，验证 `src/typecheck/{utils,context,async}.ts` 抽离后保持兼容）。
+- 备注：该次运行日志附带 typecheck 模块分段性能记录，可用于后续阶段 4+ 重构对比。
+
+## 2025-11-29 typecheck 拆分阶段 1 复核
+- 日期：2025-11-29 18:42 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（tsc 编译与 PEG 生成正常完成，用于确认现有抽离后的公共工具模块仍可构建）。
+  - `npm run test:unit:typecheck` → 通过（在构建产物基础上运行 dist/test/unit/typecheck/** 套件，76 项全部通过，确认 `src/typecheck/utils.ts` 导出的常量/函数目前状态与 `src/typecheck.ts` 导入保持一致）。
+- 备注：本轮复核未产生代码变更，仅验证既有拆分成果仍满足阶段 1 要求。
+
+## 2025-11-29 typecheck 拆分阶段 2-3 复核
+- 日期：2025-11-29 18:46 NZDT
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（确认 `src/typecheck/context.ts` 与 `src/typecheck/async.ts` 当前实现可编译，接口/函数拆分保持一致）。
+  - `npm run test:unit:typecheck` → 通过（76 项类型检查单测均成功，日志覆盖异步纪律、上下文符号操作以及 TypeSystem 套件，证明阶段 2/3 抽离后的公共 API/导入在最新代码中保持兼容）。
+- 备注：本轮同样未改动业务代码，目标为验证要求中的上下文与异步模块已经抽离并继续稳定运行。
+
+## 2025-11-29 typecheck 拆分阶段 4-6 验证
+- 日期：2025-11-29 19:17 NZST
+- 执行者：Codex
+- 指令与结果：
+  - `npm run build` → 通过（`src/typecheck/effects.ts`、`capabilities.ts`、`workflow.ts`、`expression.ts`、`statement.ts`、`pattern.ts` 等新增模块全部顺利编译并参与 PEG 构建，确认拆分后仍可生成 dist 产物）。
+  - `npm run test:unit:typecheck` → 通过（自动触发构建后运行 dist/test/unit/typecheck/*** 套件，76 项 Node --test 用例全部成功，日志覆盖异步纪律、效应/能力校验、SymbolTable、TypeSystem 以及 Workflow 子类型检查，验证表达式/语句/模式/Workflow 检查的跨文件导入保持一致）。
+- 备注：本轮执行面向拆分阶段 4-6，重点确认效应/能力、Workflow、表达式、语句、模式等逻辑搬离 `src/typecheck.ts` 后仍维持功能等价。
+
 ## 2025-11-27 P2-7 LSP 健康檢查資源監控驗證
 - 日期：2025-11-27 08:01 NZST
 - 執行者：Codex

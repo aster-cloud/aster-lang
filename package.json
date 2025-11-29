@@ -153,6 +153,7 @@
     "verify:asm:lambda:cnl": "npm run build && node dist/scripts/emit-classfiles.js test/cnl/programs/lambda/lambda_cnl.aster && node dist/scripts/emit-classfiles.js test/cnl/programs/lambda/lambda_cnl_short.aster && node dist/scripts/emit-classfiles.js test/cnl/programs/lambda/lambda_cnl_math_bool.aster && node dist/scripts/emit-classfiles.js test/cnl/programs/lambda/lambda_cnl_mixed.aster && node dist/scripts/emit-classfiles.js test/cnl/programs/lambda/lambda_cnl_match_bind.aster && node dist/scripts/emit-classfiles.js test/cnl/programs/lambda/lambda_cnl_match_result.aster && node dist/scripts/emit-classfiles.js test/cnl/programs/lambda/lambda_cnl_match_maybe.aster && npm run javap:verify",
     "determinism:asm": "npm run build && node dist/scripts/determinism.js",
     "jar:jvm": "node dist/scripts/jar-jvm.js",
+    "verify:jar:checksum": "node dist/scripts/verify-jar-checksum.js",
     "native:hello": "./gradlew :examples:hello-native:nativeCompile",
     "docs:dev": "vitepress dev docs",
     "login:jar": "npm run emit:class test/cnl/programs/examples/login.aster && npm run jar:jvm",

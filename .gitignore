@@ -87,6 +87,7 @@ tmp/
 # Local reports
 coverage-final.json
 reports//.aster/
+.gradle-local/*.**
 /.gradle-local/caches/9.0.0/cc-keystore/cache.properties
 /.gradle-local/caches/9.0.0/cc-keystore/cc-keystore.lock
 /.gradle-local/caches/9.0.0/cc-keystore/gradle.keystore

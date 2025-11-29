@@ -3,6 +3,7 @@ import org.gradle.api.attributes.Bundling
 import org.gradle.api.attributes.Category
 import org.gradle.api.attributes.LibraryElements
 import org.gradle.api.attributes.Usage
+import java.util.zip.ZipFile
 
 plugins {
     id("java")
@@ -161,8 +162,51 @@ tasks.named("quarkusGenerateTestAppModel") {
     dependsOn(generateAsterJar)
 }
 
-val syncPolicyJar by tasks.registering(Copy::class) {
+// 验证 aster.jar 包含所有预期的策略类
+val verifyAsterJar by tasks.registering {
+    description = "验证 aster.jar 包含预期的策略函数类"
     dependsOn(generateAsterJar)
+
+    val jarFile = rootProject.layout.projectDirectory.file("build/aster-out/aster.jar")
+    val requiredClasses = listOf(
+        "aster/finance/creditcard/evaluateCreditCardApplication_fn.class",
+        "aster/finance/loan/evaluateLoanEligibility_fn.class",
+        "aster/insurance/life/generateLifeQuote_fn.class",
+        "aster/healthcare/eligibility/checkServiceEligibility_fn.class"
+    )
+
+    doLast {
+        val jar = jarFile.asFile
+        if (!jar.exists()) {
+            throw GradleException("aster.jar 不存在: ${jar.absolutePath}，请运行 generateAsterJar")
+        }
+
+        val jarContents = mutableSetOf<String>()
+        ZipFile(jar).use { zip ->
+            val entries = zip.entries()
+            while (entries.hasMoreElements()) {
+                jarContents.add(entries.nextElement().name)
+            }
+        }
+
+        val missing = requiredClasses.filter { className -> className !in jarContents }
+        if (missing.isNotEmpty()) {
+            throw GradleException("""
+                |aster.jar 缺失预期的策略类，请清理并重新生成:
+                |  rm -rf build/aster-out build/jvm-classes
+                |  ./gradlew :quarkus-policy-api:generateAsterJar
+                |
+                |缺失的类:
+                |${missing.joinToString("\n") { name -> "  - $name" }}
+            """.trimMargin())
+        }
+
+        logger.lifecycle("✓ aster.jar 验证通过，包含 ${requiredClasses.size} 个必需的策略类")
+    }
+}
+
+val syncPolicyJar by tasks.registering(Copy::class) {
+    dependsOn(verifyAsterJar)
     from(rootProject.layout.projectDirectory.file("build/aster-out/aster.jar"))
     into(layout.projectDirectory.dir("src/main/resources"))
     rename { "policy-rules-merged.jar" }

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as cp from 'node:child_process';
+import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -14,6 +15,27 @@ function tryExec(cmd: string, options?: cp.ExecSyncOptions): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * 计算文件的 SHA-256 checksum
+ * 用于验证生成的 JAR 文件一致性
+ */
+function computeChecksum(filePath: string): string {
+  const data = fs.readFileSync(filePath);
+  return crypto.createHash('sha256').update(data).digest('hex');
+}
+
+/**
+ * 保存 checksum 到文件
+ * 格式: <hash>  <filename>（与 sha256sum 兼容）
+ */
+function saveChecksum(jarPath: string, checksumPath: string): void {
+  const hash = computeChecksum(jarPath);
+  const filename = path.basename(jarPath);
+  fs.writeFileSync(checksumPath, `${hash}  ${filename}\n`);
+  console.log(`Checksum saved: ${checksumPath}`);
+  console.log(`  SHA-256: ${hash}`);
 }
 
 function main(): void {
@@ -102,6 +124,10 @@ function main(): void {
   fs.rmSync(tempDir, { recursive: true, force: true });
 
   console.log('Wrote', outJar);
+
+  // 保存 checksum 用于一致性验证
+  const checksumPath = path.join(outBase, 'aster.jar.sha256');
+  saveChecksum(outJar, checksumPath);
 }
 
 main();

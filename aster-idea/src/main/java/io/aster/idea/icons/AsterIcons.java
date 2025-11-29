@@ -1,5 +1,6 @@
 package io.aster.idea.icons;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.util.IconLoader;
 
 import javax.swing.Icon;
@@ -10,6 +11,12 @@ import javax.swing.Icon;
 public final class AsterIcons {
 
   public static final Icon FILE = IconLoader.getIcon("/icons/aster.svg", AsterIcons.class);
+
+  // Structure View 图标（使用 IntelliJ 内置图标）
+  public static final Icon FUNCTION = AllIcons.Nodes.Function;
+  public static final Icon DATA = AllIcons.Nodes.Class;
+  public static final Icon ENUM = AllIcons.Nodes.Enum;
+  public static final Icon VARIABLE = AllIcons.Nodes.Variable;
 
   private AsterIcons() {}
 }

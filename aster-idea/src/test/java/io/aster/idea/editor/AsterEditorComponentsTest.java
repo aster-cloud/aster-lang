@@ -21,9 +21,9 @@ class AsterEditorComponentsTest {
         private final AsterCommenter commenter = new AsterCommenter();
 
         @Test
-        @DisplayName("行注释前缀应为 // ")
+        @DisplayName("行注释前缀应为 # ")
         void shouldReturnLineCommentPrefix() {
-            assertEquals("// ", commenter.getLineCommentPrefix());
+            assertEquals("# ", commenter.getLineCommentPrefix());
         }
 
         @Test

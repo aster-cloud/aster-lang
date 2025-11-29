@@ -1,3 +1,317 @@
+# 2025-11-29 22:15 NZDT regression-fixes 回归测试复核
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2（另有 1 次参数校验失败未计）、mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×1、shell（ls/rg/sed/nl/date/apply_patch）×14。
+- 命令：`ls`、`ls .claude`、`sed -n '1,200p' .claude/review-report-regression-tests.md`、`sed -n '350,520p' test/unit/typecheck/regression-fixes.test.ts`、`sed -n '60,200p' ...`、`rg -n "codes" test/unit/typecheck/regression-fixes.test.ts`、`nl -ba ... | sed -n '360,450p'`、`nl -ba ... | sed -n '445,520p'`、`nl -ba ... | sed -n '120,220p'`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`、`mcp__code-index__find_files`、`apply_patch` → 写入 `.claude/review-report-regression-tests.md`、`apply_patch` → 更新本文日志。
+- 操作：比对 KNOWN_SCALARS 区块新增 Map/Set/Workflow、负例及顶部注释；确认 `codes()` 已移除；撰写新的审查条目并记录评分/结论；填写本 operations-log 以保留工具/命令留痕。
+
+**文件状态**:
+- `.claude/review-report-regression-tests.md`：新增 2025-11-29 22:15 NZDT 审查条目，记录 4 个修复点的测试覆盖情况与剩余 workflow 正向断言缺口。
+- `operations-log.md`：追加本条记录。
+
+**验证结果**:
+- 审查任务，仅阅读/记录，未执行构建或测试。
+
+# 2025-11-29 22:07 NZDT regression-fixes 回归测试审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×4、mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×2、shell（rg --files/sed/nl/ls/TZ/cat/mv）×10、apply_patch ×1。
+- 命令：`rg --files | rg regression-fixes`、`sed -n '1,200p' test/unit/typecheck/regression-fixes.test.ts`、`sed -n '200,400p' test/unit/typecheck/regression-fixes.test.ts`、`sed -n '400,520p' ...`、`nl -ba ... | sed -n '1,200p'`、`nl -ba ... | sed -n '200,400p'`、`rg -n '…' .claude/review-report-regression-tests.md`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`、`cat <<'EOF' > ...review_tmp.md`、`mv /tmp/review_tmp.md .claude/review-report-regression-tests.md`。
+- 操作：阅读回归测试文件以核对 4 个修复点覆盖范围；对 KNOWN_SCALARS 区块逐条比对 AST 内容；撰写 `.claude/review-report-regression-tests.md` 并修正路径引用；更新本 operations-log 以留痕。
+
+**文件状态**:
+- `.claude/review-report-regression-tests.md`：新增 2025-11-29 审查条目，包含评分、五层审查分析及 5 条主要问题。
+
+**验证结果**:
+- 审查任务，仅阅读与文档写入，未执行构建或测试。
+
+# 2025-11-29 19:20 NZST typecheck 拆分阶段 4-6
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×1、shell（ls/sed/rg/tail）×14、apply_patch ×18。
+- 命令：`sed -n '1,200p' src/typecheck.ts`、`ls src/typecheck`、`ls docs`、`ls docs/workstreams`、`rg --files -g 'operations-log.md'`、多次 `rg -n`（collectEffects/checkEffects 等定位）、`sed -n '420,1200p' src/typecheck.ts`、`tail -n 60 docs/testing.md`、`npm run build`（×2，首次因 Scope block span 赋值需覆写，修正后成功）、`npm run test:unit:typecheck`。
+- 操作：新增 `src/typecheck/effects.ts`/`capabilities.ts`/`workflow.ts`/`expression.ts`/`statement.ts`/`pattern.ts`，将效应/能力、workflow、表达式、语句、模式相关逻辑拆分至独立模块；同步精简 `src/typecheck.ts` 导入并移除原内联定义；更新 `docs/testing.md` 记录阶段 4-6 验证。
+
+**文件状态**:
+- `src/typecheck.ts`：删除原 collectEffects/collectCapabilities/workflow/typeOfExpr/TypecheckVisitor/bindPattern/Workflow 校验等实现，改为从拆分模块导入；清理未使用导入。
+- `src/typecheck/effects.ts`：新增效应与能力推断辅助函数（collectEffects/checkEffects/checkCapabilityInferredEffects）。
+- `src/typecheck/capabilities.ts`：新增能力声明校验、workflow 收集与违规报告函数。
+- `src/typecheck/workflow.ts`：承载 typecheckWorkflow/typecheckStep 以及 retry/timeout/依赖/补偿校验逻辑。
+- `src/typecheck/expression.ts`：迁移 TypeOfExprVisitor 与 typeOfExpr。
+- `src/typecheck/statement.ts`：迁移 TypecheckVisitor 与 typecheckBlock/typecheckCase（与 workflow.ts 互导保持递归）。
+- `src/typecheck/pattern.ts`：迁移 bindPattern/bindPatternCtor。
+- `docs/testing.md`：新增 “2025-11-29 typecheck 拆分阶段 4-6 验证” 测试记录（包含 build 与 unit typecheck）。
+
+**验证结果**:
+- `npm run build`：初次失败（Scope block 结构字面量未 cast，tsc 报 span 类型不兼容），修复后通过，PEG 生成成功。
+- `npm run test:unit:typecheck`：76/76 断言全绿，日志覆盖异步纪律、效应/能力、SymbolTable、TypeSystem 与 Workflow 子类型等套件，确认拆分后功能等价。
+
+# 2025-11-29 18:46 NZDT typecheck 拆分阶段2-3复核
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1、update_plan ×3。
+- 命令：`sed -n '1,200p' src/typecheck/context.ts`、`rg -n "ModuleContext" src/typecheck.ts`、`rg -n "defineSymbol" src/typecheck.ts`、`sed -n '1,200p' src/typecheck/async.ts`、`sed -n '200,400p' src/typecheck/async.ts`、`npm run build`、`npm run test:unit:typecheck`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`。
+- 操作：apply_patch ×2 → 分别更新 docs/testing.md 测试记录与本条 operations-log 记录。
+
+**文件状态**:
+- `docs/testing.md`：新增 “typecheck 拆分阶段 2-3 复核” 条目，记录本次构建与单测结果；业务代码保持既有结构（`src/typecheck/context.ts` 与 `src/typecheck/async.ts` 已包含所需接口及函数，`src/typecheck.ts` 已完成导入和 re-export）。
+
+**验证结果**:
+- `npm run build`、`npm run test:unit:typecheck`：全部通过，Node --test 报告 76/76 通过；异步纪律、上下文符号与 TypeSystem 测试均成功。
+
+# 2025-11-29 18:42 NZDT typecheck 拆分阶段1复核
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1、mcp__code-index__set_project_path ×1、update_plan ×3。
+- 命令：`ls`、`sed -n '1,200p' src/typecheck.ts`、`sed -n '1,200p' src/typecheck/utils.ts`、`rg -n "isUnknown" src/typecheck.ts`、`git status -sb`、`npm run build`、`npm run test:unit:typecheck`、`tail -n 40 docs/testing.md`、`sed -n '1,80p' docs/testing.md`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`。
+- 操作：apply_patch ×2 → 依次更新 docs/testing.md 测试记录与本条 operations-log 记录。
+
+**文件状态**:
+- `docs/testing.md`：追加 “2025-11-29 typecheck 拆分阶段 1 复核” 测试记录，归档本轮构建与单测结果。
+- 复核确认 `src/typecheck.ts` 已从 `src/typecheck/utils.ts` 导入 UNKNOWN_TYPE/formatType/resolveAlias 等工具，`utils.ts` 已导出全部指定常量与函数，本阶段无业务代码修改；其余改动仅限文档与日志记录。
+
+**验证结果**:
+- `npm run build`：完成 TypeScript 构建与 PEG 生成。
+- `npm run test:unit:typecheck`：76 项类型检查单测全部通过。
+
+# 2025-11-29 17:57 NZDT typecheck.ts 拆分阶段 1-3
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×4、mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×1、mcp__code-index__search_code_advanced ×2、apply_patch ×10、python(shell) ×1。
+- 命令：`ls`、`cat .claude/refactor-typecheck-plan.md`、多次 `sed -n`（读取 `src/typecheck.ts` 与 `src/typecheck/diagnostics.ts` 片段）、多次 `rg -n`（定位 resolveAlias/Async/TypecheckOptions 等符号）、`ls src/typecheck`、`npm run test:unit:typecheck`、`npm run typecheck`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`。
+
+**文件状态**:
+- `src/typecheck/utils.ts`：新增工具模块，承载 UNKNOWN_TYPE、IO/CPU 前缀与 resolveAlias/shouldEnforcePii 等公共函数。
+- `src/typecheck/context.ts`：新增上下文模块，导出 FunctionSignature/ModuleContext/TypecheckOptions/TypecheckWalkerContext 与 defineSymbol、assignSymbol。
+- `src/typecheck/async.ts`：新增异步分析模块，导出 AsyncAnalysis/ScheduleNode/AsyncSchedule、AsyncVisitor/ScheduleBuilder 以及 collectAsync/scheduleAsync/validateSchedule/checkAsyncDiscipline。
+- `src/typecheck.ts`：移除上述常量/接口/函数定义，改为从新模块导入并保持原有 API 导出，更新 import/export，保持诊断逻辑不变。
+
+**验证结果**:
+- `npm run test:unit:typecheck`：构建成功，76 项类型检查单测全部通过。
+- `npm run typecheck`：`tsc --noEmit` 通过，类型检查无误。
+
+# 2025-11-29 14:28 NZDT SymbolTable 单测补齐
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×6、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×1、apply_patch ×4。
+- 命令：`ls`、`sed -n '1,260p' src/typecheck/symbol_table.ts`、`sed -n '1,260p' src/core_ir.ts`、`cat .claude/context-typecheck-tests.json`、`sed -n '1,200p' test/unit/typecheck/type-system.test.ts`、`npm run test:unit:typecheck`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`。
+
+**文件状态**:
+- `test/unit/typecheck/symbol-table.test.ts`：新增 shadow/onShadow、捕获标记、Scope 管理与类型别名递归展开的 node:test 套件。
+- `docs/testing.md`：补充 2025-11-29 `npm run test:unit:typecheck` 执行记录。
+
+**验证结果**:
+- `npm run test:unit:typecheck`：构建 + 76 项单测全部通过，新增 SymbolTable 套件运行耗时 3.77 ms。
+
+# 2025-11-29 14:23 NZDT TypeSystem 覆盖扩展测试
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1，mcp__code-index__set_project_path ×1，mcp__code-index__build_deep_index ×1，mcp__code-index__get_file_summary ×1，apply_patch ×2。
+- 命令：`pwd`、`rg --files --iglob '*operations-log.md'`、`sed -n '1,120p' operations-log.md`、`cat .claude/context-typecheck-tests.json`、`sed -n '60,150p' src/typecheck/type_system.ts`、`sed -n '1,200p' test/unit/typecheck/type-system.test.ts`、`sed -n '1,200p' src/core_ir.ts`、`cat package.json`、`ls test/unit/typecheck`、`cat <<'EOF' > test/unit/typecheck/type-system-extended.test.ts`、`sed -n '1,120p' test/unit/typecheck/type-system-extended.test.ts`、`npm run test:unit:typecheck`（首次因 EffectVar span 类型报错失败，二次通过）。
+
+**文件状态**:
+- `test/unit/typecheck/type-system-extended.test.ts`：新增 effect lattice、EffectVar 冲突、列表推断、effect 列表比较与 Workflow 子类型测试，采用 node:test + assert/strict。
+
+**验证结果**:
+- `npm run test:unit:typecheck`：首次失败信息已定位并修复，二次运行全部 68 项测试通过。
+
+# 2025-11-29 13:42 NZDT aster-lang 全库评估
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×3（README.md、settings.gradle.kts、build.gradle.kts）。
+- 命令：`ls`、`sed -n '1,120p' operations-log.md`、`tree -L 2 -d`（命令缺失，确认后改用 find）、`find . -maxdepth 2 -type d | head -n 200`、`sed -n '1,200p' README.md`、`sed -n '1,200p' settings.gradle.kts`、`sed -n '1,200p' build.gradle.kts`、`sed -n '1,200p' package.json`、`rg -n "dependencies" package.json`、`sed -n '304,420p' package.json`、`ls src`、`find docs -maxdepth 2 -type f | head -n 40`、`ls coverage`、`cat coverage/coverage-summary.json`、`sed -n '1,200p' DESIGN.md`、`sed -n '1,200p' docs/architecture.md`、`sed -n '1,200p' src/parser.ts`、`sed -n '1,200p' src/typecheck/type_system.ts`、`sed -n '1,200p' aster-runtime/build.gradle.kts`、`sed -n '1,200p' aster-core/build.gradle.kts`、`sed -n '1,200p' aster-lang-cli/build.gradle.kts`、`sed -n '1,200p' aster-asm-emitter/build.gradle.kts`、`sed -n '1,200p' quarkus-policy-api/build.gradle.kts`、`sed -n '1,200p' aster-truffle/build.gradle.kts`、`cat gradle.properties`、`ls .claude`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`。
+- 操作：apply_patch ×1 → 新增 `.claude/aster-lang-evaluation.md`。
+
+**文件状态**:
+- `.claude/aster-lang-evaluation.md`：新增项目评估报告。
+
+**验证结果**:
+- 文档评估任务，未执行编译或测试。
+
+# 2025-11-29 13:08 NZDT aster-idea PSI 审查（第六轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3 → 依 AGENTS.md 要求在执行前完成任务理解、策略分解与结论确认。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index、mcp__code-index__get_file_summary、mcp__code-index__find_files → 绑定仓库根目录、重建索引，并列出 `aster-idea/src/main/java/io/aster/idea/psi/**/*.java` 以及 `AsterParser.java` 概况。
+- 命令：`ls`、`cat operations-log.md`、`rg -n "TYPE_IDENT" aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java`、多次 `nl -ba ... | sed -n`（覆盖 `parseTopLevel`、`parseWorkflowDecl/Body/Stmt/Step`、`parseStatement` 等区块）、`sed -n '.claude/review-report-aster-idea.md'`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` → 复核修复点并获取时间戳。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 顶部追加第六轮审查条目。
+- 操作：apply_patch ×1 → 追加本次 `operations-log.md` 记录以保留工具/命令留痕。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-29 13:08 NZDT 审查记录，列出顶层 workflow 仍缺失 TYPE_IDENT 支持的问题。
+- `operations-log.md`：记录第六轮审查的工具调用与文档写入。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-29 12:40 NZST aster-idea PSI 审查（第二十轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 依 AGENTS.md 在执行前完成任务理解与核查策略分解。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files → 绑定仓库根目录并枚举 `aster-idea/src/main/java/io/aster/idea/psi/impl` 目录等源文件。
+- 命令：`sed -n`/`nl -ba`/`rg -n` 多次读取 `AsterParser.java` 200+ 行片段（字段/参数/enum/type/if/match 分支）、`psi/impl/*.java` 的 `getNameIdentifier` 实现，以及 `AsterPsiIntegrationTest.java` 中的测试覆盖情况；`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'` 获取报告时间。
+- 操作：apply_patch ×2 → 分别在 `.claude/review-report-aster-idea.md` 顶部追加第二十轮审查记录，并更新 `operations-log.md` 留痕。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-29 12:40 NZST 第二十轮报告，指出 parser 仍未支持 CamelCase 字段/参数/枚举/类型别名。
+- `operations-log.md`：记录本轮工具与命令调用。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-29 09:41 NZDT aster-idea if/match/uses/PSI 复核（第十九轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3 → 依 AGENTS.md 要求完成任务理解、执行计划与结论确认。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index、mcp__code-index__get_file_summary → 绑定仓库根目录、刷新索引并获取 `AsterParser.java` 结构摘要。
+- 命令：`sed -n`/`nl -ba`/`rg -n` 多次读取 `AsterParser.java`、`AsterParserDefinition.java`、`psi/impl/*.java` 中的 `isIfBlockTerminator`、`parseMatchCases`、`equalsIgnoreCase`、PSI 映射等片段，并用 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 生成报告时间。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 顶部追加 2025-11-29 09:41 NZDT 审查条目。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增第十九轮复核记录，给出 93/100 评分与通过建议。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 22:25 NZST aster-idea PSI 审查（第十八轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 根据 AGENTS.md 要求完成任务理解与执行策略推导。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files、mcp__code-index__search_code_advanced ×2 → 绑定仓库根目录，定位 `AsterParser.java` 并检索 `capabilities`/`advanceWithError` 等片段。
+- 命令：`ls`、`sed -n` 多次（`1-200`、`200-360`、`318-520`、`520-780`、`780-1160`、`1160-1520`、`1520-1880`、`1880-2005`、`.claude/review-report-aster-idea.md` 前 120 行、`operations-log.md` 前 60 行）、`rg -n "advanceWithError" ...`、`rg -n "func" LANGUAGE_REFERENCE.md`、`sed -n '50,130p' LANGUAGE_REFERENCE.md`、`rg -n "parseArgumentList" ...`、`rg -n -U "(\\n" -g"*.aster"`（含报错后重试）、`ls .claude`、`nl -ba ... | sed -n '420,480p'`/`'1380,1415p'`/`'1460,1580p'` 等、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'` → 收集能力参数、新问题与时间戳证据。
+- 操作：apply_patch ×2 → 先在 `.claude/review-report-aster-idea.md` 顶部追加第十八轮报告，再更新 `operations-log.md` 记录本轮痕迹。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 22:25 NZST 第十八轮条目（确认第十七轮修复闭环并记录括号内恢复缺口）。
+- `operations-log.md`：追加第十八轮操作记录。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 22:16 NZDT aster-idea PSI 审查（第十七轮复核）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3 → 依 AGENTS.md 要求完成任务理解、信息收集与执行方案推导。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files → 绑定仓库根目录并定位 `aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java`。
+- 命令：`ls`、`rg -n "parseUsesClause" ...`、`sed -n '360,480p'`、`sed -n '860,980p'`、`sed -n '480,620p'`、`sed -n '700,870p'`、`sed -n '980,1160p'`、`sed -n '1160,1560p'`、`sed -n '1560,2050p'`、`nl -ba aster-idea/... | sed -n '410,470p'`、`nl -ba LANGUAGE_REFERENCE.md | sed -n '80,130p'`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` → 收集 `parseUsesClause`、workflow/表达式解析及语言规范对能力参数的证据。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 顶部追加第十七轮复核条目；apply_patch ×1 → 更新 `operations-log.md` 记录本轮执行痕迹。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 22:16 NZDT 第十七轮复核条目，记录键值能力/跨行参数仍未解析成功。
+- `operations-log.md`：追加本次操作日志。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 21:46 NZDT aster-idea PSI 审查（第十六轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 依 AGENTS.md 要求完成本轮任务理解、风险识别与执行步骤梳理。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files → 绑定仓库根目录并再次定位 `aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java`。
+- 命令：`ls`、`cat operations-log.md`、`rg -n "parseParameterList" aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java`、`rg -n "parseWorkflowStep" ...`、`sed -n`/`nl -ba ... | sed -n` 多次读取 `parseParameterList`、`parseWorkflowStep`、`parseUsesClause`、`parseTypeParams` 等片段，以及 `rg -n "uses \\[" LANGUAGE_REFERENCE.md`、`sed -n '70,110p' LANGUAGE_REFERENCE.md`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 获取证据与时间戳。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 顶部追加第十六轮审查记录并给出 88/100 评分；apply_patch ×1 → 更新 `operations-log.md` 记录本轮操作。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 21:46 NZDT 第十六轮审查条目，确认第十五轮问题关闭并记录 uses 子句新缺陷。
+- `operations-log.md`：追加本次操作留痕。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 21:35 NZST aster-idea PSI 审查（第十五轮）
+
+**操作记录**:
+- 工具：mcp__shrimp-task-manager__process_thought ×6 → 依 AGENTS.md 完成任务理解、信息收集、方案分析与结论确认。
+- 工具：mcp__shrimp-task-manager__analyze_task、mcp__shrimp-task-manager__reflect_task、mcp__shrimp-task-manager__split_tasks（append）→ 根据流程输出任务摘要、反思与拆分条目。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files、mcp__code-index__search_code_advanced ×2 → 绑定仓库根路径，定位 `aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java` 并检索 `parseConstructFields`、`depCount` 相关片段。
+- 命令：`pwd`、`ls`、`ls .claude`、`sed -n`、`nl -ba ... | sed -n`、`rg -n ...` 多次查阅 `AsterParser.java` 及 `.claude/review-report-aster-idea.md`，以及 `TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'` 生成报告时间戳。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 顶部追加第十五轮审查条目；apply_patch ×1 → 更新 `operations-log.md` 记录本轮操作。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 21:35 NZST 审查条目（87/100，结论退回）。
+- `operations-log.md`：追加第十五轮操作记录。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 21:09 NZST aster-idea PSI 审查（第十二轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3 → 依 AGENTS.md 要求完成任务理解、风险评估与执行步骤梳理。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files、mcp__code-index__search_code_advanced ×2 → 绑定仓库根目录、定位 `aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java` 并检索 `import`/`start` 语法用例。
+- 命令：`ls`、`sed -n`/`nl -ba`、`rg -n`（定位 `parseFuncRest`/`parseField`/`parseParameter`/`parseImportDecl`/`parseStartStmt`）、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZST'` → 获取源码片段与审查时间戳。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 顶部追加第十二轮报告；apply_patch ×1 → 更新 `operations-log.md` 记录本轮操作。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 21:09 NZST 审查条目（75/100，结论需讨论）。
+- `operations-log.md`：追加第十二轮操作记录。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 21:02 NZDT aster-idea PSI 审查（第十一轮复核）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 依 AGENTS.md 要求在执行前完成第十一轮的任务理解与风险评估。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index、mcp__code-index__find_files、mcp__code-index__get_file_summary ×1 → 绑定仓库根目录、重建索引并定位 `aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java` 以便逐段审查。
+- 命令：`rg -n "parseMatchCases" ...`、`rg -n "INDENT"`、`rg -n "期望缩进块"`、`sed -n`、`nl -ba`、`ls docs/workstreams`、`rg --files -g 'operations-log.md'`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` → 收集解析函数与日志目录的上下文并生成 NZ 时区时间戳。
+- 操作：apply_patch ×1 → 将新的第十一轮审查条目追加到 `.claude/review-report-aster-idea.md`；apply_patch ×1 → 更新 `operations-log.md` 记录本轮操作。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 21:02 NZDT 审查条目（79/100，结论需讨论）。
+- `operations-log.md`：追加本轮操作记录。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 20:55 NZST aster-idea PSI 审查（第十一轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 依 AGENTS.md 先完成本轮审查的任务理解与风险评估。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files → 绑定仓库根目录并定位 `aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java`。
+- 命令：`ls`、`sed -n`/`nl -ba`、`rg -n "INDENT" aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 等 → 查看 `.claude/review-report-aster-idea.md` 及 `AsterParser.java` 的关键片段并生成 NZ 时区时间戳。
+- 操作：apply_patch ×1 → 将本轮审查条目追加到 `.claude/review-report-aster-idea.md`。
+- 操作：apply_patch ×1 → 更新 `operations-log.md` 记录工具与命令。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增第十一轮审查记录（78/100，结论需讨论）。
+- `operations-log.md`：追加本轮操作日志。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 20:00 NZDT aster-idea PSI 审查（第八轮回归）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 依 AGENTS.md 要求先完成任务理解与批判性分析。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index → 绑定仓库根目录并刷新索引以供文件摘要检索。
+- 工具：mcp__code-index__get_file_summary ×3 → 快速提取 `AsterParser.java`、`AsterElementTypes.java`、`LANGUAGE_REFERENCE.md` 的结构信息。
+- 命令：`sed -n`/`nl -ba`/`rg -n` 多次读取解析器与语言规范关键片段，并抽取 `examples/workflow/linear-order.aster`、`quarkus-policy-api/.../diamond-merge.aster` 的证据；`TZ="Pacific/Auckland" date` 生成审查时间戳。
+- 操作：apply_patch ×1 → 追加 `.claude/review-report-aster-idea.md` 的第八轮复查条目；apply_patch ×1 → 更新 `operations-log.md` 记录。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 20:00 NZDT 审查记录（48/100，建议退回）。
+- `operations-log.md`：记录本轮工具与命令使用情况。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
+# 2025-11-28 16:08 NZDT Aster IDEA PSI 再次审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×5 → 依 AGENTS.md 要求完成任务理解、风险识别与执行步骤梳理。
+- 工具：mcp__code-index__set_project_path → 绑定仓库根目录以读取 `AsterParser.java` / `AsterElementTypes.java`。
+- 命令：`sed -n`/`nl -ba` 多次读取 `aster-idea/src/main/java/io/aster/idea/psi/*.java`，定位表达式 PSI、错误恢复与偏移检查；`rg --files -g '*operations-log.md'` 查找日志位置；`TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M %Z'` 生成报告时间戳。
+- 操作：apply_patch ×1 → 更新 `.claude/review-report-aster-idea.md`，写入第二轮评分、五层分析与建议。
+- 操作：apply_patch ×1 → 追加本次 `operations-log.md` 记录。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 16:08 NZDT 审查条目（74/100，建议需讨论）。
+- `operations-log.md`：记录本轮审查的工具与文档操作。
+
+**验证结果**:
+- 审查任务，未执行编译或测试。
+
 # 2025-11-28 00:13 NZDT 合规 Demo 复审
 
 **操作记录**:
@@ -29,6 +343,51 @@
 **文件状态**:
 - `.claude/review-report.md`：新增第三轮（13:41 NZDT）审查条目，确认竞态与停机修复已生效。
 - `operations-log.md`：记录本轮审查的工具调用与文档更新。
+
+**验证结果**:
+- 审查任务，未执行测试。
+
+# 2025-11-28 21:24 NZST aster-idea 第十四轮审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 依 AGENTS.md 要求先梳理任务理解与执行步骤。
+- 工具：mcp__code-index__set_project_path（复用索引）、mcp__code-index__find_files(pattern="**/AsterParser.java") → 确认解析器路径。
+- 命令：`sed -n '1,200p' aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java`、`sed -n '200,400p' ...`、`sed -n '400,800p' ...` → 分段阅读核心解析逻辑；`sed -n '800,1200p' ...`、`sed -n '1200,1600p' ...`、`sed -n '1600,2000p' ...` → 扫描构造、表达式与字段处理；`nl -ba ... | sed -n '60,170p'`、`nl -ba ... | sed -n '760,860p'`、`nl -ba ... | sed -n '1020,1160p'`、`nl -ba ... | sed -n '1380,1485p'` → 记录证据行号。
+- 命令：`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'` → 生成本轮审查时间戳。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 顶部追加第十四轮审查报告（评分 84/100，结论退回）。
+- 操作：apply_patch ×1 → 更新 `operations-log.md`，留痕工具/命令使用。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增第十四轮审查（84/100，列出 3 个新增问题并确认上轮修复）。
+- `operations-log.md`：记录本次工具调用与文档输出。
+
+**验证结果**:
+- 审查任务，未执行测试。
+
+# 2025-11-28 19:21 NZDT aster-idea PSI 审查（第七轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 继续按 AGENTS.md 要求在执行前完成任务理解与风险拆解。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index、mcp__code-index__get_file_summary ×4 → 绑定仓库根目录并收集 `AsterParser.java`、`AsterElementTypes.java`、`AsterTokenTypes.java` 与 `LANGUAGE_REFERENCE.md` 摘要。
+- 命令：`sed -n` / `nl -ba … | sed -n` / `rg -n "workflow"` / `rg -n "compensate "` / `TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M %Z'` → 定位 workflow 语法实现、示例用法及审查时间戳。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 中写入第七轮评分与问题列表。
+- 操作：apply_patch ×1 → 追加本次 `operations-log.md` 记录。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-28 19:21 NZDT 第七轮审查条目（60/100，建议退回）。
+- `operations-log.md`：记录本轮工具与文件写入。
+
+**验证结果**:
+- 审查任务，未执行测试。
+
+# 2025-11-28 16:37 NZST aster-idea PSI 审查（第四轮）
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 遵循 AGENTS.md，在正式审查前梳理任务理解与执行步骤。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index、mcp__code-index__get_file_summary ×2 → 设定仓库根路径、刷新索引，并提取 `AsterParser.java` / `AsterElementTypes.java` 的结构摘要。
+- 命令：`sed -n`, `nl -ba ... | sed -n`, `rg -n "parseExpression"`、`cat .claude/review-report-aster-idea.md`, `TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M NZST'` → 逐段查阅源码、定位行号、获取报告时间戳及现有审查历史。
+- 操作：apply_patch ×1 → 向 `.claude/review-report-aster-idea.md` 追加第四轮审查报告并记录评分。
+- 操作：apply_patch ×1 → 更新 `operations-log.md`，留存本次工具调用与文件写入的追踪信息。
 
 **验证结果**:
 - 审查任务，未执行测试。
@@ -9022,3 +9381,152 @@ if (entity == null) {
 - 命令：`nl -ba src/formatter.ts | sed -n '1,200p'` → 了解格式化与 AST→CNL 打印流程
 - 命令：`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M %Z'` → 记录写入 JSON 的时间戳
 - 操作：`cat > .claude/context-p2-7-initial.json` → 写入结构化扫描结果（6 章节 JSON，含引用与观察）
+# 2025-11-28 15:22 NZDT aster-idea PSI 审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 依 AGENTS.md 要求在审查前完成任务理解与风险梳理。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index、mcp__code-index__get_file_summary ×2 → 绑定仓库根目录并获取 `AsterParser.java` 与 `AsterElementTypes.java` 概览，满足“优先使用 code-index”约束。
+- 命令：`cat aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java`、`cat .../AsterElementTypes.java`、`nl -ba … | sed -n` → 阅读关键片段并记录行号。
+- 命令：`TZ="Pacific/Auckland" date '+%Y-%m-%d %H:%M NZDT'` → 生成审查报告所需时间戳。
+- 操作：apply_patch ×1 → 新建 `.claude/review-report-aster-idea.md` 并写入评分与问题列表。
+- 操作：apply_patch ×1 → 追加本次 `operations-log.md` 记录。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 aster-idea PSI 审查报告（50/100，建议退回）。
+- `operations-log.md`：记录本轮审查的工具调用与文档输出。
+
+**验证结果**:
+- 审查任务，未执行测试。
+
+# 2025-11-28 19:37 NZDT aster-idea 第八轮审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×4 → 按 AGENTS.md 要求完成任务理解、风险识别与执行计划。
+- 工具：mcp__code-index__set_project_path → 绑定仓库根目录；mcp__code-index__build_deep_index → 重建索引；mcp__code-index__get_file_summary ×4 → 获取 `AsterParser.java`、`AsterElementTypes.java`、`AsterTokenTypes.java`、`LANGUAGE_REFERENCE.md` 概览。
+- 命令：`ls`、`tail -n 40 operations-log.md`、`nl -ba … | sed -n`、`rg -n "workflow" LANGUAGE_REFERENCE.md`、`rg -n "depends on" -g "*.aster"`、`cat .claude/review-report-aster-idea.md`、`TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M %Z'` → 浏览仓库结构、回顾历史审查、提取语法证据与记录时间戳。
+- 操作：apply_patch ×1 → 追加 `.claude/review-report-aster-idea.md` 第八轮审查（评分 55/100，建议退回）。
+- 操作：apply_patch ×1 → 更新本条 `operations-log.md` 记录。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 workflow/表达式专题的第八轮审查条目。
+- `operations-log.md`：追加当前操作记录，保持审计链路。
+
+**验证结果**:
+- 审查任务，未执行测试。
+
+# 2025-11-29 09:33 NZDT aster-idea 定向审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3 → 先行梳理任务理解、验证路径与潜在风险。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index → 保持索引最新；mcp__code-index__get_file_summary ×6 → 快速抓取 `AsterParser.java`、`AsterParserDefinition.java`、`AsterImportDeclImpl.java`、`AsterForStmtImpl.java`、`AsterWhileStmtImpl.java`、`AsterItPerformsStmtImpl.java` 结构。
+- 命令：`ls`、`tail -n 40 operations-log.md`、`ls .claude`、`cat .claude/review-report-aster-idea.md`、`rg -n 'isIfBlock' ...`、`rg -n 'uses' ...`、`nl -ba … | sed -n`（多段）以及 `TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M %Z'` → 浏览目录、回顾历史审查、定位代码行和生成报告时间戳。
+- 操作：apply_patch ×1 → 在 `.claude/review-report-aster-idea.md` 写入本轮审查结果；apply_patch ×1 → 更新 `operations-log.md` 记录。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：追加 2025-11-29 09:33 NZDT 定向审查条目（92/100，建议通过）。
+- `operations-log.md`：记录本轮工具与命令使用情况。
+
+**验证结果**:
+- 审查任务，未执行测试。
+# 2025-11-29 09:36 NZDT aster-idea 修复验证审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3 → 遵循 AGENTS.md 要求完成任务理解、验证思路与结论确认。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__search_code_advanced ×2 → 绑定仓库根目录并快速定位 `isIfBlockTerminator`、`parseMatchPattern` 及 `parseUsesClause` 相关片段。
+- 命令：`ls`、`sed -n`/`nl -ba` 读取 `AsterParser.java`、`AsterParserDefinition.java` 与 `psi/impl/*.java`，`cat .claude/review-report-aster-idea.md`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZDT'` → 采集证据与时间戳。
+
+**文件状态**:
+- 仅阅读源码与日志，尚未修改业务文件（稍后将追加审查报告）。
+
+**验证结果**:
+- 审查任务，未运行测试。
+
+# 2025-11-29 12:55 NZDT aster-idea 深度审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 先行梳理任务理解与执行策略。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files → 设定索引根路径并枚举 `psi/impl` 目录文件。
+- 命令：`ls`、`rg -n`、`sed -n`、`nl -ba`、`cat`、`tail -n`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` → 浏览仓库结构、定位代码行、回顾既有审查记录并生成时间戳。
+- 操作：apply_patch ×2 → 追加 `.claude/review-report-aster-idea.md` 当前轮审查结果与 `operations-log.md` 记录。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增 2025-11-29 12:55 NZDT 审查条目（综合评分 48，建议退回）。
+- `operations-log.md`：记录本次工具与命令使用情况。
+
+**验证结果**:
+- 审查任务，未运行测试。
+
+# 2025-11-29 18:02 NZDT typecheck 拆分阶段1-3执行
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×6 → 依规完成任务理解、方案评估、风险识别、实现顺序推演。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files ×2、mcp__code-index__get_file_summary ×2、mcp__code-index__build_deep_index → 绑定根目录、尝试检索 `.claude/refactor-typecheck-plan.md` 与 `src/typecheck.ts`；因隐藏目录未被索引导致获取失败，记录后改以 shell 阅读。
+- 命令：`ls -a`、`ls .claude`、`sed -n`/`rg -n`/`git status -sb` 等用于核对 `src/typecheck.ts` 与新模块 `utils/context/async` 内容是否已抽离完成；`cat .claude/refactor-typecheck-plan.md` → 对照拆分计划。
+- 命令：`npm run test:unit:typecheck` → 运行类型检查单元测试，确认阶段 1-3 拆分保持向后兼容。
+- 操作：apply_patch ×1 → 更新 `docs/testing.md` 记录本轮 typecheck 测试结果。
+
+**文件状态**:
+- 阅读 `src/typecheck.ts` 与 `src/typecheck/{utils,context,async}.ts`，确认工具函数、上下文与异步检查均已抽离；未额外修改业务代码。
+- `docs/testing.md`：新增 2025-11-29 18:02 NZDT typecheck 拆分阶段验证记录。
+
+**验证结果**:
+- `npm run test:unit:typecheck` 全部通过（76 测试）。
+
+# 2025-11-29 18:49 NZDT typecheck 拆分阶段2-3复核
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 复盘阶段 2/3 待办与执行顺序。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files、mcp__code-index__search_code_advanced → 校验 `src/typecheck.ts`、`src/typecheck/context.ts`、`src/typecheck/async.ts` 是否存在并定位接口、函数片段。
+- 命令：`ls`、`sed -n`、`rg -n`、`git status -sb` → 浏览目录、阅读新文件、确认 `typecheck.ts` 仅通过 import 使用上下文与异步调度逻辑。
+- 命令：`npm run build && npm run test:unit:typecheck` → 按阶段 2 验证要求重新执行构建与类型检查单测。
+- 命令：`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` → 记录本轮 NZ 时区时间戳。
+
+**文件状态**:
+- 仅阅读/验证 `src/typecheck.ts` 与 `src/typecheck/{context,async}.ts`，确认拆分结果；未新增业务修改。
+
+**验证结果**:
+- `npm run build && npm run test:unit:typecheck` 成功，76 个测试全部通过。
+
+# 2025-11-29 18:50 NZDT typecheck 拆分阶段3复核
+
+**操作记录**:
+- 命令：`npm run build && npm run test:unit:typecheck` → 按阶段 3 验证要求再次执行全量构建与类型检查单测，确认异步模块抽离后依旧稳定。
+- 命令：`python - <<'PY' ...` → 以 zoneinfo 方式输出 Pacific/Auckland 当前时间用于日志记录。
+
+**文件状态**:
+- 无源文件改动，仅重复运行验证命令。
+
+**验证结果**:
+- 第二次 `npm run build && npm run test:unit:typecheck` 亦全部通过（76/76）。
+
+# 2025-11-29 19:38 NZDT typecheck 拆分阶段4执行
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 解析终局任务、规划拆分步骤。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files、mcp__code-index__get_file_summary → 绑定仓库、枚举 `src/typecheck*`、尝试读取 `src/typecheck.ts` 摘要（因未构建深索引 fallback 至 shell 阅读）。
+- 命令：`ls`、`sed -n`、`rg -n`、`TZ='Pacific/Auckland' date` → 勘察目录、阅读 `typecheck.ts` 函数片段、查找泛型/模块入口引用并记录时戳。
+- 操作：apply_patch ×5 → 新增 `src/typecheck/generics.ts`、`src/typecheck/module.ts`、`src/typecheck/index.ts`，并将 `src/typecheck.ts` 改为聚合导出以完成拆分。
+
+**文件状态**:
+- `src/typecheck/generics.ts`：新增泛型推断与参数校验工具函数。
+- `src/typecheck/module.ts`：迁移 `typecheckModule`/`typecheckModuleWithCapabilities`/`loadImportedEffects` 及函数级检查逻辑。
+- `src/typecheck/index.ts`：集中导出类型检查公共 API。
+- `src/typecheck.ts`：简化为 re-export + `lspConfig` 全局声明。
+
+**验证结果**:
+- `npm run build && npm run test:unit:typecheck && npm run typecheck` 全部通过：76 个单测成功，类型检查 `tsc --noEmit` 无错误。
+# 2025-11-29 21:10 NZDT typecheck 拆分审查阶段
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking → 分析审查任务边界与执行路径。
+- 工具：mcp__code-index__set_project_path → 绑定工作区 `/Users/rpang/IdeaProjects/aster-lang`。
+- 工具：mcp__code-index__find_files → 列出 `src/typecheck/*.ts` 以确认新增模块。
+- 命令：`TZ='Pacific/Auckland' date` → 记录日志时间戳。
+# 2025-11-29 21:11 NZDT typecheck 拆分审查
+
+**操作记录**:
+- 命令：`sed -n` ×11 → 读取 `src/typecheck/` 下新增模块（utils/context/async/effects/capabilities/workflow/expression/statement/pattern/generics/module/index）。
+# 2025-11-29 21:16 NZDT typecheck 拆分审查
+
+**操作记录**:
+- 命令：`cat >> .claude/review-report.md` → 追加 typecheck 拆分重构代码审查报告，记录评分与缺陷列表。

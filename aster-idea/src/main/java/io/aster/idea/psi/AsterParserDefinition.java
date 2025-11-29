@@ -8,11 +8,13 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.FileViewProvider;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
 import io.aster.idea.lang.AsterLanguage;
 import io.aster.idea.lang.AsterLexerAdapter;
 import io.aster.idea.lang.AsterTokenTypes;
+import io.aster.idea.psi.impl.*;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -59,7 +61,54 @@ public class AsterParserDefinition implements ParserDefinition {
 
     @Override
     public @NotNull PsiElement createElement(ASTNode node) {
-        // 返回通用 PSI 元素
+        IElementType type = node.getElementType();
+
+        // 根据元素类型创建具体的 PSI 元素
+
+        // 声明类型
+        if (type == AsterElementTypes.MODULE_DECL) {
+            return new AsterModuleDeclImpl(node);
+        }
+        if (type == AsterElementTypes.FUNC_DECL) {
+            return new AsterFuncDeclImpl(node);
+        }
+        if (type == AsterElementTypes.DATA_DECL) {
+            return new AsterDataDeclImpl(node);
+        }
+        if (type == AsterElementTypes.ENUM_DECL) {
+            return new AsterEnumDeclImpl(node);
+        }
+        if (type == AsterElementTypes.TYPE_ALIAS_DECL) {
+            return new AsterTypeAliasDeclImpl(node);
+        }
+        if (type == AsterElementTypes.PARAMETER) {
+            return new AsterParameterImpl(node);
+        }
+        if (type == AsterElementTypes.FIELD_DEF) {
+            return new AsterFieldDefImpl(node);
+        }
+
+        // 语句类型
+        if (type == AsterElementTypes.LET_STMT) {
+            return new AsterLetStmtImpl(node);
+        }
+        if (type == AsterElementTypes.WORKFLOW_STMT) {
+            return new AsterWorkflowStmtImpl(node);
+        }
+        if (type == AsterElementTypes.IMPORT_DECL) {
+            return new AsterImportDeclImpl(node);
+        }
+        if (type == AsterElementTypes.FOR_STMT) {
+            return new AsterForStmtImpl(node);
+        }
+        if (type == AsterElementTypes.WHILE_STMT) {
+            return new AsterWhileStmtImpl(node);
+        }
+        if (type == AsterElementTypes.IT_PERFORMS_STMT) {
+            return new AsterItPerformsStmtImpl(node);
+        }
+
+        // 默认返回通用 PSI 元素
         return new AsterPsiElement(node);
     }
 

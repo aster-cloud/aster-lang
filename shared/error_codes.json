@@ -272,6 +272,13 @@
         "message": "Undefined variable: {name}",
         "help": "\u5728\u4f7f\u7528\u53d8\u91cf\u524d\u5148\u58f0\u660e\u5e76\u521d\u59cb\u5316\u3002"
     },
+    "DUPLICATE_SYMBOL": {
+        "code": "E102",
+        "category": "scope",
+        "severity": "error",
+        "message": "Symbol '{name}' is already defined in this scope.",
+        "help": "\u9009\u62e9\u4e0d\u540c\u7684\u540d\u79f0\u6216\u68c0\u67e5\u662f\u5426\u5b58\u5728\u610f\u5916\u7684\u91cd\u590d\u58f0\u660e\u3002"
+    },
     "EFF_MISSING_IO": {
         "code": "E200",
         "category": "effect",

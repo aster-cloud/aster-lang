@@ -47,10 +47,15 @@
         language="Aster"
         implementationClass="io.aster.idea.editor.AsterBraceMatcher"/>
 
-    <!-- 类型检查注解器 -->
-    <annotator
+    <!-- 类型检查注解器（ExternalAnnotator 在后台线程运行，不阻塞 UI） -->
+    <externalAnnotator
         language="Aster"
-        implementationClass="io.aster.idea.annotator.AsterAnnotator"/>
+        implementationClass="io.aster.idea.annotator.AsterExternalAnnotator"/>
+
+    <!-- Structure View（结构视图，显示文件中的函数、数据类型等） -->
+    <lang.psiStructureViewFactory
+        language="Aster"
+        implementationClass="io.aster.idea.structure.AsterStructureViewFactory"/>
 
     <!-- 通知组 -->
     <notificationGroup id="Aster CLI" displayType="BALLOON"/>
