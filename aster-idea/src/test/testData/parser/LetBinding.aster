@@ -1,0 +1,6 @@
+This module is test.let.
+
+To compute with x: Int, produce Int:
+  Let doubled be x * 2.
+  Let squared be doubled * doubled.
+  Return squared.

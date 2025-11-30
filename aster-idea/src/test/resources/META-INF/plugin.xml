@@ -1,0 +1,100 @@
+<idea-plugin>
+  <id>io.aster.idea.test</id>
+  <name>Aster Test Plugin</name>
+  <version>0.1.0-test</version>
+  <vendor>Aster Test</vendor>
+
+  <description>Test configuration for Aster IntelliJ plugin</description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.lang</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- 文件类型注册 -->
+    <fileType
+        name="Aster"
+        implementationClass="io.aster.idea.lang.AsterFileType"
+        fieldName="INSTANCE"
+        language="Aster"
+        extensions="aster"/>
+
+    <!-- 解析器定义 -->
+    <lang.parserDefinition
+        language="Aster"
+        implementationClass="io.aster.idea.psi.AsterParserDefinition"/>
+
+    <!-- 语法高亮 -->
+    <lang.syntaxHighlighterFactory
+        language="Aster"
+        implementationClass="io.aster.idea.highlighting.AsterSyntaxHighlighterFactory"/>
+
+    <!-- 注释支持 -->
+    <lang.commenter
+        language="Aster"
+        implementationClass="io.aster.idea.editor.AsterCommenter"/>
+
+    <!-- 括号匹配 -->
+    <lang.braceMatcher
+        language="Aster"
+        implementationClass="io.aster.idea.editor.AsterBraceMatcher"/>
+
+    <!-- 类型检查注解器 -->
+    <externalAnnotator
+        language="Aster"
+        implementationClass="io.aster.idea.annotator.AsterExternalAnnotator"/>
+
+    <!-- 结构视图 -->
+    <lang.psiStructureViewFactory
+        language="Aster"
+        implementationClass="io.aster.idea.structure.AsterStructureViewFactory"/>
+
+    <!-- 通知组 -->
+    <notificationGroup id="Aster CLI" displayType="BALLOON"/>
+
+    <!-- 代码补全 -->
+    <completion.contributor
+        language="Aster"
+        implementationClass="io.aster.idea.completion.AsterCompletionContributor"/>
+
+    <!-- 引用解析（Go to Definition） -->
+    <psi.referenceContributor
+        language="Aster"
+        implementation="io.aster.idea.reference.AsterReferenceContributor"/>
+
+    <!-- Find Usages -->
+    <lang.findUsagesProvider
+        language="Aster"
+        implementationClass="io.aster.idea.findUsages.AsterFindUsagesProvider"/>
+
+    <!-- 代码折叠 -->
+    <lang.foldingBuilder
+        language="Aster"
+        implementationClass="io.aster.idea.folding.AsterFoldingBuilder"/>
+
+    <!-- 重命名重构支持 -->
+    <lang.namesValidator
+        language="Aster"
+        implementationClass="io.aster.idea.refactoring.AsterNamesValidator"/>
+
+    <!-- 代码格式化 -->
+    <lang.formatter
+        language="Aster"
+        implementationClass="io.aster.idea.formatting.AsterFormattingModelBuilder"/>
+
+    <!-- 模块解析服务 -->
+    <projectService
+        serviceImplementation="io.aster.idea.reference.AsterModuleResolver"/>
+  </extensions>
+
+  <actions>
+    <action id="io.aster.idea.actions.AsterTypecheckAction"
+            class="io.aster.idea.actions.AsterTypecheckAction"
+            text="Aster: 类型检查当前文件"
+            description="使用 npm run typecheck:file 对当前 .aster 文件执行类型检查"
+            icon="io.aster.idea.icons.AsterIcons.FILE">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="AnalyzeStacktraceOnError"/>
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift T"/>
+    </action>
+  </actions>
+</idea-plugin>

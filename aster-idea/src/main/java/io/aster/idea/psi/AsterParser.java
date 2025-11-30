@@ -15,6 +15,15 @@ import org.jetbrains.annotations.NotNull;
  */
 public class AsterParser implements PsiParser {
 
+    /**
+     * 检查当前 token 是否为标识符类型（IDENT 或 TYPE_IDENT）
+     * 自然语言关键字如 with/produce/and/as/one/of 可能因首字母大小写被识别为不同类型
+     */
+    private boolean isIdentifier(PsiBuilder builder) {
+        IElementType type = builder.getTokenType();
+        return type == AsterTokenTypes.IDENT || type == AsterTokenTypes.TYPE_IDENT;
+    }
+
     @Override
     public @NotNull ASTNode parse(@NotNull IElementType root, @NotNull PsiBuilder builder) {
         PsiBuilder.Marker rootMarker = builder.mark();
@@ -135,7 +144,7 @@ public class AsterParser implements PsiParser {
      */
     private void parseFuncDeclNaturalRest(PsiBuilder builder) {
         // 'with' 关键字（可选，如果有参数）
-        if (builder.getTokenType() == AsterTokenTypes.IDENT &&
+        if (isIdentifier(builder) &&
             "with".equalsIgnoreCase(builder.getTokenText())) {
             builder.advanceLexer();
 
@@ -149,7 +158,7 @@ public class AsterParser implements PsiParser {
         }
 
         // 'produce' 关键字（返回类型）
-        if (builder.getTokenType() == AsterTokenTypes.IDENT &&
+        if (isIdentifier(builder) &&
             "produce".equalsIgnoreCase(builder.getTokenText())) {
             builder.advanceLexer();
 
@@ -169,12 +178,12 @@ public class AsterParser implements PsiParser {
      * 语法: param: Type and param2: Type
      */
     private void parseNaturalParameterList(PsiBuilder builder) {
-        // 解析第一个参数
-        if (builder.getTokenType() == AsterTokenTypes.IDENT) {
+        // 解析第一个参数（支持 IDENT 和 TYPE_IDENT，允许 CamelCase 参数名）
+        if (isIdentifier(builder)) {
             parseNaturalParameter(builder);
 
             // 解析更多参数（用 'and' 分隔）
-            while (builder.getTokenType() == AsterTokenTypes.IDENT &&
+            while (isIdentifier(builder) &&
                    "and".equalsIgnoreCase(builder.getTokenText())) {
                 builder.advanceLexer();
                 parseNaturalParameter(builder);
@@ -189,8 +198,8 @@ public class AsterParser implements PsiParser {
     private void parseNaturalParameter(PsiBuilder builder) {
         PsiBuilder.Marker marker = builder.mark();
 
-        // 参数名
-        if (builder.getTokenType() == AsterTokenTypes.IDENT) {
+        // 参数名（支持 IDENT 和 TYPE_IDENT，允许 CamelCase 参数名）
+        if (isIdentifier(builder)) {
             builder.advanceLexer();
         } else {
             builder.error("期望参数名");
@@ -216,13 +225,13 @@ public class AsterParser implements PsiParser {
      * 语法: Type 或 maybe Type 或 list of Type
      */
     private void parseNaturalReturnType(PsiBuilder builder) {
-        // 检查修饰符
-        if (builder.getTokenType() == AsterTokenTypes.IDENT) {
+        // 检查修饰符（支持 IDENT 和 TYPE_IDENT）
+        if (isIdentifier(builder)) {
             String text = builder.getTokenText();
             if ("maybe".equalsIgnoreCase(text) || "list".equalsIgnoreCase(text)) {
                 builder.advanceLexer();
                 // 'of' 关键字（用于 list of Type）
-                if (builder.getTokenType() == AsterTokenTypes.IDENT &&
+                if (isIdentifier(builder) &&
                     "of".equalsIgnoreCase(builder.getTokenText())) {
                     builder.advanceLexer();
                 }
@@ -325,13 +334,13 @@ public class AsterParser implements PsiParser {
         }
 
         // 检查是 "as one of:" 枚举语法还是 "with" 数据语法
-        if (builder.getTokenType() == AsterTokenTypes.IDENT &&
+        if (isIdentifier(builder) &&
             "as".equalsIgnoreCase(builder.getTokenText())) {
             // "Define TypeName as one of: Variant1, Variant2."
             builder.advanceLexer(); // 消耗 'as'
 
             // 'one' 关键字
-            if (builder.getTokenType() == AsterTokenTypes.IDENT &&
+            if (isIdentifier(builder) &&
                 "one".equalsIgnoreCase(builder.getTokenText())) {
                 builder.advanceLexer();
             } else {
@@ -339,7 +348,7 @@ public class AsterParser implements PsiParser {
             }
 
             // 'of' 关键字
-            if (builder.getTokenType() == AsterTokenTypes.IDENT &&
+            if (isIdentifier(builder) &&
                 "of".equalsIgnoreCase(builder.getTokenText())) {
                 builder.advanceLexer();
             } else {
@@ -360,7 +369,7 @@ public class AsterParser implements PsiParser {
             }
 
             marker.done(AsterElementTypes.ENUM_DECL);
-        } else if (builder.getTokenType() == AsterTokenTypes.IDENT &&
+        } else if (isIdentifier(builder) &&
             "with".equalsIgnoreCase(builder.getTokenText())) {
             // "Define a TypeName with field: Type."
             builder.advanceLexer();
@@ -405,7 +414,7 @@ public class AsterParser implements PsiParser {
                 // 逗号分隔或 'and' 分隔
                 if (builder.getTokenType() == AsterTokenTypes.COMMA) {
                     builder.advanceLexer();
-                } else if (builder.getTokenType() == AsterTokenTypes.IDENT &&
+                } else if (isIdentifier(builder) &&
                            "and".equalsIgnoreCase(builder.getTokenText())) {
                     builder.advanceLexer();
                 } else {
@@ -422,12 +431,12 @@ public class AsterParser implements PsiParser {
      * 语法: field: Type and field2: Type
      */
     private void parseNaturalFieldList(PsiBuilder builder) {
-        // 解析第一个字段
-        if (builder.getTokenType() == AsterTokenTypes.IDENT) {
+        // 解析第一个字段（支持 IDENT 和 TYPE_IDENT，允许 CamelCase 字段名）
+        if (isIdentifier(builder)) {
             parseNaturalField(builder);
 
             // 解析更多字段（用 'and' 分隔）
-            while (builder.getTokenType() == AsterTokenTypes.IDENT &&
+            while (isIdentifier(builder) &&
                    "and".equalsIgnoreCase(builder.getTokenText())) {
                 builder.advanceLexer();
                 parseNaturalField(builder);
@@ -442,8 +451,8 @@ public class AsterParser implements PsiParser {
     private void parseNaturalField(PsiBuilder builder) {
         PsiBuilder.Marker marker = builder.mark();
 
-        // 字段名
-        if (builder.getTokenType() == AsterTokenTypes.IDENT) {
+        // 字段名（支持 IDENT 和 TYPE_IDENT，允许 CamelCase 字段名）
+        if (isIdentifier(builder)) {
             builder.advanceLexer();
         } else {
             builder.error("期望字段名");
@@ -568,6 +577,12 @@ public class AsterParser implements PsiParser {
      * 解析导入声明（自然语言语法）
      * 语法1: Use module.path.
      * 语法2: Use module.path as alias.
+     * <p>
+     * 支持换行和注释：
+     * - Use module.path // comment
+     *     as alias.
+     * - Use module.path # comment
+     *     as alias.
      */
     private void parseImportDecl(PsiBuilder builder) {
         PsiBuilder.Marker marker = builder.mark();
@@ -575,17 +590,19 @@ public class AsterParser implements PsiParser {
         // 'Use' 关键字
         builder.advanceLexer();
 
-        // 模块路径（需要注意不要消耗 'as' 关键字）
+        // 模块路径（需要注意不要消耗 'as' 关键字或声明关键字）
         // 同时支持 IDENT 和 TYPE_IDENT
         int beforeOffset = builder.getCurrentOffset();
         while (builder.getTokenType() == AsterTokenTypes.IDENT ||
                builder.getTokenType() == AsterTokenTypes.TYPE_IDENT ||
                builder.getTokenType() == AsterTokenTypes.DOT) {
-            // 检查是否是 'as' 关键字
-            if ((builder.getTokenType() == AsterTokenTypes.IDENT ||
-                 builder.getTokenType() == AsterTokenTypes.TYPE_IDENT) &&
-                "as".equalsIgnoreCase(builder.getTokenText())) {
-                break;
+            String tokenText = builder.getTokenText();
+            if (tokenText != null) {
+                String lower = tokenText.toLowerCase();
+                // 检查是否是 'as' 关键字或声明关键字
+                if ("as".equals(lower) || isDeclarationKeyword(lower)) {
+                    break;
+                }
             }
             builder.advanceLexer();
         }
@@ -595,11 +612,16 @@ public class AsterParser implements PsiParser {
             builder.error("期望模块路径");
         }
 
+        // 跳过换行和注释，然后检查 'as' 关键字
+        skipNewlinesAndComments(builder);
+
         // 'as' 别名（可选）
         if ((builder.getTokenType() == AsterTokenTypes.IDENT ||
              builder.getTokenType() == AsterTokenTypes.TYPE_IDENT) &&
             "as".equalsIgnoreCase(builder.getTokenText())) {
             builder.advanceLexer();
+            // 跳过换行和注释
+            skipNewlinesAndComments(builder);
             if (builder.getTokenType() == AsterTokenTypes.IDENT ||
                 builder.getTokenType() == AsterTokenTypes.TYPE_IDENT) {
                 builder.advanceLexer();
@@ -619,6 +641,10 @@ public class AsterParser implements PsiParser {
     /**
      * 解析导入声明（传统语法，保留向后兼容）
      * 语法: import module.path as alias
+     * <p>
+     * 支持换行和注释：
+     * - import module.path // comment
+     *     as alias
      */
     private void parseImportDeclLegacy(PsiBuilder builder) {
         PsiBuilder.Marker marker = builder.mark();
@@ -627,10 +653,19 @@ public class AsterParser implements PsiParser {
         builder.advanceLexer();
 
         // 模块路径（同时支持 IDENT 和 TYPE_IDENT）
+        // 但不要消耗 'as' 关键字或其他声明关键字
         int beforeOffset = builder.getCurrentOffset();
         while (builder.getTokenType() == AsterTokenTypes.IDENT ||
                builder.getTokenType() == AsterTokenTypes.TYPE_IDENT ||
                builder.getTokenType() == AsterTokenTypes.DOT) {
+            String tokenText = builder.getTokenText();
+            if (tokenText != null) {
+                String lower = tokenText.toLowerCase();
+                // 检查是否是 'as' 关键字或声明关键字
+                if ("as".equals(lower) || isDeclarationKeyword(lower)) {
+                    break;
+                }
+            }
             builder.advanceLexer();
         }
 
@@ -639,11 +674,16 @@ public class AsterParser implements PsiParser {
             builder.error("期望模块路径");
         }
 
+        // 跳过换行和注释
+        skipNewlinesAndComments(builder);
+
         // 'as' 别名
         if ((builder.getTokenType() == AsterTokenTypes.IDENT ||
              builder.getTokenType() == AsterTokenTypes.TYPE_IDENT) &&
             "as".equalsIgnoreCase(builder.getTokenText())) {
             builder.advanceLexer();
+            // 跳过换行和注释
+            skipNewlinesAndComments(builder);
             if (builder.getTokenType() == AsterTokenTypes.IDENT ||
                 builder.getTokenType() == AsterTokenTypes.TYPE_IDENT) {
                 builder.advanceLexer();
@@ -1008,6 +1048,9 @@ public class AsterParser implements PsiParser {
      * 检查当前 token 是否是顶层声明关键词
      * 用于在没有 INDENT/DEDENT 的情况下识别块边界
      * 支持 IDENT 和 TYPE_IDENT（首字母大写的关键词如 This、Module）
+     *
+     * 注意：workflow 不在此列表中，因为它可以作为嵌套语句出现在函数体内。
+     * 顶层 workflow 声明由主解析循环的 switch/case 直接分发处理。
      */
     private boolean isTopLevelKeyword(PsiBuilder builder) {
         IElementType tokenType = builder.getTokenType();
@@ -1020,8 +1063,8 @@ public class AsterParser implements PsiParser {
             return switch (lower) {
                 // 自然语言语法关键词
                 case "this", "to", "define", "use" -> true;
-                // 传统语法关键词
-                case "module", "capabilities", "workflow", "func", "data", "enum", "type", "import" -> true;
+                // 传统语法关键词（不含 workflow，因为它可嵌套在函数体内）
+                case "module", "capabilities", "func", "data", "enum", "type", "import" -> true;
                 default -> false;
             };
         }
@@ -2655,11 +2698,47 @@ public class AsterParser implements PsiParser {
     }
 
     /**
+     * 检查是否是声明关键字
+     * <p>
+     * 用于导入解析时判断模块路径是否结束，
+     * 避免将后续声明（如另一个 import 或 func）误解析为模块路径的一部分。
+     */
+    private boolean isDeclarationKeyword(String text) {
+        if (text == null) return false;
+        return switch (text) {
+            case "this", "to", "define", "use",  // 自然语言语法
+                 "module", "capabilities", "workflow", "func", "data", "enum", "type", "import"  // 传统语法
+                 -> true;
+            default -> false;
+        };
+    }
+
+    /**
      * 跳过换行
      */
     private void skipNewlines(PsiBuilder builder) {
         while (!builder.eof() && builder.getTokenType() == AsterTokenTypes.NEWLINE) {
             builder.advanceLexer();
+        }
+    }
+
+    /**
+     * 跳过换行和注释
+     * <p>
+     * 用于导入解析等场景，支持跨行的 'as' 别名：
+     * <pre>
+     * Use module.path // comment
+     *     as alias.
+     * </pre>
+     */
+    private void skipNewlinesAndComments(PsiBuilder builder) {
+        while (!builder.eof()) {
+            IElementType type = builder.getTokenType();
+            if (type == AsterTokenTypes.NEWLINE || type == AsterTokenTypes.COMMENT) {
+                builder.advanceLexer();
+            } else {
+                break;
+            }
         }
     }
 

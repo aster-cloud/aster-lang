@@ -92,8 +92,9 @@ public final class Lexer {
             }
             // Division operator (must come after '//' comment check)
             if (ch == '/') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.SLASH, "/");
+                push(TokenKind.SLASH, "/", start, null);
                 continue;
             }
 
@@ -109,99 +110,115 @@ public final class Lexer {
                 continue;
             }
 
-            // Punctuation
+            // Punctuation - 需要先保存位置再调用 next()
             if (ch == '.') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.DOT, ".");
+                push(TokenKind.DOT, ".", start, null);
                 continue;
             }
             if (ch == ':') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.COLON, ":");
+                push(TokenKind.COLON, ":", start, null);
                 continue;
             }
             if (ch == ',') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.COMMA, ",");
+                push(TokenKind.COMMA, ",", start, null);
                 continue;
             }
             if (ch == '(') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.LPAREN, "(");
+                push(TokenKind.LPAREN, "(", start, null);
                 continue;
             }
             if (ch == ')') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.RPAREN, ")");
+                push(TokenKind.RPAREN, ")", start, null);
                 continue;
             }
             if (ch == '[') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.LBRACKET, "[");
+                push(TokenKind.LBRACKET, "[", start, null);
                 continue;
             }
             if (ch == ']') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.RBRACKET, "]");
+                push(TokenKind.RBRACKET, "]", start, null);
                 continue;
             }
             if (ch == '!') {
+                Position start = new Position(line, col);
                 next();
                 if (peek() == '=') {
                     next();
-                    push(TokenKind.NEQ, "!=");
+                    push(TokenKind.NEQ, "!=", start, null);
                 } else {
                     throw LexerException.unexpectedCharacter(ch, new Position(line, col));
                 }
                 continue;
             }
             if (ch == '=') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.EQUALS, "=");
+                push(TokenKind.EQUALS, "=", start, null);
                 continue;
             }
             if (ch == '+') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.PLUS, "+");
+                push(TokenKind.PLUS, "+", start, null);
                 continue;
             }
             if (ch == '*') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.STAR, "*");
+                push(TokenKind.STAR, "*", start, null);
                 continue;
             }
             if (ch == '?') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.QUESTION, "?");
+                push(TokenKind.QUESTION, "?", start, null);
                 continue;
             }
             if (ch == '@') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.AT, "@");
+                push(TokenKind.AT, "@", start, null);
                 continue;
             }
             if (ch == '-') {
+                Position start = new Position(line, col);
                 next();
-                push(TokenKind.MINUS, "-");
+                push(TokenKind.MINUS, "-", start, null);
                 continue;
             }
             if (ch == '<') {
+                Position start = new Position(line, col);
                 next();
                 if (peek() == '=') {
                     next();
-                    push(TokenKind.LTE, "<=");
+                    push(TokenKind.LTE, "<=", start, null);
                 } else {
-                    push(TokenKind.LT, "<");
+                    push(TokenKind.LT, "<", start, null);
                 }
                 continue;
             }
             if (ch == '>') {
+                Position start = new Position(line, col);
                 next();
                 if (peek() == '=') {
                     next();
-                    push(TokenKind.GTE, ">=");
+                    push(TokenKind.GTE, ">=", start, null);
                 } else {
-                    push(TokenKind.GT, ">");
+                    push(TokenKind.GT, ">", start, null);
                 }
                 continue;
             }
@@ -295,6 +312,9 @@ public final class Lexer {
     // ============================================================
 
     private void handleNewline() {
+        // 保存位置在消费换行符之前
+        Position start = new Position(line, col);
+
         char ch = peek();
         if (ch == '\r') {
             next();
@@ -305,7 +325,7 @@ public final class Lexer {
             next();
         }
 
-        push(TokenKind.NEWLINE, null);
+        push(TokenKind.NEWLINE, null, start, null);
 
         // Measure indentation
         int spaces = 0;

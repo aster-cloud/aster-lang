@@ -83,13 +83,25 @@ export function lex(input: string): Token[] {
   };
 
   const peek = (): string => input[i] || '';
+  // 跟踪上一个字符是否为 \r，用于正确处理 CRLF 避免重复计数
+  let lastWasCR = false;
   const next = (): string => {
     const ch = input[i++] || '';
     if (ch === '\n') {
+      // 如果前一个字符是 \r（CRLF 情况），不重复递增行号
+      if (!lastWasCR) {
+        line++;
+      }
+      col = 1;
+      lastWasCR = false;
+    } else if (ch === '\r') {
+      // CR 视为换行符，递增行号
       line++;
       col = 1;
+      lastWasCR = true;
     } else {
       col++;
+      lastWasCR = false;
     }
     return ch;
   };
@@ -173,20 +185,23 @@ export function lex(input: string): Token[] {
     }
     // Division operator (must come after '//' comment check)
     if (ch === '/') {
+      const start = { line, col };
       next();
-      push(TokenKind.SLASH, '/');
+      push(TokenKind.SLASH, '/', start);
       continue;
     }
 
     // Newline + indentation (support \r\n and \r)
     if (ch === '\n' || ch === '\r') {
+      // 保存位置在消费换行符之前
+      const start = { line, col };
       if (ch === '\r') {
         next();
         if (peek() === '\n') next();
       } else {
         next();
       }
-      push(TokenKind.NEWLINE);
+      push(TokenKind.NEWLINE, null, start);
       // Measure indentation
       let spaces = 0;
       let k = i;
@@ -194,7 +209,8 @@ export function lex(input: string): Token[] {
         spaces++;
         k++;
       }
-      if (input[k] === '\n' || k >= input.length) {
+      // 跳过空行（包含 LF、CR、CRLF 换行格式）
+      if (isLineBreak(input[k] || '') || k >= input.length) {
         i = k;
         continue;
       }
@@ -216,98 +232,115 @@ export function lex(input: string): Token[] {
     }
 
     // Punctuation
+    // 单字符 token 需要先保存位置再调用 next()
     if (ch === '.') {
+      const start = { line, col };
       next();
-      push(TokenKind.DOT, '.');
+      push(TokenKind.DOT, '.', start);
       continue;
     }
     if (ch === ':') {
+      const start = { line, col };
       next();
-      push(TokenKind.COLON, ':');
+      push(TokenKind.COLON, ':', start);
       continue;
     }
     if (ch === ',') {
+      const start = { line, col };
       next();
-      push(TokenKind.COMMA, ',');
+      push(TokenKind.COMMA, ',', start);
       continue;
     }
     if (ch === '(') {
+      const start = { line, col };
       next();
-      push(TokenKind.LPAREN, '(');
+      push(TokenKind.LPAREN, '(', start);
       continue;
     }
     if (ch === ')') {
+      const start = { line, col };
       next();
-      push(TokenKind.RPAREN, ')');
+      push(TokenKind.RPAREN, ')', start);
       continue;
     }
     if (ch === '[') {
+      const start = { line, col };
       next();
-      push(TokenKind.LBRACKET, '[');
+      push(TokenKind.LBRACKET, '[', start);
       continue;
     }
     if (ch === ']') {
+      const start = { line, col };
       next();
-      push(TokenKind.RBRACKET, ']');
+      push(TokenKind.RBRACKET, ']', start);
       continue;
     }
     if (ch === '!') {
+      const start = { line, col };
       next();
       if (peek() === '=') {
         next();
-        push(TokenKind.NEQ, '!=');
+        push(TokenKind.NEQ, '!=', start);
       } else {
         Diagnostics.unexpectedCharacter(ch, { line, col }).throw();
       }
       continue;
     }
     if (ch === '=') {
+      const start = { line, col };
       next();
-      push(TokenKind.EQUALS, '=');
+      push(TokenKind.EQUALS, '=', start);
       continue;
     }
     if (ch === '+') {
+      const start = { line, col };
       next();
-      push(TokenKind.PLUS, '+');
+      push(TokenKind.PLUS, '+', start);
       continue;
     }
     if (ch === '*') {
+      const start = { line, col };
       next();
-      push(TokenKind.STAR, '*');
+      push(TokenKind.STAR, '*', start);
       continue;
     }
     if (ch === '?') {
+      const start = { line, col };
       next();
-      push(TokenKind.QUESTION, '?');
+      push(TokenKind.QUESTION, '?', start);
       continue;
     }
     if (ch === '@') {
+      const start = { line, col };
       next();
-      push(TokenKind.AT, '@');
+      push(TokenKind.AT, '@', start);
       continue;
     }
     if (ch === '-') {
+      const start = { line, col };
       next();
-      push(TokenKind.MINUS, '-');
+      push(TokenKind.MINUS, '-', start);
       continue;
     }
     if (ch === '<') {
+      const start = { line, col };
       next();
       if (peek() === '=') {
         next();
-        push(TokenKind.LTE, '<=');
+        push(TokenKind.LTE, '<=', start);
       } else {
-        push(TokenKind.LT, '<');
+        push(TokenKind.LT, '<', start);
       }
       continue;
     }
     if (ch === '>') {
+      const start = { line, col };
       next();
       if (peek() === '=') {
         next();
-        push(TokenKind.GTE, '>=');
+        push(TokenKind.GTE, '>=', start);
       } else {
-        push(TokenKind.GT, '>');
+        push(TokenKind.GT, '>', start);
       }
       continue;
     }

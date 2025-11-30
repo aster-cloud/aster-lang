@@ -2,7 +2,6 @@ package io.aster.idea.psi.impl;
 
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
-import com.intellij.util.IncorrectOperationException;
 import io.aster.idea.lang.AsterTokenTypes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,8 +30,5 @@ public class AsterTypeAliasDeclImpl extends AsterNamedElementImpl {
         return identNode != null ? identNode.getPsi() : null;
     }
 
-    @Override
-    public PsiElement setName(@NotNull String name) throws IncorrectOperationException {
-        throw new IncorrectOperationException("Rename not yet supported");
-    }
+    // setName() 继承自 AsterNamedElementImpl，支持重命名
 }

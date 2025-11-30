@@ -1,0 +1,6 @@
+# Type 类型别名测试
+# 测试传统语法 type 关键字
+
+type UserId = Int
+type UserName = String
+type UserMap = Map[UserId, UserName]

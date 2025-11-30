@@ -1,5 +1,63 @@
 # 操作日志（Codex）
 
+## 2025-11-30 19:11 NZST
+- 命令：`env TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'` → 获取当前时间戳 `2025-11-30 19:11`，用于本轮日志与审查报告。
+- 工具：`sequential-thinking` ×4 → 复盘第12轮审查的目标、重点验证项与执行步骤，确保先分析后执行。
+- 命令：`ls`（根目录、`docs/`、`docs/workstreams/`、`docs/workstreams/aster-idea-review/`、`.claude/`）以及 `sed -n '1,160p' docs/workstreams/aster-idea-review/operations-log.md` → 复查目录结构、日志格式与既有报告。
+- 命令：`sed -n '1,160p' .claude/review-report-aster-idea-round12.md` → 阅读上一版审查报告内容，了解已有结论。
+- 工具：`code-index.set_project_path`、`code-index.find_files`（`**/AsterExternalAnnotator.java`、`**/AsterLexerAdapter.java`）→ 设置检索根 `/Users/rpang/IdeaProjects/aster-lang` 并快速定位核心文件。
+- 命令：`nl -ba .../AsterExternalAnnotator.java | sed -n '40,140p'`, `'140,260p'`, `'254,420p'`, `'420,760p'` → 分段提取缓存结构、取消异常传播及 apply 逻辑行号。
+- 命令：`nl -ba .../AsterLexerAdapter.java | sed -n '1,200p'`, `'200,400p'`, `'400,520p'` → 检查词法适配器在清理未用成员后的实现细节与错误恢复流程。
+- 命令：`git status -sb` → 查看工作区脏文件状况，确认本轮修改集中在日志与审查报告。
+- 工具：`apply_patch` → 追加上述日志条目到 `docs/workstreams/aster-idea-review/operations-log.md`。
+- 工具：`apply_patch` ×2 → 删除旧版并重写 `.claude/review-report-aster-idea-round12.md`，写入本轮审查报告。
+
+## 2025-11-30 19:09 NZST
+- 命令：`env TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'` → 获取撰写审查报告和日志所需时间戳 `2025-11-30 19:09`。
+- 工具：`apply_patch` → 新建 `.claude/review-report-aster-idea-round12.md`，写入元数据、评分、修复验证、五层分析及结论。
+- 命令：`sed -n` / `nl -ba` → 提取 `AsterExternalAnnotator.java` 与 `AsterLexerAdapter.java` 的相关行号，用于报告引用。
+
+## 2025-11-30 19:05 NZST
+- 工具：`sequential-thinking` → 第12轮审查前进行强制思考，明确范围与风险。
+- 工具：`code-index.find_files`（未设置索引导致失败）→ 随后执行 `code-index.set_project_path` 重新建立根 `/Users/rpang/IdeaProjects/aster-lang` 并获得 2342 文件索引。
+- 工具：`code-index.search_code_advanced` ×2 → 分别定位 `AsterExternalAnnotator` 与 `AsterLexerAdapter` 类文件路径。
+- 命令：`sed -n` → 分段读取 `aster-idea/src/main/java/io/aster/idea/annotator/AsterExternalAnnotator.java`、`aster-idea/src/main/java/io/aster/idea/lang/AsterLexerAdapter.java` 代码，收集修复验证证据。
+- 命令：`ls docs`, `ls docs/workstreams`, `ls docs/workstreams/aster-idea-review`, `cat docs/workstreams/aster-idea-review/operations-log.md` → 确认审查文档目录与日志格式。
+- 命令：`env TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'` → 记录当前时戳 `2025-11-30 19:05` 用于日志与报告。
+
+## 2025-11-30 18:27 NZST
+- 工具：`sequential-thinking` ×6 → 第10轮审查任务分析范围、约束、执行顺序与风险。
+- 工具：`code-index.set_project_path`、`code-index.find_files` → 设置索引根 `/Users/rpang/IdeaProjects/aster-lang` 并确认无额外 `AGENTS.md` 子目录指令。
+- 命令：`ls`, `ls docs`, `ls docs/workstreams`, `ls .claude` → 巡检目录结构，定位任务文档与报告目录。
+- 命令：`sed -n` / `cat` 读取 `AsterBlock.java`、`AsterModuleResolver.java`、`AsterCompletionContributor.java`、`AsterReference.java`、`AsterExternalAnnotator.java`、`AsterLexerAdapter.java` 及 `psi/impl` 多个实现，收集审查证据。
+- 工具：`env TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'` → 获取本次日志所需时间戳 `2025-11-30 18:27`。
+
+## 2025-11-30 12:56 NZST
+- 命令：`sed -n '1,20p' .claude/review-report-aster-idea.md`、`sed -n '300,460p' aster-idea/src/main/java/io/aster/idea/psi/AsterParser.java` 等 → 抽取关键片段以引用行号与问题描述。
+- 命令：`env TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'` → 获取写入审查报告与日志所需时间戳。
+- 工具：`apply_patch` → 在 `.claude/review-report-aster-idea.md` 顶部新增 2025-11-30 12:55 NZST 审查记录，写入评分、九项问题与五层分析摘要。
+- 工具：`apply_patch` → 更新 `docs/workstreams/aster-idea-review/operations-log.md`，登记本次审查记录的引用命令与写入动作。
+
+## 2025-11-30 12:42 NZST
+- 工具：`sequential-thinking`（2 次）→ 针对 aster-idea IntelliJ 插件审查任务梳理范围、风险与执行步骤。
+- 工具：`code-index.set_project_path` → 重新设置索引根 `/Users/rpang/IdeaProjects/aster-lang`，以启用代码检索。
+- 工具：`code-index.find_files` → 模式 `**/operations-log.md`，定位当前任务对应的日志文件。
+- 命令：`ls .claude` → 确认审查规范与模板文件位置，确保可访问 `.claude/CODE_REVIEW_GUIDE.md`。
+- 命令：`sed -n '1,160p' docs/workstreams/aster-idea-review/operations-log.md` → 回顾既有日志格式与最近记录，为追加条目做准备。
+- 工具：`code-index.find_files` → 模式 `.claude/CODE_REVIEW_GUIDE.md`（无匹配，记录 fallback 读取方式）。
+- 命令：`sed -n '1,200p' .claude/CODE_REVIEW_GUIDE.md` → 阅读 CODE_REVIEW 指南，确认五层法输出要求。
+
+## 2025-11-30 07:38 NZST
+- 命令：`env TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'` → 获取撰写审查报告所需时间戳 `2025-11-30 07:38`。
+- 工具：`apply_patch` → 新建 `.claude/review-report-test-improvements.md`，写入评分、问题、五层分析与观察，满足主 AI “输出完整审查报告” 的要求。
+
+## 2025-11-30 07:34 NZST
+- 工具：`sequential-thinking` → 针对 IntelliJ 测试框架审查任务梳理检查步骤（测试数据、测试实现、插件描述符、build 脚本）。
+- 工具：`code-index.set_project_path`、`code-index.find_files` → 设置索引根目录 `/Users/rpang/IdeaProjects/aster-lang` 并尝试定位 `src/test/testData/parser/*.aster`（无匹配，改用 shell 浏览）。
+- 命令：`ls aster-idea/src/test`、`ls .../testData`、`ls .../parser` → 确认测试数据目录与 `.aster/.txt` 文件清单。
+- 命令：`sed -n` → 逐个查看 `DataDefinition/MatchExpression/IfExpression/LetBinding/Workflow/UseImport` 等 `.aster` 与 `.txt`，以及 `Error*` 错误样本、`AsterParsingTest.java`、`META-INF/plugin.xml`、`build.gradle.kts`；记录测试输入、期望输出与配置内容。
+- 命令：`env TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'` → 获取操作时间戳 `2025-11-30 07:34`，用于本次日志。
+
 ## 2025-11-29 13:16 NZST
 - 命令：`env TZ=Pacific/Auckland date '+%Y-%m-%d %H:%M'` → 获取记录刚刚日志写入动作的时间 `2025-11-29 13:16`。
 - 工具：`apply_patch` → 写入 13:15 时段的操作明细到 `docs/workstreams/aster-idea-review/operations-log.md`。

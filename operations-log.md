@@ -1,3 +1,98 @@
+# 2025-11-30 18:46 NZST aster-idea Round11 全量审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3、mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×1、shell（ls/sed/nl/rg/date/cat/mv）×18。
+- 命令：`ls` 列目录、`mcp__code-index__find_files` 罗列 `io/aster/idea` Java 文件、`nl -ba`/`sed -n` 反复阅读 `AsterExternalAnnotator.java`、`AsterLexerAdapter.java`、`AsterReference.java`、`AsterModuleResolver.java`、`AsterCompletionContributor.java`、`AsterBlock.java` 等；`rg -n` 查关键字段；`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 记录时间；`cat <<'EOF' > /tmp/...` 写入报告草稿并 `mv` 到 `.claude/review-report-aster-idea-round11.md`。
+- 操作：完成第11轮 aster-idea 全量代码审核，验证第10轮修复 (Annotator 缓存 & Lexer 清理)，记录三处缺陷（cacheKey NPE、Document 泄漏、PCE 吞没），并在 `.claude/review-report-aster-idea-round11.md` 写入评分、问题、五层分析与缓存评估。
+
+**文件状态**:
+- `.claude/review-report-aster-idea-round11.md`：新增第11轮审核报告，含修复验证、问题列表、评分与结论。
+
+**验证结果**:
+- 审查与文档工作，未执行构建或测试。
+
+# 2025-11-30 14:58 NZDT aster-idea Round2 全量审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2、mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×1、mcp__code-index__search_code_advanced ×6、shell（rg/sed/nl/date/ls）×28。
+- 命令：`rg --files -g 'operations-log.md'` 查找日志；`mcp__code-index__find_files` 枚举 `io/aster/idea` 下的 Java 文件；多次 `mcp__code-index__search_code_advanced` 及 `sed -n`/`nl -ba` 阅读 `AsterParser.java`、`AsterExternalAnnotator.java`、`AsterReference.java`、`AsterModuleResolver.java`、`AsterCompletionContributor.java`、`AsterStructureViewElement.java`、`AsterStructureViewModel.java`、`AsterLexerAdapter.java`、`AsterNamedElementImpl.java` 等；`rg -n \"workflow\" -g \"*.aster\"` 采样源码；`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 获取时间。
+- 操作：根据主指令完成 io.aster.idea 包全量代码审阅，逐项验证 H1-H2、M1-M8 修复并记录证据，整理新增问题；准备 `.claude/review-report-aster-idea-round2.md` 所需素材并计划写入。
+
+**文件状态**:
+- 新建 `.claude/review-report-aster-idea-round2.md`，记录修复验证、问题、评分与建议。
+
+**验证结果**:
+- 审查与文档工作，未运行构建或测试。
+
+# 2025-11-30 14:23 NZST aster-idea 模块深度审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2、mcp__code-index__set_project_path ×1、shell（ls/sed/rg/nl/python/date）×41、apply_patch ×1。
+- 命令：`ls`、`sed -n '1,80p' operations-log.md`、`rg --files | rg '^aster-idea/src/main/java/io/aster/idea/'`、`sed -n '1,200p' .claude/review-report-aster-idea.md`、多次 `sed -n`/`nl -ba` 阅读 `AsterParser.java`（不同区段）、`AsterParserDefinition.java`、`AsterElementTypes.java`、`AsterLanguage.java`、`AsterTokenTypes.java`、`AsterLexerAdapter.java`、`AsterKeywords.java`、`reference/*`、`completion/AsterCompletionContributor.java`、`annotator/AsterExternalAnnotator.java`、`structure/*`、`refactoring/*`、`psi/impl/*`；`rg -n "== AsterTokenTypes.IDENT"`、`rg -n "INDENT"`、`rg -n "class Aster.*Impl"`；`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`；`python - <<'PY' ...` 检查文件开头；`apply_patch` → 更新 `.claude/review-report-aster-idea.md`。
+- 操作：通读 psi/lang/reference/completion/annotator/structure/refactoring 目录源码并记录问题，随后在 `.claude/review-report-aster-idea.md` 写入 2025-11-30 14:23 NZST 深度审查条目。
+
+**文件状态**:
+- `.claude/review-report-aster-idea.md`：新增最新一轮审查内容，包含执行摘要、模块分析、五层分析与问题列表。
+
+**验证结果**:
+- 审查与文档编写任务，未执行构建或测试。
+
+# 2025-11-30 12:01 NZST Aster 词法分析器修复审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×2、shell（ls/sed/nl/date/rg）×9、apply_patch ×2。
+- 命令：`ls`、`sed -n '1,200p' src/lexer.ts`、`sed -n '200,400p' src/lexer.ts`、`sed -n '400,520p' src/lexer.ts`、`nl -ba src/lexer.ts | sed -n '90,260p'`、`sed -n '1,200p' test/unit/lexer/newline-handling.test.ts`、`sed -n '200,400p' test/unit/lexer/newline-handling.test.ts`、`nl -ba test/unit/lexer/newline-handling.test.ts | sed -n '300,520p'`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`，用于逐段验证换行/Slash 逻辑与覆盖范围。
+- 操作：通读 `src/lexer.ts` 与 `test/unit/lexer/newline-handling.test.ts`，比对 CR/CRLF 空行与 `/` token 起始位置修复；以 apply_patch 更新 `.claude/review-report.md` 与本日志。
+
+**文件状态**:
+- `.claude/review-report.md`：新增 “Aster 词法分析器换行与 Slash 修复” 审查条目。
+- `operations-log.md`：追加当前留痕。
+
+**验证结果**:
+- 审查任务，未执行构建或测试。
+
+# 2025-11-30 07:18 NZDT IntelliJ 测试框架审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1、mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×5、shell（cat/nl/sed/ls/rg/date）×18、apply_patch ×2。
+- 命令：`cat aster-idea/build.gradle.kts`、`nl -ba aster-idea/build.gradle.kts | sed -n '40,220p'`、`cat aster-idea/src/test/java/io/aster/idea/parser/AsterParsingTest.java`、`nl -ba .../AsterParsingTest.java`、`cat aster-idea/src/test/resources/META-INF/plugin.xml`、`cat aster-idea/src/main/resources/META-INF/plugin.xml`、`ls aster-idea/src/test/testData/parser`、`cat`/`nl -ba` 查看 `SimpleFunction.*`、`ModuleDeclaration.*`、`rg -n "org.junit.vintage"`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 等，用于核查测试配置、插件描述符与测试数据质量。
+- 操作：对照 IntelliJ 测试规范审阅 build.gradle、ParsingTestCase、plugin.xml 与 testData；汇总命中问题后，以 apply_patch 新建 `.claude/review-report-intellij-test.md` 并更新本日志。
+
+**文件状态**:
+- `.claude/review-report-intellij-test.md`：新增 IntelliJ 测试框架审查报告，含评分、问题列表与五层分析。
+- `operations-log.md`：追加当前留痕。
+
+**验证结果**:
+- 审查与文档任务，未执行构建或测试。
+
+# 2025-11-30 06:30 NZDT Aster IDEA 引用/补全修复审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3、mcp__code-index__set_project_path ×1、shell（ls/sed/nl/rg/date/git）×23、apply_patch ×1。
+- 命令：`ls`、`sed -n '1,160p' operations-log.md`、多次 `sed -n` 阅读 `AsterReferenceContributor.java`、`AsterModuleResolver.java`、`AsterReference.java`、`AsterCompletionContributor.java`、`plugin.xml`、`AsterReferenceTest.java`、`AsterCompletionContributorTest.java`、`AsterModuleResolverTest.java`、`.claude/review-report.md`；`rg -n 'findExistingAliasPrefix'`、`rg -n 'AsterModuleResolver.getInstance'`、`rg -n 'SEARCH_PATTERNS'`、`rg -n 'AsterModuleResolver('`；`nl -ba ... | sed -n` 提取精确行号；`git status -sb`；`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZDT'`。
+- 操作：对指定源码/测试文件进行逐段阅读并记录数据流与边界情况；确认 projectService 注册；分析补全前缀和多级限定行为；在 `.claude/review-report.md` 顶部新增本次审查条目，给出评分、五层分析、问题及建议；更新 `operations-log.md` 留痕。
+
+**文件状态**:
+- `.claude/review-report.md`：新增 “Aster IDEA 引用/补全修复” 审查记录，包含评分、问题列表与建议。
+- `operations-log.md`：追加当前日志记录。
+
+**验证结果**:
+- 审查任务，仅阅读/写入报告，未执行构建或测试。
+
+# 2025-11-30 01:40 NZDT aster-idea 跨文件引用修复审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×5、mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×2、mcp__code-index__search_code_advanced ×1、shell（cat/nl/sed/date/ls）×12、apply_patch ×2。
+- 命令：`ls .claude`、`cat aster-idea/src/main/java/io/aster/idea/reference/AsterReferenceContributor.java`、`cat aster-idea/src/main/java/io/aster/idea/reference/AsterModuleResolver.java`、`cat aster-idea/src/main/java/io/aster/idea/reference/AsterReference.java`、`cat aster-idea/src/main/java/io/aster/idea/completion/AsterCompletionContributor.java`、`cat aster-idea/src/test/java/io/aster/idea/reference/AsterModuleResolverTest.java`、`cat aster-idea/src/test/java/io/aster/idea/reference/AsterReferenceTest.java`、多次 `nl -ba ... | sed -n` 获取精确行号、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'`、`sed -n '1,80p' .claude/review-report-aster-idea.md`。
+- 操作：通读跨文件引用相关 6 个源码/测试文件并记录行号；分析限定前缀、模块缓存、补全策略与测试覆盖；使用 apply_patch 新建 `.claude/review-report-cross-file-v3.md` 写入评分、五层法和关键发现；更新 `operations-log.md` 留痕此次审查。
+
+**文件状态**:
+- `.claude/review-report-cross-file-v3.md`：新增审查报告（多级限定、缓存、补全与测试问题）。
+- `operations-log.md`：追加当前记录。
+
+**验证结果**:
+- 审查任务，仅阅读/写入报告，未执行构建或测试。
+
 # 2025-11-29 22:15 NZDT regression-fixes 回归测试复核
 
 **操作记录**:
@@ -9530,3 +9625,23 @@ if (entity == null) {
 
 **操作记录**:
 - 命令：`cat >> .claude/review-report.md` → 追加 typecheck 拆分重构代码审查报告，记录评分与缺陷列表。
+
+# 2025-11-30 08:51 NZDT aster-idea IntelliJ 测试框架改进审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×6 → 依据 AGENTS.md 要求完成任务理解、风险分析与执行步骤规划。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files → 绑定仓库根目录并定位 `AsterParsingTest.java`。
+- 命令：`sed -n` ×7、`cat` ×11、`python - <<'PY'` ×2、`ls`、`rg --files -g 'operations-log.md'`、`rg -n`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZDT'` → 阅读解析器测试、列举测试数据、统计正向/错误用例数量并记录日志时间戳。
+- 工具：apply_patch ×2 → 记录操作日志并创建 `.claude/review-report-test-improvements.md` 审查结果。
+
+**文件状态**:
+- `operations-log.md`：追加本次审查操作记录。
+- `.claude/review-report-test-improvements.md`：新增审查报告文件。
+
+# 2025-11-30 16:03 NZDT aster-idea round4 审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2 → 根据 AGENTS.md 前置要求梳理第四轮审查目标与执行步骤。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files → 绑定工作区并快速枚举 `aster-idea/src/main/java/io/aster/idea/**/*.java`。
+- 命令：`rg -n`、`sed -n` ×15、`ls .claude`、`sed -n '.claude/review-report-aster-idea-round3.md'`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZDT'` → 精读 `AsterParser/AsterReference/AsterCompletionContributor/AsterModuleResolver/AsterStructureViewElement/AsterExternalAnnotator`，采集证据并记录时间戳。
+- 操作：本轮未修改源码，仅准备审查报告与日志记录。

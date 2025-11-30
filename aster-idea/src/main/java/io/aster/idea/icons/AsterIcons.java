@@ -17,6 +17,9 @@ public final class AsterIcons {
   public static final Icon DATA = AllIcons.Nodes.Class;
   public static final Icon ENUM = AllIcons.Nodes.Enum;
   public static final Icon VARIABLE = AllIcons.Nodes.Variable;
+  public static final Icon WORKFLOW = AllIcons.Nodes.Artifact;
+  public static final Icon TYPE = AllIcons.Nodes.Type;
+  public static final Icon MODULE = AllIcons.Nodes.Module;
 
   private AsterIcons() {}
 }

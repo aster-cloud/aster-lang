@@ -1,0 +1,7 @@
+This module is test.conditional.
+
+To max with a: Int, b: Int, produce Int:
+  If a > b:
+    Return a.
+  Otherwise:
+    Return b.

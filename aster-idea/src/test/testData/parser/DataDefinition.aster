@@ -1,0 +1,5 @@
+This module is test.data.
+
+Define User with id: Text, name: Text, age: Int.
+
+Define Address with street: Text, city: Text.

@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
  * 定义 Structure View 的行为，包括：
  * - 根元素（文件）
  * - 可展示的元素类型
- * - 排序器
+ * - 排序器（默认按源码顺序，不提供排序器）
  */
 public class AsterStructureViewModel extends StructureViewModelBase
     implements StructureViewModel.ElementInfoProvider {
@@ -27,7 +27,8 @@ public class AsterStructureViewModel extends StructureViewModelBase
 
     @Override
     public Sorter @NotNull [] getSorters() {
-        return new Sorter[]{Sorter.ALPHA_SORTER};
+        // 不提供排序器，保持源码顺序
+        return Sorter.EMPTY_ARRAY;
     }
 
     @Override

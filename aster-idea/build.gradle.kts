@@ -26,17 +26,17 @@ val intellijLibs = objects.fileCollection().from(
   intellijLibDir.map { dir -> dir.asFileTree.matching { include("*.jar") } }
 )
 
-// 用于测试的 IntelliJ 库（排除所有可能导致 JUnit 冲突的 JAR）
+// 用于测试的 IntelliJ 库（排除可能导致 JUnit 冲突的 JAR，但保留 testFramework）
 val intellijTestLibs = objects.fileCollection().from(
   intellijLibDir.map { dir ->
     dir.asFileTree.matching {
       include("*.jar")
-      // 排除所有 JUnit 相关 JAR
-      exclude("*junit*")
+      // 排除 JUnit 4 相关 JAR（使用 JUnit 5 Vintage 引擎代替）
+      exclude("junit-*.jar")
+      exclude("junit4.jar")
       exclude("*ant-junit*")
-      exclude("*kotlin-test*")
-      // 排除 IntelliJ 测试框架（它会尝试初始化需要 JUnit 4 的测试环境）
-      exclude("testFramework.jar")
+      // 保留 testFramework.jar - IntelliJ 2025.1 支持 JUnit 5
+      // exclude("testFramework.jar")
       exclude("intellij-test-discovery.jar")
     }
   }
@@ -55,7 +55,12 @@ dependencies {
   // Test dependencies
   testImplementation(platform("org.junit:junit-bom:5.11.0"))
   testImplementation("org.junit.jupiter:junit-jupiter")
+  testImplementation("org.mockito:mockito-core:5.14.2")
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+  // JUnit 4 依赖 - IntelliJ ParsingTestCase 等测试基类需要
+  testImplementation("junit:junit:4.13.2")
+  // JUnit Vintage 引擎 - 允许在 JUnit 5 平台运行 JUnit 4 测试
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
 }
 
 java {
@@ -111,15 +116,77 @@ tasks.compileTestJava {
   classpath = classpath.plus(intellijTestLibs)
 }
 
+// 测试资源目录配置 - 同时包含默认资源目录和 testData
+sourceSets {
+  test {
+    resources {
+      srcDirs("src/test/resources", "src/test/testData")
+    }
+  }
+}
+
+tasks.processTestResources {
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 tasks.test {
   useJUnitPlatform()
 
-  // 添加 IntelliJ 库（排除 JUnit 相关以避免冲突）
+  // 添加 IntelliJ 库到测试 classpath
   classpath = classpath.plus(intellijTestLibs)
 
-  // JVM 参数
+  // 设置工作目录为项目根目录（testData 相对路径需要）
+  workingDir = projectDir
+
+  // JVM 参数 - IntelliJ 测试框架完整配置
   jvmArgs(
+    // 模块开放 - Java 基础模块
     "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-    "--add-opens", "java.base/java.util=ALL-UNNAMED"
+    "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
+    "--add-opens", "java.base/java.util=ALL-UNNAMED",
+    "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
+    "--add-opens", "java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+    "--add-opens", "java.base/java.io=ALL-UNNAMED",
+    "--add-opens", "java.base/java.nio=ALL-UNNAMED",
+    "--add-opens", "java.base/java.nio.charset=ALL-UNNAMED",
+    "--add-opens", "java.base/java.text=ALL-UNNAMED",
+    "--add-opens", "java.base/java.time=ALL-UNNAMED",
+    "--add-opens", "java.base/java.security=ALL-UNNAMED",
+    "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED",
+    "--add-opens", "java.base/sun.nio.fs=ALL-UNNAMED",
+    "--add-opens", "java.base/sun.security.ssl=ALL-UNNAMED",
+    "--add-opens", "java.base/sun.security.util=ALL-UNNAMED",
+    // 模块开放 - Desktop 模块
+    "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
+    "--add-opens", "java.desktop/java.awt.event=ALL-UNNAMED",
+    "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED",
+    "--add-opens", "java.desktop/java.awt.font=ALL-UNNAMED",
+    "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+    "--add-opens", "java.desktop/sun.awt.image=ALL-UNNAMED",
+    "--add-opens", "java.desktop/sun.font=ALL-UNNAMED",
+    "--add-opens", "java.desktop/sun.java2d=ALL-UNNAMED",
+    "--add-opens", "java.desktop/javax.swing=ALL-UNNAMED",
+    "--add-opens", "java.desktop/javax.swing.text=ALL-UNNAMED",
+    "--add-opens", "java.desktop/javax.swing.plaf.basic=ALL-UNNAMED",
+    // Headless 模式
+    "-Djava.awt.headless=true",
+    // IntelliJ 测试框架核心属性
+    "-Didea.home.path=${intellijRoot.get().asFile.absolutePath}",
+    "-Didea.config.path=${layout.buildDirectory.get().asFile.absolutePath}/test-config",
+    "-Didea.system.path=${layout.buildDirectory.get().asFile.absolutePath}/test-system",
+    "-Didea.plugins.path=${layout.buildDirectory.get().asFile.absolutePath}/test-plugins",
+    "-Didea.log.path=${layout.buildDirectory.get().asFile.absolutePath}/test-log",
+    "-Didea.test.cyclic.buffer.size=1048576",
+    "-Didea.force.default.config=true",
+    // 测试模式标志
+    "-Didea.is.unit.test=true"
+    // 注意：不设置 java.system.class.loader，让 JVM 使用默认类加载器
   )
+
+  // 系统属性
+  systemProperty("idea.force.use.core.classloader", "true")
+  systemProperty("NO_FS_ROOTS_ACCESS_CHECK", "true")
+
+  // 环境变量
+  environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
 }
