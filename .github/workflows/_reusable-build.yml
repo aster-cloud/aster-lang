@@ -47,7 +47,7 @@ jobs:
         run: npm run build
 
       - name: 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.artifact-name }}
           path: ${{ inputs.working-directory == '.' && 'dist/' || format('{0}/dist/', inputs.working-directory) }}

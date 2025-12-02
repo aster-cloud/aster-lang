@@ -159,7 +159,7 @@ jobs:
 
       - name: 上传 Lint 修复补丁
         if: steps.lint.outputs.fixed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: eslint-fixes
           path: eslint-fix.patch
@@ -187,7 +187,7 @@ jobs:
 
       - name: 上传格式化补丁
         if: steps.format.outputs.fixed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: prettier-fixes
           path: prettier-fix.patch
@@ -331,7 +331,7 @@ jobs:
         run: ./gradlew jacocoAggregateReport --no-configuration-cache
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-reports
           path: |
@@ -409,7 +409,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: quarkus-policy-api-test-results
           path: quarkus-policy-api/build/reports/tests/test/
@@ -486,7 +486,7 @@ jobs:
         run: echo "${{ steps.docker_build.outputs.digest }}" > digest-${{ matrix.arch }}.txt
 
       - name: Upload digest artifact (${{ matrix.arch }})
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: policy-api-digest-${{ matrix.arch }}
           path: digest-${{ matrix.arch }}.txt
@@ -774,13 +774,13 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: truffle-test-results
           path: aster-truffle/build/reports/tests/test/
 
       - name: Upload native binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: aster-truffle-native
           path: aster-truffle/build/native/nativeCompile/aster
