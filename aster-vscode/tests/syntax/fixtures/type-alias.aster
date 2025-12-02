@@ -1,0 +1,4 @@
+type ClientResult[T, E] as io.Http.Client.Result[Result[T, E], Error].
+type WorkflowResponse as Map[Result[T, E], Error].
+type NamespacedAlias as this.module.Ok(T) | that.module.Err(E).
+type WideAlias[T0, T1, T2, T3, T4] as Result[T0, T4].

@@ -277,7 +277,13 @@
     "docker:compose:up": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
     "docker:compose:logs": "docker-compose logs -f",
-    "docker:push": "docker push aster/runtime:latest"
+    "docker:push": "docker push aster/runtime:latest",
+    "ci:quick": "npm run typecheck && npm run lint && npm run audit && npm run test:unit && npm run test:integration",
+    "ci:lsp": "npm run test:lsp:nobuild && npm run test:lsp-index:nobuild && npm run test:lsp-multi:nobuild && npm run perf:lsp:nobuild && node dist/scripts/lsp-smoke.js && node dist/scripts/lsp-health-smoke.js && npm run lsp:workspace-diags:smoke:nobuild",
+    "ci:asm": "npm run emit:class test/cnl/programs/examples/greet.aster && npm run javap:verify && npm run determinism:asm && npm run verify:asm:assert:listget && npm run verify:asm:interop && npm run verify:asm:sum && npm run verify:asm:intmatch && npm run verify:asm:intmatch:default && npm run verify:asm:classes && npm run verify:examples",
+    "ci:truffle": "((npm run verify:truffle:smoke) || echo \"truffle smoke non-blocking\") && ((npm run verify:truffle:stdlib) || echo \"truffle stdlib non-blocking\") && npm run truffle:test",
+    "ci:docs": "npm run docs:api && npm run docs:build",
+    "ci:smart": "npm run ci:quick && npm run build && npm run ci:lsp && npm run ci:asm"
   },
   "keywords": [
     "programming-language",

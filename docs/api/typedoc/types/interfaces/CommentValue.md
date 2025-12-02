@@ -4,7 +4,7 @@
 
 # Interface: CommentValue
 
-Defined in: [types.ts:110](https://github.com/wontlost-ltd/aster-lang/blob/fb3b3f0e30c48d75f7f12ac3160d2dcc50a7e6cc/src/types.ts#L110)
+Defined in: [types.ts:110](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L110)
 
 注释 Token 的取值结构
 
@@ -16,7 +16,7 @@ Defined in: [types.ts:110](https://github.com/wontlost-ltd/aster-lang/blob/fb3b3
 
 > `readonly` **raw**: `string`
 
-Defined in: [types.ts:111](https://github.com/wontlost-ltd/aster-lang/blob/fb3b3f0e30c48d75f7f12ac3160d2dcc50a7e6cc/src/types.ts#L111)
+Defined in: [types.ts:111](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L111)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: [types.ts:111](https://github.com/wontlost-ltd/aster-lang/blob/fb3b3
 
 > `readonly` **text**: `string`
 
-Defined in: [types.ts:112](https://github.com/wontlost-ltd/aster-lang/blob/fb3b3f0e30c48d75f7f12ac3160d2dcc50a7e6cc/src/types.ts#L112)
+Defined in: [types.ts:112](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L112)
 
 ***
 
@@ -32,4 +32,4 @@ Defined in: [types.ts:112](https://github.com/wontlost-ltd/aster-lang/blob/fb3b3
 
 > `readonly` **trivia**: `"inline"` \| `"standalone"`
 
-Defined in: [types.ts:113](https://github.com/wontlost-ltd/aster-lang/blob/fb3b3f0e30c48d75f7f12ac3160d2dcc50a7e6cc/src/types.ts#L113)
+Defined in: [types.ts:113](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L113)

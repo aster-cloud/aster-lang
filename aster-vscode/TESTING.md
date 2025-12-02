@@ -34,6 +34,21 @@ npm run compile
 
 ## 测试方案
 
+### 语法快照测试（TextMate）
+
+```bash
+cd aster-vscode
+npm run test:syntax
+```
+
+如需更新基线（例如调整语法高亮规则后），执行：
+
+```bash
+npm run test:syntax -- --update
+```
+
+脚本会基于 `tests/syntax/fixtures/*.aster` 生成 TextMate scope 列表，并与 `tests/syntax/__snapshots__` 中的基线 JSON 对比，帮助捕获泛型/类型别名等语法的回归。
+
 ### 测试 1: Compile 命令
 
 **测试文件**: `test/cnl/programs/parser-tests/simple_function.aster`

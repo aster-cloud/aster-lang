@@ -3,9 +3,33 @@ name: Build Native Image
 on:
   push:
     branches: [main, develop, 'release/**']
+    paths:
+      - 'src/**'
+      - 'aster-lang-cli/**'
+      - 'aster-core/**'
+      - 'aster-asm-emitter/**'
+      - 'gradle/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'Dockerfile'
+      - '.github/workflows/build-native.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'aster-lang-cli/**'
+      - 'aster-core/**'
+      - 'aster-asm-emitter/**'
+      - 'gradle/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'Dockerfile'
+      - '.github/workflows/build-native.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   JAVA_VERSION: '25.0.2'
@@ -15,6 +39,8 @@ env:
 jobs:
   ts-build:
     name: TypeScript Build
+    # 跳过 Draft PR
+    if: github.event.pull_request.draft != true
     uses: ./.github/workflows/_reusable-build.yml
     with:
       artifact-name: native-dist
@@ -24,6 +50,7 @@ jobs:
     name: Build Native Image (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     needs: ts-build
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -84,6 +111,7 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: build-native
+    timeout-minutes: 15
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
@@ -141,6 +169,7 @@ jobs:
     name: Acceptance Test
     runs-on: ubuntu-latest
     needs: [build-native, build-docker]
+    timeout-minutes: 10
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4

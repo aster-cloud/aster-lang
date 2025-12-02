@@ -1,11 +1,57 @@
 {
   "comments": {
-    "lineComment": "#"
+    "lineComment": "#",
+    "blockComment": ["###", "###"]
   },
   "wordPattern": "([a-zA-Z_][a-zA-Z0-9_]*\\.)*[a-zA-Z_][a-zA-Z0-9_]*|[<>=!+\\-*/%]+|[0-9]+",
   "brackets": [
     ["{", "}"],
     ["(", ")"],
-    ["[", "]"]
-  ]
+    ["[", "]"],
+    ["<", ">"]
+  ],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "(", "close": ")" },
+    { "open": "[", "close": "]" },
+    { "open": "<", "close": ">", "notIn": ["string", "comment"] },
+    { "open": "\"", "close": "\"", "notIn": ["string"] }
+  ],
+  "surroundingPairs": [
+    ["{", "}"],
+    ["(", ")"],
+    ["[", "]"],
+    ["<", ">"],
+    ["\"", "\""]
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(To|Define|A|An|It has|It performs|with|as one of)\\b.*([:.]|\\b(with|of|and))\\s*$",
+    "decreaseIndentPattern": "^\\s*\\.\\s*$"
+  },
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*(To|Define|A|An)\\b.*:\\s*$",
+      "action": {
+        "indent": "indent"
+      }
+    },
+    {
+      "beforeText": "^\\s*It has\\b.*[,]\\s*$",
+      "action": {
+        "indent": "none"
+      }
+    },
+    {
+      "beforeText": "^\\s*It has\\b.*\\.\\s*$",
+      "action": {
+        "indent": "outdent"
+      }
+    }
+  ],
+  "folding": {
+    "markers": {
+      "start": "^\\s*(To|Define|A|An)\\b",
+      "end": "^\\s*\\.\\s*$"
+    }
+  }
 }

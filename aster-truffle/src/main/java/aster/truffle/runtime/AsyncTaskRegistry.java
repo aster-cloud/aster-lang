@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,7 +57,9 @@ public final class AsyncTaskRegistry {
   // 重试策略存储
   private final Map<String, RetryPolicy> retryPolicies = new ConcurrentHashMap<>();
   private final Map<String, Integer> attemptCounters = new ConcurrentHashMap<>();
-  private final Set<String> failedTasks = ConcurrentHashMap.newKeySet();
+  private static final String WORKFLOW_RETRY_TASK_ID = "__workflow_retry__";
+  private final ConcurrentHashMap<String, DelayedTask> pendingRetryTasks = new ConcurrentHashMap<>();
+  private final Set<String> workflowRetryTasks = ConcurrentHashMap.newKeySet();
   private volatile String workflowId;
   private PostgresEventStore eventStore;
   // 剩余待完成任务计数
@@ -529,6 +530,7 @@ public final class AsyncTaskRegistry {
    * 关闭线程池，释放资源
    */
   public void shutdown() {
+    stopPolling();
     executor.shutdown();
     try {
       if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
@@ -678,7 +680,7 @@ public final class AsyncTaskRegistry {
       failure = t;
       RetryPolicy policy = retryPolicies.get(info.taskId);
       if (policy != null) {
-        failedTasks.add(info.taskId);
+        workflowRetryTasks.add(info.taskId);
         Exception failureException = (t instanceof Exception) ? (Exception) t : new Exception(t);
         try {
           onTaskFailed(info.taskId, failureException, replayMode);
@@ -687,7 +689,8 @@ public final class AsyncTaskRegistry {
           failure = maxEx;
           retryPolicies.remove(info.taskId);
           attemptCounters.remove(info.taskId);
-          failedTasks.remove(info.taskId);
+          workflowRetryTasks.remove(info.taskId);
+          pendingRetryTasks.remove(info.taskId);
         }
       }
 
@@ -720,7 +723,10 @@ public final class AsyncTaskRegistry {
   private void cleanupRetryState(String taskId) {
     retryPolicies.remove(taskId);
     attemptCounters.remove(taskId);
-    failedTasks.remove(taskId);
+    workflowRetryTasks.remove(taskId);
+    if (taskId != null) {
+      pendingRetryTasks.remove(taskId);
+    }
   }
 
   /**
@@ -973,7 +979,7 @@ public final class AsyncTaskRegistry {
     }
 
     attemptCounters.put(taskId, attempt + 1);
-    scheduleRetry(workflowId, delayMs, attempt + 1, failureReason);
+    scheduleRetry(taskId, workflowId, delayMs, attempt + 1, failureReason);
 
     logger.info(String.format("Task %s failed (attempt %d/%d), retrying in %dms",
         taskId, attempt, policy.maxAttempts, delayMs));
@@ -1049,16 +1055,34 @@ public final class AsyncTaskRegistry {
    * @param failureReason 失败原因
    */
   public void scheduleRetry(String workflowId, long delayMs, int attemptNumber, String failureReason) {
-    long triggerAt = this.determinismContext.clock().now().toEpochMilli() + delayMs;
+    scheduleRetry(WORKFLOW_RETRY_TASK_ID, workflowId, delayMs, attemptNumber, failureReason);
+  }
 
+  public void scheduleRetry(String taskId, String workflowId, long delayMs, int attemptNumber, String failureReason) {
+    if (workflowId == null) {
+      throw new IllegalStateException("workflowId must be set before scheduling retries");
+    }
+    long triggerAt = this.determinismContext.clock().now().toEpochMilli() + Math.max(0L, delayMs);
+
+    boolean shouldStartPoller = false;
+    DelayedTask task = new DelayedTask(taskId, workflowId, triggerAt, attemptNumber, failureReason);
     delayQueueLock.lock();
     try {
-      DelayedTask task = new DelayedTask(workflowId, triggerAt, attemptNumber, failureReason);
+      if (taskId != null && !WORKFLOW_RETRY_TASK_ID.equals(taskId)) {
+        pendingRetryTasks.put(taskId, task);
+      }
       delayQueue.offer(task);
+      if (!running) {
+        shouldStartPoller = true;
+      }
       logger.fine(String.format("Scheduled retry for workflow %s in %dms (attempt %d)",
           workflowId, delayMs, attemptNumber));
     } finally {
       delayQueueLock.unlock();
+    }
+
+    if (shouldStartPoller) {
+      startPolling();
     }
   }
 
@@ -1115,9 +1139,7 @@ public final class AsyncTaskRegistry {
             logger.fine(String.format("Triggering delayed retry for workflow %s (attempt %d)",
                 task.workflowId, task.attemptNumber));
 
-            // 触发 workflow 恢复（简化实现：重新调度任务）
-            // TODO: 后续集成到 WorkflowScheduler.handleRetry
-            resumeWorkflow(task.workflowId, task.attemptNumber);
+            resumeTask(task);
           }
         } finally {
           delayQueueLock.unlock();
@@ -1140,21 +1162,25 @@ public final class AsyncTaskRegistry {
    */
   private void resumeWorkflow(String workflowId, int attemptNumber) {
     logger.info(String.format("Resuming workflow %s (attempt %d)", workflowId, attemptNumber));
-
-    Set<String> tasksToRetry = new HashSet<>();
-    Iterator<String> iterator = failedTasks.iterator();
-    while (iterator.hasNext()) {
-      String taskId = iterator.next();
-      tasksToRetry.add(taskId);
-      iterator.remove();
-    }
-
-    for (String taskId : tasksToRetry) {
-      scheduleTask(taskId);
+    for (String taskId : workflowRetryTasks) {
+      scheduleTask(taskId, null);
     }
   }
 
-  private void scheduleTask(String taskId) {
+  private void resumeTask(DelayedTask delayedTask) {
+    String taskId = delayedTask.taskId;
+    if (taskId == null || WORKFLOW_RETRY_TASK_ID.equals(taskId)) {
+      resumeWorkflow(delayedTask.workflowId, delayedTask.attemptNumber);
+      return;
+    }
+    DelayedTask current = pendingRetryTasks.get(taskId);
+    if (current != delayedTask) {
+      return;
+    }
+    scheduleTask(taskId, delayedTask);
+  }
+
+  private void scheduleTask(String taskId, DelayedTask sourceDelayedTask) {
     TaskInfo info = taskInfos.get(taskId);
     TaskState state = tasks.get(taskId);
     if (info == null || state == null) {
@@ -1164,11 +1190,35 @@ public final class AsyncTaskRegistry {
       return;
     }
     if (!isDependencySatisfied(taskId)) {
-      failedTasks.add(taskId);
+      if (sourceDelayedTask != null) {
+        requeueDelayedTask(sourceDelayedTask, 100L);
+      } else {
+        workflowRetryTasks.add(taskId);
+      }
       return;
     }
     info.submitted.set(false);
+    if (sourceDelayedTask != null) {
+      pendingRetryTasks.remove(taskId, sourceDelayedTask);
+    }
+    workflowRetryTasks.remove(taskId);
     submitTask(info);
+  }
+
+  private void requeueDelayedTask(DelayedTask original, long additionalDelayMs) {
+    if (original.taskId == null || WORKFLOW_RETRY_TASK_ID.equals(original.taskId)) {
+      return;
+    }
+    long newTrigger = this.determinismContext.clock().now().toEpochMilli() + additionalDelayMs;
+    DelayedTask updated = new DelayedTask(original.taskId, original.workflowId, newTrigger,
+        original.attemptNumber, original.failureReason);
+    pendingRetryTasks.put(original.taskId, updated);
+    delayQueueLock.lock();
+    try {
+      delayQueue.offer(updated);
+    } finally {
+      delayQueueLock.unlock();
+    }
   }
 
   /**

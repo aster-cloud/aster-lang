@@ -1,0 +1,9 @@
+Define ComplexPayload with
+  payload: Map[Result[T, E], Error],
+  handler: io.Http.Client,
+  mapper: Result[T, E].
+
+Define NestedCollection with
+  nested: Map[Result[T, E], Error],
+  typed: Result[T, E],
+  namespaced: io.Http.Client.

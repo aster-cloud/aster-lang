@@ -28,9 +28,11 @@ export interface ErrorAction {
 let outputChannel: vscode.OutputChannel | undefined;
 
 /**
- * 获取或创建输出通道
+ * 获取或创建输出通道（单例）
+ *
+ * 导出此函数供其他模块使用，确保整个扩展只有一个 Aster 输出通道实例。
  */
-function getOutputChannel(): vscode.OutputChannel {
+export function getOutputChannel(): vscode.OutputChannel {
   if (!outputChannel) {
     outputChannel = vscode.window.createOutputChannel('Aster');
   }
@@ -75,14 +77,12 @@ export async function showResourceError(
     const action = actions.find(a => a.label === selection);
     if (action) {
       try {
-        // 执行处理函数
-        const result = action.handler();
-        // 如果返回 Promise，等待完成
-        if (result instanceof Promise) {
-          await result;
-        }
+        // 执行处理函数并等待结果（支持 Promise 和 VSCode Thenable）
+        channel.appendLine(`[ACTION] 执行操作: ${action.label}`);
+        await Promise.resolve(action.handler());
+        channel.appendLine(`[ACTION] 操作完成: ${action.label}`);
       } catch (error: any) {
-        channel.appendLine(`[ERROR] 操作执行失败: ${error}`);
+        channel.appendLine(`[ERROR] 操作执行失败 (${action.label}): ${error}`);
         vscode.window.showErrorMessage(`操作失败: ${error.message || String(error)}`);
       }
     }
@@ -107,6 +107,10 @@ function buildErrorMessage(resourceType: ResourceType, resourcePath: string): st
   }
 }
 
+/** Aster 项目文档和 Release 页面 URL */
+const ASTER_DOCS_URL = 'https://github.com/anthropics/aster-lang#readme';
+const ASTER_RELEASES_URL = 'https://github.com/anthropics/aster-lang/releases';
+
 /**
  * 预定义的标准操作按钮
  */
@@ -122,24 +126,32 @@ export const StandardActions = {
   }),
 
   /**
+   * "查看文档"按钮 - 打开 Aster 项目文档
+   */
+  openDocumentation: (): ErrorAction => ({
+    label: '查看文档',
+    handler: () => {
+      vscode.env.openExternal(vscode.Uri.parse(ASTER_DOCS_URL));
+    },
+  }),
+
+  /**
+   * "下载最新版本"按钮 - 打开 Release 页面
+   */
+  openReleases: (): ErrorAction => ({
+    label: '下载最新版本',
+    handler: () => {
+      vscode.env.openExternal(vscode.Uri.parse(ASTER_RELEASES_URL));
+    },
+  }),
+
+  /**
    * "配置路径"按钮 - 打开设置面板
    */
   configurePath: (settingKey: string): ErrorAction => ({
     label: '配置路径',
     handler: () => {
       vscode.commands.executeCommand('workbench.action.openSettings', settingKey);
-    },
-  }),
-
-  /**
-   * "自动构建"按钮 - 在终端执行构建命令
-   */
-  autoBuild: (buildCommand: string = 'npm run build'): ErrorAction => ({
-    label: '自动构建',
-    handler: () => {
-      const terminal = vscode.window.createTerminal('Aster Build');
-      terminal.sendText(buildCommand);
-      terminal.show();
     },
   }),
 

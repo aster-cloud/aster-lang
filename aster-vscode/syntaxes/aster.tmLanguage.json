@@ -22,6 +22,12 @@
       "include": "#enum-declaration"
     },
     {
+      "include": "#type-alias"
+    },
+    {
+      "include": "#workflow"
+    },
+    {
       "include": "#keywords"
     },
     {
@@ -62,24 +68,40 @@
     "comments": {
       "patterns": [
         {
-          "name": "comment.line.number-sign.aster",
-          "match": "#.*$"
+          "comment": "Block comment using ### ... ### (must be at line start to avoid false termination)",
+          "name": "comment.block.aster",
+          "begin": "^\\s*(###)\\s*$",
+          "end": "^\\s*(###)\\s*$",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.comment.begin.aster" }
+          },
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.comment.end.aster" }
+          }
         },
         {
-          "name": "comment.line.double-slash.aster",
-          "match": "//.*$"
+          "comment": "Line comment using # (per AsterLexer.g4:133-139)",
+          "name": "comment.line.number-sign.aster",
+          "match": "#(?!##).*$"
         }
       ]
     },
     "module-declaration": {
       "patterns": [
         {
-          "match": "^(This module is)\\s+([A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)*)\\s*\\.",
+          "comment": "Module declaration: This/this module is name. (case-insensitive per AsterLexer.g4, IDENT allows _ prefix)",
+          "match": "^([Tt]his)\\s+([Mm]odule)\\s+([Ii]s)\\s+([A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*)\\s*\\.",
           "captures": {
             "1": {
               "name": "keyword.control.module.aster"
             },
             "2": {
+              "name": "keyword.control.module.aster"
+            },
+            "3": {
+              "name": "keyword.control.module.aster"
+            },
+            "4": {
               "name": "entity.name.namespace.aster"
             }
           }
@@ -89,13 +111,14 @@
     "import-statement": {
       "patterns": [
         {
-          "match": "^(Use)\\s+([A-Z][A-Za-z0-9_]*)(?:\\s+(as)\\s+([A-Z][A-Za-z0-9_]*))?\\s*\\.",
+          "comment": "Import with qualified name: Use io.Http. or Use io.Http as Client. (IDENT allows _ prefix per AsterLexer.g4)",
+          "match": "^(Use|use)\\s+([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)(?:\\s+(as)\\s+([A-Za-z_][A-Za-z0-9_]*))?\\s*\\.",
           "captures": {
             "1": {
               "name": "keyword.control.import.aster"
             },
             "2": {
-              "name": "entity.name.type.aster"
+              "name": "entity.name.namespace.aster"
             },
             "3": {
               "name": "keyword.control.alias.aster"
@@ -110,34 +133,74 @@
     "function-declaration": {
       "patterns": [
         {
-          "match": "^(To)\\s+([a-z][A-Za-z0-9_]*)",
-          "captures": {
+          "comment": "Function declaration with params and return type: To funcName with x: Type<T>, produce Result<T, E>: (per AsterParser.g4:84-86)",
+          "begin": "^([Tt]o)\\s+([a-z_][A-Za-z0-9_]*)",
+          "beginCaptures": {
             "1": {
               "name": "keyword.control.function.aster"
             },
             "2": {
               "name": "entity.name.function.aster"
             }
-          }
-        },
-        {
-          "match": "\\b(with|produce|It performs)\\b",
-          "name": "keyword.control.function.aster"
+          },
+          "end": "(?=:(?:\\s*$|\\s*#))",
+          "patterns": [
+            {
+              "include": "#annotations"
+            },
+            {
+              "include": "#effects"
+            },
+            {
+              "comment": "Function keywords: with, produce (not It performs - handled by #effects)",
+              "match": "\\b([Ww]ith|[Pp]roduce)\\b",
+              "name": "keyword.control.function.aster"
+            },
+            {
+              "comment": "Parameter separator: and/AND only when followed by parameter name (lowercase), not type keywords (per AsterParser.g4 parameter list uses 'and' between params)",
+              "match": "\\b(and|AND)\\b(?=\\s+[a-z_])|,",
+              "name": "keyword.control.separator.aster"
+            },
+            {
+              "comment": "Parameter name followed by colon",
+              "match": "([a-z_][A-Za-z0-9_]*)\\s*(:)",
+              "captures": {
+                "1": {
+                  "name": "variable.parameter.aster"
+                },
+                "2": {
+                  "name": "punctuation.separator.colon.aster"
+                }
+              }
+            },
+            {
+              "include": "#annotated-type"
+            },
+            {
+              "comment": "Period before capability annotation (per AsterParser.g4:85 DOT capabilityAnnotation? COLON)",
+              "match": "\\.",
+              "name": "punctuation.separator.capability.aster"
+            }
+          ]
         }
       ]
     },
     "data-type-declaration": {
       "patterns": [
         {
-          "begin": "^(Define)\\s+([A-Z][A-Za-z0-9_]*)\\s+(with)\\s+",
+          "comment": "Data type: Define [a/an] TypeName with ... (per AsterParser.g4:133-134 dataDecl : DEFINE article? TYPE_IDENT WITH fieldList DOT)",
+          "begin": "^(Define)(?:\\s+(a|an|A|An))?\\s+([A-Z][A-Za-z0-9_]*)\\s+(with)\\s+",
           "beginCaptures": {
             "1": {
               "name": "keyword.control.data.aster"
             },
             "2": {
-              "name": "entity.name.type.aster"
+              "name": "keyword.control.article.aster"
             },
             "3": {
+              "name": "entity.name.type.aster"
+            },
+            "4": {
               "name": "keyword.control.data.aster"
             }
           },
@@ -152,19 +215,27 @@
               "include": "#annotations"
             },
             {
+              "comment": "Field separator: and (per AsterParser.g4:141-143 fieldList : field ((AND | COMMA) field)*)",
+              "match": "\\b(and|AND)\\b",
+              "name": "keyword.control.field.separator.aster"
+            },
+            {
               "name": "meta.field.definition.aster",
-              "match": "([a-z][A-Za-z0-9_]*)\\s*(:)\\s*([A-Z][A-Za-z0-9_]*)",
-              "captures": {
+              "begin": "([a-z_][A-Za-z0-9_]*)\\s*(:)",
+              "beginCaptures": {
                 "1": {
                   "name": "variable.other.field.aster"
                 },
                 "2": {
                   "name": "punctuation.separator.colon.aster"
-                },
-                "3": {
-                  "name": "entity.name.type.aster"
                 }
-              }
+              },
+              "end": "(?=,\\s*[a-z_]|\\s+(?:and|AND)\\s+[a-z_]|\\.|$)",
+              "patterns": [
+                {
+                  "include": "#annotated-type"
+                }
+              ]
             }
           ]
         },
@@ -183,8 +254,9 @@
           }
         },
         {
-          "match": "^(It has)\\s+([a-z][A-Za-z0-9_]*)\\s*:\\s*([A-Z][A-Za-z0-9_]*)",
-          "captures": {
+          "comment": "Legacy record field: It has fieldName: Type. (supports CNL generics like list of RuleCondition)",
+          "begin": "^(It has)\\s+([a-z_][A-Za-z0-9_]*)\\s*(:)",
+          "beginCaptures": {
             "1": {
               "name": "keyword.control.field.aster"
             },
@@ -192,35 +264,46 @@
               "name": "variable.other.field.aster"
             },
             "3": {
-              "name": "entity.name.type.aster"
+              "name": "punctuation.separator.colon.aster"
             }
-          }
+          },
+          "end": "(?=\\.|$)",
+          "patterns": [
+            {
+              "include": "#annotated-type"
+            }
+          ]
         }
       ]
     },
     "enum-declaration": {
       "patterns": [
         {
-          "match": "^(Define)\\s+([A-Z][A-Za-z0-9_]*)\\s+(as)\\s+(enum)\\s+(with)",
+          "comment": "CNL enum: Define [a/an] Status as one of ... (per AsterParser.g4:162-163 enumDecl : DEFINE article? TYPE_IDENT AS ONE OF variantList DOT)",
+          "match": "^(Define)(?:\\s+(a|an|A|An))?\\s+([A-Z][A-Za-z0-9_]*)\\s+(as)\\s+(one)\\s+(of)",
           "captures": {
             "1": {
               "name": "keyword.control.enum.aster"
             },
             "2": {
-              "name": "entity.name.type.aster"
+              "name": "keyword.control.article.aster"
             },
             "3": {
-              "name": "keyword.control.enum.aster"
+              "name": "entity.name.type.aster"
             },
             "4": {
-              "name": "storage.type.enum.aster"
+              "name": "keyword.control.enum.aster"
             },
             "5": {
+              "name": "keyword.control.enum.aster"
+            },
+            "6": {
               "name": "keyword.control.enum.aster"
             }
           }
         },
         {
+          "comment": "Legacy CNL enum: An X is one of ...",
           "match": "^(An?)\\s+([A-Z][A-Za-z0-9_]*)\\s+(is one of)",
           "captures": {
             "1": {
@@ -236,11 +319,170 @@
         }
       ]
     },
+    "type-alias": {
+      "patterns": [
+        {
+          "comment": "Annotations before type alias: @pii @sensitive type Email as Text. (supports multiple)",
+          "match": "(@[A-Za-z_][A-Za-z0-9_]*)(?=\\s+(?:@|[Tt]ype))",
+          "captures": {
+            "1": {
+              "name": "entity.name.tag.annotation.aster"
+            }
+          }
+        },
+        {
+          "comment": "CNL type alias: type Email as Text. or type Result<T, E> as ... (per AsterParser.g4:200-214)",
+          "begin": "([Tt]ype)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.type.aster"
+            },
+            "2": {
+              "name": "entity.name.type.alias.aster"
+            }
+          },
+          "end": "(\\.)\\s*(?![A-Za-z_])",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.terminator.statement.aster"
+            }
+          },
+          "patterns": [
+            {
+              "comment": "Type parameters declaration: <T, E, ...> (per AsterParser.g4 typeParamList)",
+              "begin": "<",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.definition.typeparameters.begin.aster"
+                }
+              },
+              "end": ">",
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.definition.typeparameters.end.aster"
+                }
+              },
+              "patterns": [
+                {
+                  "match": "[A-Za-z_][A-Za-z0-9_]*",
+                  "name": "variable.parameter.type.aster"
+                },
+                {
+                  "match": ",",
+                  "name": "punctuation.separator.comma.aster"
+                }
+              ]
+            },
+            {
+              "match": "\\b(as)\\b",
+              "name": "keyword.control.type.aster"
+            },
+            {
+              "include": "#annotated-type"
+            }
+          ]
+        }
+      ]
+    },
+    "workflow": {
+      "patterns": [
+        {
+          "comment": "CNL workflow declaration: workflow:",
+          "match": "^\\s*([Ww]orkflow)\\s*:",
+          "captures": {
+            "1": {
+              "name": "keyword.control.workflow.aster"
+            }
+          }
+        },
+        {
+          "comment": "CNL step declaration: step name depends on [\"a\",\"b\"]: (IDENT allows _ prefix)",
+          "match": "^\\s*([Ss]tep)\\s+([a-z_][A-Za-z0-9_]*)(?:\\s+([Dd]epends)\\s+([Oo]n)\\s*\\[([^\\]]*)\\])?\\s*:",
+          "captures": {
+            "1": {
+              "name": "keyword.control.step.aster"
+            },
+            "2": {
+              "name": "entity.name.function.step.aster"
+            },
+            "3": {
+              "name": "keyword.control.depends.aster"
+            },
+            "4": {
+              "name": "keyword.control.on.aster"
+            },
+            "5": {
+              "name": "string.quoted.aster"
+            }
+          }
+        },
+        {
+          "comment": "CNL compensation block: compensate:",
+          "match": "^\\s*([Cc]ompensate)\\s*:",
+          "captures": {
+            "1": {
+              "name": "keyword.control.compensate.aster"
+            }
+          }
+        },
+        {
+          "comment": "CNL retry block: retry:",
+          "match": "^\\s*([Rr]etry)\\s*:",
+          "captures": {
+            "1": {
+              "name": "keyword.control.retry.aster"
+            }
+          }
+        },
+        {
+          "comment": "CNL retry directive: max attempts: 3.",
+          "match": "\\b([Mm]ax)\\s+([Aa]ttempts)\\s*:\\s*(\\d+)\\s*\\.",
+          "captures": {
+            "1": {
+              "name": "keyword.control.max.aster"
+            },
+            "2": {
+              "name": "keyword.control.attempts.aster"
+            },
+            "3": {
+              "name": "constant.numeric.integer.aster"
+            }
+          }
+        },
+        {
+          "comment": "CNL retry directive: backoff: exponential.",
+          "match": "\\b([Bb]ackoff)\\s*:\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\.",
+          "captures": {
+            "1": {
+              "name": "keyword.control.backoff.aster"
+            },
+            "2": {
+              "name": "variable.other.aster"
+            }
+          }
+        },
+        {
+          "comment": "CNL timeout: timeout: 5000 seconds. or timeout: 1 second. (per AsterLexer.g4:108-112 SECONDS token)",
+          "match": "\\b([Tt]imeout)\\s*:\\s*(\\d+)\\s+([Ss]econds?)\\s*\\.",
+          "captures": {
+            "1": {
+              "name": "keyword.control.timeout.aster"
+            },
+            "2": {
+              "name": "constant.numeric.integer.aster"
+            },
+            "3": {
+              "name": "keyword.control.seconds.aster"
+            }
+          }
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.aster",
-          "match": "\\b(Return|Match|When|If|Else|Otherwise|Let|Set|Start|Wait|Await|Define|To|be)\\b"
+          "match": "\\b([Rr]eturn|[Mm]atch|[Ww]hen|[Ii]f|[Ee]lse|[Oo]therwise|[Ll]et|[Ss]et|[Ss]tart|[Ww]ait|[Aa]wait|[Dd]efine|[Tt]o|be|type|as|one|of|[Ww]orkflow|[Ss]tep|[Cc]ompensate|for|[Rr]etry|[Tt]imeout|[Dd]epends|on|produce|with|and|[Mm]ax|[Aa]ttempts|[Bb]ackoff|[Ss]econds|[Ff]unction|[Aa]sync)\\b"
         },
         {
           "name": "constant.language.boolean.aster",
@@ -261,9 +503,50 @@
       ]
     },
     "effects": {
+      "comment": "Capability annotation per AsterParser.g4:125-127: IT PERFORMS IDENT (LBRACKET TYPE_IDENT (COMMA TYPE_IDENT)* RBRACKET)?",
       "patterns": [
         {
-          "match": "\\b(Http|Db|Sql|Time|Files|Secrets|AiModel)\\.",
+          "comment": "It performs 语法: It performs io [Http, Sql] (per AsterParser.g4:125-127)",
+          "begin": "\\b([Ii]t)\\s+([Pp]erforms)\\s+([a-z_][A-Za-z0-9_]*)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.effect.aster"
+            },
+            "2": {
+              "name": "keyword.control.effect.aster"
+            },
+            "3": {
+              "name": "storage.type.effect.aster"
+            }
+          },
+          "end": "(?=:|\\.|$)",
+          "patterns": [
+            {
+              "comment": "方括号内的 Capability 列表: [Http, Sql, Time]",
+              "begin": "\\[",
+              "beginCaptures": {
+                "0": { "name": "punctuation.definition.capability-list.begin.aster" }
+              },
+              "end": "\\]",
+              "endCaptures": {
+                "0": { "name": "punctuation.definition.capability-list.end.aster" }
+              },
+              "patterns": [
+                {
+                  "match": ",",
+                  "name": "punctuation.separator.comma.aster"
+                },
+                {
+                  "match": "\\b([A-Z][A-Za-z0-9_]*)\\b",
+                  "name": "entity.name.capability.aster"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "comment": "Effect/Capability 方法调用: Http.get, Payment.process 等",
+          "match": "\\b([A-Z][A-Za-z0-9_]*)\\.",
           "captures": {
             "1": {
               "name": "entity.name.capability.aster"
@@ -306,8 +589,9 @@
     "function-calls": {
       "patterns": [
         {
+          "comment": "Function calls: func() or _privateFunc() (IDENT allows _ prefix)",
           "name": "entity.name.function.call.aster",
-          "match": "\\b[a-z][A-Za-z0-9_]*\\b(?=\\s*\\()"
+          "match": "\\b[a-z_][A-Za-z0-9_]*\\b(?=\\s*\\()"
         }
       ]
     },
@@ -322,8 +606,37 @@
     "constructor-fields": {
       "patterns": [
         {
+          "comment": "Constructor field assignment: fieldName = value (IDENT allows _ prefix per AsterLexer.g4)",
           "name": "variable.other.field.aster",
-          "match": "\\b([a-z][A-Za-z0-9_]*)(?=\\s*=)"
+          "match": "\\b([a-z_][A-Za-z0-9_]*)(?=\\s*=)"
+        }
+      ]
+    },
+    "angle-bracket-generics": {
+      "comment": "Angle bracket generics: List<T>, Map<K, V> - only triggers after type name to avoid conflict with comparison operators (per AsterParser.g4:248)",
+      "begin": "(?<=[A-Za-z0-9_])<",
+      "end": ">",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.typeparameters.begin.aster"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.typeparameters.end.aster"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#angle-bracket-generics"
+        },
+        {
+          "match": "[A-Za-z_][A-Za-z0-9_]*",
+          "name": "entity.name.type.aster"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.aster"
         }
       ]
     },
@@ -336,10 +649,61 @@
       ]
     },
     "types": {
+      "comment": "Type names at top level - only match uppercase types to avoid polluting identifiers. Lowercase containers (list, workflow) are handled in #annotated-type within specific contexts (per AsterParser.g4:247)",
       "patterns": [
+        {
+          "include": "#map-to-syntax"
+        },
         {
           "name": "entity.name.type.aster",
           "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "map-to-syntax": {
+      "comment": "Map TO syntax: Map Key TO Value - supports annotatedType with annotations and CNL generics like Result of Text and Error (per AsterParser.g4:239-249)",
+      "begin": "\\b(Map)\\s+",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.type.aster"
+        }
+      },
+      "end": "(?=\\.|,|\\)|\\]|:|\\s*$|\\s+(?:with|WITH)\\b)",
+      "patterns": [
+        {
+          "include": "#annotations"
+        },
+        {
+          "comment": "TO keyword (case-insensitive)",
+          "match": "\\b([Tt][Oo])\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.control.generic.aster"
+            }
+          }
+        },
+        {
+          "comment": "CNL generic keywords: Result OF Text AND Error (fully case-insensitive per AsterParser.g4:247)",
+          "match": "\\b([Oo][Ff]|[Aa][Nn][Dd])\\b",
+          "name": "keyword.control.generic.aster"
+        },
+        {
+          "include": "#angle-bracket-generics"
+        },
+        {
+          "comment": "Maybe type suffix",
+          "match": "\\?",
+          "name": "keyword.operator.question.aster"
+        },
+        {
+          "comment": "Union type operator",
+          "match": "\\|",
+          "name": "keyword.operator.union.aster"
+        },
+        {
+          "comment": "Qualified type name: io.Http.Client, list, workflow (supports lowercase per AsterParser.g4:247)",
+          "match": "[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*",
+          "name": "entity.name.type.aster"
         }
       ]
     },
@@ -350,12 +714,24 @@
           "match": "&&|\\|\\|"
         },
         {
+          "name": "keyword.operator.union.aster",
+          "match": "(?<!\\|)\\|(?!\\|)"
+        },
+        {
+          "name": "keyword.operator.arrow.fat.aster",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.arrow.aster",
+          "match": "->"
+        },
+        {
           "name": "keyword.operator.comparison.aster",
           "match": "==|!=|<=|>=|<|>"
         },
         {
           "name": "keyword.operator.assignment.aster",
-          "match": "="
+          "match": "(?<!>)=(?!=)"
         },
         {
           "name": "keyword.operator.arithmetic.aster",
@@ -368,6 +744,53 @@
         {
           "name": "keyword.operator.question.aster",
           "match": "\\?"
+        }
+      ]
+    },
+    "annotated-type": {
+      "comment": "Type expressions with annotations and generics (per AsterParser.g4:239-251). Used in function params, produce, data fields, type alias, and legacy 'It has' fields.",
+      "patterns": [
+        {
+          "include": "#annotations"
+        },
+        {
+          "include": "#map-to-syntax"
+        },
+        {
+          "include": "#angle-bracket-generics"
+        },
+        {
+          "comment": "CNL generic keywords: Result OF Text AND Error (fully case-insensitive per AsterParser.g4:247)",
+          "match": "\\b([Oo][Ff]|[Aa][Nn][Dd])\\b",
+          "name": "keyword.control.generic.aster"
+        },
+        {
+          "comment": "Qualified type name: io.Http.Client, list, workflow (supports lowercase per AsterParser.g4:247 IDENT OF ...)",
+          "match": "[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*",
+          "name": "entity.name.type.aster"
+        },
+        {
+          "comment": "Maybe type suffix",
+          "match": "\\?",
+          "name": "keyword.operator.question.aster"
+        },
+        {
+          "comment": "Union type operator",
+          "match": "\\|",
+          "name": "keyword.operator.union.aster"
+        },
+        {
+          "comment": "Function type arrow",
+          "match": "->",
+          "name": "keyword.operator.arrow.aster"
+        },
+        {
+          "match": "[()]",
+          "name": "punctuation.brackets.round.aster"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.aster"
         }
       ]
     },

@@ -1,0 +1,58 @@
+# Block Comment Syntax Tests - Round 47
+
+# Simple block comment
+###
+This is a block comment.
+It can span multiple lines.
+###
+
+# Block comment with code-like content
+###
+To exampleFunction with x: Int, produce Int:
+  Return x + 1.
+This code is commented out.
+###
+
+# Block comment before declaration
+###
+User data type represents a system user.
+Contains basic profile information.
+###
+Define User with
+  id: UserId,
+  name: Text.
+
+# Line comment should still work
+# This is a line comment
+
+# Mixed comments - block must be on own lines
+###
+Block comment content
+###
+# Line comment
+###
+Another block
+###
+
+# Block comment with special characters
+###
+Special chars: @#$%^&*()
+Symbols: < > = + - * /
+Unicode: 你好世界 🎉
+###
+
+# Nested hash symbols inside block comment (now works correctly)
+###
+Use # for line comments
+Use ### for block comments - this is NOT a terminator!
+The ### markers only work at line start
+###
+
+# Empty block comment
+###
+###
+
+# Block comment at end of file
+###
+EOF comment
+###

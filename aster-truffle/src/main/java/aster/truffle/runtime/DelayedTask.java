@@ -9,12 +9,14 @@ package aster.truffle.runtime;
  * 3. 不可变对象（所有字段 final），线程安全
  */
 public class DelayedTask implements Comparable<DelayedTask> {
+  public final String taskId;
   public final String workflowId;
   public final long triggerAtMs;  // 绝对时间戳（毫秒）
   public final int attemptNumber;
   public final String failureReason;
 
-  public DelayedTask(String workflowId, long triggerAtMs, int attemptNumber, String failureReason) {
+  public DelayedTask(String taskId, String workflowId, long triggerAtMs, int attemptNumber, String failureReason) {
+    this.taskId = taskId;
     this.workflowId = workflowId;
     this.triggerAtMs = triggerAtMs;
     this.attemptNumber = attemptNumber;
@@ -29,7 +31,7 @@ public class DelayedTask implements Comparable<DelayedTask> {
 
   @Override
   public String toString() {
-    return String.format("DelayedTask{workflowId=%s, triggerAt=%d, attempt=%d, reason=%s}",
-        workflowId, triggerAtMs, attemptNumber, failureReason);
+    return String.format("DelayedTask{taskId=%s, workflowId=%s, triggerAt=%d, attempt=%d, reason=%s}",
+        taskId, workflowId, triggerAtMs, attemptNumber, failureReason);
   }
 }

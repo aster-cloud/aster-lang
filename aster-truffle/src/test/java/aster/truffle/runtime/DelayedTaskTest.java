@@ -34,21 +34,21 @@ public class DelayedTaskTest {
 
   @Test
   public void testCompareTo() {
-    DelayedTask early = new DelayedTask("wf-a", 1_000L, 1, "fail");
-    DelayedTask late = new DelayedTask("wf-b", 2_000L, 2, "fail");
+    DelayedTask early = new DelayedTask(null, "wf-a", 1_000L, 1, "fail");
+    DelayedTask late = new DelayedTask(null, "wf-b", 2_000L, 2, "fail");
 
     assertTrue(early.compareTo(late) < 0, "较早触发的任务应排在前面");
     assertTrue(late.compareTo(early) > 0, "较晚触发的任务应排在后面");
-    assertEquals(0, early.compareTo(new DelayedTask("wf-c", 1_000L, 3, "x")),
+    assertEquals(0, early.compareTo(new DelayedTask(null, "wf-c", 1_000L, 3, "x")),
         "触发时间一致时 compareTo 应返回 0");
   }
 
   @Test
   public void testPriorityQueueOrdering() {
     PriorityQueue<DelayedTask> queue = new PriorityQueue<>();
-    queue.offer(new DelayedTask("wf-late", 3_000L, 1, "late"));
-    queue.offer(new DelayedTask("wf-mid", 2_000L, 1, "mid"));
-    queue.offer(new DelayedTask("wf-early", 1_000L, 1, "early"));
+    queue.offer(new DelayedTask(null, "wf-late", 3_000L, 1, "late"));
+    queue.offer(new DelayedTask(null, "wf-mid", 2_000L, 1, "mid"));
+    queue.offer(new DelayedTask(null, "wf-early", 1_000L, 1, "early"));
 
     assertEquals("wf-early", queue.poll().workflowId);
     assertEquals("wf-mid", queue.poll().workflowId);

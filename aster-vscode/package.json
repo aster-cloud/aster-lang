@@ -30,7 +30,9 @@
     "onCommand:aster.debug",
     "onCommand:aster.buildNative",
     "onCommand:aster.package",
-    "workspaceContains:**/*.aster"
+    "workspaceContains:**/*.aster",
+    "workspaceContains:**/*.astr",
+    "workspaceContains:Asterfile"
   ],
   "contributes": {
     "languages": [
@@ -83,7 +85,7 @@
       },
       {
         "command": "aster.buildNative",
-        "title": "Aster: Build Native Executable"
+        "title": "Aster: 编译到 JVM (原生构建开发中)"
       },
       {
         "command": "aster.package",
@@ -122,6 +124,24 @@
           "type": "boolean",
           "default": false,
           "description": "启用调试输出（设置 ASTER_DEBUG=true）"
+        },
+        "aster.debug.mainClass": {
+          "type": "string",
+          "default": "",
+          "description": "调试时的 Java 主类名称（如 com.example.Main）。编译 Aster 文件后，需要指定生成的入口类才能启动调试会话。"
+        },
+        "aster.debug.classPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "调试时的 classpath 列表。留空则使用输出目录作为默认 classpath。支持相对路径（相对于工作区根目录）和绝对路径。"
+        },
+        "aster.debug.projectName": {
+          "type": "string",
+          "default": "aster-lang",
+          "description": "调试配置中的项目名称，用于 Java 调试扩展识别项目上下文。"
         }
       }
     }
@@ -138,6 +158,9 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
     "pretest": "npm run compile",
+    "test:syntax": "node scripts/run-textmate-tests.js",
+    "test:integration": "npm run compile && node tests/integration/lsp-lifecycle.test.js && node tests/integration/commands.test.js && node tests/integration/multi-workspace-hotplug.test.js",
+    "test:all": "npm run test:syntax && npm run test:integration",
     "package": "vsce package",
     "quick-package": "npm run copy:resources && npm run compile && vsce package"
   },
@@ -153,6 +176,8 @@
     "eslint": "^8.0.0",
     "fs-extra": "^11.3.2",
     "sharp": "^0.34.4",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vscode-oniguruma": "^1.7.0",
+    "vscode-textmate": "^9.2.1"
   }
 }

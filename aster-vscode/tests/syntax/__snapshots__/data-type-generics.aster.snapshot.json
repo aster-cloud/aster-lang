@@ -1,0 +1,870 @@
+[
+  {
+    "line": 1,
+    "startIndex": 0,
+    "endIndex": 6,
+    "text": "Define",
+    "scopes": [
+      "source.aster.data-type",
+      "keyword.control.data.aster"
+    ]
+  },
+  {
+    "line": 1,
+    "startIndex": 6,
+    "endIndex": 7,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 1,
+    "startIndex": 7,
+    "endIndex": 21,
+    "text": "ComplexPayload",
+    "scopes": [
+      "source.aster.data-type",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 1,
+    "startIndex": 21,
+    "endIndex": 22,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 1,
+    "startIndex": 22,
+    "endIndex": 26,
+    "text": "with",
+    "scopes": [
+      "source.aster.data-type",
+      "keyword.control.data.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 0,
+    "endIndex": 2,
+    "text": "  ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 2,
+    "endIndex": 9,
+    "text": "payload",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "variable.other.field.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 9,
+    "endIndex": 10,
+    "text": ":",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.colon.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 10,
+    "endIndex": 11,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 11,
+    "endIndex": 14,
+    "text": "Map",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 14,
+    "endIndex": 15,
+    "text": "[",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 15,
+    "endIndex": 21,
+    "text": "Result",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 21,
+    "endIndex": 22,
+    "text": "[",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 22,
+    "endIndex": 23,
+    "text": "T",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 23,
+    "endIndex": 24,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 24,
+    "endIndex": 25,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 25,
+    "endIndex": 26,
+    "text": "E",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 26,
+    "endIndex": 27,
+    "text": "]",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 27,
+    "endIndex": 28,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 28,
+    "endIndex": 29,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 29,
+    "endIndex": 34,
+    "text": "Error",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 34,
+    "endIndex": 35,
+    "text": "]",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 2,
+    "startIndex": 35,
+    "endIndex": 36,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 3,
+    "startIndex": 0,
+    "endIndex": 2,
+    "text": "  ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 3,
+    "startIndex": 2,
+    "endIndex": 9,
+    "text": "handler",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "variable.other.field.aster"
+    ]
+  },
+  {
+    "line": 3,
+    "startIndex": 9,
+    "endIndex": 10,
+    "text": ":",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.colon.aster"
+    ]
+  },
+  {
+    "line": 3,
+    "startIndex": 10,
+    "endIndex": 11,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 3,
+    "startIndex": 11,
+    "endIndex": 25,
+    "text": "io.Http.Client",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 3,
+    "startIndex": 25,
+    "endIndex": 26,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 0,
+    "endIndex": 2,
+    "text": "  ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 2,
+    "endIndex": 8,
+    "text": "mapper",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "variable.other.field.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 8,
+    "endIndex": 9,
+    "text": ":",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.colon.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 9,
+    "endIndex": 10,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 10,
+    "endIndex": 16,
+    "text": "Result",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 16,
+    "endIndex": 17,
+    "text": "[",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 17,
+    "endIndex": 18,
+    "text": "T",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 18,
+    "endIndex": 19,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 19,
+    "endIndex": 20,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 20,
+    "endIndex": 21,
+    "text": "E",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 21,
+    "endIndex": 22,
+    "text": "]",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 4,
+    "startIndex": 22,
+    "endIndex": 23,
+    "text": ".",
+    "scopes": [
+      "source.aster.data-type",
+      "punctuation.terminator.statement.aster"
+    ]
+  },
+  {
+    "line": 5,
+    "startIndex": 0,
+    "endIndex": 1,
+    "text": "",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 6,
+    "startIndex": 0,
+    "endIndex": 6,
+    "text": "Define",
+    "scopes": [
+      "source.aster.data-type",
+      "keyword.control.data.aster"
+    ]
+  },
+  {
+    "line": 6,
+    "startIndex": 6,
+    "endIndex": 7,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 6,
+    "startIndex": 7,
+    "endIndex": 23,
+    "text": "NestedCollection",
+    "scopes": [
+      "source.aster.data-type",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 6,
+    "startIndex": 23,
+    "endIndex": 24,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 6,
+    "startIndex": 24,
+    "endIndex": 28,
+    "text": "with",
+    "scopes": [
+      "source.aster.data-type",
+      "keyword.control.data.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 0,
+    "endIndex": 2,
+    "text": "  ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 2,
+    "endIndex": 8,
+    "text": "nested",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "variable.other.field.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 8,
+    "endIndex": 9,
+    "text": ":",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.colon.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 9,
+    "endIndex": 10,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 10,
+    "endIndex": 13,
+    "text": "Map",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 13,
+    "endIndex": 14,
+    "text": "[",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 14,
+    "endIndex": 20,
+    "text": "Result",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 20,
+    "endIndex": 21,
+    "text": "[",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 21,
+    "endIndex": 22,
+    "text": "T",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 22,
+    "endIndex": 23,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 23,
+    "endIndex": 24,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 24,
+    "endIndex": 25,
+    "text": "E",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 25,
+    "endIndex": 26,
+    "text": "]",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 26,
+    "endIndex": 27,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 27,
+    "endIndex": 28,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 28,
+    "endIndex": 33,
+    "text": "Error",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 33,
+    "endIndex": 34,
+    "text": "]",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 7,
+    "startIndex": 34,
+    "endIndex": 35,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 0,
+    "endIndex": 2,
+    "text": "  ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 2,
+    "endIndex": 7,
+    "text": "typed",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "variable.other.field.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 7,
+    "endIndex": 8,
+    "text": ":",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.colon.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 8,
+    "endIndex": 9,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 9,
+    "endIndex": 15,
+    "text": "Result",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 15,
+    "endIndex": 16,
+    "text": "[",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 16,
+    "endIndex": 17,
+    "text": "T",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 17,
+    "endIndex": 18,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 18,
+    "endIndex": 19,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 19,
+    "endIndex": 20,
+    "text": "E",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 20,
+    "endIndex": 21,
+    "text": "]",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 8,
+    "startIndex": 21,
+    "endIndex": 22,
+    "text": ",",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.comma.aster"
+    ]
+  },
+  {
+    "line": 9,
+    "startIndex": 0,
+    "endIndex": 2,
+    "text": "  ",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  },
+  {
+    "line": 9,
+    "startIndex": 2,
+    "endIndex": 12,
+    "text": "namespaced",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "variable.other.field.aster"
+    ]
+  },
+  {
+    "line": 9,
+    "startIndex": 12,
+    "endIndex": 13,
+    "text": ":",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "punctuation.separator.colon.aster"
+    ]
+  },
+  {
+    "line": 9,
+    "startIndex": 13,
+    "endIndex": 14,
+    "text": " ",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster"
+    ]
+  },
+  {
+    "line": 9,
+    "startIndex": 14,
+    "endIndex": 28,
+    "text": "io.Http.Client",
+    "scopes": [
+      "source.aster.data-type",
+      "meta.field.definition.aster",
+      "entity.name.type.aster"
+    ]
+  },
+  {
+    "line": 9,
+    "startIndex": 28,
+    "endIndex": 29,
+    "text": ".",
+    "scopes": [
+      "source.aster.data-type",
+      "punctuation.terminator.statement.aster"
+    ]
+  },
+  {
+    "line": 10,
+    "startIndex": 0,
+    "endIndex": 1,
+    "text": "",
+    "scopes": [
+      "source.aster.data-type"
+    ]
+  }
+]

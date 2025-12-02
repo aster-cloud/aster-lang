@@ -1,3 +1,66 @@
+# 2025-12-01 17:27 NZDT aster-vscode Round14 深度审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×5、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__find_files ×2、mcp__code-index__search_code_advanced ×2、mcp__code-index__get_file_summary ×1。
+- 命令：`ls` 浏览仓库、`sed -n`/`nl -ba` 阅读 `aster-vscode/syntaxes/aster.tmLanguage.json`、`language-configuration.json`、`src/extension.ts`、`src/error-handler.ts`、`src/resource-resolver.ts`、`aster-core/src/main/antlr/AsterParser.g4`、`AsterLexer.g4`、`aster-vscode/package.json`；`rg -n` 检索关键 regex；`TZ='Pacific/Auckland' date` 记录时间。
+- 操作：对照 ANTLR 语法梳理 TextMate 规则、语言配置与 LSP 入口，记录注释/能力/泛型差异，撰写 `.claude/review-report-aster-vscode-round14.md`，并更新本日志。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round14.md`：新增第14轮审查报告，含五层法、问题列表、覆盖矩阵与评分。
+
+**验证结果**:
+- 纯审查与文档工作，未运行构建或测试。
+
+# 2025-11-30 21:59 NZDT aster-vscode Round2 再验证
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×3。
+- 命令：`ls` 浏览仓库、`sed -n`/`nl -ba` 阅读 `aster-vscode/src/extension.ts`、`src/error-handler.ts`、`src/resource-resolver.ts`、`syntaxes/aster.tmLanguage.json`、`quarkus-policy-api/.../order-fulfillment.aster`、`rg -n 'runAsterCommand'` 搜索引用、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 记录时间、`cat .claude/review-report-aster-vscode-round2.md` 查看旧稿。
+- 操作：根据主指令验证 H1/M1/M2/M3/M4/L1 修复情况，记录 multi-root fallback、Debug 异常吞没与 effect 高亮缺陷；使用 `apply_patch` 覆盖 `.claude/review-report-aster-vscode-round2.md`，更新审查结论和五层分析。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round2.md`：刷新为 2025-11-30 21:59 NZDT 新版第二轮审查报告。
+
+**验证结果**:
+- 文档与审查工作，无需执行构建或测试。
+
+# 2025-11-30 21:55 NZDT aster-vscode Round2 审查报告输出
+
+**操作记录**:
+- 命令：`cat <<'EOF' > .claude/review-report-aster-vscode-round2.md` 生成审查报告、`sed -n` 复核新文件、`TZ='Pacific/Auckland' date` 记录时间。
+- 操作：依据前序取证结果撰写 `.claude/review-report-aster-vscode-round2.md`，覆盖修复验证表、新问题、评分、五层分析与结论。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round2.md`：新增第二轮审查报告，记录修复确认与三项新问题。
+
+**验证结果**:
+- 文档与审查输出，不涉及构建或测试。
+
+# 2025-11-30 21:54 NZDT aster-vscode Round2 修复验证取证
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×5。
+- 命令：`ls` 浏览仓库、`sed -n`/`nl -ba` 逐段阅读 `aster-vscode/src/extension.ts`、`src/error-handler.ts`、`src/resource-resolver.ts`、`syntaxes/aster.tmLanguage.json`、`package.json`，`rg -n 'It performs' -g '*.aster'` 搜集 Effects 示例、`rg -n 'with'`/`rg -n 'Payment'` 验证语法覆盖、`TZ='Pacific/Auckland' date` 记录时间、`cat operations-log.md` 回顾格式。
+- 操作：验证 H1/M1/M2/M3/M4/L1 修复位置，确认 `startClient` 状态监听、`getWorkspaceRoot` fileUri 支持、`runAsterCommand` 工作区校验、`StandardActions` 新按钮、`disposeErrorHandler` 清理与语法高亮规则；同步采集多工作区 fallback、调试命令容错与 capability 语法缺陷的证据，准备 round2 审查报告。
+
+**文件状态**:
+- 仅阅读及记录证据，尚未生成新的审查文档（稍后写入 `.claude/review-report-aster-vscode-round2.md`）。
+
+**验证结果**:
+- 审查与取证阶段，无需执行构建或测试。
+
+# 2025-11-30 21:17 NZDT aster-vscode 模块深度审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×5、shell（sed/nl/rg/cat/ls/date/mv）×26。
+- 命令：多次 `sed -n`/`nl -ba` 阅读 `aster-vscode/src/extension.ts`、`src/error-handler.ts`、`src/resource-resolver.ts`、`syntaxes/aster.tmLanguage.json`、`package.json`，并取样 `examples/workflow/error-recovery.aster`；`rg --files` 检索 .aster 与日志；`TZ='Pacific/Auckland' date` 记录时间；`cat <<'EOF' > /tmp/...` 撰写报告草稿并 `mv` 至 `.claude/review-report-aster-vscode.md`；`sed -n` 复核生成文件。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode.md`：新增 VSCode 扩展深度审查报告，记录六项问题、正面观察与整改建议。
+
+**验证结果**:
+- 文档与审查任务，未执行构建或测试。
+
 # 2025-11-30 18:46 NZST aster-idea Round11 全量审查
 
 **操作记录**:
@@ -9645,3 +9708,150 @@ if (entity == null) {
 - 工具：mcp__code-index__set_project_path、mcp__code-index__find_files → 绑定工作区并快速枚举 `aster-idea/src/main/java/io/aster/idea/**/*.java`。
 - 命令：`rg -n`、`sed -n` ×15、`ls .claude`、`sed -n '.claude/review-report-aster-idea-round3.md'`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M NZDT'` → 精读 `AsterParser/AsterReference/AsterCompletionContributor/AsterModuleResolver/AsterStructureViewElement/AsterExternalAnnotator`，采集证据并记录时间戳。
 - 操作：本轮未修改源码，仅准备审查报告与日志记录。
+# 2025-11-30 22:51 NZDT aster-vscode round7 审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×6 → 根据 AGENTS.md 前置流程梳理第七轮审查目标、验证要点与执行步骤。
+- 工具：mcp__code-index__set_project_path → 绑定仓库根目录并构建检索索引。
+- 工具：mcp__code-index__find_files ×2 → 确认 `aster-vscode/src` 及语法文件存在路径。
+- 命令：`sed -n` ×8、`rg -n` ×1 → 精读 `extension.ts/error-handler.ts/resource-resolver.ts/aster.tmLanguage.json` 并定位配置调用、资源优先级与语法规则。
+- 命令：`TZ='Pacific/Auckland' date` → 记录日志时间戳。
+
+**文件状态**:
+- 本轮暂未修改源码，仅准备审查报告与上下文。
+
+# 2025-11-30 23:20 NZDT aster-vscode round8 审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 按 AGENTS.md 要求完成第八轮审查的任务拆解与风险识别。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files、mcp__code-index__search_code_advanced ×3 → 绑定索引并检索 `aster-vscode` 目录、grammar 与示例文件。
+- 命令：`ls`、`git status -sb`、`sed -n` ×10、`rg -n` ×3、`nl -ba` ×2、`cat`、`TZ='Pacific/Auckland' date` ×2 → 浏览 `extension.ts/package.json/aster.tmLanguage.json/TypeAlias.aster` 并获取证据。
+- 操作：`apply_patch` ×2 → 重写 `.claude/review-report-aster-vscode-round8.md` 与更新本日志。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round8.md`：生成第八轮审查报告，记录验证结果与评分。
+
+# 2025-11-30 23:28 NZDT aster-vscode round9 审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×3 → 依 AGENTS.md 前置流程完成第九轮审查的任务理解、重点确认与执行路径规划。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__find_files ×3 → 绑定仓库根目录并枚举 `aster-vscode/src/*.ts`、`syntaxes`、`package.json`。
+- 命令：`ls`、`sed -n` ×9、`cat` ×3、`rg -n` ×4、`nl -ba`、`TZ='Pacific/Auckland' date` ×2 → 精读 `extension.ts/error-handler.ts/resource-resolver.ts/aster.tmLanguage.json/package.json/TypeAlias.aster` 及语言参考，核对语法规则和示例。
+- 操作：`apply_patch` ×2 → 新增 `.claude/review-report-aster-vscode-round9.md` 并记录本次日志更新。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round9.md`：提交第九轮审查报告。
+- `operations-log.md`：追加 round9 审查操作记录。
+
+# 2025-12-01 18:38 NZST aster-vscode round15 审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2、update_plan ×2 → 依据 AGENTS.md 前置流程进行任务理解、拆分与进度同步。
+- 工具：mcp__code-index__set_project_path、mcp__code-index__build_deep_index、mcp__code-index__get_file_summary ×2 → 绑定仓库根目录并索引 `aster-vscode/syntaxes/aster.tmLanguage.json` 及语法参考。
+- 命令：`ls`、`cat` ×8、`sed -n` ×4、`rg -n` ×4、`nl -ba` ×5、`TZ='Pacific/Auckland' date`、`tail -n` → 阅读六个核心文件与 `AsterLexer/Parser.g4`、提取示例及时间戳。
+- 操作：`cat <<'EOF'` ×1 → 生成 `.claude/review-report-aster-vscode-round15.md` 并记录结论。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round15.md`：输出第十五轮审查结果、评分与建议。
+- `operations-log.md`：补充 round15 审查操作与文件产出。
+# 2025-12-01 19:09 NZDT aster-vscode Round16 深度审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2、update_plan ×3 → 按 AGENTS.md 要求完成任务理解、阶段同步与收尾状态更新。
+- 工具：mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×3、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×1（尝试读取 `AsterLexer.g4`，提示 needs_deep_index，记录后改用 shell 阅读）、mcp__code-index__search_code_advanced ×1 → 收集 aster-vscode 目录及 ANTLR 语法上下文。
+- 命令：`ls`、`cat operations-log.md`、`nl -ba`/`sed -n` 多次阅读 `aster.tmLanguage.json`、`language-configuration.json`、`extension.ts`、`error-handler.ts`、`resource-resolver.ts`、`package.json`、`AsterParser.g4`、`AsterLexer.g4`、若干 *.aster 示例与 `.claude` 历史报告；`rg -n` 搜索 `_`/workflow/Map 等语句；`TZ='Pacific/Auckland' date` 获取时间戳；`head`/`tail` 验证现有报告与日志格式。
+- 操作：比对 TextMate/语言配置与 ANTLR 语法，记录 `_` 前缀、timeout 单数、方括号泛型等差异；撰写 `.claude/review-report-aster-vscode-round16.md`（含五层法、问题列表、覆盖矩阵、评分），并追加本日志。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round16.md`：新增第 16 轮审查报告，列出 3×M、2×L 问题与 88 分结论。
+- `operations-log.md`：追加 round16 操作记录。
+
+**验证结果**:
+- 本轮为纯审查与文档输出，无需执行构建或测试。
+# 2025-12-02 11:21 NZDT aster-vscode Round23 审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 依据 AGENTS.md 前置流程梳理本轮审查目标、验证范围与关键信息源。
+- 工具：mcp__code-index__set_project_path ×1、mcp__code-index__find_files ×2（.claude 隐藏目录未被索引，记录后改用 shell 查看）、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×1、mcp__code-index__search_code_advanced ×4 → 绑定仓库、重建索引并检索 `#angle-bracket-generics`、`#map-to-syntax`、`#annotations` 等片段。
+- 命令：`ls`、`cat` ×4、`sed -n` ×5、`nl -ba` ×4、`rg -n` ×1、`TZ='Pacific/Auckland' date` ×1 → 阅读 `.claude/CODE_REVIEW_GUIDE.md`、`aster-vscode/syntaxes/aster.tmLanguage.json`、`aster-vscode/language-configuration.json`、`aster-core/src/main/antlr/AsterParser.g4` 并提取证据行号。
+- 操作：`cat <<'EOF' > .claude/review-report-aster-vscode-round23.md` ×1 → 生成 Round23 深度审查报告并记录评分、验证结论与覆盖矩阵。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round23.md`：新增 Round23 审查结果，涵盖五层法、修复验证、问题列表、CNL 覆盖矩阵与综合评分。
+- `operations-log.md`：追加 Round23 审查的操作与文件产出记录。
+
+# 2025-12-02 11:59 NZDT aster-vscode Round24 深度审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×2（任务理解与执行计划）、mcp__code-index__set_project_path ×1、mcp__code-index__build_deep_index ×1、mcp__code-index__get_file_summary ×6 → 绑定仓库、索引 `aster-vscode` 六个目标文件并获取摘要。
+- 命令：`ls`/`ls .claude` 浏览目录；`cat`/`sed -n`/`nl -ba` ×18 阅读 `aster-vscode/syntaxes/aster.tmLanguage.json`、`language-configuration.json`、`src/extension.ts`、`src/error-handler.ts`、`src/resource-resolver.ts`、`aster-core/src/main/antlr/AsterParser.g4`、`aster-vscode/package.json`；`rg -n` ×4 检索 `Map`/泛型模式；`TZ='Pacific/Auckland' date` 记录时间。
+- 操作：分析泛型/Map 改动对 TextMate 与语言配置的影响，定位 `packageCommand` 的 `const` 赋值错误；使用 `apply_patch` 新建 `.claude/review-report-aster-vscode-round24.md`，写入五层法、文件详情、问题列表、覆盖矩阵、评分与建议；同步更新本日志。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round24.md`：新增 Round24 审查报告。
+- `operations-log.md`：追加 Round24 深度审查留痕。
+
+**验证结果**:
+- 本轮仅完成代码审查与文档输出，未执行构建或测试。
+
+# 2025-12-02 14:58 NZST aster-vscode Round31 审查
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 依据 AGENTS.md 前置流程梳理 Round31 目标（tuple/optional 场景与 scope 断言）。
+- 工具：mcp__code-index__set_project_path ×1（绑定仓库）、mcp__code-index__build_deep_index ×2（第一次触发 fixture 摘要失败后重建索引）、mcp__code-index__get_file_summary ×3（语法 JSON、TextMate 脚本、snapshot，fixture 仍提示 needs_deep_index，记录后改用 shell 阅读）、mcp__code-index__search_code_advanced ×1（对 fixture 检索 “tuple”，确认索引为空）。 
+- 命令：`sed -n '140,160p'` 阅读 `aster.tmLanguage.json` 目标片段；`cat`/`sed -n` ×9 浏览 `tests/syntax/fixtures/cnl-types.aster`、`run-textmate-tests.js`、`cnl-types.aster.snapshot.json` Round31 新增段落；`rg -n` 定位 `SCOPE_ASSERTIONS`、`verifyScopeAssertions`；`node -e …` 统计 snapshot 中 `keyword.control.separator` 与 `keyword.control.generic` 的 and 数量；`TZ='Pacific/Auckland' date` 获取文档时间戳。
+- 操作：以 `apply_patch` 新建 `.claude/review-report-aster-vscode-round31.md`（沿用 Round30 模板写入五层法、验证结论、覆盖矩阵、评分与建议），并追加本日志条目。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round31.md`：新增 Round31 审查报告，含 scope 断言验证与新测试覆盖分析。
+- `operations-log.md`：追加 Round31 操作记录。
+
+**验证结果**:
+- 本轮为审查与文档输出流程，不需执行构建或测试。
+# 2025-12-02 15:03 NZDT aster-vscode Round32 审查准备
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 依据 AGENTS.md 前置流程梳理 Round32 全量审查范围与执行策略。
+- 命令：`pwd`、`rg --files -g 'operations-log.md'`、`cat operations-log.md`、`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` → 校验仓库位置、查找日志文件、阅读历史记录并记录 NZ 时区时间戳。
+- 操作：锁定 `operations-log.md` 最新格式，确认需要覆盖语法、测试、配置与源码四大块后准备展开取证，并以 apply_patch 将本条记录写入日志顶部。
+
+**文件状态**:
+- 仅阅读 `operations-log.md`，暂未修改业务代码或文档。
+
+**验证结果**:
+- 审查准备阶段，未运行任何构建或测试命令。
+# 2025-12-02 15:11 NZDT aster-vscode Round32 取证
+
+**操作记录**:
+- 工具：mcp__code-index__set_project_path ×1 → 绑定仓库根目录，后续检索语法与测试文件。
+- 命令：`ls aster-vscode`/`ls aster-vscode/src`/`ls aster-vscode/tests/syntax/{fixtures,__snapshots__}` 浏览模块结构；`sed -n`/`cat` 阅读 `aster-vscode/syntaxes/aster.tmLanguage.json`、`aster-core/src/main/antlr/AsterParser.g4`、`AsterLexer.g4`、`aster-vscode/tests/syntax/fixtures/*.aster`、`__snapshots__/*.snapshot.json`、`scripts/run-textmate-tests.js`、`package.json`、`language-configuration.json`、`src/{extension,error-handler,resource-resolver}.ts`；`rg -n "IDENT" aster-core/src/main/antlr/AsterLexer.g4`、`rg -n 'It performs' -g '*.aster'`、`rg -n '^Define a' -g '*.aster'` 收集合规证据；`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 记录时间。
+- 操作：完成 Round32 初轮取证，锁定语法仓库/测试/配置/源码的对照范围，整理与 AsterParser.g4 的差异点与测试覆盖缺口，并以 apply_patch 追加本条日志。
+
+**文件状态**:
+- 仅阅读相关源文件与测试快照，未修改业务代码或文档。
+
+**验证结果**:
+- 尚未执行 TextMate 测试脚本或 VSCode 扩展命令。
+# 2025-12-02 15:11 NZDT aster-vscode Round32 思考小结
+
+**操作记录**:
+- 工具：mcp__sequential-thinking__sequentialthinking ×1 → 汇总已有取证，梳理 Round32 需要输出的主要问题、五层分析结构与评分维度。
+- 命令：`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 记录时间戳。
+- 操作：归纳语法/测试/配置/源码四大模块的缺陷候选，确定重点关注 data/enum 语法、参数注解、Capability scope 及测试覆盖风险，准备撰写审查报告。
+
+**文件状态**:
+- 思考阶段未触达任何业务文件。
+
+**验证结果**:
+- 尚未运行新的测试。
+# 2025-12-02 15:14 NZDT aster-vscode Round32 报告输出
+
+**操作记录**:
+- 命令：`TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M %Z'` 记录审查输出时间。
+- 操作：依据前序取证/思考结果，汇总语法、测试、配置与源码观察，撰写 `.claude/review-report-aster-vscode-round32.md`（含五层法、问题列表、评分与建议），并以 apply_patch 创建文件。
+
+**文件状态**:
+- `.claude/review-report-aster-vscode-round32.md`：新增 Round32 审查报告，明确列出 data/enum 正则缺口、函数注解/Capability scope 问题、Parser 偏差与测试覆盖风险。
+
+**验证结果**:
+- 纯文档输出，未运行构建或测试。
