@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
+             version="3.0">
+
+    <persistence-unit name="workflow-benchmark-pu" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <!-- 实体类 -->
+        <class>io.aster.workflow.WorkflowState</class>
+        <class>io.aster.workflow.WorkflowEvent</class>
+        <class>io.aster.workflow.WorkflowTimer</class>
+
+        <properties>
+            <!-- 属性将在运行时通过代码设置 -->
+        </properties>
+    </persistence-unit>
+</persistence>

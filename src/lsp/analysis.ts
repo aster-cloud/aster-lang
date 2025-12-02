@@ -1,6 +1,7 @@
 import type { Diagnostic } from 'vscode-languageserver/node.js';
 import { DiagnosticSeverity } from 'vscode-languageserver/node.js';
-import { TokenKind } from '../types.js';
+import { TokenKind, type Core } from '../types.js';
+import { checkPiiFlow } from './pii_diagnostics.js';
 
 export function findAmbiguousInteropCalls(tokens: readonly any[]): Diagnostic[] {
   const diags: Diagnostic[] = [];
@@ -323,6 +324,15 @@ export function findNullabilityDiagnostics(tokens: readonly any[]): Diagnostic[]
     }
   }
   return diags;
+}
+
+export function collectSemanticDiagnostics(tokens: readonly any[], core: Core.Module): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+  diagnostics.push(...findAmbiguousInteropCalls(tokens));
+  diagnostics.push(...findNullabilityDiagnostics(tokens));
+  // 集成 PII 流水线诊断，确保统一返回集合
+  diagnostics.push(...checkPiiFlow(core));
+  return diagnostics;
 }
 
 export function computeDisambiguationEdits(

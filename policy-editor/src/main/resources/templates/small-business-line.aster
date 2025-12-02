@@ -1,0 +1,14 @@
+This module is aster.templates.lending.smb.line.
+
+To evaluateWorkingCapitalLine with business is
+  Let resilientRevenue be business.monthlyRevenueVariance is under 0.15 and business.trailingRevenueGrowth is over 0.08.
+  Let healthyCash be business.cashCoverageMonths is over 4.
+  Let fintechSignals be business.altDataHealthScore is over 70.
+  When resilientRevenue and healthyCash then
+    approve with message "发放 500k 循环额度，利差 3.2%".
+  When fintechSignals and business.tradeHistoryYears is over 2 then
+    approve with message "发放 300k 额度，需设置动态限额".
+  When business.delinquencyEvents is over 1 or business.taxLien is true then
+    deny with message "需完成税务清欠及经营异常整改".
+  Else
+    approve with message "发放 150k 额度并安排季度复审".

@@ -1,0 +1,12 @@
+{
+  "id" : "ddf10b3a-13cd-4a0f-96bc-87f84d015047",
+  "name" : "aster.templates.creditcard.tiering.evaluateLoanEligibility",
+  "allow" : {
+    "rules" : {
+      "execution" : [ "*" ]
+    }
+  },
+  "deny" : {
+    "rules" : { }
+  }
+}

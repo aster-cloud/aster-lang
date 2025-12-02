@@ -84,7 +84,7 @@ for (const r of required) {
   }
   if (!p) {
     console.error(`Missing dependency jar '${r.prefix}*.jar' in Gradle cache at ${cacheRoot}.`);
-    console.error('Run once: ./gradlew :truffle:run to download dependencies.');
+    console.error('Run once: ./gradlew :aster-truffle:run to download dependencies.');
     process.exit(2);
   }
   jars.push(p);

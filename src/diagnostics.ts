@@ -16,6 +16,14 @@ export enum DiagnosticCode {
   L003_InvalidIndentation = 'L003',
   L004_InconsistentDedent = 'L004',
 
+  // Lowering errors (L101-L199)
+  L101_UnknownDeclKind = 'L101',
+  L102_UnknownEffect = 'L102',
+  L103_UnknownStmtKind = 'L103',
+  L104_UnknownExprKind = 'L104',
+  L105_UnknownPatternKind = 'L105',
+  L106_UnknownTypeKind = 'L106',
+
   // Parser errors (P001-P199)
   P001_ExpectedIdentifier = 'P001',
   P002_ExpectedTypeIdentifier = 'P002',
@@ -45,6 +53,47 @@ export enum DiagnosticCode {
   W001_UnusedVariable = 'W001',
   W002_PreferredSyntax = 'W002',
   W003_RedundantCode = 'W003',
+
+  // Manifest/Package errors (M001-M099)
+  M001_ManifestParseError = 'M001',
+  M002_ManifestFileNotFound = 'M002',
+  M003_InvalidPackageName = 'M003',
+  M004_InvalidVersion = 'M004',
+  M005_InvalidVersionConstraint = 'M005',
+  M006_InvalidEffectName = 'M006',
+  M007_UnknownManifestField = 'M007',
+  M008_InvalidCapability = 'M008',
+
+  // Package Registry errors (R001-R099)
+  R001_NetworkError = 'R001',
+  R002_RateLimitExceeded = 'R002',
+  R003_PackageNotFoundOnGitHub = 'R003',
+  R004_DownloadFailed = 'R004',
+  R005_InvalidReleaseFormat = 'R005',
+  R006_AuthenticationFailed = 'R006',
+  R007_InvalidResponse = 'R007',
+
+  // Package Cache errors (C001-C099)
+  C001_CacheCorrupted = 'C001',
+  C002_ExtractionFailed = 'C002',
+  C003_DiskSpaceInsufficient = 'C003',
+  C004_ManifestMissing = 'C004',
+  C005_CacheExpired = 'C005',
+  C006_InvalidCacheMetadata = 'C006',
+  C007_CacheWriteFailed = 'C007',
+
+  // Version resolver errors (V001-V099)
+  V001_DependencyResolutionTimeout = 'V001',
+  V002_VersionConflictUnresolvable = 'V002',
+  V003_PackageNotFound = 'V003',
+
+  // Deprecated - use V001-V003 instead
+  /** @deprecated Use V001_DependencyResolutionTimeout */
+  DEPENDENCY_RESOLUTION_TIMEOUT = 'V001',
+  /** @deprecated Use V002_VersionConflictUnresolvable */
+  VERSION_CONFLICT_UNRESOLVABLE = 'V002',
+  /** @deprecated Use V003_PackageNotFound */
+  PACKAGE_NOT_FOUND = 'V003',
 }
 
 export interface FixIt {
@@ -228,6 +277,37 @@ export const Diagnostics = {
     DiagnosticBuilder.error(DiagnosticCode.L001_UnexpectedCharacter)
       .withMessage(`Unexpected character '${char}'`)
       .withPosition(pos),
+
+  // Lowering errors
+  unknownDeclKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L101_UnknownDeclKind)
+      .withMessage(`Unknown declaration kind: ${kind}`)
+      .withPosition(pos),
+
+  unknownEffect: (effect: string, validEffects: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L102_UnknownEffect)
+      .withMessage(`未知的 effect '${effect}'，有效值为：${validEffects}`)
+      .withPosition(pos),
+
+  unknownStmtKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L103_UnknownStmtKind)
+      .withMessage(`lowerStmt: 未处理的语句类型 '${kind}'`)
+      .withPosition(pos),
+
+  unknownExprKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L104_UnknownExprKind)
+      .withMessage(`Unknown expression kind: ${kind}`)
+      .withPosition(pos),
+
+  unknownPatternKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L105_UnknownPatternKind)
+      .withMessage(`Unknown pattern kind: ${kind}`)
+      .withPosition(pos),
+
+  unknownTypeKind: (kind: string, pos: Position): DiagnosticBuilder =>
+    DiagnosticBuilder.error(DiagnosticCode.L106_UnknownTypeKind)
+      .withMessage(`Unknown type kind: ${kind}`)
+      .withPosition(pos),
 };
 
 // Utility to format diagnostics for display
@@ -254,4 +334,9 @@ export function formatDiagnostic(diagnostic: Diagnostic, source?: string): strin
   }
 
   return result;
+}
+
+// Utility to create a dummy position for diagnostics without source location
+export function dummyPosition(): Position {
+  return { line: 1, col: 1 };
 }

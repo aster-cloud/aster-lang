@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: aster-policy
+resources:
+  - namespace.yaml
+  - postgres/configmap.yaml
+  - postgres/secret.yaml
+  - postgres/service.yaml
+  - postgres/statefulset.yaml
+  - postgres/networkpolicy.yaml
+  - postgres/pdb.yaml
+  - policy-api/configmap.yaml
+  - policy-api/deployment.yaml
+  - policy-api/service.yaml
+  - policy-api/hpa.yaml
+  - policy-api/networkpolicy.yaml
+  - policy-api/pdb.yaml
+  - ingress.yaml
+  - resourcequota.yaml
+  - limitrange.yaml
+  - monitoring/postgres-exporter/deployment.yaml
+  - monitoring/postgres-exporter/service.yaml
+  - monitoring/redis-exporter/deployment.yaml
+  - monitoring/redis-exporter/service.yaml
+  - monitoring/alertmanager/configmap.yaml
+  - monitoring/alertmanager/deployment.yaml
+  - monitoring/alertmanager/service.yaml
+  - monitoring/prometheus/servicemonitor.yaml
+commonLabels:
+  app.kubernetes.io/name: aster-policy
+  app.kubernetes.io/part-of: aster-platform

@@ -1,0 +1,583 @@
+{
+  "kind": "Module",
+  "name": "app.service",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "User",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": [],
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 22
+              },
+              "end": {
+                "line": 3,
+                "col": 26
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 18
+            },
+            "end": {
+              "line": 3,
+              "col": 26
+            }
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": [],
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 34
+              },
+              "end": {
+                "line": 3,
+                "col": 38
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 28
+            },
+            "end": {
+              "line": 3,
+              "col": 38
+            }
+          }
+        }
+      ],
+      "span": {
+        "start": {
+          "line": 3,
+          "col": 1
+        },
+        "end": {
+          "line": 3,
+          "col": 39
+        }
+      }
+    },
+    {
+      "kind": "Enum",
+      "name": "AuthErr",
+      "variants": [
+        "InvalidCreds",
+        "Locked"
+      ],
+      "span": {
+        "start": {
+          "line": 5,
+          "col": 1
+        },
+        "end": {
+          "line": 5,
+          "col": 47
+        }
+      },
+      "variantSpans": [
+        {
+          "start": {
+            "line": 5,
+            "col": 26
+          },
+          "end": {
+            "line": 5,
+            "col": 38
+          }
+        },
+        {
+          "start": {
+            "line": 5,
+            "col": 40
+          },
+          "end": {
+            "line": 5,
+            "col": 46
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "login",
+      "params": [
+        {
+          "name": "user",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": [],
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 21
+              },
+              "end": {
+                "line": 7,
+                "col": 25
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 15
+            },
+            "end": {
+              "line": 7,
+              "col": 25
+            }
+          }
+        },
+        {
+          "name": "pass",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": [],
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 33
+              },
+              "end": {
+                "line": 7,
+                "col": 37
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 27
+            },
+            "end": {
+              "line": 7,
+              "col": 37
+            }
+          }
+        }
+      ],
+      "retType": {
+        "kind": "Result",
+        "ok": {
+          "kind": "TypeName",
+          "name": "User",
+          "annotations": [],
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 57
+            },
+            "end": {
+              "line": 7,
+              "col": 61
+            }
+          }
+        },
+        "err": {
+          "kind": "TypeName",
+          "name": "AuthErr",
+          "annotations": [],
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 66
+            },
+            "end": {
+              "line": 7,
+              "col": 73
+            }
+          }
+        },
+        "span": {
+          "start": {
+            "line": 7,
+            "col": 47
+          },
+          "end": {
+            "line": 7,
+            "col": 73
+          }
+        }
+      },
+      "effects": [
+        "io"
+      ],
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets",
+        "AiModel"
+      ],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "ok",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "AuthRepo.verify",
+                "span": {
+                  "start": {
+                    "line": 8,
+                    "col": 13
+                  },
+                  "end": {
+                    "line": 8,
+                    "col": 28
+                  }
+                }
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "user",
+                  "span": {
+                    "start": {
+                      "line": 8,
+                      "col": 29
+                    },
+                    "end": {
+                      "line": 8,
+                      "col": 33
+                    }
+                  }
+                },
+                {
+                  "kind": "Name",
+                  "name": "pass",
+                  "span": {
+                    "start": {
+                      "line": 8,
+                      "col": 35
+                    },
+                    "end": {
+                      "line": 8,
+                      "col": 39
+                    }
+                  }
+                }
+              ],
+              "span": {
+                "start": {
+                  "line": 8,
+                  "col": 13
+                },
+                "end": {
+                  "line": 8,
+                  "col": 40
+                }
+              }
+            },
+            "span": {
+              "start": {
+                "line": 8,
+                "col": 3
+              },
+              "end": {
+                "line": 8,
+                "col": 41
+              }
+            },
+            "nameSpan": {
+              "start": {
+                "line": 8,
+                "col": 7
+              },
+              "end": {
+                "line": 8,
+                "col": 9
+              }
+            }
+          },
+          {
+            "kind": "If",
+            "cond": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "not",
+                "span": {
+                  "start": {
+                    "line": 9,
+                    "col": 6
+                  },
+                  "end": {
+                    "line": 9,
+                    "col": 9
+                  }
+                }
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "ok",
+                  "span": {
+                    "start": {
+                      "line": 9,
+                      "col": 10
+                    },
+                    "end": {
+                      "line": 9,
+                      "col": 13
+                    }
+                  }
+                }
+              ],
+              "span": {
+                "start": {
+                  "line": 9,
+                  "col": 6
+                },
+                "end": {
+                  "line": 9,
+                  "col": 13
+                }
+              }
+            },
+            "thenBlock": {
+              "kind": "Block",
+              "statements": [
+                {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "Err",
+                    "expr": {
+                      "kind": "Name",
+                      "name": "InvalidCreds",
+                      "span": {
+                        "start": {
+                          "line": 10,
+                          "col": 19
+                        },
+                        "end": {
+                          "line": 10,
+                          "col": 31
+                        }
+                      }
+                    },
+                    "span": {
+                      "start": {
+                        "line": 10,
+                        "col": 12
+                      },
+                      "end": {
+                        "line": 10,
+                        "col": 31
+                      }
+                    }
+                  },
+                  "span": {
+                    "start": {
+                      "line": 10,
+                      "col": 5
+                    },
+                    "end": {
+                      "line": 10,
+                      "col": 32
+                    }
+                  }
+                }
+              ],
+              "span": {
+                "start": {
+                  "line": 10,
+                  "col": 5
+                },
+                "end": {
+                  "line": 10,
+                  "col": 32
+                }
+              }
+            },
+            "elseBlock": null,
+            "span": {
+              "start": {
+                "line": 9,
+                "col": 3
+              },
+              "end": {
+                "line": 11,
+                "col": 1
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Ok",
+              "expr": {
+                "kind": "Construct",
+                "typeName": "User",
+                "fields": [
+                  {
+                    "name": "id",
+                    "expr": {
+                      "kind": "Call",
+                      "target": {
+                        "kind": "Name",
+                        "name": "UUID.randomUUID",
+                        "span": {
+                          "start": {
+                            "line": 11,
+                            "col": 31
+                          },
+                          "end": {
+                            "line": 11,
+                            "col": 46
+                          }
+                        }
+                      },
+                      "args": [],
+                      "span": {
+                        "start": {
+                          "line": 11,
+                          "col": 31
+                        },
+                        "end": {
+                          "line": 11,
+                          "col": 48
+                        }
+                      }
+                    },
+                    "span": {
+                      "start": {
+                        "line": 11,
+                        "col": 26
+                      },
+                      "end": {
+                        "line": 11,
+                        "col": 48
+                      }
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "expr": {
+                      "kind": "Name",
+                      "name": "user",
+                      "span": {
+                        "start": {
+                          "line": 11,
+                          "col": 57
+                        },
+                        "end": {
+                          "line": 11,
+                          "col": 61
+                        }
+                      }
+                    },
+                    "span": {
+                      "start": {
+                        "line": 11,
+                        "col": 50
+                      },
+                      "end": {
+                        "line": 11,
+                        "col": 61
+                      }
+                    }
+                  }
+                ],
+                "span": {
+                  "start": {
+                    "line": 11,
+                    "col": 16
+                  },
+                  "end": {
+                    "line": 11,
+                    "col": 61
+                  }
+                }
+              },
+              "span": {
+                "start": {
+                  "line": 11,
+                  "col": 10
+                },
+                "end": {
+                  "line": 11,
+                  "col": 61
+                }
+              }
+            },
+            "span": {
+              "start": {
+                "line": 11,
+                "col": 3
+              },
+              "end": {
+                "line": 11,
+                "col": 62
+              }
+            }
+          }
+        ],
+        "span": {
+          "start": {
+            "line": 8,
+            "col": 3
+          },
+          "end": {
+            "line": 11,
+            "col": 62
+          }
+        }
+      },
+      "span": {
+        "start": {
+          "line": 7,
+          "col": 1
+        },
+        "end": {
+          "line": 12,
+          "col": 1
+        }
+      },
+      "nameSpan": {
+        "start": {
+          "line": 7,
+          "col": 4
+        },
+        "end": {
+          "line": 7,
+          "col": 9
+        }
+      }
+    }
+  ],
+  "span": {
+    "start": {
+      "line": 1,
+      "col": 1
+    },
+    "end": {
+      "line": 12,
+      "col": 1
+    }
+  }
+}

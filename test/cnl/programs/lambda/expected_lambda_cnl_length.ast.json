@@ -1,0 +1,93 @@
+{
+  "kind": "Module",
+  "name": "demo.lambdalength",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "lengthOf",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "s",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Int",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "f",
+            "expr": {
+              "kind": "Lambda",
+              "params": [
+                {
+                  "name": "t",
+                  "type": {
+                    "kind": "TypeName",
+                    "name": "Text",
+                    "annotations": []
+                  }
+                }
+              ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Int",
+                "annotations": []
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": {
+                        "kind": "Name",
+                        "name": "Text.length"
+                      },
+                      "args": [
+                        {
+                          "kind": "Name",
+                          "name": "t"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "f"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "s"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

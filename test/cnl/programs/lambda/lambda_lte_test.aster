@@ -1,0 +1,8 @@
+This module is demo.lambdalte.
+
+To isAtMost with x: Int, limit: Int, produce Bool:
+  Return <=(x, limit).
+
+To isShortEnough with s: Text, maxLen: Int, produce Bool:
+  Let len be Text.length(s).
+  Return <=(len, maxLen).

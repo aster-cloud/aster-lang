@@ -1,0 +1,37 @@
+{
+  "kind": "Module",
+  "name": "test.pii.phone",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "get_phone",
+      "typeParams": [],
+      "params": [],
+      "retType": {
+        "kind": "TypePii",
+        "baseType": {
+          "kind": "TypeName",
+          "name": "Text",
+          "annotations": []
+        },
+        "sensitivity": "L3",
+        "category": "phone"
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "String",
+              "value": "+1-555-0100"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+This module is test.async.
+
+To processAsync with userId: Text, produce Text:
+  Start task as async loadUser(userId).
+  Wait for task.
+  Return "Processed: " + task.
+
+To loadUser with id: Text, produce Text:
+  Return "User-" + id.

@@ -1,0 +1,6 @@
+This module is validation.combined.
+
+Define Account with @NotEmpty @Pattern(regexp: "^[a-zA-Z0-9_]{3,20}$") username: Text, @Range(min: 18, max: 120) age: Int, @NotEmpty email: Text.
+
+To registerAccount with @NotEmpty @Pattern(regexp: "^[a-zA-Z0-9_]{3,20}$") user: Text, @Range(min: 18, max: 120) userAge: Int, @NotEmpty @Pattern(regexp: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") userEmail: Text, produce Account:
+  Return Account(user, userAge, userEmail).

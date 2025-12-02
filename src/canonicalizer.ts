@@ -1,12 +1,40 @@
-// Canonicalizer: normalize CNL text: normalize keywords (en-US),
-// enforce periods, normalize whitespace, preserve identifier case.
-// 2-space indentation is significant.
+/**
+ * @module canonicalizer
+ *
+ * Canonicalizer（规范化器）：将 CNL 源代码规范化为标准格式。
+ *
+ * **功能**：
+ * - 规范化关键字为美式英语（en-US）
+ * - 强制语句以句号或冒号结尾
+ * - 规范化空白符和缩进（2 空格为标准）
+ * - 保留标识符的大小写
+ * - 移除注释（`//` 和 `#`）
+ * - 去除冠词（a, an, the）
+ *
+ * **注意**：
+ * - Aster 使用 2 空格缩进，缩进具有语法意义
+ * - 制表符会被自动转换为 2 个空格
+ */
 
 import { KW } from './tokens.js';
 
 // Remove common articles only when followed by whitespace to avoid
 // creating leading comment markers or altering tokens adjacent to punctuation.
 const ARTICLE_RE = /\b(a|an|the)\b(?=\s)/gi;
+const LINE_COMMENT_RE = /^\s*(?:\/\/|#)/;
+const SPACE_RUN_RE = /[ \t]+/g;
+const PUNCT_NORMAL_RE = /\s+([.,:])/g;
+const PUNCT_FINAL_RE = /\s+([.,:!;?])/g;
+const TRAILING_SPACE_RE = /\s+$/g;
+
+// 判断指定位置的引号是否被转义
+function isEscaped(str: string, index: number): boolean {
+  let slashCount = 0;
+  for (let i = index - 1; i >= 0 && str[i] === '\\'; i--) {
+    slashCount++;
+  }
+  return slashCount % 2 === 1;
+}
 
 // Multi-word keyword list ordered by length (desc) to match greedily.
 const MULTI = [
@@ -22,6 +50,38 @@ const MULTI = [
   KW.PERFORMS,
 ].sort((a, b) => b.length - a.length);
 
+/**
+ * 规范化 CNL 源代码为标准格式。
+ *
+ * 这是 Aster 编译管道的第一步，将原始 CNL 文本转换为规范化的格式，
+ * 以便后续的词法分析和语法分析阶段处理。
+ *
+ * **转换步骤**：
+ * 1. 规范化换行符为 `\n`
+ * 2. 将制表符转换为 2 个空格
+ * 3. 移除行注释（`//` 和 `#`）
+ * 4. 规范化引号（智能引号 → 直引号）
+ * 5. 强制语句以句号或冒号结尾
+ * 6. 去除冠词（a, an, the）
+ * 7. 规范化多词关键字大小写（如 "This module is" → "This module is"）
+ *
+ * @param input - 原始 CNL 源代码字符串
+ * @returns 规范化后的 CNL 源代码
+ *
+ * @example
+ * ```typescript
+ * import { canonicalize } from '@wontlost-ltd/aster-lang';
+ *
+ * const raw = `
+ * This Module Is app.
+ * To greet, produce Text:
+ *   Return "Hello"
+ * `;
+ *
+ * const canonical = canonicalize(raw);
+ * // 输出：规范化后的代码，包含正确的句号和关键字大小写
+ * ```
+ */
 export function canonicalize(input: string): string {
   // Normalize newlines to \n
   let s = input.replace(/\r\n?/g, '\n');
@@ -31,10 +91,10 @@ export function canonicalize(input: string): string {
   // measures indentation consistently.
   s = s.replace(/\t/g, '  ');
 
-  // Drop line comments (// and #) entirely; formatter/LSP preserve docs separately
+  // Drop line comments (// and #) while 保留换行占位，formatter/LSP 另行处理注释内容
   s = s
     .split('\n')
-    .filter(line => !/^\s*\/\//.test(line) && !/^\s*#/.test(line))
+    .map(line => (LINE_COMMENT_RE.test(line) ? '' : line))
     .join('\n');
 
   // Normalize smart quotes to straight quotes
@@ -57,13 +117,7 @@ export function canonicalize(input: string): string {
   // Fold multiple spaces (but not newlines); keep indentation (2-space rule) for leading spaces only
   s = s
     .split('\n')
-    .map(line => {
-      const m = line.match(/^(\s*)(.*)$/);
-      if (!m) return line;
-      const indent = m[1] ?? '';
-      const rest = (m[2] ?? '').replace(/[ \t]+/g, ' ').replace(/\s+([.,:])/g, '$1');
-      return indent + rest;
-    })
+    .map(line => normalizeLine(line, PUNCT_NORMAL_RE, false))
     .join('\n');
 
   // Keep original casing to preserve TypeIdents. We only normalize multi-word keywords by hinting
@@ -74,31 +128,96 @@ export function canonicalize(input: string): string {
     marked = marked.replace(re, m => m.toLowerCase());
   }
 
-  // Phrase macros (aliases) after normalization
-  marked = marked.replace(
-    /\bTo\s+fetch\s+dashboard\s+for\s+([a-z][A-Za-z0-9_]*)\s*:/gi,
-    (_m: string, p1: string) => `To fetchDashboard with ${p1}:`
-  );
-
   // Remove articles in allowed contexts (lightweight; parser will enforce correctness)
-  marked = marked.replace(ARTICLE_RE, '');
+  marked = segmentString(marked)
+    .map(segment => (segment.inString ? segment.text : segment.text.replace(ARTICLE_RE, '')))
+    .join('');
   // Do not collapse newlines globally.
   marked = marked.replace(/^\s+$/gm, '');
 
   // Final whitespace normalization to ensure idempotency after article/macro passes
   marked = marked
     .split('\n')
-    .map(line => {
-      const m = line.match(/^(\s*)(.*)$/);
-      if (!m) return line;
-      const indent = m[1] ?? '';
-      const rest = (m[2] ?? '')
-        .replace(/[ \t]+/g, ' ')
-        .replace(/\s+([.,:!;?])/g, '$1')
-        .replace(/\s+$/g, '');
-      return indent + rest;
-    })
+    .map(line => normalizeLine(line, PUNCT_FINAL_RE, true))
     .join('\n');
 
   return marked;
+}
+
+type Segment = { text: string; inString: boolean };
+
+function segmentString(text: string): Segment[] {
+  const segments: Segment[] = [];
+  let inString = false;
+  let current = '';
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    current += ch;
+
+    if (ch === '"' && !isEscaped(text, i)) {
+      if (inString) {
+        segments.push({ text: current, inString: true });
+        current = '';
+        inString = false;
+      } else {
+        const before = current.slice(0, -1);
+        if (before) {
+          segments.push({ text: before, inString: false });
+        }
+        current = '"';
+        inString = true;
+      }
+    }
+  }
+
+  if (current) {
+    segments.push({ text: current, inString });
+  }
+
+  return segments;
+}
+
+function normalizeLine(line: string, punctuationPattern: RegExp, trimTrailing: boolean): string {
+  if (line === '') {
+    return line;
+  }
+
+  const match = line.match(/^(\s*)(.*)$/);
+  if (!match) {
+    return line;
+  }
+
+  const indent = match[1] ?? '';
+  const rest = match[2] ?? '';
+  if (rest === '') {
+    return indent;
+  }
+
+  const normalizedRest = normalizeRest(rest, punctuationPattern, trimTrailing);
+  return indent + normalizedRest;
+}
+
+function normalizeRest(rest: string, punctuationPattern: RegExp, trimTrailing: boolean): string {
+  const segments = segmentString(rest);
+  if (segments.length === 0) {
+    return rest;
+  }
+
+  return segments
+    .map((segment, index) => {
+      if (segment.inString) {
+        return segment.text;
+      }
+
+      let normalized = segment.text.replace(SPACE_RUN_RE, ' ');
+      normalized = normalized.replace(punctuationPattern, '$1');
+
+      if (trimTrailing && index === segments.length - 1) {
+        normalized = normalized.replace(TRAILING_SPACE_RE, '');
+      }
+
+      return normalized;
+    })
+    .join('');
 }

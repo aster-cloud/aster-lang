@@ -1,0 +1,105 @@
+{
+  "kind": "Module",
+  "name": "test.pii.mixed",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "get_user_info",
+      "typeParams": [],
+      "params": [],
+      "retType": {
+        "kind": "Result",
+        "ok": {
+          "kind": "TypePii",
+          "baseType": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "sensitivity": "L2",
+          "category": "email"
+        },
+        "err": {
+          "kind": "TypeName",
+          "name": "Text",
+          "annotations": []
+        }
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "email",
+            "expr": {
+              "kind": "String",
+              "value": "user@example.com"
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Ok"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "email"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "get_optional_phone",
+      "typeParams": [],
+      "params": [],
+      "retType": {
+        "kind": "TypePii",
+        "baseType": {
+          "kind": "Maybe",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        },
+        "sensitivity": "L3",
+        "category": "phone"
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Some"
+              },
+              "args": [
+                {
+                  "kind": "String",
+                  "value": "+1-555-0100"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

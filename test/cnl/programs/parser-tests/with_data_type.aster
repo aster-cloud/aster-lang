@@ -1,0 +1,8 @@
+This module is types.
+
+Define User with:
+  name as String.
+  age as Int.
+
+To greet using user as User, produce String:
+  Return "Hello".

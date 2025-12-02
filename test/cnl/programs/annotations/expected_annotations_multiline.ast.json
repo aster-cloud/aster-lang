@@ -1,0 +1,462 @@
+{
+  "kind": "Module",
+  "name": "test.annotations.multiline",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "UserProfile",
+      "fields": [
+        {
+          "name": "userId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "age",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "email",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "accountBalance",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Data",
+      "name": "Transaction",
+      "fields": [
+        {
+          "name": "transactionId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        },
+        {
+          "name": "feePercentage",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "timestamp",
+          "type": {
+            "kind": "TypeName",
+            "name": "Long",
+            "annotations": []
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Data",
+      "name": "LoanApplication",
+      "fields": [
+        {
+          "name": "applicationId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            },
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "requestedAmount",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "termMonths",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Data",
+      "name": "Product",
+      "fields": [
+        {
+          "name": "productId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "price",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "category",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Data",
+      "name": "Address",
+      "fields": [
+        {
+          "name": "street",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "city",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "zipCode",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Data",
+      "name": "CompleteProfile",
+      "fields": [
+        {
+          "name": "firstName",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "lastName",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "age",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "username",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "creditScore",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "country",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "active",
+          "type": {
+            "kind": "TypeName",
+            "name": "Bool",
+            "annotations": []
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "validateAge",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "age",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": ">="
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "age"
+                },
+                {
+                  "kind": "Int",
+                  "value": 18
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Data",
+      "name": "FinancialRecord",
+      "fields": [
+        {
+          "name": "recordId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "taxRate",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "totalIncome",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        },
+        {
+          "name": "totalExpenses",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "resources": [
+    {
+      "pattern": "package\\.json"
+    },
+    {
+      "pattern": "package-lock\\.json"
+    },
+    {
+      "pattern": "scripts/.*"
+    },
+    {
+      "pattern": "dist/scripts/.*"
+    },
+    {
+      "pattern": "META-INF/services/.*"
+    }
+  ]
+}

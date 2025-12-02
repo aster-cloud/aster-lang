@@ -1,0 +1,29 @@
+{
+  "applicant": {
+    "applicantId": "high-dti",
+    "age": 33,
+    "annualIncome": 26000,
+    "creditScore": 660,
+    "existingCreditCards": 2,
+    "monthlyRent": 1600,
+    "employmentStatus": "Self-employed",
+    "yearsAtCurrentJob": 1
+  },
+  "history": {
+    "bankruptcyCount": 0,
+    "latePayments": 1,
+    "utilization": 30,
+    "accountAge": 18,
+    "hardInquiries": 2
+  },
+  "offer": {
+    "productType": "Standard",
+    "requestedLimit": 25000,
+    "hasRewards": false,
+    "annualFee": 75
+  },
+  "expectedDecision": {
+    "approved": false,
+    "reason": "Debt-to-income ratio too high"
+  }
+}

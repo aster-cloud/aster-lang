@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-exporter
+  namespace: aster-policy
+  labels:
+    app: postgres-exporter
+    app.kubernetes.io/name: postgres-exporter
+    app.kubernetes.io/part-of: aster-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres-exporter
+  ports:
+    - name: metrics
+      port: 9187
+      targetPort: metrics

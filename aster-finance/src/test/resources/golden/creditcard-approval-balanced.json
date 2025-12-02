@@ -1,0 +1,34 @@
+{
+  "applicant": {
+    "applicantId": "balanced-earner",
+    "age": 29,
+    "annualIncome": 95000,
+    "creditScore": 710,
+    "existingCreditCards": 3,
+    "monthlyRent": 1400,
+    "employmentStatus": "Full-time",
+    "yearsAtCurrentJob": 3
+  },
+  "history": {
+    "bankruptcyCount": 0,
+    "latePayments": 2,
+    "utilization": 35,
+    "accountAge": 8,
+    "hardInquiries": 0
+  },
+  "offer": {
+    "productType": "Standard",
+    "requestedLimit": 20000,
+    "hasRewards": true,
+    "annualFee": 95
+  },
+  "expectedDecision": {
+    "approved": true,
+    "reason": "Approved",
+    "approvedLimit": 8100,
+    "interestRateAPR": 2199,
+    "monthlyFee": 0,
+    "requiresDeposit": true,
+    "depositAmount": 8100
+  }
+}

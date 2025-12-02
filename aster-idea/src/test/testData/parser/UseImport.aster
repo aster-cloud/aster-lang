@@ -1,0 +1,8 @@
+# Use 导入声明测试
+# 测试传统语法 import 关键字
+
+import aster.math
+import aster.text as txt
+
+func calculate() -> Int:
+  return 42

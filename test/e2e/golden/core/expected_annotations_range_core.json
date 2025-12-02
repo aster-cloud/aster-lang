@@ -1,0 +1,157 @@
+{
+  "kind": "Module",
+  "name": "validation.numeric",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "Product",
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": []
+        },
+        {
+          "name": "discount",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {
+                "min": 0,
+                "max": 100
+              }
+            }
+          ]
+        },
+        {
+          "name": "price",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {
+                "min": 1,
+                "max": 1000000
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "applyDiscount",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "product",
+          "type": {
+            "kind": "TypeName",
+            "name": "Product"
+          },
+          "annotations": []
+        },
+        {
+          "name": "percent",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {
+                "min": 0,
+                "max": 100
+              }
+            }
+          ]
+        }
+      ],
+      "ret": {
+        "kind": "TypeName",
+        "name": "Int"
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "reduction",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "/"
+              },
+              "args": [
+                {
+                  "kind": "Call",
+                  "target": {
+                    "kind": "Name",
+                    "name": "*"
+                  },
+                  "args": [
+                    {
+                      "kind": "Name",
+                      "name": "product.price"
+                    },
+                    {
+                      "kind": "Name",
+                      "name": "percent"
+                    }
+                  ]
+                },
+                {
+                  "kind": "Int",
+                  "value": 100
+                }
+              ]
+            }
+          },
+          {
+            "kind": "Let",
+            "name": "finalPrice",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "-"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "product.price"
+                },
+                {
+                  "kind": "Name",
+                  "name": "reduction"
+                }
+              ]
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Name",
+              "name": "finalPrice"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

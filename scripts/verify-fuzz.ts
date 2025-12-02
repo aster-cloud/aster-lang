@@ -27,7 +27,7 @@ function randExpr(i: number): any {
       // sum overload fuzz with mixed numeric kinds
       const aKinds = [
         { kind: 'Int', value: randInt(50) },
-        { kind: 'Long', value: randInt(50) },
+        { kind: 'Long', value: String(randInt(50)) },
         { kind: 'Double', value: Math.floor(Math.random() * 50) + 0.5 },
       ];
       const a = aKinds[randInt(aKinds.length)];

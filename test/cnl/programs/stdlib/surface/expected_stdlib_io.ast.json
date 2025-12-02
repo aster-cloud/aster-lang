@@ -1,0 +1,224 @@
+{
+  "kind": "Module",
+  "name": "std.io",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "print",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "msg",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text",
+        "annotations": []
+      },
+      "effects": [
+        "io"
+      ],
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets",
+        "AiModel"
+      ],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "IO.print"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "msg"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "readLine",
+      "typeParams": [],
+      "params": [],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text",
+        "annotations": []
+      },
+      "effects": [
+        "io"
+      ],
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets",
+        "AiModel"
+      ],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "IO.readLine"
+              },
+              "args": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "readFile",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "path",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "Result",
+        "ok": {
+          "kind": "TypeName",
+          "name": "Text",
+          "annotations": []
+        },
+        "err": {
+          "kind": "TypeName",
+          "name": "Text",
+          "annotations": []
+        }
+      },
+      "effects": [
+        "io"
+      ],
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets",
+        "AiModel"
+      ],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "IO.readFile"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "path"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "writeFile",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "path",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        },
+        {
+          "name": "contents",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool",
+        "annotations": []
+      },
+      "effects": [
+        "io"
+      ],
+      "effectCaps": [
+        "Http",
+        "Sql",
+        "Time",
+        "Files",
+        "Secrets",
+        "AiModel"
+      ],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "IO.writeFile"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "path"
+                },
+                {
+                  "kind": "Name",
+                  "name": "contents"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

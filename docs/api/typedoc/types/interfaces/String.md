@@ -4,35 +4,49 @@
 
 # Interface: String
 
-Defined in: [types.ts:234](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L234)
+Defined in: [types.ts:306](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L306)
+
+字符串字面量基础接口。
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- [`BaseString`](../base/interfaces/BaseString.md)\<[`Span`](Span.md)\>
 
 ## Properties
 
-### span?
+### span
 
-> `readonly` `optional` **span**: [`Span`](Span.md)
+> **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L62)
+Defined in: [types.ts:307](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L307)
+
+#### Overrides
+
+[`BaseString`](../base/interfaces/BaseString.md).[`span`](../base/interfaces/BaseString.md#span)
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+[`BaseString`](../base/interfaces/BaseString.md).[`origin`](../base/interfaces/BaseString.md#origin)
 
 ***
 
 ### file?
 
-> `readonly` `optional` **file**: `null` \| `string`
+> `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L63)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+[`BaseString`](../base/interfaces/BaseString.md).[`file`](../base/interfaces/BaseString.md#file)
 
 ***
 
@@ -40,11 +54,11 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bd
 
 > `readonly` **kind**: `"String"`
 
-Defined in: [types.ts:235](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L235)
+Defined in: [types/base.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L341)
 
-#### Overrides
+#### Inherited from
 
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
+[`String`](../namespaces/Core/interfaces/String.md).[`kind`](../namespaces/Core/interfaces/String.md#kind)
 
 ***
 
@@ -52,4 +66,8 @@ Defined in: [types.ts:235](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **value**: `string`
 
-Defined in: [types.ts:236](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L236)
+Defined in: [types/base.ts:342](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L342)
+
+#### Inherited from
+
+[`String`](../namespaces/Core/interfaces/String.md).[`value`](../namespaces/Core/interfaces/String.md#value)

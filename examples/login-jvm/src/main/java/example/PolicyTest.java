@@ -30,12 +30,13 @@ public final class PolicyTest {
       System.out.println("User reads other's document: " + (result2 ? "GRANTED" : "DENIED"));
       
       // Test policy demo functions
-      System.out.println("\n=== Policy Demo Functions ===");
-      System.out.println("Demo result: " + demo.policy_demo.demonstratePolicyEngine_fn.demonstratePolicyEngine());
-      System.out.println("Test 1: " + demo.policy_demo.runPolicyTest1_fn.runPolicyTest1());
-      System.out.println("Test 2: " + demo.policy_demo.runPolicyTest2_fn.runPolicyTest2());
-      System.out.println("Test 3: " + demo.policy_demo.runPolicyTest3_fn.runPolicyTest3());
-      
+      // NOTE: demo.policy_demo module removed - these tests are commented out
+      // System.out.println("\n=== Policy Demo Functions ===");
+      // System.out.println("Demo result: " + demo.policy_demo.demonstratePolicyEngine_fn.demonstratePolicyEngine());
+      // System.out.println("Test 1: " + demo.policy_demo.runPolicyTest1_fn.runPolicyTest1());
+      // System.out.println("Test 2: " + demo.policy_demo.runPolicyTest2_fn.runPolicyTest2());
+      // System.out.println("Test 3: " + demo.policy_demo.runPolicyTest3_fn.runPolicyTest3());
+
     } catch (Exception e) {
       System.err.println("Error running policy tests: " + e.getMessage());
       e.printStackTrace();

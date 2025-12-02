@@ -24,10 +24,10 @@ npm run new -- examples/hello-project
 
 ```
 # Parse CNL → AST (JSON)
-node dist/scripts/cli.js cnl/examples/greet.cnl
+node dist/scripts/cli.js test/cnl/examples/greet.aster
 
 # Lower to Core IR (JSON)
-node dist/scripts/emit-core.js cnl/examples/greet.cnl
+node dist/scripts/emit-core.js test/cnl/examples/greet.aster
 ```
 
 ## Unified CLI
@@ -36,22 +36,22 @@ Use the single entry `aster` command (installed from `dist/`):
 
 ```
 # Parse
-node dist/scripts/aster.js parse cnl/examples/greet.cnl
+node dist/scripts/aster.js parse test/cnl/examples/greet.aster
 
 # Core IR
-node dist/scripts/aster.js core cnl/examples/greet.cnl
+node dist/scripts/aster.js core test/cnl/examples/greet.aster
 
 # Emit Java sources
-node dist/scripts/aster.js jvm cnl/examples/greet.cnl --out build/jvm-src
+node dist/scripts/aster.js jvm test/cnl/examples/greet.aster --out build/jvm-src
 
 # Emit classfiles (ASM)
-node dist/scripts/aster.js class cnl/examples/login.cnl --out build/jvm-classes
+node dist/scripts/aster.js class test/cnl/examples/login.aster --out build/jvm-classes
 
 # Jar emitted classes
 node dist/scripts/aster.js jar
 
-# Truffle: auto-lower .cnl and run Core IR, passing args to the function
-node dist/scripts/aster.js truffle cnl/examples/if_param.cnl -- true
+# Truffle: auto-lower .aster and run Core IR, passing args to the function
+node dist/scripts/aster.js truffle test/cnl/examples/if_param.aster -- true
 ```
 
 ## Run Examples
@@ -93,7 +93,7 @@ Run Core IR on the Truffle interpreter via the CLI:
 
 ```
 # From CNL (auto-lower)
-node dist/scripts/aster.js truffle cnl/examples/if_param.cnl -- true
+node dist/scripts/aster.js truffle test/cnl/examples/if_param.aster -- true
 
 # From Core JSON
 node dist/scripts/aster.js truffle build/if_param_core.json -- false

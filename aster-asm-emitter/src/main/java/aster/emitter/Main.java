@@ -1,8 +1,12 @@
 package aster.emitter;
 
-import com.fasterxml.jackson.databind.*;
+import aster.core.ir.CoreModel;
+import aster.core.typecheck.BuiltinTypes;
+
 import com.fasterxml.jackson.core.*;
+import com.fasterxml.jackson.databind.*;
 import org.objectweb.asm.*;
+import org.objectweb.asm.commons.GeneratorAdapter;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -15,17 +19,28 @@ public final class Main {
   static boolean DIAG_OVERLOAD = true;
   static boolean NULL_STRICT = false;
   static final java.util.Map<String, boolean[]> NULL_POLICY_OVERRIDE = new java.util.LinkedHashMap<>();
+  private static final NamespaceMapping[] TYPE_NAMESPACES = new NamespaceMapping[] {
+    new NamespaceMapping("aster.finance", "com.wontlost.aster.finance.dto", true, true),
+    new NamespaceMapping("aster.insurance", "com.wontlost.aster.insurance.dto", false, false),
+    new NamespaceMapping("aster.healthcare", "com.wontlost.aster.healthcare.dto", false, false)
+  };
   record Ctx(
     Path outDir,
-    Map<String,String> enumVarToEnum,
-    Map<String, CoreModel.Data> dataSchema,
-    Map<String, java.util.List<String>> enumVariants,
+    ContextBuilder contextBuilder,
     java.util.concurrent.atomic.AtomicInteger lambdaSeq,
     Map<String, Map<String, Character>> funcHints,
-    java.util.Map<String, java.util.List<String>> methodCache,
-    Path cachePath,
-    java.util.Map<String, String> stringPool
-  ) {}
+    java.util.Map<String, String> stringPool,
+    Map<String, CoreModel.Func> functionSchemas
+  ) {
+    CoreModel.Enum lookupEnum(String pkg, String name) { return contextBuilder.lookupEnum(pkg, name); }
+    CoreModel.Enum lookupEnum(String fullName) { return contextBuilder.lookupEnum(fullName); }
+    CoreModel.Data lookupData(String pkg, String name) { return contextBuilder.lookupData(pkg, name); }
+    CoreModel.Data lookupData(String fullName) { return contextBuilder.lookupData(fullName); }
+    Map<String, CoreModel.Data> dataSchema() { return contextBuilder.dataSchema(); }
+    List<String> enumVariants(String enumName) { return contextBuilder.getEnumVariants(enumName); }
+    String enumOwner(String variant) { return contextBuilder.findEnumOwner(variant); }
+    boolean hasEnumVariants(String enumName) { return contextBuilder.getEnumVariants(enumName) != null; }
+  }
 
   static void addOriginAnnotation(ClassVisitor cv, CoreModel.Origin o) {
     if (o == null) return;
@@ -61,151 +76,212 @@ public final class Main {
     } catch (Throwable __) { /* ignore */ }
   }
 
+  static void addFuncMetadataAnnotations(MethodVisitor mv, CoreModel.Func fn) {
+    if (mv == null || fn == null) {
+      return;
+    }
+    emitPiiAnnotation(mv, fn);
+    emitCapabilityAnnotation(mv, fn);
+  }
+
+  private static void emitPiiAnnotation(MethodVisitor mv, CoreModel.Func fn) {
+    if (fn.piiLevel == null || fn.piiLevel.isEmpty()) {
+      return;
+    }
+    try {
+      AnnotationVisitor av = mv.visitAnnotation("Laster/runtime/AsterPii;", true);
+      av.visit("level", fn.piiLevel);
+      AnnotationVisitor categories = av.visitArray("categories");
+      if (fn.piiCategories != null) {
+        for (String category : fn.piiCategories) {
+          categories.visit(null, category);
+        }
+      }
+      categories.visitEnd();
+      av.visitEnd();
+    } catch (Throwable __) {
+      // 与 addOriginAnnotation 保持一致，忽略注解写入异常
+    }
+  }
+
+  private static void emitCapabilityAnnotation(MethodVisitor mv, CoreModel.Func fn) {
+    if (!fn.effectCapsExplicit || fn.effectCaps == null || fn.effectCaps.isEmpty()) {
+      return;
+    }
+    try {
+      AnnotationVisitor av = mv.visitAnnotation("Laster/runtime/AsterCapability;", true);
+      AnnotationVisitor effects = av.visitArray("effects");
+      if (fn.effects != null) {
+        for (String effect : fn.effects) {
+          effects.visit(null, effect);
+        }
+      }
+      effects.visitEnd();
+      AnnotationVisitor caps = av.visitArray("capabilities");
+      for (String cap : fn.effectCaps) {
+        caps.visit(null, cap);
+      }
+      caps.visitEnd();
+      av.visitEnd();
+    } catch (Throwable __) {
+      // 忽略注解写入异常，避免影响发射流程
+    }
+  }
+
   static String withOrigin(String msg, CoreModel.Origin o) {
     if (o == null || o.start == null || o.end == null) return msg;
     String file = (o.file == null) ? "" : o.file;
     return msg + " [" + file + ":" + o.start.line + ":" + o.start.col + "-" + o.end.line + ":" + o.end.col + "]";
   }
 
-  public static void main(String[] args) throws Exception {
-    var mapper = new ObjectMapper();
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    var stdin = new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
-    var module = mapper.readValue(stdin, CoreModel.Module.class);
-    var out = Paths.get(args.length > 0 ? args[0] : "build/jvm-classes");
-    Files.createDirectories(out);
+  /**
+   * 编译结果，包含模块映射和错误信息。
+   */
+  public static class CompileResult {
+    public final Map<String, String> moduleMapping;
+    public final List<String> errors;
+    public final boolean success;
 
-    var enumMap = new java.util.LinkedHashMap<String,String>();
-    var dataSchema = new java.util.LinkedHashMap<String, CoreModel.Data>();
-    for (var d0 : module.decls) {
-      if (d0 instanceof CoreModel.Enum en0) for (var v : en0.variants) enumMap.put(v, en0.name);
-      if (d0 instanceof CoreModel.Data da0) dataSchema.put(da0.name, da0);
+    public CompileResult(Map<String, String> moduleMapping, List<String> errors, boolean success) {
+      this.moduleMapping = moduleMapping;
+      this.errors = errors;
+      this.success = success;
     }
-    var enumVariants = new java.util.LinkedHashMap<String, java.util.List<String>>();
-    for (var d0 : module.decls) if (d0 instanceof CoreModel.Enum en0) enumVariants.put(en0.name, en0.variants);
-    // Load optional hints
-    Map<String, Map<String, Character>> hints = new java.util.LinkedHashMap<>();
-    String hintsPath = System.getenv("HINTS_PATH");
-    if (hintsPath != null && !hintsPath.isEmpty()) {
-      try {
-        var txt = Files.readString(Paths.get(hintsPath));
-        var node = mapper.readTree(txt);
-        var fns = node.get("functions");
-        if (fns != null && fns.isObject()) {
-          var it = fns.fields();
-          while (it.hasNext()) {
-            var e = it.next();
-            var fnName = e.getKey();
-            var obj = e.getValue();
-            if (obj != null && obj.isObject()) {
-              Map<String, Character> m = new java.util.LinkedHashMap<>();
-              var it2 = obj.fields();
-              while (it2.hasNext()) {
-                var e2 = it2.next();
-                String kind = e2.getValue().asText("");
-                if ("I".equals(kind) || "J".equals(kind) || "D".equals(kind)) m.put(e2.getKey(), kind.charAt(0));
-              }
-              hints.put(fnName, m);
-            }
-          }
-        }
-        System.out.println("Loaded hints from " + hintsPath + ": " + hints.size() + " functions");
-      } catch (Exception ex) {
-        System.err.println("WARN: failed to load hints: " + ex.getMessage());
-      }
+
+    public static CompileResult ok(Map<String, String> moduleMapping) {
+      return new CompileResult(moduleMapping, List.of(), true);
     }
-    // Diagnostics + nullability strict toggle
+
+    public static CompileResult error(List<String> errors) {
+      return new CompileResult(Map.of(), errors, false);
+    }
+  }
+
+  /**
+   * 编译 Core IR 模块为 JVM 字节码。
+   *
+   * 注意：此方法不保证线程安全，调用方需要同步。
+   *
+   * @param module Core IR 模块
+   * @param outputDir 输出目录，将写入 .class 文件
+   * @param funcHints 函数类型提示（可选，用于优化）
+   * @return 编译结果，包含模块映射和错误信息
+   */
+  public static CompileResult compile(CoreModel.Module module, Path outputDir, Map<String, Map<String, Character>> funcHints) {
+    // 清理静态状态，确保每次调用隔离
+    DIAG_OVERLOAD = true;
+    NULL_STRICT = false;
+    NULL_POLICY_OVERRIDE.clear();
+
+    List<String> errors = new ArrayList<>();
+    Map<String, String> moduleMapping = new LinkedHashMap<>();
+
     try {
-      String d = System.getenv("DIAG_OVERLOAD");
-      if (d != null && !d.isEmpty()) DIAG_OVERLOAD = Boolean.parseBoolean(d);
-      String ns = System.getenv("INTEROP_NULL_STRICT");
-      if (ns != null && !ns.isEmpty()) NULL_STRICT = Boolean.parseBoolean(ns);
-      String np = System.getenv("INTEROP_NULL_POLICY");
-      if (np != null && !np.isEmpty()) {
-        try {
-          var node = mapper.readTree(java.nio.file.Files.readString(java.nio.file.Paths.get(np)));
-          var f = node.fields();
-          while (f.hasNext()) {
-            var e = f.next();
-            var arr = e.getValue();
-            if (arr != null && arr.isArray()) {
-              boolean[] vals = new boolean[arr.size()];
-              for (int i = 0; i < arr.size(); i++) vals[i] = arr.get(i).asBoolean(false);
-              NULL_POLICY_OVERRIDE.put(e.getKey(), vals);
-            }
-          }
-        } catch (Exception ex) {
-          System.err.println("WARN: failed to load INTEROP_NULL_POLICY: " + ex.getMessage());
+      Files.createDirectories(outputDir);
+
+      Map<String, Map<String, Character>> hints = (funcHints != null) ? funcHints : new LinkedHashMap<>();
+
+      var context = new ContextBuilder(module);
+      // Build function schemas map
+      Map<String, CoreModel.Func> functionSchemas = new LinkedHashMap<>();
+      for (var d : module.decls) {
+        if (d instanceof CoreModel.Func fn) {
+          functionSchemas.put(fn.name, fn);
         }
       }
-    } catch (Throwable __) { /* ignore */ }
-    // Load lightweight method cache
-    java.util.Map<String, java.util.List<String>> methodCache = METHOD_CACHE;
-    String root = System.getenv("ASTER_ROOT");
-    Path base = (root != null && !root.isEmpty()) ? Paths.get(root) : Paths.get("");
-    Path cacheRoot = base.resolve("build/.asteri");
-    Files.createDirectories(cacheRoot);
-    Path cachePath = cacheRoot.resolve("method-cache.json");
-    try {
-      if (Files.exists(cachePath)) {
-        var node = mapper.readTree(Files.readString(cachePath));
-        var it = node.fields();
-        while (it.hasNext()) {
-          var e = it.next();
-          var arr = e.getValue();
-          java.util.List<String> list = new java.util.ArrayList<>();
-          if (arr != null && arr.isArray()) for (var el : arr) list.add(el.asText());
-          METHOD_CACHE.put(e.getKey(), list);
-        }
+      var ctx = new Ctx(outputDir, context, new java.util.concurrent.atomic.AtomicInteger(0), hints, new LinkedHashMap<>(), functionSchemas);
+      String pkgName = (module.name == null || module.name.isEmpty()) ? "app" : module.name;
+
+      // 记录模块映射（当前实现中 cnl == jvm）
+      moduleMapping.put(pkgName, pkgName);
+
+      for (var d : module.decls) {
+        if (d instanceof CoreModel.Data data) emitData(ctx, pkgName, data);
+        else if (d instanceof CoreModel.Enum en) emitEnum(ctx, pkgName, en);
+        else if (d instanceof CoreModel.Func fn) emitFunc(ctx, pkgName, module, fn);
       }
+
+      return CompileResult.ok(moduleMapping);
     } catch (Exception ex) {
-      System.err.println("WARN: failed to load method-cache.json: " + ex.getMessage());
+      errors.add("编译失败: " + ex.getMessage());
+      if (ex.getCause() != null) {
+        errors.add("原因: " + ex.getCause().getMessage());
+      }
+      return CompileResult.error(errors);
     }
-    var ctx = new Ctx(out, enumMap, dataSchema, enumVariants, new java.util.concurrent.atomic.AtomicInteger(0), hints, methodCache, cachePath, new java.util.LinkedHashMap<>());
-    String pkgName = (module.name == null || module.name.isEmpty()) ? "app" : module.name;
-    for (var d : module.decls) {
-      if (d instanceof CoreModel.Data data) emitData(ctx, pkgName, data);
-      else if (d instanceof CoreModel.Enum en) emitEnum(ctx, pkgName, en);
-      else if (d instanceof CoreModel.Func fn) emitFunc(ctx, pkgName, module, fn);
+  }
+
+  public static void main(String[] args) throws Exception {
+    // 从 System.in 读取 Core IR
+    CoreContext coreCtx = ModuleLoader.load(System.in);
+
+    // 应用 CoreContext 的配置到静态状态
+    DIAG_OVERLOAD = coreCtx.diagOverload();
+    NULL_STRICT = coreCtx.nullPolicy().strict();
+    NULL_POLICY_OVERRIDE.clear();
+    NULL_POLICY_OVERRIDE.putAll(coreCtx.nullPolicy().overrides());
+
+    var module = coreCtx.module();
+    var outputDir = Paths.get(args.length > 0 ? args[0] : "build/jvm-classes");
+
+    // 转换 funcHints 格式
+    Map<String, Map<String, Character>> hints = new LinkedHashMap<>();
+    for (var entry : coreCtx.hints().entrySet()) {
+      Map<String, Character> m = new LinkedHashMap<>();
+      for (var hint : entry.getValue().entrySet()) {
+        String kind = hint.getValue();
+        if (kind != null && !kind.isEmpty()) m.put(hint.getKey(), kind.charAt(0));
+      }
+      hints.put(entry.getKey(), m);
     }
-    // Emit package map artifact for tooling
+
+    // 调用新的 compile() API
+    CompileResult result = compile(module, outputDir, hints);
+
+    if (!result.success) {
+      System.err.println("编译失败:");
+      for (String error : result.errors) {
+        System.err.println("  " + error);
+      }
+      System.exit(1);
+      return;
+    }
+
+    // 写入 package-map.json（向后兼容）
     try {
       var outRoot = Paths.get("build/aster-out");
       Files.createDirectories(outRoot);
       var mapPath = outRoot.resolve("package-map.json");
-      String pkg = pkgName;
-      String json = "{\n  \"modules\": [{ \"cnl\": \"" + pkg + "\", \"jvm\": \"" + pkg + "\" }]\n}";
-      Files.writeString(mapPath, json, java.nio.charset.StandardCharsets.UTF_8);
+
+      // 从 result.moduleMapping 生成 JSON
+      String pkgName = module.name != null && !module.name.isEmpty() ? module.name : "app";
+      String json = "{\n  \"modules\": [{ \"cnl\": \"" + pkgName + "\", \"jvm\": \"" + pkgName + "\" }]\n}";
+      Files.writeString(mapPath, json, StandardCharsets.UTF_8);
       System.out.println("WROTE package-map.json to " + mapPath.toAbsolutePath());
-      // Persist method cache
-      try {
-        var obj = new com.fasterxml.jackson.databind.node.ObjectNode(mapper.getNodeFactory());
-        for (var e : METHOD_CACHE.entrySet()) {
-          var arr = new com.fasterxml.jackson.databind.node.ArrayNode(mapper.getNodeFactory());
-          for (var s : e.getValue()) arr.add(s);
-          obj.set(e.getKey(), arr);
-        }
-        Files.writeString(ctx.cachePath, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj));
-      } catch (Exception ex) {
-        System.err.println("WARN: failed to write method-cache.json: " + ex.getMessage());
-      }
     } catch (Exception ex) {
       System.err.println("WARN: failed to write package-map.json: " + ex.getMessage());
     }
+
+    System.exit(0);
   }
 
   static void emitData(Ctx ctx, String pkg, CoreModel.Data d) throws IOException {
-    var cw = cwFrames();
-    var internal = toInternal(pkg, d.name);
-    cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
+    var cw = AsmUtilities.createClassWriter();
+    var internal = definitionInternalName(pkg, d.name);
+    cw.visit(V25, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
     addOriginAnnotation(cw, d.origin);
     cw.visitSource((d.name == null ? "Data" : d.name) + ".java", null);
     // fields
     for (var f : d.fields) {
-      cw.visitField(ACC_PUBLIC | ACC_FINAL, f.name, jDesc(pkg, f.type), null, null).visitEnd();
+      var fv = cw.visitField(ACC_PUBLIC | ACC_FINAL, f.name, jDesc(pkg, f.type), null, null);
+      emitFieldAnnotations(fv, f);
+      fv.visitEnd();
     }
     // ctor
     var mv = cw.visitMethod(ACC_PUBLIC, "<init>", ctorDesc(pkg, d.fields), null, null);
+    for (var f : d.fields) {
+      mv.visitParameter(f.name, 0);
+    }
     mv.visitCode();
     var lCtorStart = new Label();
     mv.visitLabel(lCtorStart);
@@ -230,26 +306,147 @@ public final class Main {
     }
     mv.visitMaxs(0,0);
     mv.visitEnd();
-    writeClass(ctx, internal, cw.toByteArray());
+    AsmUtilities.writeClass(ctx.outDir.toString(), internal, cw.toByteArray());
+  }
+
+  private static void emitFieldAnnotations(FieldVisitor fv, CoreModel.Field field) {
+    if (field == null || field.annotations == null || field.annotations.isEmpty()) return;
+    for (var ann : field.annotations) {
+      if ("pii".equalsIgnoreCase(ann.name)) {
+        continue;
+      }
+      String descriptor = annotationDescriptor(ann.name);
+      AnnotationVisitor av = fv.visitAnnotation(descriptor, true);
+      if (av == null) continue;
+      writeAnnotationParams(av, ann);
+      av.visitEnd();
+    }
+  }
+
+  private static String annotationDescriptor(String annotationName) {
+    return switch (annotationName) {
+      case "Range" -> "Lio/aster/policy/api/validation/constraints/Range;";
+      case "NotEmpty" -> "Lio/aster/policy/api/validation/constraints/NotEmpty;";
+      case "Pattern" -> "Lio/aster/policy/api/validation/constraints/Pattern;";
+      default -> throw new IllegalArgumentException("Unknown annotation: " + annotationName);
+    };
+  }
+
+  private static void writeAnnotationParams(AnnotationVisitor av, CoreModel.Annotation ann) {
+    if (ann == null || ann.params == null || ann.params.isEmpty()) return;
+    for (var entry : ann.params.entrySet()) {
+      Object value = normalizeAnnotationValue(ann.name, entry.getKey(), entry.getValue());
+      if (value instanceof Number || value instanceof String || value instanceof Boolean) {
+        av.visit(entry.getKey(), value);
+      } else {
+        throw new IllegalArgumentException(
+          "Unsupported annotation param type: " + (value == null ? "null" : value.getClass().getName())
+        );
+      }
+    }
+  }
+
+  private static Object normalizeAnnotationValue(String annotationName, String key, Object value) {
+    if (value == null) {
+      return null;
+    }
+    if ("Range".equals(annotationName)) {
+      if (value instanceof Number number) {
+        return switch (key) {
+          case "min", "max" -> number.longValue();
+          case "minDouble", "maxDouble" -> number.doubleValue();
+          default -> number;
+        };
+      }
+      throw new IllegalArgumentException("Range 注解参数需要数值类型，收到 " + value.getClass().getName());
+    }
+    return value;
+  }
+
+  static void emitParameterAnnotations(
+    MethodVisitor mv,
+    int index,
+    CoreModel.Param param
+  ) {
+    if (param == null || param.annotations == null || param.annotations.isEmpty()) return;
+    for (var ann : param.annotations) {
+      if ("pii".equalsIgnoreCase(ann.name)) {
+        continue;
+      }
+      String descriptor = annotationDescriptor(ann.name);
+      AnnotationVisitor av = mv.visitParameterAnnotation(index, descriptor, true);
+      if (av == null) continue;
+      writeAnnotationParams(av, ann);
+      av.visitEnd();
+    }
   }
 
   static void emitEnum(Ctx ctx, String pkg, CoreModel.Enum en) throws IOException {
     var cw = new ClassWriter(0);
-    var internal = toInternal(pkg, en.name);
-    cw.visit(V17, ACC_PUBLIC | ACC_FINAL | ACC_ENUM, internal, null, "java/lang/Enum", null);
+    var internal = definitionInternalName(pkg, en.name);
+    cw.visit(V25, ACC_PUBLIC | ACC_FINAL | ACC_ENUM, internal, null, "java/lang/Enum", null);
     addOriginAnnotation(cw, en.origin);
     cw.visitSource((en.name == null ? "Enum" : en.name) + ".java", null);
     for (var v : en.variants) {
       cw.visitField(ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_ENUM, v, internalDesc(internal), null, null).visitEnd();
     }
-    writeClass(ctx, internal, cw.toByteArray());
+    AsmUtilities.writeClass(ctx.outDir.toString(), internal, cw.toByteArray());
   }
 
   static void emitFunc(Ctx ctx, String pkg, CoreModel.Module mod, CoreModel.Func fn) throws IOException {
+    // Batch 1-5: 委托简单函数、Fast-path 函数、只包含 Let 语句、Let/If 组合或 Let/If/Match/Return 的函数到 FunctionEmitter
+    // TODO: 后续批次逐步扩展 FunctionEmitter 的能力，最终完全委托
+    boolean isSimpleFunction = (fn.body == null || fn.body.statements == null || fn.body.statements.isEmpty());
+    boolean isFastPathFunction = (Objects.equals(pkg, "app.math") || Objects.equals(pkg, "app.debug")) && fn.params.size() == 2;
+
+    // Batch 3: 检查是否只包含 Let 语句（不包含 If/Match/Return）
+    boolean hasOnlyLetStatements = false;
+    boolean hasOnlyLetAndIfStatements = false;
+    boolean hasOnlyLetIfMatchReturnStatements = false;
+    if (fn.body != null && fn.body.statements != null && !fn.body.statements.isEmpty()) {
+      hasOnlyLetStatements = fn.body.statements.stream().allMatch(st -> st instanceof CoreModel.Let);
+      hasOnlyLetAndIfStatements = fn.body.statements.stream()
+        .allMatch(st -> st instanceof CoreModel.Let || st instanceof CoreModel.If)
+        && fn.body.statements.stream().anyMatch(st -> st instanceof CoreModel.If);
+      hasOnlyLetIfMatchReturnStatements = fn.body.statements.stream()
+        .allMatch(st ->
+          st instanceof CoreModel.Let
+            || st instanceof CoreModel.If
+            || st instanceof CoreModel.Match
+            || st instanceof CoreModel.Return
+        );
+    }
+
+    if (isSimpleFunction || isFastPathFunction || hasOnlyLetStatements || hasOnlyLetAndIfStatements || hasOnlyLetIfMatchReturnStatements) {
+      // 创建必要的依赖组件
+      Map<String, Character> fnHints = ctx.funcHints.getOrDefault(pkg + "." + fn.name, java.util.Collections.emptyMap());
+      var scopeStack = new ScopeStack();
+      var typeResolver = new TypeResolver(scopeStack, fnHints, ctx.functionSchemas(), ctx.contextBuilder());
+      var nameEmitter = new NameEmitter(typeResolver, ctx);
+      var stdlibInliner = StdlibInliner.instance();
+      var signatureResolver = new SignatureResolver(DIAG_OVERLOAD);
+      var callEmitter = new CallEmitter(typeResolver, signatureResolver, ctx, stdlibInliner);
+      var expressionEmitter = new ExpressionEmitter(ctx, pkg, 0, null, scopeStack, typeResolver, nameEmitter, callEmitter);
+      var matchEmitter = new MatchEmitter(ctx, typeResolver, expressionEmitter);
+      var ifEmitter = new IfEmitter(ctx, typeResolver, expressionEmitter);
+      var functionEmitter = new FunctionEmitter(
+          ctx,
+          ctx.contextBuilder(),
+          typeResolver,
+          expressionEmitter,
+          matchEmitter,
+          ifEmitter,
+          stdlibInliner
+      );
+      functionEmitter.emitFunction(pkg, mod, fn);
+      return;
+    }
+
+    // 原有实现（处理复杂函数）
     var className = fn.name + "_fn";
     var internal = toInternal(pkg, className);
-    var cw = cwFrames();
-    cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
+    var cw = AsmUtilities.createClassWriter();
+    cw.visit(V25, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", null);
     // Use the actual class file name to avoid javac auxiliary-class warnings in downstream builds
     cw.visitSource(className + ".java", null);
 
@@ -259,7 +456,13 @@ public final class Main {
     paramsDesc.append(")").append(retDesc);
 
     var mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, fn.name, paramsDesc.toString(), null, null);
+    for (int idx = 0; idx < fn.params.size(); idx++) {
+      var p = fn.params.get(idx);
+      mv.visitParameter(p.name, 0);
+      emitParameterAnnotations(mv, idx, p);
+    }
     addOriginAnnotation(mv, fn.origin);
+    addFuncMetadataAnnotations(mv, fn);
     mv.visitCode();
     var lStart = new Label();
     mv.visitLabel(lStart);
@@ -285,7 +488,7 @@ public final class Main {
           mv.visitMaxs(0,0); mv.visitEnd();
           var bytes = cw.toByteArray();
           System.out.println(withOrigin("FAST-PATH ADD: class size=" + bytes.length + " bytes", fn.origin));
-          writeClass(ctx, internal, bytes);
+          AsmUtilities.writeClass(ctx.outDir.toString(), internal, bytes);
           return;
         }
         if ((Objects.equals(fn.name, "cmp") || Objects.equals(fn.name, "cmp2")) && Objects.equals(((CoreModel.TypeName)fn.ret).name, "Bool")) {
@@ -303,7 +506,7 @@ public final class Main {
           mv.visitMaxs(0,0); mv.visitEnd();
           var bytes = cw.toByteArray();
           System.out.println(withOrigin("FAST-PATH CMP: class size=" + bytes.length + " bytes", fn.origin));
-          writeClass(ctx, internal, bytes);
+          AsmUtilities.writeClass(ctx.outDir.toString(), internal, bytes);
           return;
         }
       }
@@ -311,169 +514,40 @@ public final class Main {
 
     int nextSlot = fn.params.size();
     var env = new java.util.LinkedHashMap<String,Integer>();
-    var intLocals = new java.util.LinkedHashSet<String>();
-    var longLocals = new java.util.LinkedHashSet<String>();
-    var doubleLocals = new java.util.LinkedHashSet<String>();
+    var scopeStack = new ScopeStack();
     for (int i=0;i<fn.params.size();i++) {
       var p = fn.params.get(i);
       env.put(p.name, i);
-      if (p.type instanceof CoreModel.TypeName tn) {
-        if ("Int".equals(tn.name) || "Bool".equals(tn.name)) intLocals.add(p.name);
-        else if ("Long".equals(tn.name)) longLocals.add(p.name);
-        else if ("Double".equals(tn.name)) doubleLocals.add(p.name);
-      }
+      var desc = jDesc(pkg, p.type);
+      scopeStack.declare(p.name, i, desc, kindForDescriptor(desc));
     }
-
 
     // Handle a small subset: sequence of statements with Let/If/Match/Return
     if (fn.body != null && fn.body.statements != null && !fn.body.statements.isEmpty()) {
       // slot plan: params in [0..N-1], temp locals start at N
     Map<String, Character> fnHints = ctx.funcHints.getOrDefault(pkg + "." + fn.name, java.util.Collections.emptyMap());
-    java.util.function.Function<CoreModel.Expr, Character> classify = (expr) -> classifyNumeric(expr, intLocals, longLocals, doubleLocals);
+    var typeResolver = new TypeResolver(scopeStack, fnHints, ctx.functionSchemas(), ctx.contextBuilder());
     for (var st : fn.body.statements) {
         var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl);
         if (st instanceof CoreModel.Let let) {
-          // MVP: recognize boolean let ok = AuthRepo.verify(user, pass)
-          if (Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
-            emitExpr(ctx, mv, let.expr, "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(ISTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            intLocals.add(let.name);
-            lvars.add(new LV(let.name, "Z", nextSlot));
-          } else if (let.expr instanceof CoreModel.LongE) {
-            emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(LSTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            longLocals.add(let.name);
-            lvars.add(new LV(let.name, "J", nextSlot));
-          } else if (let.expr instanceof CoreModel.DoubleE) {
-            emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(DSTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            doubleLocals.add(let.name);
-            lvars.add(new LV(let.name, "D", nextSlot));
-          } else if (let.expr instanceof CoreModel.IntE) {
-            emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(ISTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            intLocals.add(let.name);
-            lvars.add(new LV(let.name, "I", nextSlot));
-          } else if (let.expr instanceof CoreModel.Name nn) {
-            // Propagate primitive kind from source local
-            if (doubleLocals.contains(nn.name)) {
-              emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
-              mv.visitVarInsn(DSTORE, nextSlot);
-              env.put(let.name, nextSlot);
-              doubleLocals.add(let.name);
-              lvars.add(new LV(let.name, "D", nextSlot));
-            } else if (longLocals.contains(nn.name)) {
-              emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
-              mv.visitVarInsn(LSTORE, nextSlot);
-              env.put(let.name, nextSlot);
-              longLocals.add(let.name);
-              lvars.add(new LV(let.name, "J", nextSlot));
-            } else if (intLocals.contains(nn.name)) {
-              emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
-              mv.visitVarInsn(ISTORE, nextSlot);
-              env.put(let.name, nextSlot);
-              intLocals.add(let.name);
-              lvars.add(new LV(let.name, "I", nextSlot));
-            } else {
-              emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
-              mv.visitVarInsn(ASTORE, nextSlot);
-              env.put(let.name, nextSlot);
-              lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
-            }
-          } else if (let.expr instanceof CoreModel.Call c2) {
-            // Attempt to classify arbitrary numeric expression recursively
-            Character k = classify.apply(let.expr);
-            if (k != null) {
-              if (k == 'D') {
-                emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals);
-                mv.visitVarInsn(DSTORE, nextSlot);
-                env.put(let.name, nextSlot);
-                doubleLocals.add(let.name);
-                lvars.add(new LV(let.name, "D", nextSlot));
-              } else if (k == 'J') {
-                emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals);
-                mv.visitVarInsn(LSTORE, nextSlot);
-                env.put(let.name, nextSlot);
-                longLocals.add(let.name);
-                lvars.add(new LV(let.name, "J", nextSlot));
-              } else {
-                emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals);
-                mv.visitVarInsn(ISTORE, nextSlot);
-                env.put(let.name, nextSlot);
-                intLocals.add(let.name);
-                lvars.add(new LV(let.name, "I", nextSlot));
-              }
-            } else {
-              // Unknown call — consider hints
-              Character h = fnHints.get(let.name);
-              if (h != null) {
-                if (h == 'D') { emitExpr(ctx, mv, let.expr, "D", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(DSTORE, nextSlot); doubleLocals.add(let.name); lvars.add(new LV(let.name, "D", nextSlot)); }
-                else if (h == 'J') { emitExpr(ctx, mv, let.expr, "J", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(LSTORE, nextSlot); longLocals.add(let.name); lvars.add(new LV(let.name, "J", nextSlot)); }
-                else { emitExpr(ctx, mv, let.expr, "I", pkg, 0, env, intLocals, longLocals, doubleLocals); mv.visitVarInsn(ISTORE, nextSlot); intLocals.add(let.name); lvars.add(new LV(let.name, "I", nextSlot)); }
-                env.put(let.name, nextSlot);
-              } else {
-                emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                mv.visitVarInsn(ASTORE, nextSlot);
-                env.put(let.name, nextSlot);
-                lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
-              }
-            }
-          } else {
-            emitExpr(ctx, mv, let.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitVarInsn(ASTORE, nextSlot);
-            env.put(let.name, nextSlot);
-            lvars.add(new LV(let.name, "Ljava/lang/Object;", nextSlot));
-          }
-          nextSlot++;
-          continue;
-        }
-        if (st instanceof CoreModel.If iff) {
-          var lElse = new Label();
-          var lEnd = new Label();
-          // cond
-          if (iff.cond instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn && Objects.equals(nn.name, "not")) {
-            // not(x): if x is true, go to else; if x is false, go to then
-            emitExpr(ctx, mv, c.args.get(0), "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitJumpInsn(IFNE, lElse);
-          } else if (iff.cond instanceof CoreModel.Name n && env.containsKey(n.name)) {
-            var slot = env.get(n.name);
-            mv.visitVarInsn(ILOAD, slot);
-            mv.visitJumpInsn(IFEQ, lElse);
-          } else {
-            emitExpr(ctx, mv, iff.cond, "Z", pkg, 0, env, intLocals, longLocals, doubleLocals);
-            mv.visitJumpInsn(IFEQ, lElse);
-          }
-          // then
-          { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
-          if (iff.thenBlock != null && iff.thenBlock.statements != null && !iff.thenBlock.statements.isEmpty()) {
-            var last = iff.thenBlock.statements.get(iff.thenBlock.statements.size()-1);
-            if (last instanceof CoreModel.Return r) {
-              emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-              if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-            }
-          }
-          mv.visitJumpInsn(GOTO, lEnd);
-          // else
-          mv.visitLabel(lElse);
-          { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
-          if (iff.elseBlock != null && iff.elseBlock.statements != null && !iff.elseBlock.statements.isEmpty()) {
-            var last2 = iff.elseBlock.statements.get(iff.elseBlock.statements.size()-1);
-            if (last2 instanceof CoreModel.Return r2) {
-              emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-              if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-            }
-          }
-          mv.visitLabel(lEnd);
+          @SuppressWarnings("unchecked")
+          java.util.List<Object> lvarsAsObjects = (java.util.List<Object>) (java.util.List<?>) lvars;
+          nextSlot = LetEmitter.emitLetStatement(
+            mv, let, pkg, env, scopeStack, typeResolver, fnHints, ctx,
+            (mv2, expr, expectedDesc, currentPkg, paramBase, env2, scopeStack2, typeResolver2) ->
+              emitExpr(ctx, mv2, expr, expectedDesc, currentPkg, paramBase, env2, scopeStack2, typeResolver2),
+            (expr, currentPkg, scopeStack2, ctx2) ->
+              resolveObjectDescriptor(expr, currentPkg, scopeStack2, ctx2),
+            lvarsAsObjects,
+            (name, desc, slot) -> new LV(name, desc, slot),
+            nextSlot
+          );
           continue;
         }
         if (st instanceof CoreModel.Match mm) {
           // Evaluate scrutinee once into a temp local
           int scrSlot = nextSlot++;
-          emitExpr(ctx, mv, mm.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals);
+          emitExpr(ctx, mv, mm.expr, null, pkg, 0, env, scopeStack, typeResolver);
           mv.visitVarInsn(ASTORE, scrSlot);
           lvars.add(new LV("_scr", "Ljava/lang/Object;", scrSlot));
 
@@ -485,12 +559,12 @@ public final class Main {
               String en = null; boolean mixed = false;
               for (var c : mm.cases) {
                 var v = ((CoreModel.PatName)c.pattern).name;
-                var en0 = ctx.enumVarToEnum.get(v);
+                var en0 = ctx.enumOwner(v);
                 if (en0 == null) { mixed = true; break; }
                 if (en == null) en = en0; else if (!en.equals(en0)) { mixed = true; break; }
               }
-              if (!mixed && en != null && ctx.enumVariants.containsKey(en)) {
-                var enumInternal = en.contains(".") ? en.replace('.', '/') : toInternal(pkg, en);
+              if (!mixed && en != null && ctx.hasEnumVariants(en)) {
+                var enumInternal = resolveTypeInternalName(pkg, en);
                 // ord = ((Enum)__scrut).ordinal()
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(CHECKCAST, enumInternal);
@@ -498,7 +572,7 @@ public final class Main {
                 int ord = nextSlot++;
                 mv.visitVarInsn(ISTORE, ord);
                 lvars.add(new LV("_ord", "I", ord));
-                var variants = ctx.enumVariants.get(en);
+                var variants = ctx.enumVariants(en);
                 var defaultL = new Label();
                 var labels = new Label[variants.size()];
                 for (int i2=0;i2<labels.length;i2++) labels[i2] = new Label();
@@ -516,7 +590,11 @@ public final class Main {
                   mv.visitLabel(_caseLbl);
                   mv.visitLineNumber(lineNo.getAndIncrement(), _caseLbl);
                   seen[idx] = true;
-                  boolean returned = emitCaseStmt(ctx, mv, c.body, retDesc, pkg, 0, env, intLocals, lineNo);
+                  scopeStack.pushScope();
+                  int[] nextSlotBox = { nextSlot };
+                  boolean returned = emitCaseStmt(ctx, mv, c.body, retDesc, pkg, 0, env, scopeStack, typeResolver, fnHints, nextSlotBox, lineNo);
+                  nextSlot = nextSlotBox[0];
+                  scopeStack.popScope();
                   if (!returned) mv.visitJumpInsn(GOTO, endLabel);
                 }
                 // Visit any labels not covered by cases to ensure valid control flow targets
@@ -561,16 +639,22 @@ public final class Main {
                       mv.visitLabel(labels[idx]);
                       seen[idx] = true;
                       { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                      if (c.body instanceof CoreModel.Return rr) {
-                        emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                      } else if (c.body instanceof CoreModel.Block bb) {
-                        for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
-                          emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                          if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                      scopeStack.pushScope();
+                      try {
+                        boolean didReturn = CaseBodyEmitter.emitCaseBody(
+                          mv, c.body, retDesc,
+                          (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver),
+                          endLabelInt
+                        );
+                        if (didReturn) {
+                          // Return already emitted, nothing more to do
+                        } else {
+                          // Block without return, GOTO already emitted by emitCaseBody
+                          usedEndInt = true;
+                          continue;
                         }
-                        mv.visitJumpInsn(GOTO, endLabelInt);
-                        usedEndInt = true;
+                      } finally {
+                        scopeStack.popScope();
                       }
                     }
                     // Visit any gaps to satisfy ASM frame computation and route to default
@@ -591,16 +675,22 @@ public final class Main {
                     for (var c : mm.cases) if (c.pattern instanceof CoreModel.PatInt) {
                       mv.visitLabel(labels[k++]);
                       { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                      if (c.body instanceof CoreModel.Return rr) {
-                        emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                      } else if (c.body instanceof CoreModel.Block bb) {
-                        for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
-                          emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                          if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+                      scopeStack.pushScope();
+                      try {
+                        boolean didReturn = CaseBodyEmitter.emitCaseBody(
+                          mv, c.body, retDesc,
+                          (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver),
+                          endLabelInt
+                        );
+                        if (didReturn) {
+                          // Return already emitted, nothing more to do
+                        } else {
+                          // Block without return, GOTO already emitted by emitCaseBody
+                          usedEndInt = true;
+                          continue;
                         }
-                        mv.visitJumpInsn(GOTO, endLabelInt);
-                        usedEndInt = true;
+                      } finally {
+                        scopeStack.popScope();
                       }
                     }
                   }
@@ -608,16 +698,13 @@ public final class Main {
                   mv.visitLabel(defaultLInt);
                   { var lCaseD = new Label(); mv.visitLabel(lCaseD); mv.visitLineNumber(lineNo.getAndIncrement(), lCaseD); }
                   var cdef = nonInt.get(0);
-                  if (cdef.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                  } else if (cdef.body instanceof CoreModel.Block bb) {
-                    for (var st2 : bb.statements) if (st2 instanceof CoreModel.Return r2) {
-                      emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                      if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                    }
-                    // Default body falls through; do not jump to shared end label
-                  }
+                  scopeStack.pushScope();
+                  CaseBodyEmitter.emitCaseBody(
+                    mv, cdef.body, retDesc,
+                    (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver),
+                    null  // default case: no GOTO to end label
+                  );
+                  scopeStack.popScope();
                   // Always mark the end label to stabilize frame computation for branch targets
                   mv.visitLabel(endLabelInt);
                   continue;
@@ -645,19 +732,22 @@ public final class Main {
                   int idx = ((CoreModel.PatInt)c.pattern).value - min;
                   mv.visitLabel(labels[idx]);
                   { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                  if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                  } else if (c.body instanceof CoreModel.Block bb) {
-                    // Minimal: evaluate last statement if Return; otherwise fall-through to end
-                    for (var st2 : bb.statements) {
-                      if (st2 instanceof CoreModel.Return r2) {
-                        emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                      }
+                  scopeStack.pushScope();
+                  try {
+                    boolean didReturn = CaseBodyEmitter.emitCaseBody(
+                      mv, c.body, retDesc,
+                      (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver),
+                      endLabelInt
+                    );
+                    if (didReturn) {
+                      // Return already emitted, nothing more to do
+                    } else {
+                      // Block without return, GOTO already emitted by emitCaseBody
+                      usedEndInt = true;
+                      continue;
                     }
-                    mv.visitJumpInsn(GOTO, endLabelInt);
-                    usedEndInt = true;
+                  } finally {
+                    scopeStack.popScope();
                   }
                 }
                 mv.visitLabel(defaultLInt);
@@ -677,18 +767,22 @@ public final class Main {
                   var c = mm.cases.get(i2);
                   mv.visitLabel(labels[i2]);
                   { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                  if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                  } else if (c.body instanceof CoreModel.Block bb) {
-                    for (var st2 : bb.statements) {
-                      if (st2 instanceof CoreModel.Return r2) {
-                        emitExpr(ctx, mv, r2.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                        if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                      }
+                  scopeStack.pushScope();
+                  try {
+                    boolean didReturn = CaseBodyEmitter.emitCaseBody(
+                      mv, c.body, retDesc,
+                      (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver),
+                      endLabelInt
+                    );
+                    if (didReturn) {
+                      // Return already emitted, nothing more to do
+                    } else {
+                      // Block without return, GOTO already emitted by emitCaseBody
+                      usedEndInt = true;
+                      continue;
                     }
-                    mv.visitJumpInsn(GOTO, endLabelInt);
-                    usedEndInt = true;
+                  } finally {
+                    scopeStack.popScope();
                   }
                 }
                 mv.visitLabel(defaultLInt);
@@ -699,63 +793,83 @@ public final class Main {
             for (var c : mm.cases) {
               var nextCase = new Label();
               if (c.pattern instanceof CoreModel.PatNull) {
+                scopeStack.pushScope();
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitJumpInsn(IFNONNULL, nextCase);
                 { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                if (c.body instanceof CoreModel.Return rr) {
-                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                  if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                }
+                CaseBodyEmitter.emitCaseBodySimple(
+                  mv, c.body, retDesc,
+                  (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver)
+                );
+                scopeStack.popScope();
                 mv.visitLabel(nextCase);
               } else if (c.pattern instanceof CoreModel.PatCtor pc) {
-                var targetInternal = pc.typeName.contains(".") ? pc.typeName.replace('.', '/') : toInternal(pkg, pc.typeName);
+                var targetInternal = resolveTypeInternalName(pkg, pc.typeName);
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(INSTANCEOF, targetInternal);
                 mv.visitJumpInsn(IFEQ, nextCase);
                 // Bind fields to env
                 { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
+                scopeStack.pushScope();
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(CHECKCAST, targetInternal);
                 int objSlot = nextSlot++;
                 mv.visitVarInsn(ASTORE, objSlot);
-                var data = ctx.dataSchema.get(pc.typeName);
+                var data = ctx.lookupData(pc.typeName);
                 if (data != null && pc.names != null) {
                   for (int i2=0; i2<Math.min(pc.names.size(), data.fields.size()); i2++) {
                     var bindName = pc.names.get(i2);
                     if (bindName == null || bindName.isEmpty() || "_".equals(bindName)) continue;
                     mv.visitVarInsn(ALOAD, objSlot);
                     var f = data.fields.get(i2);
-                    mv.visitFieldInsn(GETFIELD, targetInternal, f.name, jDesc(pkg, f.type));
+                    var fieldDesc = jDesc(pkg, f.type);
+                    loadDataField(mv, targetInternal, f.name, fieldDesc);
                     int slot = nextSlot++;
-                    if (f.type instanceof CoreModel.TypeName tn && (Objects.equals(tn.name, "Int") || Objects.equals(tn.name, "Bool"))) {
-                      mv.visitVarInsn(ISTORE, slot);
-                      intLocals.add(bindName);
-                    } else {
-                      mv.visitVarInsn(ASTORE, slot);
+                    var fieldKind = kindForDescriptor(fieldDesc);
+                    switch (fieldKind) {
+                      case DOUBLE -> {
+                        mv.visitVarInsn(DSTORE, slot);
+                        fieldDesc = "D";
+                      }
+                      case LONG -> {
+                        mv.visitVarInsn(LSTORE, slot);
+                        fieldDesc = "J";
+                      }
+                      case INT -> {
+                        mv.visitVarInsn(ISTORE, slot);
+                        fieldDesc = "I";
+                      }
+                      case BOOLEAN -> {
+                        mv.visitVarInsn(ISTORE, slot);
+                        fieldDesc = "Z";
+                      }
+                      default -> mv.visitVarInsn(ASTORE, slot);
                     }
                     env.put(bindName, slot);
+                    scopeStack.declare(bindName, slot, fieldDesc, fieldKind);
                   }
                 }
-                if (c.body instanceof CoreModel.Return rr) {
-                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                  if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                }
+                CaseBodyEmitter.emitCaseBodySimple(
+                  mv, c.body, retDesc,
+                  (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver)
+                );
+                scopeStack.popScope();
                 mv.visitLabel(nextCase);
               } else if (c.pattern instanceof CoreModel.PatName pn) {
                 // Enum variant match: compare reference equality with enum constant
                 var variant = pn.name;
-                var enumName = ctx.enumVarToEnum.get(variant);
+                var enumName = ctx.enumOwner(variant);
+                scopeStack.pushScope();
                 if (enumName != null) {
-                  var enumInternal = enumName.contains(".") ? enumName.replace('.', '/') : toInternal(pkg, enumName);
+                  var enumInternal = resolveTypeInternalName(pkg, enumName);
                   mv.visitVarInsn(ALOAD, scrSlot);
                   mv.visitFieldInsn(GETSTATIC, enumInternal, variant, internalDesc(enumInternal));
                   mv.visitJumpInsn(IF_ACMPNE, nextCase);
                   { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                  if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                  }
-                  mv.visitLabel(nextCase);
+                  CaseBodyEmitter.emitCaseBodySimple(
+                    mv, c.body, retDesc,
+                    (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver)
+                  );
                 } else {
                   // Treat as wildcard/catch-all with optional binding to the given name
                   // Bind the scrutinee to the pattern name if it's a valid identifier
@@ -765,25 +879,29 @@ public final class Main {
                     mv.visitVarInsn(ASTORE, bind);
                     env.put(variant, bind);
                     lvars.add(new LV(variant, "Ljava/lang/Object;", bind));
+                    scopeStack.declare(variant, bind, "Ljava/lang/Object;", ScopeStack.JvmKind.OBJECT);
                   }
-                  if (c.body instanceof CoreModel.Return rr) {
-                    emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                    if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                  }
-                  mv.visitLabel(nextCase);
+                  CaseBodyEmitter.emitCaseBodySimple(
+                    mv, c.body, retDesc,
+                    (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver)
+                  );
                 }
+                scopeStack.popScope();
+                mv.visitLabel(nextCase);
               } else if (c.pattern instanceof CoreModel.PatInt pi) {
                 // Compare Integer scrutinee value with literal
+                scopeStack.pushScope();
                 mv.visitVarInsn(ALOAD, scrSlot);
                 mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
                 mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
-                emitConstInt(mv, pi.value);
+                AsmUtilities.emitConstInt(mv, pi.value);
                 mv.visitJumpInsn(IF_ICMPNE, nextCase);
                 { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-                if (c.body instanceof CoreModel.Return rr) {
-                  emitExpr(ctx, mv, rr.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-                  if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-                }
+                CaseBodyEmitter.emitCaseBodySimple(
+                  mv, c.body, retDesc,
+                  (m, expr, desc) -> emitExpr(ctx, m, expr, desc, pkg, 0, env, scopeStack, typeResolver)
+                );
+                scopeStack.popScope();
                 mv.visitLabel(nextCase);
               }
             }
@@ -792,79 +910,47 @@ public final class Main {
           continue;
         }
         if (st instanceof CoreModel.Return r) {
-          // Fast-path intrinsics for numeric/boolean returns
-          if (r.expr instanceof CoreModel.Call c && c.target instanceof CoreModel.Name tn) {
-            var nm = tn.name;
-            if (Objects.equals(nm, "+") && "I".equals(retDesc) && c.args.size()==2) {
-              System.out.println("RET FASTPATH: add");
-              // Direct param loads for 2-int params
-              mv.visitVarInsn(ILOAD, 0);
-              mv.visitVarInsn(ILOAD, 1);
-              mv.visitInsn(IADD);
-              mv.visitInsn(IRETURN);
-              mv.visitMaxs(0,0); mv.visitEnd(); writeClass(ctx, internal, cw.toByteArray()); return;
-            }
-            if (Objects.equals(nm, "<") && "Z".equals(retDesc) && c.args.size()==2) {
-              System.out.println("RET FASTPATH: cmp_lt");
-              var lT = new Label(); var lE = new Label();
-              mv.visitVarInsn(ILOAD, 0);
-              mv.visitVarInsn(ILOAD, 1);
-              mv.visitJumpInsn(IF_ICMPLT, lT);
-              mv.visitInsn(ICONST_0);
-              mv.visitJumpInsn(GOTO, lE);
-              mv.visitLabel(lT);
-              mv.visitInsn(ICONST_1);
-              mv.visitLabel(lE);
-              mv.visitInsn(IRETURN);
-              mv.visitMaxs(0,0); mv.visitEnd(); writeClass(ctx, internal, cw.toByteArray()); return;
-            }
-          }
-          // If returning Result, wrap unknown calls in try/catch -> Ok/Err
-          if (retDesc.equals("Laster/runtime/Result;") && r.expr instanceof CoreModel.Call) {
-            var lTryStart = new Label(); var lTryEnd = new Label(); var lCatch = new Label(); var lRet = new Label();
-            mv.visitTryCatchBlock(lTryStart, lTryEnd, lCatch, "java/lang/Throwable");
-            // Reserve a local for the final Result to return
-            int res = nextSlot++;
-            mv.visitLabel(lTryStart);
-            emitExpr(ctx, mv, r.expr, null, pkg, 0, env, intLocals, longLocals, doubleLocals); // leave object on stack
-            // store in temp then construct Ok(temp)
-            int tmp = nextSlot++;
-            mv.visitVarInsn(ASTORE, tmp);
-            mv.visitTypeInsn(NEW, "aster/runtime/Ok");
-            mv.visitInsn(DUP);
-            mv.visitVarInsn(ALOAD, tmp);
-            mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Ok", "<init>", "(Ljava/lang/Object;)V", false);
-            mv.visitVarInsn(ASTORE, res);
-            mv.visitLabel(lTryEnd);
-            mv.visitJumpInsn(GOTO, lRet);
-            // catch(Throwable ex)
-            mv.visitLabel(lCatch);
-            int ex = nextSlot++;
-            mv.visitVarInsn(ASTORE, ex);
-            mv.visitTypeInsn(NEW, "aster/runtime/Err");
-            mv.visitInsn(DUP);
-            mv.visitVarInsn(ALOAD, ex);
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "toString", "()Ljava/lang/String;", false);
-            mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Err", "<init>", "(Ljava/lang/Object;)V", false);
-            mv.visitVarInsn(ASTORE, res);
-            mv.visitJumpInsn(GOTO, lRet);
-            // unified return
-            mv.visitLabel(lRet);
-            mv.visitVarInsn(ALOAD, res);
-            mv.visitInsn(ARETURN);
-            // LocalVariableTable for try/catch temps
-            mv.visitLocalVariable("_res", "Laster/runtime/Result;", null, lTryStart, lRet, res);
-            mv.visitLocalVariable("_tmp", "Ljava/lang/Object;", null, lTryStart, lRet, tmp);
-            mv.visitLocalVariable("_ex", "Ljava/lang/Throwable;", null, lCatch, lRet, ex);
-            continue;
-          }
-          emitExpr(ctx, mv, r.expr, retDesc, pkg, 0, env, intLocals, longLocals, doubleLocals);
-          if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
+          // DISABLED: Fast-path intrinsics are buggy and assume parameters are in locals 0,1
+          // which is not true when parameters are objects. Let normal emission handle it.
+          // if (r.expr instanceof CoreModel.Call c && c.target instanceof CoreModel.Name tn) {
+          //   var nm = tn.name;
+          //   if (Objects.equals(nm, "+") && "I".equals(retDesc) && c.args.size()==2) {
+          //     System.out.println("RET FASTPATH: add");
+          //     // Direct param loads for 2-int params
+          //     mv.visitVarInsn(ILOAD, 0);
+          //     mv.visitVarInsn(ILOAD, 1);
+          //     mv.visitInsn(IADD);
+          //     mv.visitInsn(IRETURN);
+          //     mv.visitMaxs(0,0); mv.visitEnd(); AsmUtilities.writeClass(ctx.outDir.toString(), internal, cw.toByteArray()); return;
+          //   }
+          //   if (Objects.equals(nm, "<") && "Z".equals(retDesc) && c.args.size()==2) {
+          //     System.out.println("RET FASTPATH: cmp_lt");
+          //     var lT = new Label(); var lE = new Label();
+          //     mv.visitVarInsn(ILOAD, 0);
+          //     mv.visitVarInsn(ILOAD, 1);
+          //     mv.visitJumpInsn(IF_ICMPLT, lT);
+          //     mv.visitInsn(ICONST_0);
+          //     mv.visitJumpInsn(GOTO, lE);
+          //     mv.visitLabel(lT);
+          //     mv.visitInsn(ICONST_1);
+          //     mv.visitLabel(lE);
+          //     mv.visitInsn(IRETURN);
+          //     mv.visitMaxs(0,0); mv.visitEnd(); AsmUtilities.writeClass(ctx.outDir.toString(), internal, cw.toByteArray()); return;
+          //   }
+          // }
+          // 使用 ReturnEmitter 处理 Return 语句
+          final int[] nextSlotBox = {nextSlot};  // Mutable wrapper for lambda
+          ReturnEmitter.emitReturn(
+            mv, r, retDesc, pkg, env, scopeStack, ctx, typeResolver,
+            () -> nextSlotBox[0]++,  // SlotProvider (自动更新 nextSlot)
+            Main::emitExpr               // ExprEmitter
+          );
+          nextSlot = nextSlotBox[0];  // 更新外部 nextSlot
           var lEnd2 = new Label(); mv.visitLabel(lEnd2);
           for (var lv : lvars) mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEnd2, lv.slot);
           mv.visitMaxs(0,0);
           mv.visitEnd();
-          writeClass(ctx, internal, cw.toByteArray());
+          AsmUtilities.writeClass(ctx.outDir.toString(), internal, cw.toByteArray());
           return;
         }
       }
@@ -878,24 +964,38 @@ public final class Main {
     for (var lv : lvars) mv.visitLocalVariable(lv.name, lv.desc, null, lStart, lEnd, lv.slot);
     mv.visitMaxs(0,0);
     mv.visitEnd();
-    writeClass(ctx, internal, cw.toByteArray());
+    AsmUtilities.writeClass(ctx.outDir.toString(), internal, cw.toByteArray());
   }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e) { emitExpr(ctx, mv, e, null, null, 0); }
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e) { emitExpr(ctx, mv, e, null, null, 0, null, null, null); }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, null, null, null, null); }
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, null, null, null); }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, java.util.Set<String> intLocals) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, env, intLocals, null, null); }
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env) { emitExpr(ctx, mv, e, expectedDesc, currentPkg, paramBase, env, null, null); }
 
-  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals) {
+  static void emitExpr(Ctx ctx, MethodVisitor mv, CoreModel.Expr e, String expectedDesc, String currentPkg, int paramBase, java.util.Map<String,Integer> env, ScopeStack scopeStack, TypeResolver typeResolver) {
     // Result erasure: if expectedDesc looks like Result, we just leave object on stack
 
-    if (e instanceof CoreModel.StringE s) { emitConstString(ctx, mv, s.value); return; }
-    if (e instanceof CoreModel.Bool b) { mv.visitInsn(b.value ? ICONST_1 : ICONST_0); return; }
+    var nameEmitter = new NameEmitter(typeResolver, ctx);
+    var stdlibInliner = StdlibInliner.instance();
+    var signatureResolver = new SignatureResolver(DIAG_OVERLOAD);
+    var callEmitter = new CallEmitter(typeResolver, signatureResolver, ctx, stdlibInliner);
+    var expressionEmitter = new ExpressionEmitter(ctx, currentPkg, paramBase, env, scopeStack, typeResolver, nameEmitter, callEmitter);
+    if (e instanceof CoreModel.IntE
+        || e instanceof CoreModel.Bool
+        || e instanceof CoreModel.StringE
+        || e instanceof CoreModel.LongE
+        || e instanceof CoreModel.DoubleE
+        || e instanceof CoreModel.NullE
+        || e instanceof CoreModel.Name) {
+      expressionEmitter.emitExpression(e, mv, scopeStack, expectedDesc);
+      return;
+    }
+
     // Boolean not intrinsic: if expectedDesc is Z and expr is Call(Name("not"), [x])
     if (e instanceof CoreModel.Call c1 && c1.target instanceof CoreModel.Name nn1 && Objects.equals(nn1.name, "not") && "Z".equals(expectedDesc)) {
       var lTrue = new Label(); var lEnd = new Label();
-      emitExpr(ctx, mv, c1.args.get(0), "Z", currentPkg, paramBase, env, intLocals);
+      emitExpr(ctx, mv, c1.args.get(0), "Z", currentPkg, paramBase, env, scopeStack, typeResolver);
       mv.visitJumpInsn(IFEQ, lTrue); // if arg == 0 -> true
       mv.visitInsn(ICONST_0);
       mv.visitJumpInsn(GOTO, lEnd);
@@ -905,326 +1005,94 @@ public final class Main {
       return;
     }
 
-    if (e instanceof CoreModel.IntE i) {
-      if ("J".equals(expectedDesc)) { emitConstLong(mv, i.value); return; }
-      if ("D".equals(expectedDesc)) { emitConstDouble(mv, (double)i.value); return; }
-      emitConstInt(mv, i.value);
-      return;
-    }
-    if (e instanceof CoreModel.LongE li) { emitConstLong(mv, li.value); return; }
-    if (e instanceof CoreModel.DoubleE di) { emitConstDouble(mv, di.value); return; }
-
-
-
-    if (e instanceof CoreModel.NullE) { mv.visitInsn(ACONST_NULL); return; }
     if (e instanceof CoreModel.Lambda lam) {
-      int arity = (lam.params == null) ? 0 : lam.params.size();
-      String clsName = "Lambda$" + ctx.lambdaSeq.getAndIncrement();
-      String internal = toInternal(currentPkg == null ? "" : currentPkg, clsName);
-      emitLambdaSkeleton(ctx, internal, arity, lam);
-      // Instantiate closure with captured values
-      mv.visitTypeInsn(NEW, internal);
-      mv.visitInsn(DUP);
-      int capN = (lam.captures == null) ? 0 : lam.captures.size();
-      for (int i = 0; i < capN; i++) {
-        String cname = lam.captures.get(i);
-        Integer slot = (env != null) ? env.get(cname) : null;
-        if (slot == null) {
-          mv.visitInsn(ACONST_NULL);
-        } else {
-          if (intLocals != null && intLocals.contains(cname)) {
-            mv.visitVarInsn(ILOAD, slot);
-            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
-          } else {
-            mv.visitVarInsn(ALOAD, slot);
-          }
-        }
-      }
-      StringBuilder ctorDesc = new StringBuilder("(");
-      for (int i = 0; i < capN; i++) ctorDesc.append("Ljava/lang/Object;");
-      ctorDesc.append(")V");
-      mv.visitMethodInsn(INVOKESPECIAL, internal, "<init>", ctorDesc.toString(), false);
+      LambdaEmitter.LambdaBodyEmitter bodyEmitter = (c, mv2, body, internal, env2, primTypes, retIsResult, lineNo) -> {
+        return emitApplyBlock(c, mv2, body, internal, env2, primTypes, retIsResult, lineNo);
+      };
+      LambdaEmitter lambdaEmitter = new LambdaEmitter(typeResolver, ctx, bodyEmitter);
+      lambdaEmitter.emitLambda(mv, lam, currentPkg, env, scopeStack);
       return;
     }
-    if (e instanceof CoreModel.Name n) {
-      // Param/local quick mapping
-      // Locals/params via env
-      if (env != null && env.containsKey(n.name)) {
-        var slot = env.get(n.name);
-        if ("J".equals(expectedDesc)) {
-          if (intLocals != null && intLocals.contains(n.name)) { mv.visitVarInsn(ILOAD, slot); mv.visitInsn(I2L); }
-          else if (longLocals != null && longLocals.contains(n.name)) { mv.visitVarInsn(LLOAD, slot); }
-          else if (doubleLocals != null && doubleLocals.contains(n.name)) { mv.visitVarInsn(DLOAD, slot); mv.visitInsn(D2L); }
-          else { mv.visitVarInsn(ALOAD, slot); }
-        } else if ("D".equals(expectedDesc)) {
-          if (intLocals != null && intLocals.contains(n.name)) { mv.visitVarInsn(ILOAD, slot); mv.visitInsn(I2D); }
-          else if (longLocals != null && longLocals.contains(n.name)) { mv.visitVarInsn(LLOAD, slot); mv.visitInsn(L2D); }
-          else if (doubleLocals != null && doubleLocals.contains(n.name)) { mv.visitVarInsn(DLOAD, slot); }
-          else { mv.visitVarInsn(ALOAD, slot); }
-        } else if (intLocals != null && intLocals.contains(n.name)) mv.visitVarInsn(ILOAD, slot);
-        else mv.visitVarInsn(ALOAD, slot);
-        return;
-      }
-
-      // Enum variant without enum prefix (e.g., InvalidCreds)
-      if (currentPkg != null && ctx.enumVarToEnum.containsKey(n.name)) {
-        var owner = toInternal(currentPkg, ctx.enumVarToEnum.get(n.name));
-        mv.visitFieldInsn(GETSTATIC, owner, n.name, internalDesc(owner));
-        return;
-
-      }
-      // Enum constant with enum prefix like AuthErr.InvalidCreds
-      int dot = n.name.lastIndexOf('.');
-      if (dot > 0 && currentPkg != null) {
-        var cls = n.name.substring(0, dot);
-        var constName = n.name.substring(dot+1);
-        var owner = toInternal(currentPkg, cls);
-        mv.visitFieldInsn(GETSTATIC, owner, constName, internalDesc(owner));
-        return;
-      }
-      mv.visitInsn(ACONST_NULL); return;
-    }
-    if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name tn) {
-      var name = tn.name;
-      if (Objects.equals(name, "UUID.randomUUID")) {
-        mv.visitMethodInsn(INVOKESTATIC, "java/util/UUID", "randomUUID", "()Ljava/util/UUID;", false);
-        if ("Ljava/lang/String;".equals(expectedDesc)) {
-          mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/UUID", "toString", "()Ljava/lang/String;", false);
-        }
-        return;
-      }
-      // Intrinsic int arithmetic/comparison
-      if (Objects.equals(name, "+")) {
-        // IADD
-        if (c.args.size() == 2) {
-          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
-          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
-          mv.visitInsn(IADD);
+    if (e instanceof CoreModel.Call call) {
+      try {
+        boolean handled = callEmitter.tryEmitCall(
+            mv,
+            call,
+            expectedDesc,
+            currentPkg,
+            paramBase,
+            env,
+            scopeStack,
+            (mv2, expr, desc, pkg, base, env2, stack) ->
+                emitExpr(ctx, mv2, expr, desc, pkg, base, env2, stack, typeResolver));
+        if (handled) {
           return;
         }
+      } catch (IOException ex) {
+        throw new UncheckedIOException(ex);
       }
-      if (Objects.equals(name, "<")) {
-        // ILT -> Z
-        if (c.args.size() == 2) {
-          var lTrue = new Label(); var lEnd = new Label();
-          emitExpr(ctx, mv, c.args.get(0), "I", currentPkg, paramBase, env, intLocals);
-          emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
-          mv.visitJumpInsn(IF_ICMPLT, lTrue);
-          mv.visitInsn(ICONST_0);
-          mv.visitJumpInsn(GOTO, lEnd);
-          mv.visitLabel(lTrue);
-          mv.visitInsn(ICONST_1);
-          mv.visitLabel(lEnd);
-          return;
-        }
-      }
-
-      // Text/String interop mappings (MVP)
-      if (Objects.equals(name, "Text.concat") && c.args.size() == 2) {
-        warnNullability("Text.concat", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "concat", "(Ljava/lang/String;)Ljava/lang/String;", false);
-        return;
-      }
-      if (Objects.equals(name, "Text.contains") && c.args.size() == 2) {
-        warnNullability("Text.contains", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "contains", "(Ljava/lang/CharSequence;)Z", false);
-        return;
-      }
-      if (Objects.equals(name, "Text.equals") && c.args.size() == 2) {
-        warnNullability("Text.equals", c.args);
-        emitExpr(ctx, mv, c.args.get(0), null, currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), null, currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
-        return;
-      }
-      if (Objects.equals(name, "Text.toUpper") && c.args.size() == 1) {
-        warnNullability("Text.toUpper", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "toUpperCase", "()Ljava/lang/String;", false);
-        return;
-      }
-      if (Objects.equals(name, "Text.indexOf") && c.args.size() == 2) {
-        warnNullability("Text.indexOf", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "indexOf", "(Ljava/lang/String;)I", false);
-        return;
-      }
-      if (Objects.equals(name, "Text.startsWith") && c.args.size() == 2) {
-        warnNullability("Text.startsWith", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "startsWith", "(Ljava/lang/String;)Z", false);
-        return;
-      }
-      if (Objects.equals(name, "Text.length") && c.args.size() == 1) {
-        warnNullability("Text.length", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/lang/String;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
-        return;
-      }
-      // List/Map interop
-      if (Objects.equals(name, "List.length") && c.args.size() == 1) {
-        warnNullability("List.length", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "size", "()I", true);
-        return;
-      }
-      if (Objects.equals(name, "List.isEmpty") && c.args.size() == 1) {
-        warnNullability("List.isEmpty", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "isEmpty", "()Z", true);
-        return;
-      }
-      if (Objects.equals(name, "List.get") && c.args.size() == 2) {
-        warnNullability("List.get", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/List;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "I", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "get", "(I)Ljava/lang/Object;", true);
-        // cast if expecting a specific reference type
-        if ("Ljava/lang/String;".equals(expectedDesc)) {
-          mv.visitTypeInsn(CHECKCAST, "java/lang/String");
-        }
-        return;
-      }
-      if (Objects.equals(name, "Map.get") && c.args.size() == 2) {
-        warnNullability("Map.get", c.args);
-        emitExpr(ctx, mv, c.args.get(0), "Ljava/util/Map;", currentPkg, paramBase, env, intLocals);
-        emitExpr(ctx, mv, c.args.get(1), "Ljava/lang/Object;", currentPkg, paramBase, env, intLocals);
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
-        if ("Ljava/lang/String;".equals(expectedDesc)) {
-          mv.visitTypeInsn(CHECKCAST, "java/lang/String");
-        }
-        return;
-      }
-
-      // Static method interop (dotted name)
-      var dot = name.lastIndexOf('.');
-      if (dot > 0 && currentPkg != null) {
-        String cls = name.substring(0, dot);
-        String m = name.substring(dot+1);
-        String ownerInternal = cls.contains(".") ? cls.replace('.', '/') : toInternal(currentPkg, cls);
-        // Very narrow special-case kept for AuthRepo.verify
-        if (Objects.equals(name, "AuthRepo.verify") && c.args.size() == 2) {
-          for (var arg : c.args) emitExpr(ctx, mv, arg, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
-          mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
-          return;
-        }
-        // Overload selection heuristic:
-        // 1) arity match (implicit here), 2) exact primitives, 3) primitive widening across args (Int->Long/Double if any Long/Double present),
-        // 4) boxing (Object), fallback to Object.
-        warnNullability(name, c.args);
-        StringBuilder mdesc = new StringBuilder("(");
-        boolean hasLong = false, hasDouble = false;
-        for (var a : c.args) {
-          Character k = classifyNumeric(a, intLocals, longLocals, doubleLocals);
-          if (k != null) { if (k == 'D') hasDouble = true; else if (k == 'J') hasLong = true; }
-        }
-        // If both present, Double dominates
-        if (hasDouble) hasLong = false;
-        java.util.List<String> argDescs = new java.util.ArrayList<>();
-        for (var a : c.args) {
-          String ad = "Ljava/lang/Object;";
-          if (a instanceof CoreModel.NullE) {
-            ad = "Ljava/lang/Object;";
-          } else if (a instanceof CoreModel.Bool) ad = "Z";
-          else if (a instanceof CoreModel.StringE) ad = "Ljava/lang/String;";
-          else {
-            Character k = classifyNumeric(a, intLocals, longLocals, doubleLocals);
-            if (k != null) {
-              if (k == 'D' || hasDouble) ad = "D";
-              else if (k == 'J' || hasLong) ad = "J";
-              else ad = "I";
-            }
-          }
-          argDescs.add(ad);
-          mdesc.append(ad);
-        }
-        String rdesc = ("I".equals(expectedDesc) || "Z".equals(expectedDesc) || "Ljava/lang/String;".equals(expectedDesc)) ? expectedDesc : "Ljava/lang/String;";
-        // Try reflective resolution to get an exact descriptor if class present
-        String reflectDesc = tryResolveReflect(ownerInternal, m, argDescs, rdesc);
-        String finalDesc;
-        if (reflectDesc != null) {
-          finalDesc = reflectDesc;
-        } else {
-          finalDesc = mdesc.append(")").append(rdesc).toString();
-          if (DIAG_OVERLOAD) {
-            boolean anyPrim = false;
-            for (String ad : argDescs) if ("I".equals(ad) || "J".equals(ad) || "D".equals(ad) || "Z".equals(ad)) { anyPrim = true; break; }
-            if (!anyPrim) {
-              System.err.println("HEURISTIC OVERLOAD: no primitive signal for " + ownerInternal.replace('/', '.') + "." + m + "(" + String.join(",", argDescs) + ") using heuristic " + finalDesc);
-            }
-          }
-        }
-        for (int i = 0; i < c.args.size(); i++) {
-          var a = c.args.get(i);
-          var ad = argDescs.get(i);
-          emitExpr(ctx, mv, a, ad, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
-        }
-        mv.visitMethodInsn(INVOKESTATIC, ownerInternal, m, finalDesc, false);
-        return;
-      }
-    }
-    if (e instanceof CoreModel.Call cgen) {
-      // Generic function value call: target is a closure implementing FnN
-      int ar = (cgen.args == null) ? 0 : cgen.args.size();
-      emitExpr(ctx, mv, cgen.target, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
-      String intf;
-      String desc;
-      if (ar == 0) { intf = "aster/runtime/Fn0"; desc = "()Ljava/lang/Object;"; }
-      else if (ar == 1) { intf = "aster/runtime/Fn1"; desc = "(Ljava/lang/Object;)Ljava/lang/Object;"; }
-      else if (ar == 2) { intf = "aster/runtime/Fn2"; desc = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
-      else if (ar == 3) { intf = "aster/runtime/Fn3"; desc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
-      else { intf = "aster/runtime/Fn1"; desc = "(Ljava/lang/Object;)Ljava/lang/Object;"; }
-      for (int i = 0; i < ar; i++) {
-        // Pass arguments as Objects; for MVP, only reference types in examples
-        emitExpr(ctx, mv, cgen.args.get(i), "Ljava/lang/Object;", currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
-      }
-      mv.visitMethodInsn(INVOKEINTERFACE, intf, "apply", desc, true);
-      if ("Ljava/lang/String;".equals(expectedDesc)) {
-        mv.visitTypeInsn(CHECKCAST, "java/lang/String");
-      } else if ("I".equals(expectedDesc)) {
-        mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
-      } else if ("Z".equals(expectedDesc)) {
-        mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
-      }
-      return;
     }
     // Ok/Err construction
     if (e instanceof CoreModel.Ok ok) {
       mv.visitTypeInsn(NEW, "aster/runtime/Ok");
       mv.visitInsn(DUP);
-      emitExpr(ctx, mv, ok.expr, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+      emitExpr(ctx, mv, ok.expr, null, currentPkg, paramBase, env, scopeStack, typeResolver);
       mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Ok", "<init>", "(Ljava/lang/Object;)V", false);
       return;
     }
     if (e instanceof CoreModel.Err er) {
       mv.visitTypeInsn(NEW, "aster/runtime/Err");
       mv.visitInsn(DUP);
-      emitExpr(ctx, mv, er.expr, null, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
+      emitExpr(ctx, mv, er.expr, null, currentPkg, paramBase, env, scopeStack, typeResolver);
       mv.visitMethodInsn(INVOKESPECIAL, "aster/runtime/Err", "<init>", "(Ljava/lang/Object;)V", false);
       return;
     }
 
     if (e instanceof CoreModel.Construct cons) {
       // new Type(args)
-      var internal = cons.typeName.contains(".") ? cons.typeName.replace('.', '/') : (currentPkg == null ? cons.typeName : toInternal(currentPkg, cons.typeName));
+      var internal = resolveTypeInternalName(currentPkg, cons.typeName);
       mv.visitTypeInsn(NEW, internal);
       mv.visitInsn(DUP);
-      // Assume all fields are reference types except simple ints/bools (MVP)
+
+      // Determine field types from dataSchema
+      CoreModel.Data dataType = ctx.lookupData(cons.typeName);
       var descSb = new StringBuilder("(");
+
       for (var f : cons.fields) {
-        String exp = "Ljava/lang/Object;";
-        if (Objects.equals(f.name, "id") || Objects.equals(f.name, "name")) exp = "Ljava/lang/String;";
-        emitExpr(ctx, mv, f.expr, exp, currentPkg, paramBase, env, intLocals, longLocals, doubleLocals);
-        descSb.append(exp);
+        // Find the field type from the dataSchema
+        String fieldDesc = "Ljava/lang/Object;"; // default
+        char primitiveType = 'L'; // default to object reference
+
+        if (dataType != null) {
+          for (var schemaField : dataType.fields) {
+            if (schemaField.name.equals(f.name)) {
+              if (schemaField.type instanceof CoreModel.TypeName tn) {
+                if (tn.name.equals("Int")) {
+                  primitiveType = 'I';
+                  fieldDesc = "I";
+                } else if (tn.name.equals("Bool")) {
+                  primitiveType = 'Z';
+                  fieldDesc = "Z";
+                } else if (tn.name.equals("Long")) {
+                  primitiveType = 'J';
+                  fieldDesc = "J";
+                } else if (tn.name.equals("Double")) {
+                  primitiveType = 'D';
+                  fieldDesc = "D";
+                } else if (BuiltinTypes.isStringType(tn.name)) {
+                  fieldDesc = "Ljava/lang/String;";
+                }
+              }
+              break;
+            }
+          }
+        }
+
+        // Emit the expression with the appropriate expected type
+        emitExpr(ctx, mv, f.expr, fieldDesc, currentPkg, paramBase, env, scopeStack, typeResolver);
+        descSb.append(fieldDesc);
       }
+
       descSb.append(")V");
       mv.visitMethodInsn(INVOKESPECIAL, internal, "<init>", descSb.toString(), false);
       return;
@@ -1233,83 +1101,6 @@ public final class Main {
     mv.visitInsn(ACONST_NULL);
   }
 
-  static void emitLambdaSkeleton(Ctx ctx, String internal, int arity, CoreModel.Lambda lam) {
-    var cw = cwFrames();
-      String[] ifaces;
-      String applyDesc;
-      if (arity == 0) { ifaces = new String[] { "aster/runtime/Fn0" }; applyDesc = "()Ljava/lang/Object;"; }
-      else if (arity == 1) { ifaces = new String[] { "aster/runtime/Fn1" }; applyDesc = "(Ljava/lang/Object;)Ljava/lang/Object;"; }
-      else if (arity == 2) { ifaces = new String[] { "aster/runtime/Fn2" }; applyDesc = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
-      else if (arity == 3) { ifaces = new String[] { "aster/runtime/Fn3" }; applyDesc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
-      else { ifaces = new String[] { "aster/runtime/Fn4" }; applyDesc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"; }
-    cw.visit(V17, ACC_PUBLIC | ACC_FINAL, internal, null, "java/lang/Object", ifaces);
-    addOriginAnnotation(cw, lam.origin);
-    // captured fields as Object
-    int capN = (lam.captures == null) ? 0 : lam.captures.size();
-    for (int i = 0; i < capN; i++) {
-      String fname = "cap$" + lam.captures.get(i);
-      cw.visitField(ACC_PRIVATE | ACC_FINAL, fname, "Ljava/lang/Object;", null, null).visitEnd();
-    }
-    // ctor
-    var ctorDesc = new StringBuilder("(");
-    for (int i = 0; i < capN; i++) ctorDesc.append("Ljava/lang/Object;");
-    ctorDesc.append(")V");
-    var mv = cw.visitMethod(ACC_PUBLIC, "<init>", ctorDesc.toString(), null, null);
-    mv.visitCode();
-    mv.visitVarInsn(ALOAD, 0);
-    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-    int slot = 1;
-    for (int i = 0; i < capN; i++) {
-      mv.visitVarInsn(ALOAD, 0);
-      mv.visitVarInsn(ALOAD, slot++);
-      mv.visitFieldInsn(PUTFIELD, internal, "cap$" + lam.captures.get(i), "Ljava/lang/Object;");
-    }
-    mv.visitInsn(RETURN);
-    mv.visitMaxs(0, 0);
-    mv.visitEnd();
-    // apply method: load params and captured fields into locals, then emit body with simple control flow
-    var mv2 = cw.visitMethod(ACC_PUBLIC, "apply", applyDesc, null, null);
-    addOriginAnnotation(mv2, lam.origin);
-    mv2.visitCode();
-    // Environment: map names to local slots
-    java.util.Map<String,Integer> env = new java.util.HashMap<>();
-    // Track primitive locals (Int: 'I', Bool: 'Z') for apply
-    java.util.Map<String,Character> primTypes = new java.util.HashMap<>();
-    int next = 1;
-    if (lam.params != null) {
-      for (var p : lam.params) {
-        env.put(p.name, next++);
-        if (p.type instanceof CoreModel.TypeName tn) {
-          if (java.util.Objects.equals(tn.name, "Int")) primTypes.put(p.name, 'I');
-          else if (java.util.Objects.equals(tn.name, "Bool")) primTypes.put(p.name, 'Z');
-        }
-      }
-    }
-    int capN2 = (lam.captures == null) ? 0 : lam.captures.size();
-    for (int i = 0; i < capN2; i++) {
-      String cname = lam.captures.get(i);
-      int slotIdx = next++;
-      mv2.visitVarInsn(ALOAD, 0);
-      mv2.visitFieldInsn(GETFIELD, internal, "cap$" + cname, "Ljava/lang/Object;");
-      mv2.visitVarInsn(ASTORE, slotIdx);
-      env.put(cname, slotIdx);
-    }
-    // Emit body statements; return on first Return encountered
-    boolean didReturn = false;
-    if (lam.body != null && lam.body.statements != null) {
-      boolean retIsResult = (lam.ret instanceof CoreModel.Result);
-      java.util.concurrent.atomic.AtomicInteger lineNo = new java.util.concurrent.atomic.AtomicInteger(1);
-      didReturn = emitApplyBlock(ctx, mv2, lam.body, internal, env, primTypes, retIsResult, lineNo);
-    }
-    if (!didReturn) { mv2.visitInsn(ACONST_NULL); mv2.visitInsn(ARETURN); }
-    mv2.visitMaxs(0, 0);
-    mv2.visitEnd();
-    try {
-      writeClass(ctx, internal, cw.toByteArray());
-    } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
-    }
-  }
 
   static void emitApplySimpleExpr(MethodVisitor mv, CoreModel.Expr e, java.util.Map<String,Integer> env) { emitApplySimpleExpr(mv, e, env, null); }
 
@@ -1320,177 +1111,38 @@ public final class Main {
       if (slot != null) {
         if (primTypes != null && primTypes.containsKey(n.name)) {
           char k = primTypes.get(n.name);
-          if (k == 'I') { mv.visitVarInsn(ILOAD, slot); mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false); return; }
-          if (k == 'Z') { mv.visitVarInsn(ILOAD, slot); mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false); return; }
+          if (k == 'I') {
+            mv.visitVarInsn(ALOAD, slot);
+            mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+            return;
+          }
+          if (k == 'Z') {
+            mv.visitVarInsn(ALOAD, slot);
+            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+            return;
+          }
         }
         mv.visitVarInsn(ALOAD, slot); return;
       }
       mv.visitInsn(ACONST_NULL); return;
     }
-    if (e instanceof CoreModel.IntE i) { mv.visitLdcInsn(Integer.valueOf(i.value)); return; }
+    if (e instanceof CoreModel.IntE i) {
+      AsmUtilities.emitConstInt(mv, i.value);
+      mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+      return;
+    }
     if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn) {
       var name = nn.name;
-      if (java.util.Objects.equals(name, "Text.concat") && c.args != null && c.args.size() == 2) {
-        // Ensure both args are Strings via String.valueOf, then concat
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "concat", "(Ljava/lang/String;)Ljava/lang/String;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "Text.contains") && c.args != null && c.args.size() == 2) {
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "contains", "(Ljava/lang/CharSequence;)Z", false);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "Text.equals") && c.args != null && c.args.size() == 2) {
-        warnNullability("Text.equals", c.args);
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "Text.replace") && c.args != null && c.args.size() == 3) {
-        warnNullability("Text.replace", c.args);
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        emitApplySimpleExpr(mv, c.args.get(2), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "replace", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "Text.split") && c.args != null && c.args.size() == 2) {
-        warnNullability("Text.split", c.args);
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "split", "(Ljava/lang/String;)[Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKESTATIC, "java/util/Arrays", "asList", "([Ljava/lang/Object;)Ljava/util/List;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "Text.indexOf") && c.args != null && c.args.size() == 2) {
-        warnNullability("Text.indexOf", c.args);
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "indexOf", "(Ljava/lang/String;)I", false);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "Text.startsWith") && c.args != null && c.args.size() == 2) {
-        warnNullability("Text.startsWith", c.args);
-        emitApplySimpleExpr(mv, c.args.get(0), env);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "startsWith", "(Ljava/lang/String;)Z", false);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "Text.endsWith") && c.args != null && c.args.size() == 2) {
-        warnNullability("Text.endsWith", c.args);
-        emitApplySimpleExpr(mv, c.args.get(0), env);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "endsWith", "(Ljava/lang/String;)Z", false);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-        return;
-      }
-      // List interop
-      if (java.util.Objects.equals(name, "List.length") && c.args != null && c.args.size() == 1) {
-        emitApplySimpleExpr(mv, c.args.get(0), env);
-        mv.visitTypeInsn(CHECKCAST, "java/util/List");
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "size", "()I", true);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "List.isEmpty") && c.args != null && c.args.size() == 1) {
-        emitApplySimpleExpr(mv, c.args.get(0), env);
-        mv.visitTypeInsn(CHECKCAST, "java/util/List");
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "isEmpty", "()Z", true);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "List.get") && c.args != null && c.args.size() == 2) {
-        emitApplySimpleExpr(mv, c.args.get(0), env);
-        mv.visitTypeInsn(CHECKCAST, "java/util/List");
-        emitApplySimpleExpr(mv, c.args.get(1), env);
-        mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "get", "(I)Ljava/lang/Object;", true);
-        return;
-      }
-      // Map interop
-      if (java.util.Objects.equals(name, "Map.get") && c.args != null && c.args.size() == 2) {
-        emitApplySimpleExpr(mv, c.args.get(0), env);
-        mv.visitTypeInsn(CHECKCAST, "java/util/Map");
-        emitApplySimpleExpr(mv, c.args.get(1), env);
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
-        return;
-      }
-      if (java.util.Objects.equals(name, "Text.length") && c.args != null && c.args.size() == 1) {
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "+") && c.args != null && c.args.size() == 2) {
-        // Integer addition: ((Integer)a).intValue() + ((Integer)b).intValue() boxed
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
-        mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
-        mv.visitInsn(IADD);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
-        return;
-      }
-      if (java.util.Objects.equals(name, "not") && c.args != null && c.args.size() == 1) {
-        // Boolean negation: !((Boolean)x).booleanValue()
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
-        var lTrue = new Label(); var lEnd = new Label();
-        mv.visitJumpInsn(IFEQ, lTrue); // if false -> true
-        mv.visitInsn(ICONST_0);
-        mv.visitJumpInsn(GOTO, lEnd);
-        mv.visitLabel(lTrue);
-        mv.visitInsn(ICONST_1);
-        mv.visitLabel(lEnd);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-        return;
-      }
-      if ((java.util.Objects.equals(name, "<") || java.util.Objects.equals(name, ">") || java.util.Objects.equals(name, "=="))
-          && c.args != null && c.args.size() == 2) {
-        emitApplySimpleExpr(mv, c.args.get(0), env, primTypes);
-        mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
-        emitApplySimpleExpr(mv, c.args.get(1), env, primTypes);
-        mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
-        var lTrueC = new Label(); var lEndC = new Label();
-        if (java.util.Objects.equals(name, "<")) mv.visitJumpInsn(IF_ICMPLT, lTrueC);
-        else if (java.util.Objects.equals(name, ">")) mv.visitJumpInsn(IF_ICMPGT, lTrueC);
-        else mv.visitJumpInsn(IF_ICMPEQ, lTrueC);
-        mv.visitInsn(ICONST_0);
-        mv.visitJumpInsn(GOTO, lEndC);
-        mv.visitLabel(lTrueC);
-        mv.visitInsn(ICONST_1);
-        mv.visitLabel(lEndC);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+      // 尝试使用 StdlibInliner 内联 stdlib 函数
+      if (c.args != null && StdlibInliner.tryInline(
+          mv, name, c.args, env, primTypes,
+          (m, expr, e2, pt) -> emitApplySimpleExpr(m, expr, e2, pt),
+          Main::warnNullability
+      )) {
         return;
       }
     }
@@ -1549,62 +1201,27 @@ static boolean emitApplyStmt(Ctx ctx, MethodVisitor mv, CoreModel.Stmt s, String
       return false;
     }
   if (s instanceof CoreModel.If iff) {
-      var lElse = new Label();
-      var lEnd = new Label();
-      emitApplySimpleExpr(mv, iff.cond, env, primTypes);
-      mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
-      mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
-      mv.visitJumpInsn(IFEQ, lElse);
-    { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
-    boolean thenRet = emitApplyBlock(ctx, mv, iff.thenBlock, ownerInternal, env, primTypes, retIsResult, lineNo);
-    if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
-    mv.visitLabel(lElse);
-    { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
-    boolean elseRet = false;
-    if (iff.elseBlock != null) elseRet = emitApplyBlock(ctx, mv, iff.elseBlock, ownerInternal, env, primTypes, retIsResult, lineNo);
-    if (!elseRet) mv.visitLabel(lEnd);
-    return thenRet && elseRet;
+      return IfEmitter.emitIfApply(
+        mv, iff.cond, iff.thenBlock, iff.elseBlock,
+        (m, expr) -> emitApplySimpleExpr(m, expr, env, primTypes),
+        (m, block) -> emitApplyBlock(ctx, m, block, ownerInternal, env, primTypes, retIsResult, lineNo),
+        lineNo
+      );
   }
   if (s instanceof CoreModel.Match mm) {
-      // Fallback linear match: evaluate scrutinee and test cases in order
-      int scr = nextLocal(env);
-      emitApplySimpleExpr(mv, mm.expr, env, primTypes);
-      mv.visitVarInsn(ASTORE, scr);
-      var endLabel = new Label();
-      if (mm.cases != null) {
-        for (var c : mm.cases) {
-          var nextCase = new Label();
-          if (c.pattern instanceof CoreModel.PatNull) {
-            mv.visitVarInsn(ALOAD, scr);
-            mv.visitJumpInsn(IFNONNULL, nextCase);
-            { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-            boolean _ret0 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult, lineNo);
-            mv.visitLabel(nextCase);
-            // Do not early-return to ensure all labels are visited for ASM frame computation
-          } else if (c.pattern instanceof CoreModel.PatName pn) {
-            // Enum variant with known enum mapping
-            String enumName = ctx.enumVarToEnum.get(pn.name);
-            if (enumName != null) {
-              String pkgPath = ownerInternal.contains("/") ? ownerInternal.substring(0, ownerInternal.lastIndexOf('/')) : "";
-              String enumInternal = enumName.contains(".") ? enumName.replace('.', '/') : (pkgPath.isEmpty()? enumName : pkgPath + "/" + enumName);
-              mv.visitVarInsn(ALOAD, scr);
-              mv.visitFieldInsn(GETSTATIC, enumInternal, pn.name, internalDesc(enumInternal));
-              mv.visitJumpInsn(IF_ACMPNE, nextCase);
-              { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-              boolean _ret1 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult, lineNo);
-              mv.visitLabel(nextCase);
-            }
-          } else if (c.pattern instanceof CoreModel.PatCtor) {
-            // Nested pattern support: recursively match and bind; jump to nextCase if any check fails
-            emitApplyPatMatchAndBind(ctx, mv, c.pattern, scr, ownerInternal, env, primTypes, nextCase);
-            { var lCase = new Label(); mv.visitLabel(lCase); mv.visitLineNumber(lineNo.getAndIncrement(), lCase); }
-            boolean _ret2 = emitApplyCaseBody(ctx, mv, c.body, ownerInternal, env, primTypes, retIsResult, lineNo);
-            mv.visitLabel(nextCase);
-          }
-        }
-      }
-      mv.visitLabel(endLabel);
-      return false;
+      return LambdaMatchEmitter.emitMatch(
+        ctx,
+        mv,
+        mm,
+        ownerInternal,
+        env,
+        primTypes,
+        retIsResult,
+        lineNo,
+        (m, expr, e, pt) -> emitApplySimpleExpr(m, expr, e, pt),
+        (c, m, body, oi, e, pt, rir, ln) -> emitApplyCaseBody(c, m, body, oi, e, pt, rir, ln),
+        (c, m, pattern, valSlot, oi, e, pt, failLabel) -> emitApplyPatMatchAndBind(c, m, pattern, valSlot, oi, e, pt, failLabel)
+      );
   }
   return false;
 }
@@ -1639,114 +1256,16 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
       java.util.Map<String,Integer> env,
       java.util.Map<String,Character> primTypes,
       Label failLabel) {
-    if (pat instanceof CoreModel.PatNull) {
-      mv.visitVarInsn(ALOAD, valSlot);
-      mv.visitJumpInsn(IFNONNULL, failLabel);
-      return;
-    }
-    if (pat instanceof CoreModel.PatName pn) {
-      String name = pn.name;
-      if (!(name == null || name.isEmpty() || "_".equals(name))) {
-        int slot = nextLocal(env);
-        mv.visitVarInsn(ALOAD, valSlot);
-        mv.visitVarInsn(ASTORE, slot);
-        env.put(name, slot);
-      }
-      return;
-    }
-    if (pat instanceof CoreModel.PatCtor pc) {
-      String pkgPath = ownerInternal.contains("/") ? ownerInternal.substring(0, ownerInternal.lastIndexOf('/')) : "";
-      boolean isOk = java.util.Objects.equals(pc.typeName, "Ok");
-      boolean isErr = java.util.Objects.equals(pc.typeName, "Err");
-      String targetInternal = isOk ? "aster/runtime/Ok" : (isErr ? "aster/runtime/Err" : (pc.typeName.contains(".") ? pc.typeName.replace('.', '/') : (pkgPath.isEmpty()? pc.typeName : pkgPath + "/" + pc.typeName)));
-      // instanceof check
-      mv.visitVarInsn(ALOAD, valSlot);
-      mv.visitTypeInsn(INSTANCEOF, targetInternal);
-      mv.visitJumpInsn(IFEQ, failLabel);
-      // cast to target and store
-      mv.visitVarInsn(ALOAD, valSlot);
-      mv.visitTypeInsn(CHECKCAST, targetInternal);
-      int objSlot = nextLocal(env);
-      mv.visitVarInsn(ASTORE, objSlot);
-
-      if (isOk || isErr) {
-        // Single positional field
-        CoreModel.Pattern child = null;
-        if (pc.args != null && !pc.args.isEmpty()) child = pc.args.get(0);
-        else if (pc.names != null && !pc.names.isEmpty()) {
-          var tmp = new CoreModel.PatName(); tmp.name = pc.names.get(0);
-          child = tmp;
-        }
-        if (child != null) {
-          mv.visitVarInsn(ALOAD, objSlot);
-          String field = isOk ? "value" : "error";
-          mv.visitFieldInsn(GETFIELD, targetInternal, field, "Ljava/lang/Object;");
-          int sub = nextLocal(env);
-          mv.visitVarInsn(ASTORE, sub);
-          emitApplyPatMatchAndBind(ctx, mv, child, sub, ownerInternal, env, primTypes, failLabel);
-        }
-        return;
-      }
-      // Data constructors: bind by field order; support nested args or fallback to legacy names
-      var data = ctx.dataSchema.get(pc.typeName);
-      int arity = 0;
-      if (pc.args != null) arity = pc.args.size();
-      else if (pc.names != null) arity = pc.names.size();
-      for (int i = 0; i < arity; i++) {
-        CoreModel.Pattern child = null;
-        if (pc.args != null && i < pc.args.size()) child = pc.args.get(i);
-        else if (pc.names != null && i < pc.names.size()) { var tmp = new CoreModel.PatName(); tmp.name = pc.names.get(i); child = tmp; }
-        if (child == null) continue;
-        String fieldName = "f" + i; // fallback
-        String fDesc = "Ljava/lang/Object;";
-        if (data != null && data.fields != null && i < data.fields.size()) {
-          var f = data.fields.get(i);
-          fieldName = f.name;
-          fDesc = jDesc(internalToPkg(ownerInternal), f.type);
-        }
-        if (child instanceof CoreModel.PatName pn) {
-          String bind = pn.name;
-          if (!(bind == null || bind.isEmpty() || "_".equals(bind))) {
-            if ("I".equals(fDesc)) {
-              mv.visitVarInsn(ALOAD, objSlot);
-              mv.visitFieldInsn(GETFIELD, targetInternal, fieldName, fDesc);
-              int slotI = nextLocal(env);
-              mv.visitVarInsn(ISTORE, slotI);
-              env.put(bind, slotI);
-              if (primTypes != null) primTypes.put(bind, 'I');
-            } else if ("Z".equals(fDesc)) {
-              mv.visitVarInsn(ALOAD, objSlot);
-              mv.visitFieldInsn(GETFIELD, targetInternal, fieldName, fDesc);
-              int slotZ = nextLocal(env);
-              mv.visitVarInsn(ISTORE, slotZ);
-              env.put(bind, slotZ);
-              if (primTypes != null) primTypes.put(bind, 'Z');
-            } else {
-              mv.visitVarInsn(ALOAD, objSlot);
-              mv.visitFieldInsn(GETFIELD, targetInternal, fieldName, fDesc);
-              int slotO = nextLocal(env);
-              mv.visitVarInsn(ASTORE, slotO);
-              env.put(bind, slotO);
-            }
-          }
-        } else {
-          // Nested pattern: box primitive then recurse on child
-          mv.visitVarInsn(ALOAD, objSlot);
-          mv.visitFieldInsn(GETFIELD, targetInternal, fieldName, fDesc);
-          if ("I".equals(fDesc)) {
-            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
-          } else if ("Z".equals(fDesc)) {
-            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-          }
-          int sub = nextLocal(env);
-          mv.visitVarInsn(ASTORE, sub);
-          emitApplyPatMatchAndBind(ctx, mv, child, sub, ownerInternal, env, primTypes, failLabel);
-        }
-      }
-      return;
-    }
-    // Unknown pattern kind: treat as non-match
-    mv.visitJumpInsn(GOTO, failLabel);
+    PatMatchEmitter.emitPatMatch(
+      mv,
+      pat,
+      valSlot,
+      ownerInternal,
+      env,
+      primTypes,
+      failLabel,
+      typeName -> ctx.lookupData(typeName)
+    );
   }
 
 
@@ -1773,220 +1292,171 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     else mv.visitVarInsn(ALOAD, slot);
   }
 
-  static void writeClass(Ctx ctx, String internal, byte[] bytes) throws IOException {
-    var p = ctx.outDir.resolve(internal + ".class");
-    System.out.println("WRITE ATTEMPT: " + p.toAbsolutePath() + " (" + bytes.length + " bytes)");
-    System.out.println("  outDir=" + ctx.outDir.toAbsolutePath() + ", internal=" + internal);
-    try {
-      Files.createDirectories(p.getParent());
-      Files.write(p, bytes);
-      System.out.println("WRITE SUCCESS: " + p.toAbsolutePath() + " (exists=" + Files.exists(p) + ")");
-    } catch (IOException e) {
-      System.out.println("WRITE FAILED: " + e.getMessage());
-      throw e;
-    }
-  }
-
-  static ClassWriter cwFrames() {
-    return new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS) {
-      @Override
-      protected String getCommonSuperClass(String type1, String type2) {
-        // Avoid loading user classes; conservatively use Object as common super
-        return "java/lang/Object";
-      }
-    };
-  }
-
   static String toInternal(String pkg, String cls) {
     if (pkg == null || pkg.isEmpty()) return cls;
     return pkg.replace('.', '/') + "/" + cls;
   }
   static String internalDesc(String internal) { return "L" + internal + ';'; }
-  static void emitConstString(Ctx ctx, MethodVisitor mv, String s) {
-    String pooled = ctx.stringPool.computeIfAbsent(s, k -> k);
-    mv.visitLdcInsn(pooled);
+
+  /** Map built-in operator names to Builtins field names */
+  static String getBuiltinField(String operatorName) {
+    return switch (operatorName) {
+      case "=", "eq" -> "EQUALS";
+      case "!=", "neq" -> "NOT_EQUALS";
+      case "<", "lt" -> "LESS_THAN";
+      case "<=", "lte" -> "LESS_THAN_OR_EQUAL";
+      case ">", "gt" -> "GREATER_THAN";
+      case ">=", "gte" -> "GREATER_THAN_OR_EQUAL";
+      case "+", "add" -> "ADD";
+      case "-", "sub" -> "SUBTRACT";
+      case "*", "mul" -> "MULTIPLY";
+      case "/", "div" -> "DIVIDE";
+      case "%", "mod" -> "MODULO";
+      case "and" -> "AND";
+      case "or" -> "OR";
+      case "not" -> "NOT";
+      default -> null;
+    };
   }
-  static void emitConstInt(MethodVisitor mv, int v) {
-    switch (v) {
-      case -1: mv.visitInsn(ICONST_M1); return;
-      case 0: mv.visitInsn(ICONST_0); return;
-      case 1: mv.visitInsn(ICONST_1); return;
-      case 2: mv.visitInsn(ICONST_2); return;
-      case 3: mv.visitInsn(ICONST_3); return;
-      case 4: mv.visitInsn(ICONST_4); return;
-      case 5: mv.visitInsn(ICONST_5); return;
-      default:
-        if (v >= -128 && v <= 127) { mv.visitIntInsn(BIPUSH, v); return; }
-        if (v >= -32768 && v <= 32767) { mv.visitIntInsn(SIPUSH, v); return; }
-        mv.visitLdcInsn(Integer.valueOf(v));
-    }
-  }
-  static void emitConstLong(MethodVisitor mv, long v) {
-    if (v == 0L) { mv.visitInsn(LCONST_0); return; }
-    if (v == 1L) { mv.visitInsn(LCONST_1); return; }
-    mv.visitLdcInsn(Long.valueOf(v));
-  }
-  static void emitConstDouble(MethodVisitor mv, double v) {
-    if (v == 0.0d) { mv.visitInsn(DCONST_0); return; }
-    if (v == 1.0d) { mv.visitInsn(DCONST_1); return; }
-    mv.visitLdcInsn(Double.valueOf(v));
-  }
-  static Character classifyNumeric(CoreModel.Expr e, java.util.Set<String> intLocals, java.util.Set<String> longLocals, java.util.Set<String> doubleLocals) {
+  static Character classifyNumeric(CoreModel.Expr e, ScopeStack scopeStack, TypeResolver typeResolver, Ctx ctx) {
     if (e instanceof CoreModel.DoubleE) return 'D';
     if (e instanceof CoreModel.LongE) return 'J';
     if (e instanceof CoreModel.IntE || e instanceof CoreModel.Bool) return 'I';
-    if (e instanceof CoreModel.Name n) {
-      if (doubleLocals != null && doubleLocals.contains(n.name)) return 'D';
-      if (longLocals != null && longLocals.contains(n.name)) return 'J';
-      if (intLocals != null && intLocals.contains(n.name)) return 'I';
-      return null;
+
+    if (typeResolver != null) {
+      Character inferred = typeResolver.inferType(e);
+      if (inferred != null) return inferred == 'Z' ? 'I' : inferred;
     }
+
+    if (e instanceof CoreModel.Name n && scopeStack != null) {
+      Character kind = scopeStack.getType(n.name);
+      if (kind != null) return kind == 'Z' ? 'I' : kind;
+    }
+
     if (e instanceof CoreModel.Call c && c.target instanceof CoreModel.Name nn) {
       String op = nn.name;
-      if (("+".equals(op) || "-".equals(op) || "times".equals(op) || "divided by".equals(op)) && c.args != null && c.args.size() == 2) {
-        Character k0 = classifyNumeric(c.args.get(0), intLocals, longLocals, doubleLocals);
-        Character k1 = classifyNumeric(c.args.get(1), intLocals, longLocals, doubleLocals);
+      if (c.args != null && c.args.size() == 2 && isNumericBinary(op)) {
+        Character k0 = classifyNumeric(c.args.get(0), scopeStack, typeResolver, ctx);
+        Character k1 = classifyNumeric(c.args.get(1), scopeStack, typeResolver, ctx);
         if (k0 != null && k1 != null) {
           if (k0 == 'D' || k1 == 'D') return 'D';
           if (k0 == 'J' || k1 == 'J') return 'J';
           return 'I';
         }
       }
+      if (ctx != null && ctx.functionSchemas().containsKey(op)) {
+        var schema = ctx.functionSchemas().get(op);
+        if (schema.ret instanceof CoreModel.TypeName rtn) {
+          return switch (rtn.name) {
+            case "Int", "Bool" -> 'I';
+            case "Long" -> 'J';
+            case "Double" -> 'D';
+            default -> null;
+          };
+        }
+      }
     }
     return null;
   }
-  static final java.util.Map<String,String> REFLECT_CACHE = new java.util.LinkedHashMap<>();
-  static final java.util.Map<String, java.util.List<String>> METHOD_CACHE = new java.util.LinkedHashMap<>();
-  static String tryResolveReflect(String ownerInternal, String method, java.util.List<String> argDescs, String retDesc) {
-    try {
-      String key = ownerInternal + "#" + method + "#" + String.join(",", argDescs) + "->" + retDesc;
-      if (REFLECT_CACHE.containsKey(key)) return REFLECT_CACHE.get(key);
-      String ownerName = ownerInternal.replace('/', '.');
-      Class<?> cls = Class.forName(ownerName);
-      java.lang.reflect.Method best = null;
-      int bestScore = Integer.MIN_VALUE;
-      java.util.List<String> bestDescs = new java.util.ArrayList<>();
-      java.lang.reflect.Method[] methods = cls.getDeclaredMethods();
-      // Update method cache with method name+descriptor (lightweight)
-      try {
-        java.util.List<String> list = new java.util.ArrayList<>();
-        for (var mm : methods) list.add(mm.getName() + buildMethodDesc(mm));
-        java.util.Collections.sort(list);
-        METHOD_CACHE.put(ownerInternal, list);
-      } catch (Throwable __) { /* ignore */ }
-      java.util.Arrays.sort(methods, (a,b) -> {
-        int c = a.getName().compareTo(b.getName());
-        if (c != 0) return c;
-        String sa = buildMethodDesc(a);
-        String sb = buildMethodDesc(b);
-        return sa.compareTo(sb);
-      });
-      for (var m : methods) {
-        if (!m.getName().equals(method)) continue;
-        var params = m.getParameterTypes();
-        boolean varargs = m.isVarArgs();
-        if (!varargs && params.length != argDescs.size()) continue;
-        if (varargs && params.length-1 > argDescs.size()) continue;
-        int score = 0;
-        boolean compatible = true;
-        int fixed = varargs ? params.length - 1 : params.length;
-        for (int i = 0; i < fixed; i++) {
-          Class<?> p = params[i]; String a = argDescs.get(i);
-          int s = -1000;
-          if ("Z".equals(a)) {
-            if (p == boolean.class) s = 30; else if (p == Boolean.class) s = 20; else if (p == Object.class) s = 5; else s = -1;
-          } else if ("I".equals(a)) {
-            if (p == int.class) s = 30; else if (p == long.class) s = 25; else if (p == double.class) s = 20; else if (p == Integer.class) s = 15; else if (Number.class.isAssignableFrom(p)) s = 10; else if (p == Object.class) s = 5; else s = -1;
-          } else if ("J".equals(a)) {
-            if (p == long.class) s = 30; else if (p == double.class) s = 20; else if (p == Long.class) s = 15; else if (Number.class.isAssignableFrom(p)) s = 10; else if (p == Object.class) s = 5; else s = -1;
-          } else if ("D".equals(a)) {
-            if (p == double.class) s = 30; else if (p == Double.class) s = 15; else if (Number.class.isAssignableFrom(p)) s = 10; else if (p == Object.class) s = 5; else s = -1;
-          } else if ("Ljava/lang/String;".equals(a)) {
-            if (p == String.class) s = 30; else if (CharSequence.class.isAssignableFrom(p)) s = 20; else if (p == Object.class) s = 5; else s = -1;
-          } else {
-            if (p == Object.class) s = 5; else s = -1;
+
+  static Character classifyNumeric(CoreModel.Expr e, ScopeStack scopeStack, TypeResolver typeResolver) {
+    return classifyNumeric(e, scopeStack, typeResolver, null);
+  }
+
+  static String resolveObjectDescriptor(CoreModel.Expr expr, String pkg, ScopeStack scopeStack, Ctx ctx) {
+    if (expr instanceof CoreModel.StringE) return "Ljava/lang/String;";
+    if (expr instanceof CoreModel.Construct cons) {
+      String internal = resolveTypeInternalName(pkg, cons.typeName);
+      return "L" + internal + ';';
+    }
+    if (expr instanceof CoreModel.Name name) {
+      if (scopeStack != null) {
+        String desc = scopeStack.getDescriptor(name.name);
+        if (desc != null && desc.startsWith("L")) return desc;
+      }
+      if (scopeStack != null) {
+        int dot = name.name.lastIndexOf('.');
+        if (dot > 0) {
+          String base = name.name.substring(0, dot);
+          String field = name.name.substring(dot + 1);
+          String ownerDesc = scopeStack.getDescriptor(base);
+          if (ownerDesc != null && ownerDesc.startsWith("L") && ownerDesc.endsWith(";")) {
+            String resolved = resolveFieldDescriptor(ctx, pkg, ownerDesc.substring(1, ownerDesc.length() - 1), field);
+            if (resolved != null) {
+              if (resolved.length() == 1) return "Ljava/lang/Object;";
+              return resolved;
+            }
           }
-          if (s < 0) { compatible = false; break; }
-          score += s;
-        }
-        if (compatible && varargs) {
-          Class<?> comp = params[params.length - 1].getComponentType();
-          for (int i = fixed; i < argDescs.size(); i++) {
-            String a = argDescs.get(i);
-            int s = -1000;
-            if ("I".equals(a)) { if (comp == int.class) s = 30; else if (comp == long.class) s = 25; else if (comp == double.class) s = 20; else if (Number.class.isAssignableFrom(comp)) s = 10; else if (comp == Object.class) s = 5; else s = -1; }
-            else if ("J".equals(a)) { if (comp == long.class) s = 30; else if (comp == double.class) s = 20; else if (Number.class.isAssignableFrom(comp)) s = 10; else if (comp == Object.class) s = 5; else s = -1; }
-            else if ("D".equals(a)) { if (comp == double.class) s = 30; else if (Number.class.isAssignableFrom(comp)) s = 10; else if (comp == Object.class) s = 5; else s = -1; }
-            else if ("Ljava/lang/String;".equals(a)) { if (comp == String.class || CharSequence.class.isAssignableFrom(comp)) s = 20; else if (comp == Object.class) s = 5; else s = -1; }
-            else if ("Z".equals(a)) { if (comp == boolean.class) s = 30; else if (comp == Boolean.class) s = 20; else if (comp == Object.class) s = 5; else s = -1; }
-            else { if (comp == Object.class) s = 5; else s = -1; }
-            if (s < 0) { compatible = false; break; }
-            score += s;
-          }
-        }
-        if (!compatible) continue;
-        int primCount = 0;
-        for (Class<?> p : params) if (p.isPrimitive()) primCount++;
-        int total = score * 10 + primCount;
-        if (total > bestScore) {
-          bestScore = total; best = m; bestDescs.clear();
-          bestDescs.add(buildMethodDesc(m));
-        } else if (total == bestScore) {
-          bestDescs.add(buildMethodDesc(m));
         }
       }
-      if (best != null) {
-        String desc = buildMethodDesc(best);
-        if (bestDescs.size() > 1) {
-          // Deterministic selection among ties: choose lexicographically smallest descriptor
-          java.util.Collections.sort(bestDescs);
-          desc = bestDescs.get(0);
+    }
+    if (expr instanceof CoreModel.Call call && call.target instanceof CoreModel.Name target && ctx != null) {
+      var schema = ctx.functionSchemas().get(target.name);
+      if (schema != null && schema.ret instanceof CoreModel.TypeName rtn) {
+        if (BuiltinTypes.isStringType(rtn.name)) {
+          return "Ljava/lang/String;";
         }
-        if (DIAG_OVERLOAD && bestDescs.size() > 1) {
-          System.err.println("AMBIGUOUS OVERLOAD: " + ownerInternal.replace('/', '.') + "." + method + "(" + String.join(",", argDescs) + ") -> candidates=" + bestDescs + ", selected=" + desc);
-        }
-        REFLECT_CACHE.put(key, desc);
-        return desc;
+        String internal = resolveTypeInternalName(pkg, rtn.name);
+        return "L" + internal + ';';
       }
-    } catch (Throwable t) {
-      // Fallback to METHOD_CACHE if available
-      try {
-        java.util.List<String> list = METHOD_CACHE.get(ownerInternal);
-        if (list != null && !list.isEmpty()) {
-          int bestScore2 = Integer.MIN_VALUE; String bestDesc2 = null;
-          for (String nm : list) {
-            if (!nm.startsWith(method)) continue;
-            String desc = nm.substring(method.length());
-            int r = desc.indexOf(')'); if (!desc.startsWith("(") || r < 0) continue;
-            String params = desc.substring(1, r);
-            java.util.List<String> ptypes = new java.util.ArrayList<>();
-            for (int i = 0; i < params.length();) {
-              char c = params.charAt(i);
-              if (c == 'L') { int semi = params.indexOf(';', i); if (semi < 0) break; ptypes.add(params.substring(i, semi+1)); i = semi+1; }
-              else { ptypes.add(String.valueOf(c)); i++; }
-            }
-            if (ptypes.size() != argDescs.size()) continue;
-            int score = 0; boolean ok = true;
-            for (int i = 0; i < ptypes.size(); i++) {
-              String p = ptypes.get(i); String a = argDescs.get(i);
-              int s = -1000;
-              if ("Z".equals(a)) { if ("Z".equals(p)) s = 30; else if ("Ljava/lang/Boolean;".equals(p)) s = 15; else if ("Ljava/lang/Object;".equals(p)) s = 5; }
-              else if ("I".equals(a)) { if ("I".equals(p)) s = 30; else if ("J".equals(p)) s = 25; else if ("D".equals(p)) s = 20; else if (p.startsWith("Ljava/lang/") || p.equals("Ljava/lang/Object;")) s = 5; }
-              else if ("J".equals(a)) { if ("J".equals(p)) s = 30; else if ("D".equals(p)) s = 20; else if (p.startsWith("Ljava/lang/") || p.equals("Ljava/lang/Object;")) s = 5; }
-              else if ("D".equals(a)) { if ("D".equals(p)) s = 30; else if (p.startsWith("Ljava/lang/") || p.equals("Ljava/lang/Object;")) s = 5; }
-              else if ("Ljava/lang/String;".equals(a)) { if ("Ljava/lang/String;".equals(p)) s = 30; else if (p.equals("Ljava/lang/CharSequence;")) s = 20; else if (p.equals("Ljava/lang/Object;")) s = 5; }
-              else { if ("Ljava/lang/Object;".equals(p)) s = 5; }
-              if (s < 0) { ok = false; break; }
-              score += s;
-            }
-            if (!ok) continue;
-            if (score > bestScore2 || (score == bestScore2 && (bestDesc2 == null || desc.compareTo(bestDesc2) < 0))) { bestScore2 = score; bestDesc2 = desc; }
-          }
-          if (bestDesc2 != null) return bestDesc2;
-        }
-      } catch (Throwable __) { /* ignore */ }
+    }
+    return "Ljava/lang/Object;";
+  }
+
+  private static String resolveFieldDescriptor(Ctx ctx, String pkg, String ownerInternal, String fieldName) {
+    if (ctx == null) return null;
+    var data = lookupData(ctx, ownerInternal);
+    if (data == null || data.fields == null) return null;
+    for (var field : data.fields) {
+      if (Objects.equals(field.name, fieldName)) {
+        return jDesc(pkg, field.type);
+      }
     }
     return null;
+  }
+
+  private static CoreModel.Data lookupData(Ctx ctx, String ownerInternal) {
+    if (ctx == null || ownerInternal == null || ownerInternal.isEmpty()) return null;
+    String dotName = ownerInternal.replace('/', '.');
+    dotName = demapDotted(dotName);
+    String current = dotName;
+    while (current != null && !current.isEmpty()) {
+      var data = ctx.lookupData(current);
+      if (data != null) return data;
+      int idx = current.indexOf('.');
+      if (idx < 0) break;
+      current = current.substring(idx + 1);
+    }
+    int lastDot = dotName.lastIndexOf('.');
+    if (lastDot >= 0) {
+      var data = ctx.lookupData(dotName.substring(lastDot + 1));
+      if (data != null) return data;
+    }
+    return null;
+  }
+
+  private static boolean isNumericBinary(String op) {
+    return "+".equals(op)
+        || "-".equals(op)
+        || "*".equals(op)
+        || "/".equals(op)
+        || "times".equals(op)
+        || "divided by".equals(op);
+  }
+
+  static void emitDefaultValue(MethodVisitor mv, String desc) {
+    if (desc == null || desc.isEmpty()) {
+      mv.visitInsn(ACONST_NULL);
+      return;
+    }
+    char c = desc.charAt(0);
+    switch (c) {
+      case 'D' -> mv.visitInsn(DCONST_0);
+      case 'J' -> mv.visitInsn(LCONST_0);
+      case 'F' -> mv.visitInsn(FCONST_0);
+      case 'I', 'Z' -> mv.visitInsn(ICONST_0);
+      default -> mv.visitInsn(ACONST_NULL);
+    }
   }
   static String javaTypeToDesc(Class<?> t) {
     if (t == void.class) return "V";
@@ -2044,6 +1514,120 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     sb.append(")").append(javaTypeToDesc(m.getReturnType()));
     return sb.toString();
   }
+
+  static String resolveTypeInternalName(String pkg, String typeName) {
+    if (typeName == null || typeName.isEmpty()) return typeName;
+    if (typeName.indexOf('/') >= 0) {
+      return remapInternal(typeName);
+    }
+    String dotted = typeName.contains(".") ? typeName : joinPkg(pkg, typeName);
+    if (dotted == null || dotted.isEmpty()) dotted = typeName;
+    String remapped = remapDotted(dotted);
+    return remapped.contains(".") ? remapped.replace('.', '/') : remapped;
+  }
+
+  static String remapDotted(String dotted) {
+    if (dotted == null || dotted.isEmpty()) return dotted;
+    for (var ns : TYPE_NAMESPACES) {
+      if (dotted.equals(ns.sourcePrefix())) return ns.targetPrefix();
+      if (dotted.startsWith(ns.sourcePrefixDot())) {
+        return ns.targetPrefixDot() + dotted.substring(ns.sourcePrefixDot().length());
+      }
+    }
+    return dotted;
+  }
+
+  static String remapInternal(String internal) {
+    if (internal == null || internal.isEmpty()) return internal;
+    for (var ns : TYPE_NAMESPACES) {
+      if (ns.sourceInternalRoot().equals(internal)) return ns.targetInternalRoot();
+      if (internal.startsWith(ns.sourceInternalPrefix())) {
+        return ns.targetInternalPrefix() + internal.substring(ns.sourceInternalPrefix().length());
+      }
+    }
+    return internal;
+  }
+
+  static String demapDotted(String dotted) {
+    if (dotted == null || dotted.isEmpty()) return dotted;
+    for (var ns : TYPE_NAMESPACES) {
+      if (dotted.equals(ns.targetPrefix())) return ns.sourcePrefix();
+      if (dotted.startsWith(ns.targetPrefixDot())) {
+        return ns.sourcePrefixDot() + dotted.substring(ns.targetPrefixDot().length());
+      }
+    }
+    return dotted;
+  }
+
+  static String demapInternal(String internal) {
+    if (internal == null || internal.isEmpty()) return internal;
+    for (var ns : TYPE_NAMESPACES) {
+      if (ns.targetInternalRoot().equals(internal)) return ns.sourceInternalRoot();
+      if (internal.startsWith(ns.targetInternalPrefix())) {
+        return ns.sourceInternalPrefix() + internal.substring(ns.targetInternalPrefix().length());
+      }
+    }
+    return internal;
+  }
+
+  private static NamespaceMapping findNamespaceForPackage(String pkg) {
+    if (pkg == null || pkg.isEmpty()) return null;
+    for (var ns : TYPE_NAMESPACES) {
+      if (pkg.equals(ns.sourcePrefix()) || pkg.startsWith(ns.sourcePrefixDot())) return ns;
+    }
+    return null;
+  }
+
+  private static String joinPkg(String pkg, String name) {
+    if (name == null || name.isEmpty()) return name;
+    if (pkg == null || pkg.isEmpty()) return name;
+    return pkg + "." + name;
+  }
+
+  private static boolean shouldEmitRemapped(String pkg) {
+    var ns = findNamespaceForPackage(pkg);
+    return ns != null && !ns.externalProvider();
+  }
+
+  static String definitionInternalName(String pkg, String name) {
+    if (shouldEmitRemapped(pkg)) {
+      return resolveTypeInternalName(pkg, name);
+    }
+    return toInternal(pkg, name);
+  }
+
+  static void loadDataField(MethodVisitor mv, String ownerInternal, String fieldName, String fieldDesc) {
+    if (requiresAccessor(ownerInternal)) {
+      mv.visitMethodInsn(INVOKEVIRTUAL, ownerInternal, fieldName, "()" + fieldDesc, false);
+    } else {
+      mv.visitFieldInsn(GETFIELD, ownerInternal, fieldName, fieldDesc);
+    }
+  }
+
+  private static boolean requiresAccessor(String ownerInternal) {
+    if (ownerInternal == null || ownerInternal.isEmpty()) return false;
+    for (var ns : TYPE_NAMESPACES) {
+      if (ns.useAccessors() && ownerInternal.startsWith(ns.targetInternalPrefix())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private record NamespaceMapping(
+      String sourcePrefix,
+      String targetPrefix,
+      boolean externalProvider,
+      boolean useAccessors
+  ) {
+      String sourcePrefixDot() { return sourcePrefix + "."; }
+      String targetPrefixDot() { return targetPrefix + "."; }
+      String sourceInternalPrefix() { return sourcePrefix.replace('.', '/') + "/"; }
+      String targetInternalPrefix() { return targetPrefix.replace('.', '/') + "/"; }
+      String sourceInternalRoot() { return sourcePrefix.replace('.', '/'); }
+      String targetInternalRoot() { return targetPrefix.replace('.', '/'); }
+  }
+
   static String internalToPkg(String internal) {
     if (internal == null) return "";
     int i = internal.lastIndexOf('/');
@@ -2051,24 +1635,96 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     return internal.substring(0, i).replace('/', '.');
   }
   static String jDesc(String pkg, CoreModel.Type t) {
+    if (t instanceof CoreModel.PiiType pii) {
+      return jDesc(pkg, pii.baseType);
+    }
     if (t instanceof CoreModel.TypeName tn) {
       return switch (tn.name) {
-        case "Text" -> "Ljava/lang/String;";
-        case "Int" -> "I";
-        case "Bool" -> "Z";
-        case "Long" -> "J";
-        case "Double" -> "D";
-        case "Number" -> "Ljava/lang/Double;"; // Map primitive Number to boxed Double
-        default -> {
-          String internal = (tn.name.contains(".")) ? tn.name.replace('.', '/') : toInternal(pkg, tn.name);
-          yield "L" + internal + ';';
-        }
-      };
-    }
+        case BuiltinTypes.STRING, BuiltinTypes.TEXT -> "Ljava/lang/String;";
+        case BuiltinTypes.INT -> "I";
+        case BuiltinTypes.BOOL -> "Z";
+        case BuiltinTypes.LONG -> "J";
+      case BuiltinTypes.DOUBLE -> "D";
+      case BuiltinTypes.NUMBER -> "Ljava/lang/Double;"; // Map primitive Number to boxed Double
+      default -> {
+        String internal = resolveTypeInternalName(pkg, tn.name);
+        yield "L" + internal + ';';
+      }
+    };
+  }
     if (t instanceof CoreModel.ListT) return "Ljava/util/List;";
     if (t instanceof CoreModel.MapT) return "Ljava/util/Map;";
     if (t instanceof CoreModel.Result) return "Laster/runtime/Result;"; // erasure for now
     return "Ljava/lang/Object;";
+  }
+
+  static ScopeStack.JvmKind kindForDescriptor(String desc) {
+    if (desc == null || desc.isEmpty()) return ScopeStack.JvmKind.UNKNOWN;
+    return switch (desc.charAt(0)) {
+      case 'I' -> ScopeStack.JvmKind.INT;
+      case 'Z' -> ScopeStack.JvmKind.BOOLEAN;
+      case 'J' -> ScopeStack.JvmKind.LONG;
+      case 'D' -> ScopeStack.JvmKind.DOUBLE;
+      default -> ScopeStack.JvmKind.OBJECT;
+    };
+  }
+
+  static void emitSet(
+    Ctx ctx,
+    MethodVisitor mv,
+    CoreModel.Set set,
+    String pkg,
+    int paramBase,
+    java.util.Map<String, Integer> env,
+    ScopeStack scopeStack,
+    TypeResolver typeResolver,
+    java.util.Map<String, Character> fnHints
+  ) throws java.io.IOException {
+    if (env == null) throw new IllegalStateException("Set statement requires environment");
+    Integer existingSlot = env.get(set.name);
+    if (existingSlot == null) {
+      throw new IllegalStateException("Set statement error: variable '" + set.name + "' not declared");
+    }
+
+    String existingDesc = scopeStack != null ? scopeStack.getDescriptor(set.name) : null;
+    Character existingKind = scopeStack != null ? scopeStack.getType(set.name) : null;
+
+    String expectedDesc = existingDesc;
+    if (expectedDesc == null || "Ljava/lang/Object;".equals(expectedDesc)) {
+      Character inferred = typeResolver != null ? typeResolver.inferType(set.expr) : null;
+      if (inferred == null && fnHints != null) {
+        inferred = fnHints.get(set.name);
+      }
+      if (inferred != null) {
+        expectedDesc = switch (inferred) {
+          case 'D' -> "D";
+          case 'J' -> "J";
+          case 'Z' -> "Z";
+          case 'I' -> "I";
+          default -> "Ljava/lang/Object;";
+        };
+      }
+    }
+
+    int storeOpcode = ASTORE;
+    if (existingKind != null) {
+      storeOpcode = switch (existingKind) {
+        case 'D' -> DSTORE;
+        case 'J' -> LSTORE;
+        case 'I', 'Z' -> ISTORE;
+        default -> ASTORE;
+      };
+    } else if (expectedDesc != null && !expectedDesc.isEmpty()) {
+      storeOpcode = switch (expectedDesc.charAt(0)) {
+        case 'D' -> DSTORE;
+        case 'J' -> LSTORE;
+        case 'I', 'Z' -> ISTORE;
+        default -> ASTORE;
+      };
+    }
+
+    emitExpr(ctx, mv, set.expr, expectedDesc, pkg, paramBase, env, scopeStack, typeResolver);
+    mv.visitVarInsn(storeOpcode, existingSlot);
   }
 
   // Emit a statement body inside a switch case; return true if we emitted a return on all paths
@@ -2080,66 +1736,135 @@ static boolean emitApplyCaseBody(Ctx ctx, MethodVisitor mv, CoreModel.Stmt body,
     String pkg,
     int paramBase,
     java.util.Map<String,Integer> env,
-    java.util.Set<String> intLocals,
+    ScopeStack scopeStack,
+    TypeResolver typeResolver,
+    java.util.Map<String, Character> fnHints,
+    int[] nextSlotBox,
     java.util.concurrent.atomic.AtomicInteger lineNo
-  ) {
+  ) throws java.io.IOException {
+    if (stmt == null) return false;
     if (stmt instanceof CoreModel.Return r) {
-      emitExpr(ctx, mv, r.expr, retDesc, pkg, paramBase, env, intLocals);
+      emitExpr(ctx, mv, r.expr, retDesc, pkg, paramBase, env, scopeStack, typeResolver);
       if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
       return true;
     }
+    if (stmt instanceof CoreModel.Block block) {
+      return emitCaseBlock(ctx, mv, block, retDesc, pkg, paramBase, env, scopeStack, typeResolver, fnHints, nextSlotBox, lineNo);
+    }
     if (stmt instanceof CoreModel.Scope sc) {
-      boolean anyReturn = false;
-      if (sc.statements != null) {
-        for (var st : sc.statements) {
-          { var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl); }
-          if (st instanceof CoreModel.Return r2) {
-            emitExpr(ctx, mv, r2.expr, retDesc, pkg, paramBase, env, intLocals);
-            if (retDesc.equals("I") || retDesc.equals("Z")) mv.visitInsn(IRETURN); else mv.visitInsn(ARETURN);
-            anyReturn = true;
-          } else if (st instanceof CoreModel.If iff) {
-            var lElse = new Label();
-            var lEnd = new Label();
-            emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, intLocals);
-            mv.visitJumpInsn(IFEQ, lElse);
-            { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
-            boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
-            if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
-            mv.visitLabel(lElse);
-            { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
-            boolean elseRet = false;
-            if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
-            if (!elseRet) mv.visitLabel(lEnd);
-            anyReturn = anyReturn || (thenRet && elseRet);
+      var block = new CoreModel.Block();
+      block.statements = sc.statements;
+      block.origin = sc.origin;
+      return emitCaseBlock(ctx, mv, block, retDesc, pkg, paramBase, env, scopeStack, typeResolver, fnHints, nextSlotBox, lineNo);
+    }
+    if (stmt instanceof CoreModel.Let let) {
+      Character inferred = typeResolver != null ? typeResolver.inferType(let.expr) : null;
+      if (inferred == null && Objects.equals(let.name, "ok") && let.expr instanceof CoreModel.Call) {
+        inferred = 'Z';
+      }
+      if (inferred == null && fnHints != null) {
+        Character hint = fnHints.get(let.name);
+        if (hint != null) inferred = hint;
+      }
+
+      String expectedDesc = null;
+      String localDesc = "Ljava/lang/Object;";
+      int storeOpcode = ASTORE;
+      if (inferred != null) {
+        switch (inferred) {
+          case 'D' -> {
+            expectedDesc = "D";
+            localDesc = "D";
+            storeOpcode = DSTORE;
           }
+          case 'J' -> {
+            expectedDesc = "J";
+            localDesc = "J";
+            storeOpcode = LSTORE;
+          }
+          case 'Z' -> {
+            expectedDesc = "Z";
+            localDesc = "Z";
+            storeOpcode = ISTORE;
+          }
+          case 'I' -> {
+            expectedDesc = "I";
+            localDesc = "I";
+            storeOpcode = ISTORE;
+          }
+          default -> { }
         }
       }
-      return anyReturn;
+
+      if (expectedDesc != null) {
+        emitExpr(ctx, mv, let.expr, expectedDesc, pkg, paramBase, env, scopeStack, typeResolver);
+      } else {
+        emitExpr(ctx, mv, let.expr, null, pkg, paramBase, env, scopeStack, typeResolver);
+        localDesc = resolveObjectDescriptor(let.expr, pkg, scopeStack, ctx);
+      }
+
+      int slot = nextSlotBox[0];
+      mv.visitVarInsn(storeOpcode, slot);
+      env.put(let.name, slot);
+      if (scopeStack != null) {
+        scopeStack.declare(let.name, slot, localDesc, kindForDescriptor(localDesc));
+      }
+      nextSlotBox[0] += (storeOpcode == DSTORE || storeOpcode == LSTORE) ? 2 : 1;
+      return false;
+    }
+    if (stmt instanceof CoreModel.Set set) {
+      emitSet(ctx, mv, set, pkg, paramBase, env, scopeStack, typeResolver, fnHints);
+      return false;
     }
     if (stmt instanceof CoreModel.If iff) {
-      var lElse = new Label();
-      var lEnd = new Label();
-      emitExpr(ctx, mv, iff.cond, "Z", pkg, paramBase, env, intLocals);
-      mv.visitJumpInsn(IFEQ, lElse);
-      { var lThen = new Label(); mv.visitLabel(lThen); mv.visitLineNumber(lineNo.getAndIncrement(), lThen); }
-      boolean thenRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.thenBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
-      if (!thenRet) mv.visitJumpInsn(GOTO, lEnd);
-      mv.visitLabel(lElse);
-      { var lElseLn = new Label(); mv.visitLabel(lElseLn); mv.visitLineNumber(lineNo.getAndIncrement(), lElseLn); }
-      boolean elseRet = false;
-      if (iff.elseBlock != null) elseRet = emitCaseStmt(ctx, mv, pickLastReturnOrSelf(iff.elseBlock), retDesc, pkg, paramBase, env, intLocals, lineNo);
-      if (!elseRet) mv.visitLabel(lEnd);
-      return thenRet && elseRet;
+      return IfEmitter.emitIfStatement(
+        mv,
+        iff.cond,
+        iff.thenBlock,
+        iff.elseBlock,
+        (m, expr, expectedDesc) -> emitExpr(ctx, m, expr, expectedDesc, pkg, paramBase, env, scopeStack, typeResolver),
+        (m, block) -> {
+          try {
+            return emitCaseBlock(ctx, m, block, retDesc, pkg, paramBase, env, scopeStack, typeResolver, fnHints, nextSlotBox, lineNo);
+          } catch (java.io.IOException ex) {
+            throw new UncheckedIOException(ex);
+          }
+        },
+        lineNo
+      );
     }
     return false;
   }
 
-  static CoreModel.Stmt pickLastReturnOrSelf(CoreModel.Block block) {
-    if (block == null || block.statements == null || block.statements.isEmpty()) return new CoreModel.Scope();
-    var last = block.statements.get(block.statements.size() - 1);
-    if (last instanceof CoreModel.Return) return last;
-    var sc = new CoreModel.Scope();
-    sc.statements = block.statements;
-    return sc;
+  static boolean emitCaseBlock(
+    Ctx ctx,
+    MethodVisitor mv,
+    CoreModel.Block block,
+    String retDesc,
+    String pkg,
+    int paramBase,
+    java.util.Map<String,Integer> env,
+    ScopeStack scopeStack,
+    TypeResolver typeResolver,
+    java.util.Map<String, Character> fnHints,
+    int[] nextSlotBox,
+    java.util.concurrent.atomic.AtomicInteger lineNo
+  ) throws java.io.IOException {
+    if (block == null || block.statements == null || block.statements.isEmpty()) return false;
+    boolean managedScope = scopeStack != null;
+    if (managedScope) scopeStack.pushScope();
+    try {
+      for (var st : block.statements) {
+        if (st == null) continue;
+        { var _lbl = new Label(); mv.visitLabel(_lbl); mv.visitLineNumber(lineNo.getAndIncrement(), _lbl); }
+        boolean stmtReturn = emitCaseStmt(ctx, mv, st, retDesc, pkg, paramBase, env, scopeStack, typeResolver, fnHints, nextSlotBox, lineNo);
+        if (stmtReturn) {
+          return true;
+        }
+      }
+      return false;
+    } finally {
+      if (managedScope) scopeStack.popScope();
+    }
   }
 }

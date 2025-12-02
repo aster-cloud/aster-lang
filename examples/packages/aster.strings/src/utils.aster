@@ -1,0 +1,13 @@
+This module is aster.strings.
+
+// 字符串辅助函数，依赖 aster.math 提供的数值计算能力。
+
+To describeLength with value: Text, extraPadding: Number, produce Text:
+  Let safePadding be aster.math.clampNumber(extraPadding, 0, 32).
+  Let calculated be aster.math.addNumbers(Text.length(value), safePadding).
+  Return Text.concat("文本长度=", Number.toString(calculated), " 字符").
+
+To surroundWithBars with value: Text, level: Number, produce Text:
+  Let width be aster.math.clampNumber(level, 1, 5).
+  Let prefix be Text.concat("[", Number.toString(width), "]").
+  Return Text.concat(prefix, " ", value, " ", prefix).

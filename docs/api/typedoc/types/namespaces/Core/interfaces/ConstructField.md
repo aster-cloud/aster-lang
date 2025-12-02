@@ -4,7 +4,13 @@
 
 # Interface: ConstructField
 
-Defined in: [types.ts:538](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L538)
+Defined in: [types.ts:581](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L581)
+
+构造器字段基础接口。
+
+## Extends
+
+- [`BaseConstructField`](../../../base/interfaces/BaseConstructField.md)\<[`Expression`](../type-aliases/Expression.md)\>
 
 ## Properties
 
@@ -12,7 +18,11 @@ Defined in: [types.ts:538](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:539](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L539)
+Defined in: [types/base.ts:384](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L384)
+
+#### Inherited from
+
+[`BaseConstructField`](../../../base/interfaces/BaseConstructField.md).[`name`](../../../base/interfaces/BaseConstructField.md#name)
 
 ***
 
@@ -20,4 +30,8 @@ Defined in: [types.ts:539](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **expr**: [`Expression`](../type-aliases/Expression.md)
 
-Defined in: [types.ts:540](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L540)
+Defined in: [types/base.ts:385](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L385)
+
+#### Inherited from
+
+[`BaseConstructField`](../../../base/interfaces/BaseConstructField.md).[`expr`](../../../base/interfaces/BaseConstructField.md#expr-1)

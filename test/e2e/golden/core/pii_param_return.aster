@@ -1,0 +1,4 @@
+This module is test.pii.param_return.
+
+To validate_email with email: @pii(L2, email) Text, produce @pii(L2, email) Text:
+  Return email.

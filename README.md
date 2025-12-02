@@ -3,7 +3,6 @@
 [![CI](https://github.com/wontlost-ltd/aster-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/ci.yml)
 [![Docs](https://github.com/wontlost-ltd/aster-lang/actions/workflows/docs.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/docs.yml)
 [![Release Flow](https://github.com/wontlost-ltd/aster-lang/actions/workflows/release.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/release.yml)
-[![GitHub Releases](https://github.com/wontlost-ltd/aster-lang/actions/workflows/github-release.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/github-release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/wontlost-ltd/aster-lang?display_name=tag)](https://github.com/wontlost-ltd/aster-lang/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/wontlost-ltd/aster-lang?style=social)](https://github.com/wontlost-ltd/aster-lang)
 [![Node >= 22](https://img.shields.io/badge/node-%3E%3D22.0.0-339933?logo=node.js)](#installation--requirements)
@@ -20,7 +19,7 @@ Aster is a pragmatic, safe, and fast programming language with a human‑readabl
 ## Highlights
 
 - Human‑readable CNL with deterministic semantics
-- Algebraic data types, pattern matching, effect annotations (IO/CPU)
+- Algebraic data types, pattern matching, effect annotations (IO/CPU) enforced at compile-time
 - Non‑null by default; explicit Maybe/Option and Result
 - Clean pipeline: canonicalize → lex → parse → lower to Core IR → emit
 - JVM backends: Java source emission and direct bytecode via ASM
@@ -29,6 +28,23 @@ Aster is a pragmatic, safe, and fast programming language with a human‑readabl
  - Interop nullability policy with LSP warnings and strict mode. See guide for defaults and overrides.
 
 ## Quick Demo
+
+### 方式 1: 使用 Docker/Podman (最快体验)
+
+```bash
+# 使用 Podman 运行 Fibonacci 示例 (无需安装 Node.js/Java)
+podman run --rm \
+  -v $(pwd)/benchmarks:/benchmarks:ro \
+  ghcr.io/wontlost-ltd/aster-truffle:latest \
+  /benchmarks/core/fibonacci_20_core.json \
+  --func=fibonacci -- 10
+
+# 预期输出: 6765
+# 启动时间: ~50ms (GraalVM Native Image)
+# 镜像大小: 163 MB
+```
+
+### 方式 2: 从源码构建 (开发模式)
 
 ```text
 To greet user: maybe User, produce Text:
@@ -42,17 +58,34 @@ To greet user: maybe User, produce Text:
 npm run build
 
 # Parse CNL → AST (JSON)
-node dist/scripts/cli.js cnl/examples/greet.cnl
+node dist/scripts/cli.js test/cnl/examples/greet.aster
 
 # Lower to Core IR (JSON)
-node dist/scripts/emit-core.js cnl/examples/greet.cnl
+node dist/scripts/emit-core.js test/cnl/examples/greet.aster
+
+# Run with Truffle interpreter
+node dist/scripts/aster.js truffle test/cnl/examples/greet.aster --func=greet
 ```
 
 ## Installation & Requirements
 
-- Node.js 22+ and npm
-- Java 21+ (required for Gradle modules, JVM demos, and ASM emitter)
-- macOS/Linux recommended
+### 快速体验 (推荐新手)
+
+仅需 **Docker** 或 **Podman**:
+```bash
+# 拉取预构建镜像
+podman pull ghcr.io/wontlost-ltd/aster-truffle:latest
+
+# 或本地构建
+podman build -f Dockerfile.truffle -t aster/truffle:latest .
+```
+
+### 完整开发环境
+
+- **Node.js 22+** and npm
+- **Java 25 LTS** (推荐) 或 **Java 21+** (最低要求)
+  - 推荐: [GraalVM CE 25](https://www.graalvm.org/downloads/)
+- macOS/Linux 推荐
 
 Install dependencies and build:
 
@@ -74,16 +107,16 @@ Examples:
 
 ```bash
 # Parse to AST
-node dist/scripts/cli.js cnl/examples/greet.cnl
+node dist/scripts/cli.js test/cnl/examples/greet.aster
 
 # Emit Core IR
-node dist/scripts/emit-core.js cnl/examples/greet.cnl
+node dist/scripts/emit-core.js test/cnl/examples/greet.aster
 
 # Emit Java sources to build/jvm-src
-node dist/scripts/emit-jvm.js cnl/examples/greet.cnl
+node dist/scripts/emit-jvm.js test/cnl/examples/greet.aster
 
-# Run Core IR on Truffle (auto-lower .cnl)
-node dist/scripts/aster.js truffle cnl/examples/if_param.cnl -- true
+# Run Core IR on Truffle (auto-lower .aster)
+node dist/scripts/aster.js truffle test/cnl/examples/if_param.aster -- true
 ```
 
 Truffle can also run an existing Core IR JSON:
@@ -91,6 +124,23 @@ Truffle can also run an existing Core IR JSON:
 ```
 node dist/scripts/aster.js truffle build/if_param_core.json -- false
 ```
+
+## Native 构建
+
+- Native 支持现已集成 CLI，可通过 GraalVM Native Image 将编译器与用户程序打包为独立可执行文件。
+- 环境要求：GraalVM JDK 25+，并使用 `gu install native-image` 安装原生工具链。
+- 快速示例：
+
+```bash
+# 构建 CLI 原生可执行文件
+./gradlew :aster-lang-cli:nativeCompile
+
+# 将用户程序转换为原生二进制
+aster native examples/cli-jvm/src/main/resources/hello.aster --output hello-native
+```
+
+- 查看完整操作手册与阶段设计，请参考 `docs/native-build-guide.md`。
+
 
 ## JVM Targets
 
@@ -103,13 +153,13 @@ Typical flow to produce a runnable JAR for examples:
 
 ```bash
 # Generate class files from a CNL program
-node dist/scripts/emit-classfiles.js cnl/examples/greet.cnl
+node dist/scripts/emit-classfiles.js test/cnl/examples/greet.aster
 
 # Create a jar from emitted classes
 node dist/scripts/jar-jvm.js
 
 # Or run the end-to-end example workflows
-npm run login:jar   # emit classes for login.cnl and jar them
+npm run login:jar   # emit classes for login.aster and jar them
 npm run login:run   # run Java example using generated classes
 ```
 
@@ -127,8 +177,16 @@ Interop strict nullability (non-blocking CI smoke):
 
 ```
 # Demonstrates strict failure when passing null to a non-null interop param
-npm run verify:asm:nullstrict   # see cnl/examples/null_strict_core.json
+npm run verify:asm:nullstrict   # see test/cnl/examples/null_strict_core.json
 ```
+
+## Workflow 并发特性（Phase 2.4）
+
+- 语言新增 `step foo depends on ["bar", "baz"]` 语法，编译器会在 Core IR 中写入显式依赖图；未声明依赖时自动回退为串行执行，兼容旧 Workflow。
+- 运行时以 `AsyncTaskRegistry` + `CompletableFuture` + `ExecutorService` 调度就绪步骤，`WorkflowScheduler` 仅负责触发 `executeUntilComplete()` 并传播异常。
+- `DependencyGraph.addTask` 自带 DFS 循环检测；调度期间若无就绪节点但仍有未完成任务，则抛出 `IllegalStateException("Deadlock detected")`，便于运行团队快速定位设计问题。
+- 补偿逻辑使用 LIFO 栈记录完成顺序，即便在并发 fan-out/diamond 模式中也能按真实提交顺序撤销副作用。
+- 示例位于 `quarkus-policy-api/src/main/resources/policies/examples/`：涵盖 fan-out、diamond、串行兼容三类模式，可直接用于演示或回归测试。
 
 ### Lambda Syntax & Verification
 
@@ -156,13 +214,15 @@ npm run verify:asm:lambda:cnl
 The repo includes a Node-based LSP server and a VS Code client.
 
 - Server entry: `dist/src/lsp/server.js` (run with `--stdio`)
-- VS Code client: see `editors/vscode/aster-vscode`
+- VS Code client: see `aster-vscode`
 
 Features
 - Hover: types/effects, interop previews, return types
 - Go to definition, find references, workspace symbols
 - Rename (open docs; dotted rename across workspace), persisted index for closed files
 - Diagnostics: pull (`textDocument/diagnostic`), optional workspace diagnostics
+- Diagnostics severity levels: errors (e.g., missing effects), warnings, and info (e.g., @io declared but only CPU-like work).
+
 - Formatting: lossless and normalize modes, range/document
 - Quick fixes: numeric overload disambiguation, capability header edits (It performs IO/CPU), capability manifest updates, missing module header, punctuation fixes
 
@@ -186,7 +246,7 @@ Examples:
 
 ```
 # Auto-lower CNL to Core and run with arg(s)
-node dist/scripts/aster.js truffle cnl/examples/if_param.cnl -- true
+node dist/scripts/aster.js truffle test/cnl/examples/if_param.aster -- true
 
 # Run an existing Core JSON with arg(s)
 node dist/scripts/aster.js truffle build/if_param_core.json -- false
@@ -236,7 +296,7 @@ Note: The npm package is not intended for public distribution during early devel
 - `src/` — TypeScript compiler pipeline (canonicalizer, lexer, parser, Core IR, JVM emitter, LSP)
 - `scripts/` — build/test utilities (PEG build, golden, emit/jar, REPL, LSP smoke) compiled to `dist/scripts`
 - `test/` — property, fuzz, and benchmark tests
-- `cnl/examples/` — sample programs and golden fixtures
+- `test/cnl/examples/` — sample programs and golden fixtures
 - `docs/` — VitePress site (API docs via TypeDoc); `dist/` — build output
 - Gradle modules: `aster-asm-emitter/`, `truffle/`, `examples/*` (Java 21 toolchain)
 
@@ -293,33 +353,33 @@ VS Code (formatOnSave via LSP):
 
 ## CLI: Format Arbitrary Files
 
-You can format any `.cnl` file from the command line:
+You can format any `.aster` file from the command line:
 
 ```bash
 # Overwrite files in place (normalize)
-npm run format:file -- --write path/to/file.cnl
+npm run format:file -- --write path/to/file.aster
 
 # Lossless print to stdout
-npm run format:file -- --lossless path/to/file.cnl
+npm run format:file -- --lossless path/to/file.aster
 
 # Lossless with minimal seam reflow (to stdout)
-npm run format:file -- --lossless --lossless-reflow path/to/file.cnl
+npm run format:file -- --lossless --lossless-reflow path/to/file.aster
 
 # Overwrite with lossless reflow
-npm run format:file -- --write --lossless --lossless-reflow path/to/file.cnl
+npm run format:file -- --write --lossless --lossless-reflow path/to/file.aster
 
 # Normalize with inline comment preservation (best effort)
-npm run format:file -- --write --preserve-comments path/to/file.cnl
+npm run format:file -- --write --preserve-comments path/to/file.aster
 ```
 
 
 ## Examples
 
-Example CNL programs live in `cnl/examples`. JVM demo projects live under `examples/*` and assume generated classes are placed in `build/jvm-classes`:
+Example CNL programs live in `test/cnl/examples`. JVM demo projects live under `examples/*` and assume generated classes are placed in `build/jvm-classes`:
 
 ```bash
 # Arithmetic example end-to-end
-./gradlew :aster-asm-emitter:run --args=build/jvm-classes < cnl/examples/arith_compare_core.json
+./gradlew :aster-asm-emitter:run --args=build/jvm-classes < test/cnl/examples/arith_compare_core.json
 npm run math:jar && ./gradlew :examples:math-jvm:run
 
 # Text demo (interop mappings)

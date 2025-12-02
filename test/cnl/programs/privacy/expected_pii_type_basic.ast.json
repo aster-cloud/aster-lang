@@ -1,0 +1,37 @@
+{
+  "kind": "Module",
+  "name": "test.pii.basic",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "get_email",
+      "typeParams": [],
+      "params": [],
+      "retType": {
+        "kind": "TypePii",
+        "baseType": {
+          "kind": "TypeName",
+          "name": "Text",
+          "annotations": []
+        },
+        "sensitivity": "L2",
+        "category": "email"
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "String",
+              "value": "user@example.com"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

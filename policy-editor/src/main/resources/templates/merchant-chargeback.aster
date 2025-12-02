@@ -1,0 +1,13 @@
+This module is aster.templates.payments.chargeback.
+
+To evaluateChargebackPlaybook with dispute, merchant is
+  Let friendlyFraudRisk be dispute.reasonCode is "4853" and merchant.category is "digital".
+  Let evidenceStrong be merchant.refundPolicyUploaded is true and merchant.deliveryProof is true.
+  When evidenceStrong and not friendlyFraudRisk then
+    approve with message "一键提交标准证据包".
+  When friendlyFraudRisk and merchant.chargebackRate is over 0.015 then
+    flag with message "需升级至仲裁策略".
+  When merchant.chargebackRate is over 0.03 then
+    deny with message "停止自动提交，交由风控处理".
+  Else
+    approve with message "走简化证据模版".

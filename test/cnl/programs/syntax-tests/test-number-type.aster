@@ -1,0 +1,6 @@
+This module is test.number.
+
+Define Product with price: Number, quantity: Int.
+
+To calculateTotal with product: Product, produce Number:
+  Return product.price.

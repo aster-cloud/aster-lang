@@ -1,0 +1,108 @@
+{
+  "kind": "Module",
+  "name": "test.pii.mixed",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "get_user_info",
+      "params": [],
+      "ret": {
+        "kind": "Result",
+        "ok": {
+          "kind": "PiiType",
+          "baseType": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "sensitivity": "L2",
+          "category": "email"
+        },
+        "err": {
+          "kind": "TypeName",
+          "name": "Text"
+        }
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "email",
+            "expr": {
+              "kind": "String",
+              "value": "user@example.com"
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Ok"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "email"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "piiLevel": "L2",
+      "piiCategories": [
+        "email"
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "get_optional_phone",
+      "params": [],
+      "ret": {
+        "kind": "PiiType",
+        "baseType": {
+          "kind": "Maybe",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          }
+        },
+        "sensitivity": "L3",
+        "category": "phone"
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Some"
+              },
+              "args": [
+                {
+                  "kind": "String",
+                  "value": "+1-555-0100"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "piiLevel": "L3",
+      "piiCategories": [
+        "phone"
+      ]
+    }
+  ]
+}

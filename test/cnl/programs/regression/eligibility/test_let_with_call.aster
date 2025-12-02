@@ -1,0 +1,10 @@
+This module is test.let.with.call.
+
+To helper with x: Int, produce Int:
+  Return *(x, 2).
+
+To testLetWithCall with x: Int, produce Int:
+  If >(x, 10),:
+    Let doubled be helper(x).
+    Return doubled.
+  Return x.

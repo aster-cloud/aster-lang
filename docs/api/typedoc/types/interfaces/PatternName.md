@@ -4,47 +4,61 @@
 
 # Interface: PatternName
 
-Defined in: [types.ts:178](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L178)
+Defined in: [types.ts:257](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L257)
+
+名称模式基础接口。
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- [`BasePatternName`](../base/interfaces/BasePatternName.md)\<[`Span`](Span.md)\>
 
 ## Properties
 
-### span?
+### span
 
-> `readonly` `optional` **span**: [`Span`](Span.md)
+> **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L62)
+Defined in: [types.ts:258](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L258)
+
+#### Overrides
+
+[`BasePatternName`](../base/interfaces/BasePatternName.md).[`span`](../base/interfaces/BasePatternName.md#span)
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+[`BasePatternName`](../base/interfaces/BasePatternName.md).[`origin`](../base/interfaces/BasePatternName.md#origin)
 
 ***
 
 ### file?
 
-> `readonly` `optional` **file**: `null` \| `string`
+> `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L63)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+[`BasePatternName`](../base/interfaces/BasePatternName.md).[`file`](../base/interfaces/BasePatternName.md#file)
 
 ***
 
 ### kind
 
-> `readonly` **kind**: `"PatternName"`
+> `readonly` **kind**: `"PatternName"` \| `"PatName"`
 
-Defined in: [types.ts:179](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L179)
+Defined in: [types/base.ts:278](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L278)
 
-#### Overrides
+#### Inherited from
 
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
+[`PatName`](../namespaces/Core/interfaces/PatName.md).[`kind`](../namespaces/Core/interfaces/PatName.md#kind)
 
 ***
 
@@ -52,4 +66,8 @@ Defined in: [types.ts:179](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:180](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L180)
+Defined in: [types/base.ts:279](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L279)
+
+#### Inherited from
+
+[`PatName`](../namespaces/Core/interfaces/PatName.md).[`name`](../namespaces/Core/interfaces/PatName.md#name)

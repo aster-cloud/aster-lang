@@ -1,0 +1,10 @@
+# Data 传统语法测试
+# 测试 data 关键字（遗留语法）
+
+data User:
+  id: Text
+  name: Text
+
+data Point:
+  x: Int
+  y: Int

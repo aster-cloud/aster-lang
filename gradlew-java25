@@ -1,0 +1,6 @@
+#!/bin/bash
+# Gradle wrapper with Java 25 native access enabled
+# This suppresses warnings from Gradle 9.0.0's native platform library
+
+export GRADLE_OPTS="--enable-native-access=ALL-UNNAMED"
+exec ./gradlew "$@"

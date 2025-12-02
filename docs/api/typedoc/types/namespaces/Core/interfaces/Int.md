@@ -4,23 +4,49 @@
 
 # Interface: Int
 
-Defined in: [types.ts:496](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L496)
+Defined in: [types.ts:562](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L562)
+
+整数字面量基础接口。
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- [`BaseInt`](../../../base/interfaces/BaseInt.md)\<[`Origin`](../../../interfaces/Origin.md)\>
 
 ## Properties
+
+### span?
+
+> `readonly` `optional` **span**: `undefined`
+
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L41)
+
+#### Inherited from
+
+[`BaseInt`](../../../base/interfaces/BaseInt.md).[`span`](../../../base/interfaces/BaseInt.md#span)
+
+***
 
 ### origin?
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L341)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+[`BaseInt`](../../../base/interfaces/BaseInt.md).[`origin`](../../../base/interfaces/BaseInt.md#origin)
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `string` \| `null`
+
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
+
+#### Inherited from
+
+[`BaseInt`](../../../base/interfaces/BaseInt.md).[`file`](../../../base/interfaces/BaseInt.md#file)
 
 ***
 
@@ -28,11 +54,11 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **kind**: `"Int"`
 
-Defined in: [types.ts:497](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L497)
+Defined in: [types/base.ts:314](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L314)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+[`BaseInt`](../../../base/interfaces/BaseInt.md).[`kind`](../../../base/interfaces/BaseInt.md#kind)
 
 ***
 
@@ -40,4 +66,8 @@ Defined in: [types.ts:497](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **value**: `number`
 
-Defined in: [types.ts:498](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L498)
+Defined in: [types/base.ts:315](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L315)
+
+#### Inherited from
+
+[`BaseInt`](../../../base/interfaces/BaseInt.md).[`value`](../../../base/interfaces/BaseInt.md#value)

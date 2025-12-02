@@ -1,0 +1,6 @@
+This module is test.generic.result_maybe.
+
+To unwrap with x: Result of Int? and Text, produce Text:
+  Match x:
+    When Ok(v), Return "ok".
+    When Err(msg), Return msg.

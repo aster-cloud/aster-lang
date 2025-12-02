@@ -2,5 +2,5 @@ node_modules
 dist
 *.json
 *.md
-cnl/examples
+test/cnl/examples
 CHANGELOG.md

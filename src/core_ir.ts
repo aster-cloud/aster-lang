@@ -33,7 +33,11 @@ export const Core = {
     params: readonly CoreTypes.Parameter[],
     ret: CoreTypes.Type,
     effects: readonly Effect[],
-    body: CoreTypes.Block
+    body: CoreTypes.Block,
+    effectCaps: readonly import('./types.js').CapabilityKind[] = [],
+    effectCapsExplicit = false,
+    effectParams?: readonly string[],
+    declaredEffects?: readonly (Effect | CoreTypes.EffectVar)[]
   ): CoreTypes.Func => ({
     kind: 'Func',
     name,
@@ -41,7 +45,11 @@ export const Core = {
     params,
     ret,
     effects,
+    effectCaps: [...effectCaps],
+    effectCapsExplicit,
     body,
+    ...(effectParams && effectParams.length > 0 ? { effectParams } : {}),
+    ...(declaredEffects && declaredEffects.length > 0 ? { declaredEffects } : {}),
   }),
   Block: (statements: readonly CoreTypes.Statement[]): CoreTypes.Block => ({
     kind: 'Block',
@@ -77,12 +85,38 @@ export const Core = {
     expr,
   }),
   Wait: (names: readonly string[]): CoreTypes.Wait => ({ kind: 'Wait', names }),
+  Workflow: (
+    steps: readonly CoreTypes.Step[],
+    effectCaps: readonly import('./types.js').CapabilityKind[],
+    retry?: CoreTypes.RetryPolicy,
+    timeout?: CoreTypes.Timeout
+  ): CoreTypes.Workflow => ({
+    kind: 'workflow',
+    steps,
+    effectCaps: [...effectCaps],
+    ...(retry ? { retry } : {}),
+    ...(timeout ? { timeout } : {}),
+  }),
+  Step: (
+    name: string,
+    body: CoreTypes.Block,
+    effectCaps: readonly import('./types.js').CapabilityKind[],
+    compensate?: CoreTypes.Block,
+    dependencies: readonly string[] = []
+  ): CoreTypes.Step => ({
+    kind: 'step',
+    name,
+    body,
+    dependencies,
+    effectCaps: [...effectCaps],
+    ...(compensate ? { compensate } : {}),
+  }),
 
   // Expressions
   Name: (name: string): CoreTypes.Name => ({ kind: 'Name', name }),
   Bool: (value: boolean): CoreTypes.Bool => ({ kind: 'Bool', value }),
   Int: (value: number): CoreTypes.Int => ({ kind: 'Int', value }),
-  Long: (value: number): CoreTypes.Long => ({ kind: 'Long', value }),
+  Long: (value: string): CoreTypes.Long => ({ kind: 'Long', value }),
   Double: (value: number): CoreTypes.Double => ({ kind: 'Double', value }),
   String: (value: string): CoreTypes.String => ({ kind: 'String', value }),
   Null: (): CoreTypes.Null => ({ kind: 'Null' }),
@@ -117,13 +151,22 @@ export const Core = {
     args,
   }),
   TypeVar: (name: string): CoreTypes.TypeVar => ({ kind: 'TypeVar', name }),
+  Pii: (
+    baseType: CoreTypes.Type,
+    sensitivity: 'L1' | 'L2' | 'L3',
+    category: import('./types.js').PiiDataCategory
+  ): CoreTypes.PiiType => ({
+    kind: 'PiiType',
+    baseType,
+    sensitivity,
+    category,
+  }),
 
   // Patterns
   PatNull: (): CoreTypes.PatNull => ({ kind: 'PatNull' }),
-  Await: (expr: CoreTypes.Expression): CoreTypes.Expression => ({
-    kind: 'Call',
-    target: { kind: 'Name', name: 'await' } as CoreTypes.Name,
-    args: [expr],
+  Await: (expr: CoreTypes.Expression): CoreTypes.Await => ({
+    kind: 'Await',
+    expr,
   }),
   PatCtor: (
     typeName: string,

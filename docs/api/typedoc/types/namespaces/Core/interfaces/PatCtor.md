@@ -4,35 +4,61 @@
 
 # Interface: PatCtor
 
-Defined in: [types.ts:453](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L453)
+Defined in: [types.ts:535](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L535)
+
+构造器模式基础接口。
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- [`BasePatternCtor`](../../../base/interfaces/BasePatternCtor.md)\<[`Origin`](../../../interfaces/Origin.md), [`Pattern`](../type-aliases/Pattern.md)\>
 
 ## Properties
+
+### span?
+
+> `readonly` `optional` **span**: `undefined`
+
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L41)
+
+#### Inherited from
+
+[`BasePatternCtor`](../../../base/interfaces/BasePatternCtor.md).[`span`](../../../base/interfaces/BasePatternCtor.md#span)
+
+***
 
 ### origin?
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L341)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+[`BasePatternCtor`](../../../base/interfaces/BasePatternCtor.md).[`origin`](../../../base/interfaces/BasePatternCtor.md#origin)
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `string` \| `null`
+
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
+
+#### Inherited from
+
+[`BasePatternCtor`](../../../base/interfaces/BasePatternCtor.md).[`file`](../../../base/interfaces/BasePatternCtor.md#file)
 
 ***
 
 ### kind
 
-> `readonly` **kind**: `"PatCtor"`
+> `readonly` **kind**: `"PatternCtor"` \| `"PatCtor"`
 
-Defined in: [types.ts:454](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L454)
+Defined in: [types/base.ts:268](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L268)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+[`BasePatternCtor`](../../../base/interfaces/BasePatternCtor.md).[`kind`](../../../base/interfaces/BasePatternCtor.md#kind)
 
 ***
 
@@ -40,7 +66,11 @@ Defined in: [types.ts:454](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **typeName**: `string`
 
-Defined in: [types.ts:455](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L455)
+Defined in: [types/base.ts:269](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L269)
+
+#### Inherited from
+
+[`BasePatternCtor`](../../../base/interfaces/BasePatternCtor.md).[`typeName`](../../../base/interfaces/BasePatternCtor.md#typename)
 
 ***
 
@@ -48,7 +78,11 @@ Defined in: [types.ts:455](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:456](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L456)
+Defined in: [types/base.ts:270](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L270)
+
+#### Inherited from
+
+[`BasePatternCtor`](../../../base/interfaces/BasePatternCtor.md).[`names`](../../../base/interfaces/BasePatternCtor.md#names)
 
 ***
 
@@ -56,4 +90,8 @@ Defined in: [types.ts:456](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` `optional` **args**: readonly [`Pattern`](../type-aliases/Pattern.md)[]
 
-Defined in: [types.ts:457](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L457)
+Defined in: [types/base.ts:271](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L271)
+
+#### Inherited from
+
+[`BasePatternCtor`](../../../base/interfaces/BasePatternCtor.md).[`args`](../../../base/interfaces/BasePatternCtor.md#args)

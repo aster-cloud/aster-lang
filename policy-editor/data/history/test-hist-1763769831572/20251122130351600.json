@@ -1,0 +1,12 @@
+{
+  "id" : "test-hist-1763769831572",
+  "name" : "v2",
+  "allow" : {
+    "rules" : {
+      "io" : [ "/tmp/*" ]
+    }
+  },
+  "deny" : {
+    "rules" : { }
+  }
+}

@@ -6,7 +6,7 @@ import { DiagnosticError, formatDiagnostic } from '../src/diagnostics.js';
 function main(): void {
   const file = process.argv[2];
   if (!file) {
-    console.error('Usage: emit-core <file.cnl>');
+    console.error('Usage: emit-core <file.aster>');
     process.exit(2);
   }
   const input = fs.readFileSync(file, 'utf8');
@@ -38,6 +38,8 @@ function prune(obj: unknown): unknown {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
       if (k === 'typeParams' && Array.isArray(v) && v.length === 0) continue;
+      // Drop provenance/ancillary fields from comparisons
+      if (k === 'span' || k === 'file' || k === 'origin' || k === 'nameSpan' || k === 'variantSpans') continue;
       out[k] = prune(v as unknown);
     }
     return out;

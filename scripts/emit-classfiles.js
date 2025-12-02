@@ -44,7 +44,7 @@ async function main() {
 
   const input = process.argv[2];
   if (!input) {
-    console.error('Usage: emit-classfiles <file.cnl>');
+    console.error('Usage: emit-classfiles <file.aster>');
     process.exit(2);
   }
   const src = fs.readFileSync(input, 'utf8');

@@ -1,0 +1,93 @@
+# Quarkus Policy API deployment
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: policy-api-config
+  namespace: aster-policy
+data:
+  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://postgres:5432/aster_policy"
+  QUARKUS_DATASOURCE_REACTIVE_URL: "postgresql://postgres:5432/aster_policy"
+  QUARKUS_DATASOURCE_USERNAME: "postgres"
+  QUARKUS_DATASOURCE_PASSWORD: "postgres"
+  QUARKUS_FLYWAY_MIGRATE_AT_START: "true"
+  QUARKUS_REDIS_HOSTS: "redis://redis:6379"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: policy-history-pvc
+  namespace: aster-policy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-api
+  namespace: aster-policy
+  labels:
+    app: policy-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: policy-api
+  template:
+    metadata:
+      labels:
+        app: policy-api
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done;']
+      - name: wait-for-redis
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z redis 6379; do echo waiting for redis; sleep 2; done;']
+      containers:
+      - name: policy-api
+        image: localhost/aster/policy-api:test
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - configMapRef:
+            name: policy-api-config
+        volumeMounts:
+        - name: policy-history
+          mountPath: /work/data
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+      volumes:
+      - name: policy-history
+        persistentVolumeClaim:
+          claimName: policy-history-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: policy-api
+  namespace: aster-policy
+spec:
+  selector:
+    app: policy-api
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP

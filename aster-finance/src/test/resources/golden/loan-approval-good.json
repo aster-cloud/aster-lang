@@ -1,0 +1,27 @@
+{
+  "customer": {
+    "id": "C_GOOD",
+    "name": "Good Customer",
+    "dateOfBirth": "1985-06-15",
+    "creditScore": 750,
+    "annualIncome": {
+      "amount": 80000.00,
+      "currency": "USD"
+    }
+  },
+  "loanApplication": {
+    "id": "LA_GOOD",
+    "requestedAmount": {
+      "amount": 200000.00,
+      "currency": "USD"
+    },
+    "termMonths": 360,
+    "purpose": "HOME"
+  },
+  "expectedEvaluation": {
+    "approved": true,
+    "reason": "Application meets all requirements",
+    "interestRate": 0.07,
+    "riskLevel": "LOW"
+  }
+}

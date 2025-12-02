@@ -21,8 +21,8 @@ if (!fs.existsSync(abs)) {
 
 const hasWrapper = fs.existsSync(path.join(cwd, 'gradlew'));
 const runCmd = hasWrapper ? (process.platform === 'win32' ? 'gradlew.bat' : './gradlew') : 'gradle';
-const offlineArgs = ['--no-daemon', '--offline', '--console=plain', ':truffle:run', `--args=${abs}`];
-const onlineArgs = ['--no-daemon', '--console=plain', ':truffle:run', `--args=${abs}`];
+const offlineArgs = ['--no-daemon', '--offline', '--console=plain', ':aster-truffle:run', `--args=${abs}`];
+const onlineArgs = ['--no-daemon', '--console=plain', ':aster-truffle:run', `--args=${abs}`];
 
 const env: Record<string, string | undefined> = {
   GRADLE_USER_HOME: path.resolve('build/.gradle'),
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
   }
   const merged = (res.out + '\n' + res.err).toString();
   const lines = merged.trim().split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-  const lastNumeric = [...lines].reverse().find(l => /^-?\d+$/.test(l));
+  const lastNumeric = [...lines].reverse().find(l => /^-?\d+(\.\d+)?$/.test(l));
   const actual = (lastNumeric ?? lines[lines.length - 1] ?? '').trim();
   if (actual === expected) {
     console.log(`OK: ${path.basename(corePath as string)} => ${expected}`);

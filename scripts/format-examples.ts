@@ -6,8 +6,24 @@ import { formatCNL } from '../src/formatter.js';
 const mode = process.argv.includes('--write') ? 'write' : process.argv.includes('--check') ? 'check' : 'check';
 
 function run(): void {
-  const dir = path.join(process.cwd(), 'cnl', 'examples');
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.cnl')).map(f => path.join(dir, f));
+  const dir = path.join(process.cwd(), 'test/cnl', 'programs');
+
+  // Recursively find all .aster files
+  function findAsterFiles(directory: string): string[] {
+    const entries = fs.readdirSync(directory, { withFileTypes: true });
+    const files: string[] = [];
+    for (const entry of entries) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...findAsterFiles(fullPath));
+      } else if (entry.name.endsWith('.aster')) {
+        files.push(fullPath);
+      }
+    }
+    return files;
+  }
+
+  const files = findAsterFiles(dir);
   let changed = 0;
   let ok = 0;
   for (const file of files) {

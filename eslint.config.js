@@ -9,7 +9,7 @@ export default [
       'node_modules/**',
       'build/**',
       'aster-asm-emitter/build/**',
-      'cnl/**',
+      'test/cnl/**',
     ],
   },
   {

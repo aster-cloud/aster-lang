@@ -1,0 +1,10 @@
+This module is aster.finance.loan.
+
+To determineInterestRate with creditScore: Number, produce Number:
+  If >=(creditScore, 800),:
+    Return 3.5.
+  If >=(creditScore, 740),:
+    Return 4.25.
+  If >=(creditScore, 670),:
+    Return 5.5.
+  Return 6.75.

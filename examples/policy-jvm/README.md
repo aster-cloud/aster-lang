@@ -9,21 +9,21 @@ This example demonstrates a comprehensive Rules/Policy engine built with Aster l
 
 ## Features
 
-### Policy Engine (`policy_engine.cnl`)
+### Policy Engine (`policy_engine.aster`)
 - **Role-based Access Control**: Admin, user roles with different permissions
 - **Resource Types**: Document, User, System resources
 - **Actions**: Read, Write, Delete, Admin operations
 - **Context-aware Evaluation**: Time of day, location, resource ownership
 - **Rule Types**: Time-based, location-based, and ownership-based rules
 
-### Rules Engine (`rules_engine.cnl`)
+### Rules Engine (`rules_engine.aster`)
 - **Business Rules**: Access, Validation, Transformation, Notification rules
 - **Rule Priorities**: Low, Medium, High, Critical priority levels
 - **Condition Evaluation**: Multiple operators (equals, contains, greater_than, etc.)
 - **Rule Composition**: Evaluate multiple rules and return combined actions
 - **Dynamic Rule Creation**: Programmatic rule generation
 
-### Policy Demo (`policy_demo.cnl`)
+### Policy Demo (`policy_demo.aster`)
 - **End-to-end Demonstrations**: Complete policy and rules engine demos
 - **Test Suites**: Comprehensive test cases for both engines
 - **Complex Scenarios**: Multi-factor authentication and authorization

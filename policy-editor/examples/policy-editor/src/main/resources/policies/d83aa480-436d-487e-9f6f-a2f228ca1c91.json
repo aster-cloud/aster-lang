@@ -1,0 +1,13 @@
+{
+  "id" : "d83aa480-436d-487e-9f6f-a2f228ca1c91",
+  "name" : "test",
+  "allow" : {
+    "rules" : {
+      "cpu" : [ "*" ],
+      "io" : [ "*" ]
+    }
+  },
+  "deny" : {
+    "rules" : { }
+  }
+}

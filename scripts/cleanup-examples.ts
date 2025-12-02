@@ -25,7 +25,7 @@ function cleanup(text: string): string {
 
 function main(): void {
   const dir = path.join(process.cwd(), 'cnl', 'examples');
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.cnl')).map(f => path.join(dir, f));
+  const files = fs.readdirSync(dir).filter(f => f.endsWith('.aster')).map(f => path.join(dir, f));
   let updated = 0;
   for (const f of files) {
     const src = fs.readFileSync(f, 'utf8');

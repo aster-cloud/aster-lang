@@ -1,14 +1,29 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url 'https://maven.pkg.jetbrains.space/public/p/ij/intellij-platform-plugin' }
+    }
+}
+
 rootProject.name = 'aster-lang'
+include ':aster-core'
+project(':aster-core').projectDir = file('aster-core')
 include ':aster-asm-emitter'
 include ':aster-runtime'
+include ':aster-validation'
+project(':aster-validation').projectDir = file('aster-validation')
+include ':aster-lang-cli'
+project(':aster-lang-cli').projectDir = file('aster-lang-cli')
+include ':aster-idea'
+project(':aster-idea').projectDir = file('aster-idea')
 include ':examples:hello-native'
 project(':examples:hello-native').projectDir = file('examples/hello-native')
 include ':examples:login-native'
 project(':examples:login-native').projectDir = file('examples/login-native')
 include ':examples:math-jvm'
 project(':examples:math-jvm').projectDir = file('examples/math-jvm')
-include ':truffle'
-project(':truffle').projectDir = file('truffle')
+include ':aster-truffle'
+project(':aster-truffle').projectDir = file('aster-truffle')
 include ':examples:login-jvm'
 project(':examples:login-jvm').projectDir = file('examples/login-jvm')
 include ':examples:text-jvm'
@@ -25,3 +40,29 @@ include ':examples:rest-jvm'
 project(':examples:rest-jvm').projectDir = file('examples/rest-jvm')
 include ':examples:policy-jvm'
 project(':examples:policy-jvm').projectDir = file('examples/policy-jvm')
+
+// policy-editor uses Maven (pom.xml), not Gradle
+
+// Phase 1: Quarkus Policy API
+include ':quarkus-policy-api'
+project(':quarkus-policy-api').projectDir = file('quarkus-policy-api')
+include ':quarkus-policy-api-benchmarks'
+project(':quarkus-policy-api-benchmarks').projectDir = file('quarkus-policy-api-benchmarks')
+
+// Phase 1: Finance domain library
+include ':aster-finance'
+project(':aster-finance').projectDir = file('aster-finance')
+
+// Phase 1: Policy common library
+include ':aster-policy-common'
+project(':aster-policy-common').projectDir = file('aster-policy-common')
+
+// Phase 2: E-commerce domain library
+include ':aster-ecommerce'
+project(':aster-ecommerce').projectDir = file('aster-ecommerce')
+
+// Vaadin native integration extension modules
+include ':aster-vaadin-native'
+project(':aster-vaadin-native').projectDir = file('aster-vaadin-native')
+include ':aster-vaadin-native-deployment'
+project(':aster-vaadin-native-deployment').projectDir = file('aster-vaadin-native-deployment')

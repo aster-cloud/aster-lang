@@ -1,0 +1,36 @@
+{
+  "kind": "Module",
+  "name": "demo.capcaps.single",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "ping",
+      "typeParams": [],
+      "params": [],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text",
+        "annotations": []
+      },
+      "effects": [
+        "io"
+      ],
+      "effectCaps": [
+        "Http"
+      ],
+      "effectCapsExplicit": true,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "String",
+              "value": "ok"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

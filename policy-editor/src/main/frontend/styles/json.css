@@ -1,0 +1,15 @@
+.json { background: var(--lumo-contrast-5pct); padding: 10px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.9rem; overflow: auto; }
+.json .key { color: #1f6feb; }
+.json .string { color: #0a7f62; }
+.json .number { color: #b69121; }
+.json .boolean { color: #9a3fb0; }
+.json .null { color: #a0a0a0; font-style: italic; }
+
+/* Dark mode tweak */
+html[theme='dark'] .json { background: #0e1116; color: #c9d1d9; }
+html[theme='dark'] .json .key { color: #79c0ff; }
+html[theme='dark'] .json .string { color: #7ee787; }
+html[theme='dark'] .json .number { color: #d29922; }
+html[theme='dark'] .json .boolean { color: #d2a8ff; }
+html[theme='dark'] .json .null { color: #8b949e; }
+

@@ -1,0 +1,156 @@
+{
+  "kind": "Module",
+  "name": "validation.combined",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "Account",
+      "fields": [
+        {
+          "name": "username",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            },
+            {
+              "name": "Pattern",
+              "params": {
+                "regexp": "^[a-zA-Z0-9_]{3,20}$"
+              }
+            }
+          ]
+        },
+        {
+          "name": "age",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {
+                "min": 18,
+                "max": 120
+              }
+            }
+          ]
+        },
+        {
+          "name": "email",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "registerAccount",
+      "params": [
+        {
+          "name": "user",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            },
+            {
+              "name": "Pattern",
+              "params": {
+                "regexp": "^[a-zA-Z0-9_]{3,20}$"
+              }
+            }
+          ]
+        },
+        {
+          "name": "userAge",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int"
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {
+                "min": 18,
+                "max": 120
+              }
+            }
+          ]
+        },
+        {
+          "name": "userEmail",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            },
+            {
+              "name": "Pattern",
+              "params": {
+                "regexp": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+              }
+            }
+          ]
+        }
+      ],
+      "ret": {
+        "kind": "TypeName",
+        "name": "Account"
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Account"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "user"
+                },
+                {
+                  "kind": "Name",
+                  "name": "userAge"
+                },
+                {
+                  "kind": "Name",
+                  "name": "userEmail"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

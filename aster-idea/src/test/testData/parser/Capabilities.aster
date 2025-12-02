@@ -1,0 +1,7 @@
+# Capabilities 声明测试
+# 测试传统语法 capabilities 关键字
+
+capabilities:
+  io_net
+  io_file
+  cpu_compute

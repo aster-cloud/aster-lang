@@ -1,0 +1,13 @@
+This module is std.collections.
+
+To length with xs: List of Int, produce Int:
+  Return List.length(xs).
+
+To head with xs: List of Int, produce Int?:
+  Return none.
+
+To id with x: Int, produce Int:
+  Return x.
+
+To mapId with xs: List of Int, produce List of Int:
+  Return List.map(xs, id).

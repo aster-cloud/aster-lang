@@ -1,0 +1,13 @@
+This module is aster.templates.insurance.auto.quote.
+
+To evaluateAutoQuote with driver, vehicle is
+  Let safeDriver be driver.claimsInFiveYears is 0 and driver.telemetryScore is over 82.
+  Let cityCongestion be driver.regionRisk is "urban" and vehicle.annualMileage is over 18000.
+  When safeDriver and not cityCongestion then
+    approve with message "旗舰套餐：折扣 25% 并附赠道路救援".
+  When safeDriver and cityCongestion then
+    approve with message "城区套餐：折扣 12%，附加拥堵附加费".
+  When driver.claimsInFiveYears is over 2 or driver.licenseStatus is "suspended" then
+    deny with message "暂不出具报价，需人工干预".
+  Else
+    approve with message "标准套餐，首年保费 6,800".

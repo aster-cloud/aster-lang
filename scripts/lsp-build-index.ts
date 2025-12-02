@@ -15,7 +15,7 @@ function walk(dir: string, out: string[] = []): string[] {
     if (e.name.startsWith('.')) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p, out);
-    else if (e.isFile() && e.name.endsWith('.cnl')) out.push(p);
+    else if (e.isFile() && e.name.endsWith('.aster')) out.push(p);
   }
   return out;
 }

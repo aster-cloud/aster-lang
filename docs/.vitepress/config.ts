@@ -4,6 +4,27 @@ export default defineConfig({
   title: 'Aster Language',
   description: 'A pragmatic, safe, fast language with a human CNL surface',
   base: '/',
+  // Ignore all dead links (many links point to files outside docs directory)
+  ignoreDeadLinks: true,
+  markdown: {
+    // 配置 Shiki 语法高亮主题
+    theme: {
+      light: 'github-light',
+      dark: 'github-dark',
+    },
+    // 临时方案：将 aster 映射到 typescript 语法高亮
+    // TODO: 等待 VitePress 2.x 支持自定义 tmLanguage 加载后改用 Aster 自定义语法
+    languageAlias: {
+      'aster': 'typescript'
+    },
+  },
+  vite: {
+    build: {
+      // 增加 chunk size warning 阈值到 4000kb 以避免大型文档库的警告
+      // Phase 3.8 添加了大量详细文档，增加阈值以避免警告
+      chunkSizeWarningLimit: 4000,
+    },
+  },
   themeConfig: {
     logo: '/logo.svg',
     nav: [
@@ -24,6 +45,15 @@ export default defineConfig({
             { text: 'Formatting, LSP & CLI', link: '/guide/formatting' },
             { text: 'JVM Interop Overloads', link: '/guide/interop-overloads' },
             { text: 'Contributing', link: '/guide/contributing' },
+          ],
+        },
+        {
+          text: 'Package Management',
+          items: [
+            { text: '包管理快速入门', link: '/guide/getting-started-packages' },
+            { text: '包管理系统概述', link: '/guide/package-management/overview' },
+            { text: 'manifest.json 参考', link: '/guide/package-management/manifest-reference' },
+            { text: 'CLI 命令参考', link: '/guide/cli/commands' },
           ],
         },
       ],

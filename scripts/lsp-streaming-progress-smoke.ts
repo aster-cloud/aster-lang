@@ -22,12 +22,16 @@ async function readUntil(server: ChildProcessWithoutNullStreams, predicate: (obj
         if (buffer.length < start + len) break;
         const jsonText = buffer.slice(start, start + len);
         buffer = buffer.slice(start + len);
-        const obj = JSON.parse(jsonText);
-        out.push(obj);
-        if (predicate(obj)) {
-          cleanup();
-          resolve(out);
-          return;
+        try {
+          const obj = JSON.parse(jsonText);
+          out.push(obj);
+          if (predicate(obj)) {
+            cleanup();
+            resolve(out);
+            return;
+          }
+        } catch {
+          // Ignore parse errors and continue processing
         }
       }
     };
@@ -50,7 +54,7 @@ async function main(): Promise<void> {
   send(server, { jsonrpc: '2.0', method: 'workspace/didChangeConfiguration', params: { settings: { asterLanguageServer: { streaming: { referencesChunk: 1, logChunks: true } } } } });
 
   // open a document with many occurrences of the same word to trigger multiple chunks
-  const uri = 'file:///streaming.cnl';
+  const uri = 'file:///streaming.aster';
   const many = 'greet '.repeat(20).trim();
   const text = `This module is streaming.test.\n\nTo greet, produce Text:\n  Return "x".\n\n# refs below\n${many}\n`;
   send(server, { jsonrpc: '2.0', method: 'textDocument/didOpen', params: { textDocument: { uri, languageId: 'cnl', version: 1, text } } });
@@ -69,19 +73,23 @@ async function main(): Promise<void> {
         if (buffer.length < start + len) break;
         const jsonText = buffer.slice(start, start + len);
         buffer = buffer.slice(start + len);
-        const obj = JSON.parse(jsonText);
-        if (obj.method === '$/progress' && (obj.params?.token === 'pr1' || obj.params?.token === 'wd1')) {
-          const v = obj.params?.value;
-          if (v && typeof v.message === 'string' && v.message.startsWith('references: +')) {
+        try {
+          const obj = JSON.parse(jsonText);
+          if (obj.method === '$/progress' && (obj.params?.token === 'pr1' || obj.params?.token === 'wd1')) {
+            const v = obj.params?.value;
+            if (v && typeof v.message === 'string' && v.message.startsWith('references: +')) {
+              chunks++;
+              if (chunks >= 2) { cleanup(); resolve(); return; }
+            }
+          }
+          if (obj.method === 'window/logMessage' && typeof obj.params?.message === 'string' && obj.params.message.startsWith('references chunk: +')) {
             chunks++;
             if (chunks >= 2) { cleanup(); resolve(); return; }
           }
+          if (obj.id === 2) { /* response; ignore */ }
+        } catch {
+          // Ignore parse errors and continue processing
         }
-        if (obj.method === 'window/logMessage' && typeof obj.params?.message === 'string' && obj.params.message.startsWith('references chunk: +')) {
-          chunks++;
-          if (chunks >= 2) { cleanup(); resolve(); return; }
-        }
-        if (obj.id === 2) { /* response; ignore */ }
       }
     };
     const to = setTimeout(() => { cleanup(); reject(new Error('no multiple chunks observed')); }, 5000);

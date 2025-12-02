@@ -1,1 +1,0 @@
-ERROR: Function 'hello' declares @io but capability manifest does not allow it for module 'demo.capdemo'.

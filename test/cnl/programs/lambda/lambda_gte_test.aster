@@ -1,0 +1,8 @@
+This module is demo.lambdagte.
+
+To isAtLeast with x: Int, threshold: Int, produce Bool:
+  Return >=(x, threshold).
+
+To isLengthAtLeast with s: Text, minLen: Int, produce Bool:
+  Let len be Text.length(s).
+  Return >=(len, minLen).

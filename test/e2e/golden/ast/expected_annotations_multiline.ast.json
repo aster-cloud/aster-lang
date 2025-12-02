@@ -1,0 +1,1182 @@
+{
+  "kind": "Module",
+  "name": "test.annotations.multiline",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "UserProfile",
+      "fields": [
+        {
+          "name": "userId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 43
+              },
+              "end": {
+                "line": 3,
+                "col": 47
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 26
+            },
+            "end": {
+              "line": 3,
+              "col": 47
+            }
+          }
+        },
+        {
+          "name": "age",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 80
+              },
+              "end": {
+                "line": 3,
+                "col": 83
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 50
+            },
+            "end": {
+              "line": 3,
+              "col": 83
+            }
+          }
+        },
+        {
+          "name": "email",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 102
+              },
+              "end": {
+                "line": 3,
+                "col": 106
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 86
+            },
+            "end": {
+              "line": 3,
+              "col": 106
+            }
+          }
+        },
+        {
+          "name": "accountBalance",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 3,
+                "col": 124
+              },
+              "end": {
+                "line": 3,
+                "col": 127
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 3,
+              "col": 108
+            },
+            "end": {
+              "line": 3,
+              "col": 127
+            }
+          }
+        }
+      ],
+      "span": {
+        "start": {
+          "line": 3,
+          "col": 1
+        },
+        "end": {
+          "line": 3,
+          "col": 128
+        }
+      }
+    },
+    {
+      "kind": "Data",
+      "name": "Transaction",
+      "fields": [
+        {
+          "name": "transactionId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 5,
+                "col": 50
+              },
+              "end": {
+                "line": 5,
+                "col": 54
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 26
+            },
+            "end": {
+              "line": 5,
+              "col": 54
+            }
+          }
+        },
+        {
+          "name": "amount",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 5,
+                "col": 64
+              },
+              "end": {
+                "line": 5,
+                "col": 67
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 56
+            },
+            "end": {
+              "line": 5,
+              "col": 67
+            }
+          }
+        },
+        {
+          "name": "feePercentage",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 5,
+                "col": 109
+              },
+              "end": {
+                "line": 5,
+                "col": 112
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 70
+            },
+            "end": {
+              "line": 5,
+              "col": 112
+            }
+          }
+        },
+        {
+          "name": "timestamp",
+          "type": {
+            "kind": "TypeName",
+            "name": "Long",
+            "span": {
+              "start": {
+                "line": 5,
+                "col": 125
+              },
+              "end": {
+                "line": 5,
+                "col": 129
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 5,
+              "col": 114
+            },
+            "end": {
+              "line": 5,
+              "col": 129
+            }
+          }
+        }
+      ],
+      "span": {
+        "start": {
+          "line": 5,
+          "col": 1
+        },
+        "end": {
+          "line": 5,
+          "col": 130
+        }
+      }
+    },
+    {
+      "kind": "Data",
+      "name": "LoanApplication",
+      "fields": [
+        {
+          "name": "applicationId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 87
+              },
+              "end": {
+                "line": 7,
+                "col": 91
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            },
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 30
+            },
+            "end": {
+              "line": 7,
+              "col": 91
+            }
+          }
+        },
+        {
+          "name": "requestedAmount",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 143
+              },
+              "end": {
+                "line": 7,
+                "col": 146
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 94
+            },
+            "end": {
+              "line": 7,
+              "col": 146
+            }
+          }
+        },
+        {
+          "name": "termMonths",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 7,
+                "col": 185
+              },
+              "end": {
+                "line": 7,
+                "col": 188
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 7,
+              "col": 149
+            },
+            "end": {
+              "line": 7,
+              "col": 188
+            }
+          }
+        }
+      ],
+      "span": {
+        "start": {
+          "line": 7,
+          "col": 1
+        },
+        "end": {
+          "line": 7,
+          "col": 189
+        }
+      }
+    },
+    {
+      "kind": "Data",
+      "name": "Product",
+      "fields": [
+        {
+          "name": "productId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 9,
+                "col": 42
+              },
+              "end": {
+                "line": 9,
+                "col": 46
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 9,
+              "col": 22
+            },
+            "end": {
+              "line": 9,
+              "col": 46
+            }
+          }
+        },
+        {
+          "name": "price",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 9,
+                "col": 84
+              },
+              "end": {
+                "line": 9,
+                "col": 87
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 9,
+              "col": 49
+            },
+            "end": {
+              "line": 9,
+              "col": 87
+            }
+          }
+        },
+        {
+          "name": "category",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 9,
+                "col": 109
+              },
+              "end": {
+                "line": 9,
+                "col": 113
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 9,
+              "col": 90
+            },
+            "end": {
+              "line": 9,
+              "col": 113
+            }
+          }
+        }
+      ],
+      "span": {
+        "start": {
+          "line": 9,
+          "col": 1
+        },
+        "end": {
+          "line": 9,
+          "col": 114
+        }
+      }
+    },
+    {
+      "kind": "Data",
+      "name": "Address",
+      "fields": [
+        {
+          "name": "street",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 11,
+                "col": 39
+              },
+              "end": {
+                "line": 11,
+                "col": 43
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 11,
+              "col": 22
+            },
+            "end": {
+              "line": 11,
+              "col": 43
+            }
+          }
+        },
+        {
+          "name": "city",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 11,
+                "col": 61
+              },
+              "end": {
+                "line": 11,
+                "col": 65
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 11,
+              "col": 46
+            },
+            "end": {
+              "line": 11,
+              "col": 65
+            }
+          }
+        },
+        {
+          "name": "zipCode",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 11,
+                "col": 107
+              },
+              "end": {
+                "line": 11,
+                "col": 111
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 11,
+              "col": 68
+            },
+            "end": {
+              "line": 11,
+              "col": 111
+            }
+          }
+        }
+      ],
+      "span": {
+        "start": {
+          "line": 11,
+          "col": 1
+        },
+        "end": {
+          "line": 11,
+          "col": 112
+        }
+      }
+    },
+    {
+      "kind": "Data",
+      "name": "CompleteProfile",
+      "fields": [
+        {
+          "name": "firstName",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 13,
+                "col": 50
+              },
+              "end": {
+                "line": 13,
+                "col": 54
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 13,
+              "col": 30
+            },
+            "end": {
+              "line": 13,
+              "col": 54
+            }
+          }
+        },
+        {
+          "name": "lastName",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 13,
+                "col": 76
+              },
+              "end": {
+                "line": 13,
+                "col": 80
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 13,
+              "col": 57
+            },
+            "end": {
+              "line": 13,
+              "col": 80
+            }
+          }
+        },
+        {
+          "name": "age",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 13,
+                "col": 113
+              },
+              "end": {
+                "line": 13,
+                "col": 116
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 13,
+              "col": 83
+            },
+            "end": {
+              "line": 13,
+              "col": 116
+            }
+          }
+        },
+        {
+          "name": "username",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 13,
+                "col": 157
+              },
+              "end": {
+                "line": 13,
+                "col": 161
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 13,
+              "col": 119
+            },
+            "end": {
+              "line": 13,
+              "col": 161
+            }
+          }
+        },
+        {
+          "name": "creditScore",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 13,
+                "col": 201
+              },
+              "end": {
+                "line": 13,
+                "col": 204
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 13,
+              "col": 164
+            },
+            "end": {
+              "line": 13,
+              "col": 204
+            }
+          }
+        },
+        {
+          "name": "country",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 13,
+                "col": 225
+              },
+              "end": {
+                "line": 13,
+                "col": 229
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 13,
+              "col": 207
+            },
+            "end": {
+              "line": 13,
+              "col": 229
+            }
+          }
+        },
+        {
+          "name": "active",
+          "type": {
+            "kind": "TypeName",
+            "name": "Bool",
+            "span": {
+              "start": {
+                "line": 13,
+                "col": 239
+              },
+              "end": {
+                "line": 13,
+                "col": 243
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 13,
+              "col": 231
+            },
+            "end": {
+              "line": 13,
+              "col": 243
+            }
+          }
+        }
+      ],
+      "span": {
+        "start": {
+          "line": 13,
+          "col": 1
+        },
+        "end": {
+          "line": 13,
+          "col": 244
+        }
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "validateAge",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "age",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 15,
+                "col": 51
+              },
+              "end": {
+                "line": 15,
+                "col": 54
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 15,
+              "col": 22
+            },
+            "end": {
+              "line": 15,
+              "col": 54
+            }
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool",
+        "span": {
+          "start": {
+            "line": 15,
+            "col": 64
+          },
+          "end": {
+            "line": 15,
+            "col": 68
+          }
+        }
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": ">=",
+                "span": {
+                  "start": {
+                    "line": 16,
+                    "col": 12
+                  },
+                  "end": {
+                    "line": 16,
+                    "col": 12
+                  }
+                }
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "age",
+                  "span": {
+                    "start": {
+                      "line": 16,
+                      "col": 13
+                    },
+                    "end": {
+                      "line": 16,
+                      "col": 16
+                    }
+                  }
+                },
+                {
+                  "kind": "Int",
+                  "value": 18,
+                  "span": {
+                    "start": {
+                      "line": 16,
+                      "col": 18
+                    },
+                    "end": {
+                      "line": 16,
+                      "col": 20
+                    }
+                  }
+                }
+              ],
+              "span": {
+                "start": {
+                  "line": 16,
+                  "col": 12
+                },
+                "end": {
+                  "line": 16,
+                  "col": 21
+                }
+              }
+            },
+            "span": {
+              "start": {
+                "line": 16,
+                "col": 3
+              },
+              "end": {
+                "line": 16,
+                "col": 22
+              }
+            }
+          }
+        ],
+        "span": {
+          "start": {
+            "line": 16,
+            "col": 3
+          },
+          "end": {
+            "line": 16,
+            "col": 22
+          }
+        }
+      },
+      "span": {
+        "start": {
+          "line": 15,
+          "col": 1
+        },
+        "end": {
+          "line": 18,
+          "col": 1
+        }
+      },
+      "nameSpan": {
+        "start": {
+          "line": 15,
+          "col": 4
+        },
+        "end": {
+          "line": 18,
+          "col": 1
+        }
+      }
+    },
+    {
+      "kind": "Data",
+      "name": "FinancialRecord",
+      "fields": [
+        {
+          "name": "recordId",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "span": {
+              "start": {
+                "line": 18,
+                "col": 49
+              },
+              "end": {
+                "line": 18,
+                "col": 53
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 18,
+              "col": 30
+            },
+            "end": {
+              "line": 18,
+              "col": 53
+            }
+          }
+        },
+        {
+          "name": "taxRate",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 18,
+                "col": 89
+              },
+              "end": {
+                "line": 18,
+                "col": 92
+              }
+            }
+          },
+          "annotations": [
+            {
+              "name": "Range",
+              "params": {}
+            }
+          ],
+          "span": {
+            "start": {
+              "line": 18,
+              "col": 56
+            },
+            "end": {
+              "line": 18,
+              "col": 92
+            }
+          }
+        },
+        {
+          "name": "totalIncome",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 18,
+                "col": 107
+              },
+              "end": {
+                "line": 18,
+                "col": 110
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 18,
+              "col": 94
+            },
+            "end": {
+              "line": 18,
+              "col": 110
+            }
+          }
+        },
+        {
+          "name": "totalExpenses",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "span": {
+              "start": {
+                "line": 18,
+                "col": 127
+              },
+              "end": {
+                "line": 18,
+                "col": 130
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 18,
+              "col": 112
+            },
+            "end": {
+              "line": 18,
+              "col": 130
+            }
+          }
+        }
+      ],
+      "span": {
+        "start": {
+          "line": 18,
+          "col": 1
+        },
+        "end": {
+          "line": 18,
+          "col": 131
+        }
+      }
+    }
+  ],
+  "span": {
+    "start": {
+      "line": 1,
+      "col": 1
+    },
+    "end": {
+      "line": 19,
+      "col": 1
+    }
+  }
+}

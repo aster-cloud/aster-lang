@@ -6,7 +6,7 @@
 
 > `const` **Node**: `object`
 
-Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/ast.ts#L4)
+Defined in: [ast.ts:11](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/ast.ts#L11)
 
 ## Type Declaration
 
@@ -18,7 +18,7 @@ Defined in: [ast.ts:4](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2a
 
 ##### name
 
-`null` | `string`
+`string` | `null`
 
 ##### decls
 
@@ -40,7 +40,7 @@ readonly [`Declaration`](../../types/type-aliases/Declaration.md)[]
 
 ##### asName
 
-`null` | `string`
+`string` | `null`
 
 #### Returns
 
@@ -84,7 +84,7 @@ readonly `string`[]
 
 ### Func()
 
-> **Func**: (`name`, `typeParams`, `params`, `retType`, `effects`, `body`) => [`Func`](../../types/interfaces/Func.md)
+> **Func**: (`name`, `typeParams`, `params`, `retType`, `effects`, `effectCaps`, `effectCapsExplicit`, `body`, `effectParams?`) => [`Func`](../../types/interfaces/Func.md)
 
 #### Parameters
 
@@ -108,9 +108,21 @@ readonly [`Parameter`](../../types/interfaces/Parameter.md)[]
 
 readonly `string`[]
 
+##### effectCaps
+
+readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)[]
+
+##### effectCapsExplicit
+
+`boolean`
+
 ##### body
 
-`null` | [`Block`](../../types/interfaces/Block.md)
+[`Block`](../../types/interfaces/Block.md) | `null`
+
+##### effectParams?
+
+readonly `string`[]
 
 #### Returns
 
@@ -196,7 +208,7 @@ readonly [`Statement`](../../types/type-aliases/Statement.md)[]
 
 ##### elseBlock
 
-`null` | [`Block`](../../types/interfaces/Block.md)
+[`Block`](../../types/interfaces/Block.md) | `null`
 
 #### Returns
 
@@ -270,6 +282,54 @@ readonly `string`[]
 
 [`Wait`](../../types/interfaces/Wait.md)
 
+### Workflow()
+
+> **Workflow**: (`steps`, `retry?`, `timeout?`) => [`WorkflowStmt`](../../types/interfaces/WorkflowStmt.md)
+
+#### Parameters
+
+##### steps
+
+readonly [`StepStmt`](../../types/interfaces/StepStmt.md)[]
+
+##### retry?
+
+[`RetryPolicy`](../../types/interfaces/RetryPolicy.md)
+
+##### timeout?
+
+[`Timeout`](../../types/interfaces/Timeout.md)
+
+#### Returns
+
+[`WorkflowStmt`](../../types/interfaces/WorkflowStmt.md)
+
+### Step()
+
+> **Step**: (`name`, `body`, `compensate?`, `dependencies`) => [`StepStmt`](../../types/interfaces/StepStmt.md)
+
+#### Parameters
+
+##### name
+
+`string`
+
+##### body
+
+[`Block`](../../types/interfaces/Block.md)
+
+##### compensate?
+
+[`Block`](../../types/interfaces/Block.md)
+
+##### dependencies?
+
+readonly `string`[] = `[]`
+
+#### Returns
+
+[`StepStmt`](../../types/interfaces/StepStmt.md)
+
 ### Name()
 
 > **Name**: (`name`) => [`Name`](../../types/interfaces/Name.md)
@@ -328,7 +388,7 @@ readonly `string`[]
 
 ##### value
 
-`number`
+`string`
 
 #### Returns
 
@@ -470,6 +530,20 @@ readonly [`Parameter`](../../types/interfaces/Parameter.md)[]
 
 [`Lambda`](../../types/interfaces/Lambda.md)
 
+### Await()
+
+> **Await**: (`expr`) => [`Await`](../../types/interfaces/Await.md)
+
+#### Parameters
+
+##### expr
+
+[`Expression`](../../types/type-aliases/Expression.md)
+
+#### Returns
+
+[`Await`](../../types/interfaces/Await.md)
+
 ### TypeName()
 
 > **TypeName**: (`name`) => [`TypeName`](../../types/interfaces/TypeName.md)
@@ -593,6 +667,42 @@ readonly [`Type`](../../types/type-aliases/Type.md)[]
 #### Returns
 
 [`TypeVar`](../../types/interfaces/TypeVar.md)
+
+### EffectVar()
+
+> **EffectVar**: (`name`) => [`EffectVar`](../../types/interfaces/EffectVar.md)
+
+#### Parameters
+
+##### name
+
+`string`
+
+#### Returns
+
+[`EffectVar`](../../types/interfaces/EffectVar.md)
+
+### TypePii()
+
+> **TypePii**: (`baseType`, `sensitivity`, `category`) => [`TypePii`](../../types/interfaces/TypePii.md)
+
+#### Parameters
+
+##### baseType
+
+[`Type`](../../types/type-aliases/Type.md)
+
+##### sensitivity
+
+[`PiiSensitivityLevel`](../../types/type-aliases/PiiSensitivityLevel.md)
+
+##### category
+
+[`PiiDataCategory`](../../types/type-aliases/PiiDataCategory.md)
+
+#### Returns
+
+[`TypePii`](../../types/interfaces/TypePii.md)
 
 ### PatternNull()
 

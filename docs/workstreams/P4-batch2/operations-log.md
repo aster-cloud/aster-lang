@@ -1,0 +1,278 @@
+# Operations Log
+
+- 2025-10-21 23:26 NZST — Codex
+  - 工具：code-index__find_files，参数：pattern=**/operations-log.md
+  - 摘要：命令失败，提示需先设置项目目录。
+- 2025-10-21 23:26 NZST — Codex
+  - 工具：code-index__set_project_path，参数：path=.
+  - 摘要：项目索引设置为 /Users/rpang/IdeaProjects/aster-lang，索引 1075 个文件。
+- 2025-10-21 23:26 NZST — Codex
+  - 工具：code-index__find_files，参数：pattern=**/operations-log.md
+  - 摘要：找到 8 个 operations-log.md 文件。
+- 2025-10-21 23:26 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:26。
+- 2025-10-21 23:26 NZST — Codex
+  - 工具：shell，参数：mkdir -p docs/workstreams/P4-batch2
+  - 摘要：创建工作流目录 docs/workstreams/P4-batch2。
+- 2025-10-21 23:26 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：再次获取当前新西兰时间 2025-10-21 23:26。
+- 2025-10-21 23:26 NZST — Codex
+  - 工具：apply_patch，参数：添加文件 docs/workstreams/P4-batch2/operations-log.md
+  - 摘要：写入并记录初始操作日志。
+- 2025-10-21 23:27 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:27，用于追加日志。
+- 2025-10-21 23:27 NZST — Codex
+  - 工具：apply_patch，参数：更新 operations-log.md
+  - 摘要：补记前一次补丁操作并同步记录本次补丁。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:28。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/main/antlr/AsterLexer.g4
+  - 摘要：查看词法规则文件前 200 行。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/main/antlr/AsterParser.g4
+  - 摘要：查看语法规则文件前 200 行。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/main/java/ai/aster/lang/ast/Decl.java
+  - 摘要：命令失败，提示路径不存在。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：code-index__find_files，参数：pattern=**/Decl.java
+  - 摘要：定位 Decl.java 实际路径。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/main/java/aster/core/ast/Decl.java
+  - 摘要：查看 Decl 定义文件前 200 行。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：code-index__find_files，参数：pattern=**/Annotation.java
+  - 摘要：定位 Annotation.java 文件。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/main/java/aster/core/ast/Annotation.java
+  - 摘要：查看 Annotation 定义。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/main/java/aster/core/parser/AstBuilder.java
+  - 摘要：查看 AstBuilder 起始部分。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '200,400p' aster-core/src/main/java/aster/core/parser/AstBuilder.java
+  - 摘要：继续查看 AstBuilder 中段内容。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/main/java/aster/core/backend/JavaCompilerBackend.java
+  - 摘要：命令失败，提示路径不存在。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：code-index__find_files，参数：pattern=**/JavaCompilerBackend.java
+  - 摘要：定位 JavaCompilerBackend.java 实际位置。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java
+  - 摘要：查看 JavaCompilerBackend 起始内容。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '200,400p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java
+  - 摘要：查看 JavaCompilerBackend 中段。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '400,600p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java
+  - 摘要：查看 JavaCompilerBackend 后续内容。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '600,800p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java
+  - 摘要：查看 JavaCompilerBackend 末段。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：code-index__find_files，参数：pattern=aster-core/src/test/java/**/*.java
+  - 摘要：列出测试文件清单。
+- 2025-10-21 23:28 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/test/java/aster/core/parser/AstBuilderTest.java
+  - 摘要：查看 AstBuilderTest 测试内容开头。
+- 2025-10-21 23:29 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:29。
+- 2025-10-21 23:29 NZST — Codex
+  - 工具：apply_patch，参数：更新 operations-log.md
+  - 摘要：记录前序批量日志并同步登记本次补丁操作。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:35。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' aster-core/src/test/java/aster/core/ast/AstSerializationTest.java
+  - 摘要：查看 AST 序列化测试文件开头。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/antlr/AsterLexer.g4
+  - 摘要：新增 TYPE 关键字 token。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/antlr/AsterParser.g4（topLevelDecl）
+  - 摘要：将 typeDecl 纳入顶层声明分支。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/antlr/AsterParser.g4（typeDecl/annotation）
+  - 摘要：添加 typeDecl 与 annotation 语法规则。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/antlr/AsterParser.g4（field）
+  - 摘要：允许字段前带注解。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/antlr/AsterParser.g4（param）
+  - 摘要：允许参数前带注解。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/java/aster/core/ast/Decl.java
+  - 摘要：尝试批量插入 TypeAlias 记录，因上下文不匹配失败。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/java/aster/core/ast/Decl.java（JsonSubTypes/permits）
+  - 摘要：注册 TypeAlias JSON 子类型并扩展 sealed permits。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/java/aster/core/ast/Decl.java（TypeAlias 记录）
+  - 摘要：新增 Decl.TypeAlias 数据结构。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 aster-core/src/main/java/aster/core/parser/AstBuilder.java（import）
+  - 摘要：引入 Map 依赖以构造注解参数。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder.visitModule
+  - 摘要：将类型别名名称纳入已声明类型集合。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder.visitTopLevelDecl
+  - 摘要：处理 typeDecl 分支。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder.visitParam
+  - 摘要：收集参数注解列表。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder.visitField
+  - 摘要：收集字段注解列表。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder（visitTypeDecl）
+  - 摘要：实现类型别名 AST 构建。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder（visitAnnotation）
+  - 摘要：新增注解节点访问逻辑。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder（visitAnnotation @Override）
+  - 摘要：标注 visitAnnotation 方法覆写关系。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 JavaCompilerBackend（formatDecl）
+  - 摘要：加入 TypeAlias 序列化分支。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 JavaCompilerBackend.java
+  - 摘要：尝试插入 formatTypeAlias 方法，因上下文匹配失败。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：shell，参数：sed -n '220,320p' aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java
+  - 摘要：查看 JavaCompilerBackend 相关片段。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 JavaCompilerBackend（formatTypeAlias）
+  - 摘要：新增 TypeAlias JSON 格式化方法。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilderTest（import）
+  - 摘要：临时引入 Map 依赖以编写断言。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilderTest（新增测试）
+  - 摘要：添加类型别名与注解相关单测。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilderTest（移除多余 import）
+  - 摘要：清理未使用的 Map 引用。
+- 2025-10-21 23:35 NZST — Codex
+  - 工具：apply_patch，参数：更新 operations-log.md
+  - 摘要：记录上述批量操作及本次补丁。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:40。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder.visitModule（topLevelDecl 缓存）
+  - 摘要：避免 topLevelDecl 为空时触发空指针。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：./gradlew-java25 :aster-core:test
+  - 摘要：执行单元测试失败，AstBuilderTest 新用例抛出空指针。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder 注解收集逻辑
+  - 摘要：为 annotation* 规则添加空列表保护。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：./gradlew-java25 :aster-core:test
+  - 摘要：再次运行单元测试仍失败。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：./gradlew-java25 :aster-core:test --tests "aster.core.parser.AstBuilderTest.testTypeAlias" --stacktrace
+  - 摘要：获取失败栈追踪，定位别名名称解析为 null。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：./gradlew-java25 :aster-core:test --tests "aster.core.parser.AstBuilderTest.testTypeAlias" --info
+  - 摘要：进一步确认 IDENT token 不匹配 TYPE_IDENT。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：apply_patch，参数：更新 AsterParser.g4（typeDecl 名称 token）
+  - 摘要：允许类型别名使用 TYPE_IDENT 或 IDENT。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder.visitModule（别名名称获取）
+  - 摘要：兼容 TYPE_IDENT/IDENT 两种别名 token。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：apply_patch，参数：更新 AstBuilder.visitTypeDecl
+  - 摘要：改用通用名称提取并在缺失时抛出异常。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：./gradlew-java25 :aster-core:test --tests "aster.core.parser.AstBuilderTest.testTypeAlias" --info
+  - 摘要：定向测试通过。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：./gradlew-java25 :aster-core:test
+  - 摘要：完整单元测试通过。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：./.claude/scripts/test-all-examples.sh
+  - 摘要：命令 10 秒超时，报告部分解析错误结果。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：shell，参数：./.claude/scripts/test-all-examples.sh
+  - 摘要：重新运行示例测试，48 通过 83 失败（成功率 36.6%）。
+- 2025-10-21 23:40 NZST — Codex
+  - 工具：apply_patch，参数：更新 operations-log.md
+  - 摘要：记录最新操作及当前补丁。
+- 2025-10-21 23:41 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:41。
+- 2025-10-21 23:41 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' docs/testing.md
+  - 摘要：查看测试记录文件。
+- 2025-10-21 23:41 NZST — Codex
+  - 工具：apply_patch，参数：更新 docs/testing.md
+  - 摘要：记录批次 2 单元测试与示例脚本结果。
+- 2025-10-21 23:41 NZST — Codex
+  - 工具：apply_patch，参数：更新 operations-log.md
+  - 摘要：记录新增文档操作及本次补丁。
+- 2025-10-21 23:42 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:42。
+- 2025-10-21 23:42 NZST — Codex
+  - 工具：shell，参数：ls .claude
+  - 摘要：查看 .claude 目录内容。
+- 2025-10-21 23:42 NZST — Codex
+  - 工具：shell，参数：sed -n '1,200p' .claude/p4-batch1-report.md
+  - 摘要：参考批次 1 报告格式。
+- 2025-10-21 23:42 NZST — Codex
+  - 工具：apply_patch，参数：新增 .claude/p4-batch2-report.md
+  - 摘要：编写批次 2 执行报告。
+- 2025-10-21 23:42 NZST — Codex
+  - 工具：apply_patch，参数：更新 operations-log.md
+  - 摘要：记录报告生成及本次补丁。
+- 2025-10-21 23:42 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:42。
+- 2025-10-21 23:42 NZST — Codex
+  - 工具：shell，参数：git status -sb
+  - 摘要：查看当前工作区改动概况（存在大量既有未提交文件，未变更）。
+- 2025-10-21 23:42 NZST — Codex
+  - 工具：apply_patch，参数：更新 operations-log.md
+  - 摘要：记录状态检查及本次补丁。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：TZ='Pacific/Auckland' date '+%Y-%m-%d %H:%M'
+  - 摘要：获取当前新西兰时间 2025-10-21 23:44。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：nl -ba aster-core/src/main/antlr/AsterLexer.g4 | sed -n '40,90p'
+  - 摘要：确认 TYPE 关键字插入位置。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：nl -ba aster-core/src/main/antlr/AsterParser.g4 | sed -n '30,140p'
+  - 摘要：查看顶层声明与参数注解语法。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：nl -ba aster-core/src/main/antlr/AsterParser.g4 | sed -n '140,220p'
+  - 摘要：查看 typeDecl 与 annotation 规则。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：nl -ba aster-core/src/main/java/aster/core/ast/Decl.java | sed -n '1,220p'
+  - 摘要：确认 Decl.TypeAlias 定义。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：nl -ba aster-core/src/main/java/aster/core/parser/AstBuilder.java | sed -n '1,200p'
+  - 摘要：检查 visitModule/visitParam 新逻辑。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：nl -ba aster-core/src/main/java/aster/core/parser/AstBuilder.java | sed -n '200,360p'
+  - 摘要：检查 visitField/visitTypeDecl/visitAnnotation。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：nl -ba aster-lang-cli/src/main/java/aster/cli/compiler/JavaCompilerBackend.java | sed -n '200,320p'
+  - 摘要：确认 TypeAlias 序列化输出。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：shell，参数：nl -ba aster-core/src/test/java/aster/core/parser/AstBuilderTest.java | sed -n '100,220p'
+  - 摘要：查看新增类型别名与注解单测。
+- 2025-10-21 23:44 NZST — Codex
+  - 工具：apply_patch，参数：更新 operations-log.md
+  - 摘要：登记引用片段查看及本次补丁。

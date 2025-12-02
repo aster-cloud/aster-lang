@@ -20,7 +20,7 @@ function main(): void {
   const root = path.resolve(process.cwd(), target);
   const cnlDir = path.join(root, 'cnl');
   const readme = path.join(root, 'README.md');
-  const mainCnl = path.join(cnlDir, 'main.cnl');
+  const mainCnl = path.join(cnlDir, 'main.aster');
 
   if (fs.existsSync(root)) {
     console.error('Refusing to overwrite existing directory:', root);
@@ -44,11 +44,11 @@ To greet user: maybe User, produce Text:
 
   const guide = `# Aster Project Scaffold
 
-This folder was created by Aster's scaffold tool. It contains a minimal CNL program at \`cnl/main.cnl\`.
+This folder was created by Aster's scaffold tool. It contains a minimal CNL program at \`test/cnl/main.aster\`.
 
 ## Files
 
-- \`cnl/main.cnl\` — demo module with \`hello\` and \`greet\`.
+- \`test/cnl/main.aster\` — demo module with \`hello\` and \`greet\`.
 
 ## Try It (from aster-lang repo root)
 

@@ -15,13 +15,93 @@ Supported effects:
 - `IO`
 - `CPU`
 
+## Effect Inference Configuration
+
+The effect inference system automatically detects effects based on function call prefixes. You can customize which prefixes trigger which effects.
+
+### Default Configuration
+
+By default, the following prefixes are recognized:
+
+**IO Effects:**
+- `IO.` - General I/O operations
+- `Http.` - HTTP requests
+- `Db.` - Database operations
+- `AuthRepo.`, `ProfileSvc.`, `FeedSvc.` - Service calls
+- `UUID.randomUUID` - Random generation (secrets)
+
+**CPU Effects:**
+- Currently empty (effects propagate through call chains)
+
+### Custom Configuration
+
+Create a `.aster/effects.json` file in your project root to customize effect inference:
+
+```json
+{
+  "patterns": {
+    "io": {
+      "http": ["Http.", "MyHttpClient.", "fetch."],
+      "sql": ["Db.", "MyORM.", "Sql."],
+      "files": ["Files.", "Fs."],
+      "secrets": ["UUID.randomUUID", "Secrets.", "vault."],
+      "time": ["Time.", "Date.", "Clock."]
+    },
+    "cpu": ["Math.", "crypto."],
+    "ai": ["AI.", "OpenAI."]
+  }
+}
+```
+
+**Fine-grained categorization:**
+- `io.http` - HTTP/network operations
+- `io.sql` - Database queries
+- `io.files` - File system access
+- `io.secrets` - Secret/credential access
+- `io.time` - Time-dependent operations
+
+### Environment Variable
+
+Override the default config location using `ASTER_EFFECT_CONFIG`:
+
+```bash
+ASTER_EFFECT_CONFIG=/path/to/custom-effects.json npx tsx scripts/typecheck-cli.ts myfile.aster
+```
+
+### Configuration Fallback
+
+If the config file doesn't exist or fails to load, the system falls back to the default configuration silently. This ensures backward compatibility.
+
+### Example: Custom HTTP Client
+
+If your project uses a custom HTTP client library:
+
+```json
+{
+  "patterns": {
+    "io": {
+      "http": ["MyApi.", "HttpService."]
+    }
+  }
+}
+```
+
+Then functions calling `MyApi.get()` will automatically be inferred as requiring `@io` effect:
+
+```
+To fetch_data, produce Text:
+  Return MyApi.get("/users").  // Inferred as IO
+```
+
+Without declaring `It performs io`, this will trigger a typecheck error.
+
 ## Capability manifest
 
 Enable checks by setting `ASTER_CAPS` to a JSON manifest file.
 
 Environment examples:
-- CLI: `ASTER_CAPS=cnl/examples/capabilities.json node dist/scripts/typecheck-cli.js cnl/examples/capdemo.cnl`
-- LSP: `ASTER_CAPS=cnl/examples/capabilities.json npm run lsp`
+- CLI: `ASTER_CAPS=test/cnl/examples/capabilities.json node dist/scripts/typecheck-cli.js test/cnl/examples/capdemo.aster`
+- LSP: `ASTER_CAPS=test/cnl/examples/capabilities.json npm run lsp`
 
 Manifest schema (JSON):
 
@@ -42,6 +122,13 @@ Examples:
   `{ "allow": { "io": ["demo.capdemo.*"] }, "deny": { "io": ["demo.capdemo.hello"] } }`
 
 ## Diagnostics
+
+### Effect enforcement note
+
+- Effect declarations are enforced at compile-time.
+- Minimal lattice: ∅ ⊑ CPU ⊑ IO[*] (declaring @io satisfies CPU work).
+- Superfluous @io when only CPU-like work is detected is reported as info; superfluous @cpu with no CPU-like work is a warning.
+
 
 When a function declares an effect that is not allowed by the manifest, the typechecker emits an error like:
 
@@ -73,7 +160,7 @@ These will dump diagnostics and code action titles to the console to help debug.
 ## Golden tests
 
 Two example goldens are included to validate behavior:
-- `capabilities_deny.json` denies all IO/CPU: both IO functions in `capdemo.cnl` report errors.
+- `capabilities_deny.json` denies all IO/CPU: both IO functions in `capdemo.aster` report errors.
 - `capabilities_mixed.json` allows the module but denies a specific function: only that function reports an error.
 
 Run: `npm run test:golden`

@@ -1,0 +1,245 @@
+This module is aster.finance.personal_lending.
+
+Define PersonalInfo with applicantId: Text, age: Int, educationLevel: Text, employmentStatus: Text, occupation: Text, yearsAtJob: Int, monthsAtAddress: Int, maritalStatus: Text, dependents: Int.
+
+Define IncomeProfile with monthlyIncome: Int, additionalIncome: Int, spouseIncome: Int, rentIncome: Int, incomeStability: Text, incomeGrowthRate: Int.
+
+Define CreditProfile with creditScore: Int, creditHistory: Int, activeLoans: Int, creditCardCount: Int, creditUtilization: Int, latePayments: Int, defaults: Int, bankruptcies: Int, inquiries: Int.
+
+Define DebtProfile with totalMonthlyDebt: Int, mortgagePayment: Int, carPayment: Int, studentLoanPayment: Int, creditCardMinPayment: Int, otherDebtPayment: Int.
+
+Define LoanRequest with requestedAmount: Int, purpose: Text, termMonths: Int, downPayment: Int, collateralValue: Int.
+
+Define LoanDecision with approved: Bool, approvedAmount: Int, interestRateBps: Int, termMonths: Int, monthlyPayment: Int, downPaymentRequired: Int, conditions: Text, riskLevel: Text, decisionScore: Int, reasonCode: Text, recommendations: Text.
+
+Define CreditAssessment with scoreGrade: Text, historyGrade: Text, utilizationRatio: Int, negativeMarks: Int, riskIndicator: Text, maxLoanAmount: Int.
+
+Define IncomeAssessment with totalMonthlyIncome: Int, stabilityGrade: Text, adequacy: Text, loanCapacity: Int.
+
+Define AffordabilityAnalysis with debtToIncomeRatio: Int, residualIncome: Int, affordabilityGrade: Text, maxMonthlyPayment: Int.
+
+To assessCredit with profile: CreditProfile, produce CreditAssessment:
+  Let utilizationRatio be /(*(profile.creditUtilization, 100), profile.creditCardCount).
+  Let negativeMarks be +(+(profile.latePayments, *(profile.defaults, 3)), *(profile.bankruptcies, 5)).
+  If >=(profile.creditScore, 750),:
+    If >=(profile.creditHistory, 60),:
+      If <=(utilizationRatio, 30),:
+        If =(negativeMarks, 0),:
+          Let maxAmount be 500000.
+          Return CreditAssessment with scoreGrade = "EXCELLENT", historyGrade = "STRONG", utilizationRatio = utilizationRatio, negativeMarks = negativeMarks, riskIndicator = "LOW", maxLoanAmount = maxAmount.
+  If >=(profile.creditScore, 700),:
+    If >=(profile.creditHistory, 36),:
+      If <=(utilizationRatio, 50),:
+        If <=(negativeMarks, 1),:
+          Let maxAmount be 300000.
+          Return CreditAssessment with scoreGrade = "GOOD", historyGrade = "SOLID", utilizationRatio = utilizationRatio, negativeMarks = negativeMarks, riskIndicator = "LOW", maxLoanAmount = maxAmount.
+  If >=(profile.creditScore, 650),:
+    If >=(profile.creditHistory, 24),:
+      If <=(utilizationRatio, 70),:
+        If <=(negativeMarks, 2),:
+          Let maxAmount be 150000.
+          Return CreditAssessment with scoreGrade = "FAIR", historyGrade = "ADEQUATE", utilizationRatio = utilizationRatio, negativeMarks = negativeMarks, riskIndicator = "MEDIUM", maxLoanAmount = maxAmount.
+  If >=(profile.creditScore, 600),:
+    If >=(profile.creditHistory, 12),:
+      If <=(utilizationRatio, 85),:
+        If <=(negativeMarks, 4),:
+          Let maxAmount be 50000.
+          Return CreditAssessment with scoreGrade = "POOR", historyGrade = "LIMITED", utilizationRatio = utilizationRatio, negativeMarks = negativeMarks, riskIndicator = "HIGH", maxLoanAmount = maxAmount.
+  Let maxAmount be 0.
+  Return CreditAssessment with scoreGrade = "VERY_POOR", historyGrade = "INSUFFICIENT", utilizationRatio = utilizationRatio, negativeMarks = negativeMarks, riskIndicator = "CRITICAL", maxLoanAmount = maxAmount.
+
+To assessIncome with personal: PersonalInfo, income: IncomeProfile, produce IncomeAssessment:
+  Let totalIncome be +(+(+(income.monthlyIncome, income.additionalIncome), income.spouseIncome), income.rentIncome).
+  Let loanCapacity be *(totalIncome, 4).
+  If =(income.incomeStability, "PERMANENT"),:
+    If >=(personal.yearsAtJob, 3),:
+      If >=(totalIncome, 100000),:
+        If >=(income.incomeGrowthRate, 5),:
+          Let enhancedCapacity be /(*(loanCapacity, 120), 100).
+          Return IncomeAssessment with totalMonthlyIncome = totalIncome, stabilityGrade = "EXCELLENT", adequacy = "HIGH", loanCapacity = enhancedCapacity.
+  If =(income.incomeStability, "PERMANENT"),:
+    If >=(personal.yearsAtJob, 2),:
+      If >=(totalIncome, 75000),:
+        If >=(income.incomeGrowthRate, 3),:
+          Let standardCapacity be loanCapacity.
+          Return IncomeAssessment with totalMonthlyIncome = totalIncome, stabilityGrade = "GOOD", adequacy = "ADEQUATE", loanCapacity = standardCapacity.
+  If =(income.incomeStability, "CONTRACT"),:
+    If >=(personal.yearsAtJob, 2),:
+      If >=(totalIncome, 50000),:
+        Let reducedCapacity be /(*(loanCapacity, 80), 100).
+        Return IncomeAssessment with totalMonthlyIncome = totalIncome, stabilityGrade = "FAIR", adequacy = "MODERATE", loanCapacity = reducedCapacity.
+  If >=(totalIncome, 30000),:
+    Let limitedCapacity be /(*(loanCapacity, 60), 100).
+    Return IncomeAssessment with totalMonthlyIncome = totalIncome, stabilityGrade = "POOR", adequacy = "LOW", loanCapacity = limitedCapacity.
+  Let minCapacity be /(*(loanCapacity, 40), 100).
+  Return IncomeAssessment with totalMonthlyIncome = totalIncome, stabilityGrade = "INSUFFICIENT", adequacy = "VERY_LOW", loanCapacity = minCapacity.
+
+To assessAffordability with income: IncomeProfile, debt: DebtProfile, request: LoanRequest, produce AffordabilityAnalysis:
+  Let totalIncome be +(+(+(income.monthlyIncome, income.additionalIncome), income.spouseIncome), income.rentIncome).
+  Let totalDebt be debt.totalMonthlyDebt.
+  Let dtiRatio be /(*(totalDebt, 100), totalIncome).
+  Let estimatedPayment be /(*(request.requestedAmount, 8), 1000).
+  Let totalDebtWithLoan be +(totalDebt, estimatedPayment).
+  Let dtiWithLoan be /(*(totalDebtWithLoan, 100), totalIncome).
+  Let residual be -(totalIncome, totalDebtWithLoan).
+  If <=(dtiWithLoan, 28),:
+    If >=(residual, 30000),:
+      Let maxPayment be /(*(totalIncome, 28), 100).
+      Return AffordabilityAnalysis with debtToIncomeRatio = dtiWithLoan, residualIncome = residual, affordabilityGrade = "EXCELLENT", maxMonthlyPayment = maxPayment.
+  If <=(dtiWithLoan, 36),:
+    If >=(residual, 20000),:
+      Let maxPayment be /(*(totalIncome, 36), 100).
+      Return AffordabilityAnalysis with debtToIncomeRatio = dtiWithLoan, residualIncome = residual, affordabilityGrade = "GOOD", maxMonthlyPayment = maxPayment.
+  If <=(dtiWithLoan, 43),:
+    If >=(residual, 15000),:
+      Let maxPayment be /(*(totalIncome, 43), 100).
+      Return AffordabilityAnalysis with debtToIncomeRatio = dtiWithLoan, residualIncome = residual, affordabilityGrade = "FAIR", maxMonthlyPayment = maxPayment.
+  If <=(dtiWithLoan, 50),:
+    If >=(residual, 10000),:
+      Let maxPayment be /(*(totalIncome, 50), 100).
+      Return AffordabilityAnalysis with debtToIncomeRatio = dtiWithLoan, residualIncome = residual, affordabilityGrade = "POOR", maxMonthlyPayment = maxPayment.
+  Let maxPayment be /(*(totalIncome, 30), 100).
+  Return AffordabilityAnalysis with debtToIncomeRatio = dtiWithLoan, residualIncome = residual, affordabilityGrade = "UNACCEPTABLE", maxMonthlyPayment = maxPayment.
+
+To calculateStabilityScore with personal: PersonalInfo, income: IncomeProfile, produce Int:
+  Let score be 0.
+  If >=(personal.age, 35),:
+    If <=(personal.age, 55),:
+      Let score be +(score, 20).
+  If >=(personal.age, 25),:
+    If <(personal.age, 35),:
+      Let score be +(score, 15).
+  If =(income.incomeStability, "PERMANENT"),:
+    Let score be +(score, 25).
+  If =(income.incomeStability, "CONTRACT"),:
+    Let score be +(score, 15).
+  If >=(personal.yearsAtJob, 5),:
+    Let score be +(score, 20).
+  If >=(personal.yearsAtJob, 2),:
+    If <(personal.yearsAtJob, 5),:
+      Let score be +(score, 10).
+  If >=(personal.monthsAtAddress, 24),:
+    Let score be +(score, 15).
+  If >=(personal.monthsAtAddress, 12),:
+    If <(personal.monthsAtAddress, 24),:
+      Let score be +(score, 10).
+  If =(personal.maritalStatus, "MARRIED"),:
+    Let score be +(score, 10).
+  If =(personal.educationLevel, "GRADUATE"),:
+    Let score be +(score, 10).
+  If =(personal.educationLevel, "UNDERGRADUATE"),:
+    Let score be +(score, 5).
+  Return score.
+
+To calculatePurposeAdjustment with purpose: Text, produce Int:
+  If =(purpose, "HOME_PURCHASE"),:
+    Return 110.
+  If =(purpose, "HOME_RENOVATION"),:
+    Return 105.
+  If =(purpose, "EDUCATION"),:
+    Return 108.
+  If =(purpose, "BUSINESS"),:
+    Return 100.
+  If =(purpose, "DEBT_CONSOLIDATION"),:
+    Return 95.
+  If =(purpose, "CAR_PURCHASE"),:
+    Return 100.
+  If =(purpose, "MEDICAL"),:
+    Return 105.
+  If =(purpose, "WEDDING"),:
+    Return 90.
+  If =(purpose, "VACATION"),:
+    Return 80.
+  Return 85.
+
+To evaluatePersonalLoan with personal: PersonalInfo, income: IncomeProfile, credit: CreditProfile, debt: DebtProfile, request: LoanRequest, produce LoanDecision:
+  If <(personal.age, 18),:
+    Return LoanDecision with approved = false, approvedAmount = 0, interestRateBps = 0, termMonths = 0, monthlyPayment = 0, downPaymentRequired = 0, conditions = "Declined", riskLevel = "INELIGIBLE", decisionScore = 0, reasonCode = "UNDERAGE", recommendations = "Applicant must be 18 years or older".
+  If >(personal.age, 70),:
+    If >(request.termMonths, 120),:
+      Return LoanDecision with approved = false, approvedAmount = 0, interestRateBps = 0, termMonths = 0, monthlyPayment = 0, downPaymentRequired = 0, conditions = "Declined", riskLevel = "INELIGIBLE", decisionScore = 0, reasonCode = "AGE_TERM_MISMATCH", recommendations = "Maximum loan term is 10 years for applicants over 70".
+  If !=(credit.bankruptcies, 0),:
+    Return LoanDecision with approved = false, approvedAmount = 0, interestRateBps = 0, termMonths = 0, monthlyPayment = 0, downPaymentRequired = 0, conditions = "Declined", riskLevel = "HIGH_RISK", decisionScore = 0, reasonCode = "BANKRUPTCY_HISTORY", recommendations = "Previous bankruptcy on record - automatic decline".
+  If <(credit.creditScore, 550),:
+    Return LoanDecision with approved = false, approvedAmount = 0, interestRateBps = 0, termMonths = 0, monthlyPayment = 0, downPaymentRequired = 0, conditions = "Declined", riskLevel = "CRITICAL", decisionScore = 0, reasonCode = "INSUFFICIENT_CREDIT_SCORE", recommendations = "Minimum credit score requirement is 550".
+  Let creditAssessment be assessCredit(credit).
+  Let incomeAssessment be assessIncome(personal, income).
+  Let affordabilityAnalysis be assessAffordability(income, debt, request).
+  Let stabilityScore be calculateStabilityScore(personal, income).
+  Let purposeAdjustment be calculatePurposeAdjustment(request.purpose).
+  Let baseScore be stabilityScore.
+  If =(creditAssessment.riskIndicator, "LOW"),:
+    Let baseScore be +(baseScore, 30).
+  If =(creditAssessment.riskIndicator, "MEDIUM"),:
+    Let baseScore be +(baseScore, 15).
+  If =(creditAssessment.riskIndicator, "HIGH"),:
+    Let baseScore be -(baseScore, 10).
+  If =(creditAssessment.riskIndicator, "CRITICAL"),:
+    Let baseScore be -(baseScore, 30).
+  If =(incomeAssessment.adequacy, "HIGH"),:
+    Let baseScore be +(baseScore, 20).
+  If =(incomeAssessment.adequacy, "ADEQUATE"),:
+    Let baseScore be +(baseScore, 10).
+  If =(incomeAssessment.adequacy, "LOW"),:
+    Let baseScore be -(baseScore, 10).
+  If =(affordabilityAnalysis.affordabilityGrade, "EXCELLENT"),:
+    Let baseScore be +(baseScore, 20).
+  If =(affordabilityAnalysis.affordabilityGrade, "GOOD"),:
+    Let baseScore be +(baseScore, 10).
+  If =(affordabilityAnalysis.affordabilityGrade, "POOR"),:
+    Let baseScore be -(baseScore, 15).
+  If =(affordabilityAnalysis.affordabilityGrade, "UNACCEPTABLE"),:
+    Let baseScore be -(baseScore, 30).
+  Let adjustedScore be /(*(baseScore, purposeAdjustment), 100).
+  Let maxLoanByCredit be creditAssessment.maxLoanAmount.
+  Let maxLoanByIncome be incomeAssessment.loanCapacity.
+  Let maxLoanAmount be maxLoanByCredit.
+  If <(maxLoanByIncome, maxLoanByCredit),:
+    Let maxLoanAmount be maxLoanByIncome.
+  Let ltvRatio be /(*(request.requestedAmount, 100), request.collateralValue).
+  If >=(ltvRatio, 80),:
+    If <(request.downPayment, /(*(request.requestedAmount, 20), 100)),:
+      Let requiredDown be /(*(request.requestedAmount, 20), 100).
+      Return LoanDecision with approved = false, approvedAmount = 0, interestRateBps = 0, termMonths = 0, monthlyPayment = 0, downPaymentRequired = requiredDown, conditions = "Declined", riskLevel = "HIGH_LTV", decisionScore = adjustedScore, reasonCode = "INSUFFICIENT_DOWN_PAYMENT", recommendations = "Minimum 20% down payment required for this loan amount".
+  If >=(adjustedScore, 85),:
+    If <=(request.requestedAmount, maxLoanAmount),:
+      Let approvedAmt be request.requestedAmount.
+      Let rate be 350.
+      If >=(credit.creditScore, 780),:
+        Let rate be 320.
+      Let payment be /(*(approvedAmt, rate), 100000).
+      Let downPmt be 0.
+      Return LoanDecision with approved = true, approvedAmount = approvedAmt, interestRateBps = rate, termMonths = request.termMonths, monthlyPayment = payment, downPaymentRequired = downPmt, conditions = "Approved - Premium rate with flexible terms", riskLevel = "LOW", decisionScore = adjustedScore, reasonCode = "APPROVED_PRIME", recommendations = "Excellent credit profile - consider higher loan amount if needed".
+  If >=(adjustedScore, 70),:
+    If <(adjustedScore, 85),:
+      If <=(request.requestedAmount, maxLoanAmount),:
+        Let approvedAmt be request.requestedAmount.
+        Let rate be 550.
+        If >=(credit.creditScore, 720),:
+          Let rate be 480.
+        Let payment be /(*(approvedAmt, rate), 100000).
+        Let downPmt be /(*(approvedAmt, 10), 100).
+        Return LoanDecision with approved = true, approvedAmount = approvedAmt, interestRateBps = rate, termMonths = request.termMonths, monthlyPayment = payment, downPaymentRequired = downPmt, conditions = "Approved - Standard terms with 10% down payment", riskLevel = "MODERATE", decisionScore = adjustedScore, reasonCode = "APPROVED_STANDARD", recommendations = "Good credit standing - maintain payment schedule for future rate reductions".
+  If >=(adjustedScore, 55),:
+    If <(adjustedScore, 70),:
+      Let approvedAmt be /(*(request.requestedAmount, 80), 100).
+      If >(approvedAmt, maxLoanAmount),:
+        Let approvedAmt be maxLoanAmount.
+      Let rate be 850.
+      If >=(credit.creditScore, 680),:
+        Let rate be 750.
+      Let payment be /(*(approvedAmt, rate), 100000).
+      Let downPmt be /(*(approvedAmt, 15), 100).
+      Return LoanDecision with approved = true, approvedAmount = approvedAmt, interestRateBps = rate, termMonths = request.termMonths, monthlyPayment = payment, downPaymentRequired = downPmt, conditions = "Approved with conditions - 15% down payment, income verification required", riskLevel = "ELEVATED", decisionScore = adjustedScore, reasonCode = "APPROVED_CONDITIONAL", recommendations = "Improve credit utilization and reduce debt-to-income ratio for better terms in future".
+  If >=(adjustedScore, 40),:
+    If <(adjustedScore, 55),:
+      Let approvedAmt be /(*(request.requestedAmount, 60), 100).
+      If >(approvedAmt, maxLoanAmount),:
+        Let approvedAmt be maxLoanAmount.
+      If <(request.collateralValue, approvedAmt),:
+        Return LoanDecision with approved = false, approvedAmount = 0, interestRateBps = 0, termMonths = 0, monthlyPayment = 0, downPaymentRequired = approvedAmt, conditions = "Declined", riskLevel = "HIGH", decisionScore = adjustedScore, reasonCode = "INSUFFICIENT_COLLATERAL", recommendations = "Collateral value must cover full loan amount for this risk profile".
+      Let rate be 1250.
+      Let payment be /(*(approvedAmt, rate), 100000).
+      Let downPmt be /(*(approvedAmt, 25), 100).
+      Return LoanDecision with approved = true, approvedAmount = approvedAmt, interestRateBps = rate, termMonths = request.termMonths, monthlyPayment = payment, downPaymentRequired = downPmt, conditions = "High risk approval - 25% down, co-signer required, monthly income verification", riskLevel = "HIGH", decisionScore = adjustedScore, reasonCode = "APPROVED_HIGH_RISK", recommendations = "Focus on improving credit score and reducing debt - consider credit counseling services".
+  Return LoanDecision with approved = false, approvedAmount = 0, interestRateBps = 0, termMonths = 0, monthlyPayment = 0, downPaymentRequired = request.requestedAmount, conditions = "Declined", riskLevel = "UNACCEPTABLE", decisionScore = adjustedScore, reasonCode = "INSUFFICIENT_CREDITWORTHINESS", recommendations = "Work on improving credit score, reduce debt-to-income ratio, and increase savings before reapplying".

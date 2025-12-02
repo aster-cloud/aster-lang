@@ -1,0 +1,6 @@
+This module is test.highlight.
+
+To compute with value: Int, produce Int:
+  Let temp be value + 1.
+  Let result be temp * value.
+  Return result.

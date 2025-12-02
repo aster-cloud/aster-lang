@@ -4,35 +4,49 @@
 
 # Interface: Enum
 
-Defined in: [types.ts:89](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L89)
+Defined in: [types.ts:166](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L166)
+
+Enum 声明基础接口。
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- [`BaseEnum`](../base/interfaces/BaseEnum.md)\<[`Span`](Span.md)\>
 
 ## Properties
 
-### span?
+### span
 
-> `readonly` `optional` **span**: [`Span`](Span.md)
+> **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L62)
+Defined in: [types.ts:167](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L167)
+
+#### Overrides
+
+[`BaseEnum`](../base/interfaces/BaseEnum.md).[`span`](../base/interfaces/BaseEnum.md#span)
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+[`BaseEnum`](../base/interfaces/BaseEnum.md).[`origin`](../base/interfaces/BaseEnum.md#origin)
 
 ***
 
 ### file?
 
-> `readonly` `optional` **file**: `null` \| `string`
+> `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L63)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+[`BaseEnum`](../base/interfaces/BaseEnum.md).[`file`](../base/interfaces/BaseEnum.md#file)
 
 ***
 
@@ -40,11 +54,11 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bd
 
 > `readonly` **kind**: `"Enum"`
 
-Defined in: [types.ts:90](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L90)
+Defined in: [types/base.ts:82](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L82)
 
-#### Overrides
+#### Inherited from
 
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
+[`Enum`](../namespaces/Core/interfaces/Enum.md).[`kind`](../namespaces/Core/interfaces/Enum.md#kind)
 
 ***
 
@@ -52,7 +66,11 @@ Defined in: [types.ts:90](https://github.com/wontlost-ltd/aster-lang/blob/6af9bd
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:91](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L91)
+Defined in: [types/base.ts:83](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L83)
+
+#### Inherited from
+
+[`Enum`](../namespaces/Core/interfaces/Enum.md).[`name`](../namespaces/Core/interfaces/Enum.md#name)
 
 ***
 
@@ -60,4 +78,8 @@ Defined in: [types.ts:91](https://github.com/wontlost-ltd/aster-lang/blob/6af9bd
 
 > `readonly` **variants**: readonly `string`[]
 
-Defined in: [types.ts:92](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L92)
+Defined in: [types/base.ts:84](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L84)
+
+#### Inherited from
+
+[`Enum`](../namespaces/Core/interfaces/Enum.md).[`variants`](../namespaces/Core/interfaces/Enum.md#variants)

@@ -1,0 +1,20 @@
+This module is aster.math.
+
+// 数学计算示例：聚合、归一化与百分比换算。
+
+To addNumbers with left: Number, right: Number, produce Number:
+  Return left + right.
+
+To clampNumber with value: Number, min: Number, max: Number, produce Number:
+  When value is under min then
+    Return min.
+  When value is over max then
+    Return max.
+  Else
+    Return value.
+
+To ratioInPercent with part: Number, total: Number, produce Number:
+  When total is 0 then
+    Return 0.
+  Let quotient be part / total.
+  Return quotient * 100.

@@ -11,19 +11,21 @@ function send(server: ChildProcessWithoutNullStreams, msg: Json): void {
 
 async function read(server: ChildProcessWithoutNullStreams, matchId?: number, timeoutMs = 2000): Promise<any> {
   return new Promise((resolve, reject) => {
-    let buffer = '';
-    const onData = (chunk: string | Buffer): void => {
-      buffer += String(chunk);
+    let buffer = Buffer.alloc(0);
+    const onData = (chunk: Buffer): void => {
+      buffer = Buffer.concat([buffer, chunk]);
       for (;;) {
-        const m = buffer.match(/^Content-Length: (\d+)\r\n\r\n/);
+        const bufferStr = buffer.toString('utf8');
+        const m = bufferStr.match(/^Content-Length: (\d+)\r\n\r\n/);
         if (!m) break;
         const len = Number(m[1]);
-        const start = m[0].length;
-        if (buffer.length < start + len) break;
-        const jsonText = buffer.slice(start, start + len);
-        buffer = buffer.slice(start + len);
+        const headerLen = Buffer.byteLength(m[0], 'utf8');
+        if (buffer.length < headerLen + len) break;
+        const jsonBuffer = buffer.subarray(headerLen, headerLen + len);
+        buffer = buffer.subarray(headerLen + len);
+        const jsonText = jsonBuffer.toString('utf8');
         const obj = JSON.parse(jsonText);
-        if (matchId === null || obj.id === matchId) {
+        if (matchId === undefined || obj.id === matchId) {
           server.stdout.off('data', onData);
           clearTimeout(to);
           resolve(obj);
@@ -44,7 +46,6 @@ async function main(): Promise<void> {
     stdio: ['pipe', 'pipe', 'inherit'],
     env: { ...process.env },
   }) as unknown as ChildProcessWithoutNullStreams;
-  server.stdout.setEncoding('utf8');
 
   // initialize
   send(server, { jsonrpc: '2.0', id: 1, method: 'initialize', params: { processId: null, rootUri: null, capabilities: {} } });
@@ -53,7 +54,7 @@ async function main(): Promise<void> {
 
   // Open a document with no module header
   const content = ['To hello, produce Text:', '  Return "x".', ''].join('\n');
-  const uri = 'file:///missing-header.cnl';
+  const uri = 'file:///missing-header.aster';
   send(server, { jsonrpc: '2.0', method: 'textDocument/didOpen', params: { textDocument: { uri, languageId: 'cnl', version: 1, text: content } } });
 
   // Pull diagnostics for the document

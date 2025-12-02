@@ -1,0 +1,183 @@
+{
+  "name": "aster-vscode",
+  "displayName": "Aster Language",
+  "description": "VSCode 语言支持扩展：语法高亮、LSP 集成、代码补全、跳转定义、错误检查、编译、调试、打包",
+  "version": "0.3.0",
+  "publisher": "wontlost",
+  "author": "WontLost Ltd",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wontlost-ltd/aster-lang"
+  },
+  "keywords": [
+    "aster",
+    "cnl",
+    "controlled natural language",
+    "lsp",
+    "language-server"
+  ],
+  "engines": {
+    "vscode": ">=1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:aster",
+    "onCommand:aster.startLanguageServer",
+    "onCommand:aster.compile",
+    "onCommand:aster.debug",
+    "onCommand:aster.buildNative",
+    "onCommand:aster.package",
+    "workspaceContains:**/*.aster",
+    "workspaceContains:**/*.astr",
+    "workspaceContains:Asterfile"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "aster",
+        "aliases": [
+          "Aster Lang",
+          "Aster"
+        ],
+        "extensions": [
+          ".aster",
+          ".astr"
+        ],
+        "filenames": [
+          "Asterfile"
+        ],
+        "firstLine": "^\\s*#!.*\\baster\\b",
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "icon.png",
+          "dark": "icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "aster",
+        "scopeName": "source.aster",
+        "path": "./syntaxes/aster.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "aster",
+        "path": "./snippets/aster.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "aster.startLanguageServer",
+        "title": "Aster: Start Language Server"
+      },
+      {
+        "command": "aster.compile",
+        "title": "Aster: Compile File"
+      },
+      {
+        "command": "aster.debug",
+        "title": "Aster: Debug File"
+      },
+      {
+        "command": "aster.buildNative",
+        "title": "Aster: 编译到 JVM (原生构建开发中)"
+      },
+      {
+        "command": "aster.package",
+        "title": "Aster: Package to JAR"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Aster",
+      "properties": {
+        "aster.langServer.path": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to Aster LSP server (relative to workspace root). Leave empty to use the bundled LSP server."
+        },
+        "aster.compiler": {
+          "type": "string",
+          "enum": [
+            "typescript",
+            "java"
+          ],
+          "default": "typescript",
+          "description": "选择编译器后端：typescript（默认）或 java"
+        },
+        "aster.cli.path": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to Aster CLI executable (relative to workspace root). Leave empty to use the bundled Node.js CLI."
+        },
+        "aster.output.directory": {
+          "type": "string",
+          "default": "build/aster-out",
+          "description": "默认输出目录（相对于工作区根目录）"
+        },
+        "aster.debug.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用调试输出（设置 ASTER_DEBUG=true）"
+        },
+        "aster.debug.mainClass": {
+          "type": "string",
+          "default": "",
+          "description": "调试时的 Java 主类名称（如 com.example.Main）。编译 Aster 文件后，需要指定生成的入口类才能启动调试会话。"
+        },
+        "aster.debug.classPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "调试时的 classpath 列表。留空则使用输出目录作为默认 classpath。支持相对路径（相对于工作区根目录）和绝对路径。"
+        },
+        "aster.debug.projectName": {
+          "type": "string",
+          "default": "aster-lang",
+          "description": "调试配置中的项目名称，用于 Java 调试扩展识别项目上下文。"
+        }
+      }
+    }
+  },
+  "icon": "icon.png",
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run build:all",
+    "build:all": "npm run build:main && npm run build:extension",
+    "build:main": "cd .. && npm run build",
+    "build:extension": "npm run copy:resources && tsc -p ./",
+    "copy:resources": "node scripts/copy-bundled-resources.js",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "pretest": "npm run compile",
+    "test:syntax": "node scripts/run-textmate-tests.js",
+    "test:integration": "npm run compile && node tests/integration/lsp-lifecycle.test.js && node tests/integration/commands.test.js && node tests/integration/multi-workspace-hotplug.test.js",
+    "test:all": "npm run test:syntax && npm run test:integration",
+    "package": "vsce package",
+    "quick-package": "npm run copy:resources && npm run compile && vsce package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vscode/vsce": "^3.6.2",
+    "eslint": "^8.0.0",
+    "fs-extra": "^11.3.2",
+    "sharp": "^0.34.4",
+    "typescript": "^5.3.0",
+    "vscode-oniguruma": "^1.7.0",
+    "vscode-textmate": "^9.2.1"
+  }
+}

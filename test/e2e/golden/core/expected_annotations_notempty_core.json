@@ -1,0 +1,127 @@
+{
+  "kind": "Module",
+  "name": "validation.basic",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "User",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "email",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": []
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "createUser",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "username",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "displayName",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text"
+          },
+          "annotations": [
+            {
+              "name": "NotEmpty",
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "ret": {
+        "kind": "TypeName",
+        "name": "User"
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "uid",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "UUID.randomUUID"
+              },
+              "args": []
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "User"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "uid"
+                },
+                {
+                  "kind": "Name",
+                  "name": "displayName"
+                },
+                {
+                  "kind": "Name",
+                  "name": "username"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

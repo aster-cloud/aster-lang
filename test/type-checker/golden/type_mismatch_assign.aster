@@ -1,0 +1,6 @@
+This module is tests.typecheck.mismatch.assign.
+
+Define Entry with id: Int, name: Text.
+
+To makeBadEntry, produce Entry:
+  Return Entry(id: "oops", name: "user").

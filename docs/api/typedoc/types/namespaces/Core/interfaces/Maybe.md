@@ -4,23 +4,49 @@
 
 # Interface: Maybe
 
-Defined in: [types.ts:581](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L581)
+Defined in: [types.ts:629](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L629)
+
+Maybe 类型基础接口。
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- [`BaseMaybe`](../../../base/interfaces/BaseMaybe.md)\<[`Origin`](../../../interfaces/Origin.md), [`Type`](../type-aliases/Type.md)\>
 
 ## Properties
+
+### span?
+
+> `readonly` `optional` **span**: `undefined`
+
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L41)
+
+#### Inherited from
+
+[`BaseMaybe`](../../../base/interfaces/BaseMaybe.md).[`span`](../../../base/interfaces/BaseMaybe.md#span)
+
+***
 
 ### origin?
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L341)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+[`BaseMaybe`](../../../base/interfaces/BaseMaybe.md).[`origin`](../../../base/interfaces/BaseMaybe.md#origin)
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `string` \| `null`
+
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
+
+#### Inherited from
+
+[`BaseMaybe`](../../../base/interfaces/BaseMaybe.md).[`file`](../../../base/interfaces/BaseMaybe.md#file)
 
 ***
 
@@ -28,11 +54,11 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **kind**: `"Maybe"`
 
-Defined in: [types.ts:582](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L582)
+Defined in: [types/base.ts:460](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L460)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+[`BaseMaybe`](../../../base/interfaces/BaseMaybe.md).[`kind`](../../../base/interfaces/BaseMaybe.md#kind)
 
 ***
 
@@ -40,4 +66,8 @@ Defined in: [types.ts:582](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:583](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L583)
+Defined in: [types/base.ts:461](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L461)
+
+#### Inherited from
+
+[`BaseMaybe`](../../../base/interfaces/BaseMaybe.md).[`type`](../../../base/interfaces/BaseMaybe.md#type)

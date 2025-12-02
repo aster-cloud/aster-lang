@@ -1,0 +1,101 @@
+{
+  "kind": "Module",
+  "name": "demo.matchenum",
+  "decls": [
+    {
+      "kind": "Enum",
+      "name": "Err",
+      "variants": [
+        "NotFound",
+        "Invalid"
+      ],
+      "variantSpans": [
+        {
+          "start": {
+            "line": 3,
+            "col": 22
+          },
+          "end": {
+            "line": 3,
+            "col": 30
+          }
+        },
+        {
+          "start": {
+            "line": 3,
+            "col": 32
+          },
+          "end": {
+            "line": 3,
+            "col": 39
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "explain",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "e",
+          "type": {
+            "kind": "TypeName",
+            "name": "Err",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Match",
+            "expr": {
+              "kind": "Name",
+              "name": "e"
+            },
+            "cases": [
+              {
+                "kind": "Case",
+                "pattern": {
+                  "kind": "PatternName",
+                  "name": "NotFound"
+                },
+                "body": {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "missing"
+                  }
+                }
+              },
+              {
+                "kind": "Case",
+                "pattern": {
+                  "kind": "PatternName",
+                  "name": "Invalid"
+                },
+                "body": {
+                  "kind": "Return",
+                  "expr": {
+                    "kind": "String",
+                    "value": "invalid"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

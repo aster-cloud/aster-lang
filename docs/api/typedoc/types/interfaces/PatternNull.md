@@ -4,44 +4,58 @@
 
 # Interface: PatternNull
 
-Defined in: [types.ts:167](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L167)
+Defined in: [types.ts:249](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L249)
+
+Null 模式基础接口。
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- [`BasePatternNull`](../base/interfaces/BasePatternNull.md)\<[`Span`](Span.md)\>
 
 ## Properties
 
-### span?
+### span
 
-> `readonly` `optional` **span**: [`Span`](Span.md)
+> **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L62)
+Defined in: [types.ts:250](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L250)
+
+#### Overrides
+
+[`BasePatternNull`](../base/interfaces/BasePatternNull.md).[`span`](../base/interfaces/BasePatternNull.md#span)
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+[`BasePatternNull`](../base/interfaces/BasePatternNull.md).[`origin`](../base/interfaces/BasePatternNull.md#origin)
 
 ***
 
 ### file?
 
-> `readonly` `optional` **file**: `null` \| `string`
+> `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L63)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+[`BasePatternNull`](../base/interfaces/BasePatternNull.md).[`file`](../base/interfaces/BasePatternNull.md#file)
 
 ***
 
 ### kind
 
-> `readonly` **kind**: `"PatternNull"`
+> `readonly` **kind**: `"PatternNull"` \| `"PatNull"`
 
-Defined in: [types.ts:168](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L168)
+Defined in: [types/base.ts:261](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L261)
 
-#### Overrides
+#### Inherited from
 
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
+[`PatNull`](../namespaces/Core/interfaces/PatNull.md).[`kind`](../namespaces/Core/interfaces/PatNull.md#kind)

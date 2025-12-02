@@ -1,0 +1,9 @@
+This module is tests.workflow.undeclared_capability.
+
+To undeclaredCapWorkflow, produce Workflow of Result of Text and Text and IO. It performs io [Sql]:
+  
+  workflow:
+    step rotate:
+      Return ok of Secrets.rotate("token").
+  
+  .

@@ -1,0 +1,149 @@
+{
+  "kind": "Module",
+  "name": "demo.lambdamatchresult",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "fromResult",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "r",
+          "type": {
+            "kind": "Result",
+            "ok": {
+              "kind": "TypeName",
+              "name": "Text",
+              "annotations": []
+            },
+            "err": {
+              "kind": "TypeName",
+              "name": "Text",
+              "annotations": []
+            }
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "f",
+            "expr": {
+              "kind": "Lambda",
+              "params": [
+                {
+                  "name": "x",
+                  "type": {
+                    "kind": "Result",
+                    "ok": {
+                      "kind": "TypeName",
+                      "name": "Text",
+                      "annotations": []
+                    },
+                    "err": {
+                      "kind": "TypeName",
+                      "name": "Text",
+                      "annotations": []
+                    }
+                  }
+                }
+              ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Text",
+                "annotations": []
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Match",
+                    "expr": {
+                      "kind": "Name",
+                      "name": "x"
+                    },
+                    "cases": [
+                      {
+                        "kind": "Case",
+                        "pattern": {
+                          "kind": "PatternCtor",
+                          "typeName": "Ok",
+                          "names": [
+                            "v"
+                          ]
+                        },
+                        "body": {
+                          "kind": "Return",
+                          "expr": {
+                            "kind": "Name",
+                            "name": "v"
+                          }
+                        }
+                      },
+                      {
+                        "kind": "Case",
+                        "pattern": {
+                          "kind": "PatternCtor",
+                          "typeName": "Err",
+                          "names": [
+                            "e"
+                          ]
+                        },
+                        "body": {
+                          "kind": "Return",
+                          "expr": {
+                            "kind": "Call",
+                            "target": {
+                              "kind": "Name",
+                              "name": "Text.concat"
+                            },
+                            "args": [
+                              {
+                                "kind": "String",
+                                "value": "E:"
+                              },
+                              {
+                                "kind": "Name",
+                                "name": "e"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "f"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "r"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

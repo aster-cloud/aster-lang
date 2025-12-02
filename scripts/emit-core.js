@@ -7,7 +7,7 @@ import { lowerModule } from '../src/lower_to_core.js';
 function main() {
   const file = process.argv[2];
   if (!file) {
-    console.error('Usage: emit-core <file.cnl>');
+    console.error('Usage: emit-core <file.aster>');
     process.exit(2);
   }
   const input = fs.readFileSync(file, 'utf8');

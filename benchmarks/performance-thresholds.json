@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Performance regression thresholds for Aster language benchmarks. Benchmarks exceeding these thresholds indicate potential performance regressions.",
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-03",
+  "thresholds": {
+    "graalvm_jit": {
+      "description": "GraalVM JIT compilation benchmarks - optimized execution",
+      "benchmarks": {
+        "fibonacci_20": {
+          "baseline_ms": 26.25,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 30.19,
+          "error_threshold_ms": 34.13,
+          "description": "Recursive Fibonacci(20) - tests function call overhead and recursion optimization"
+        },
+        "factorial_12": {
+          "baseline_ms": 5.0,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 5.75,
+          "error_threshold_ms": 6.5,
+          "description": "Iterative Factorial(12) - tests loop optimization and integer arithmetic"
+        },
+        "quicksort_100": {
+          "baseline_ms": 99.37,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 114.28,
+          "error_threshold_ms": 129.18,
+          "description": "QuickSort with 100 elements - tests array operations and sorting algorithms"
+        },
+        "binary_tree_15": {
+          "baseline_ms": 0.074,
+          "warning_threshold_percent": 20,
+          "error_threshold_percent": 40,
+          "warning_threshold_ms": 0.089,
+          "error_threshold_ms": 0.104,
+          "description": "Binary tree traversal with 15 nodes - tests object creation and tree navigation"
+        },
+        "string_ops": {
+          "baseline_ms": 0.288,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 0.331,
+          "error_threshold_ms": 0.374,
+          "description": "String operations - tests text manipulation and string builtins"
+        }
+      }
+    },
+    "truffle_interpreter": {
+      "description": "Truffle interpreter benchmarks - non-optimized AST interpretation",
+      "benchmarks": {
+        "factorial": {
+          "baseline_ms": 1.5,
+          "warning_threshold_percent": 20,
+          "error_threshold_percent": 40,
+          "warning_threshold_ms": 1.8,
+          "error_threshold_ms": 2.1,
+          "description": "Factorial - interpreter baseline"
+        },
+        "fibonacci": {
+          "baseline_ms": 8.0,
+          "warning_threshold_percent": 20,
+          "error_threshold_percent": 40,
+          "warning_threshold_ms": 9.6,
+          "error_threshold_ms": 11.2,
+          "description": "Fibonacci - interpreter baseline"
+        },
+        "list_map": {
+          "baseline_ms": 12.0,
+          "warning_threshold_percent": 20,
+          "error_threshold_percent": 40,
+          "warning_threshold_ms": 14.4,
+          "error_threshold_ms": 16.8,
+          "description": "List.map - higher-order function baseline"
+        },
+        "arithmetic": {
+          "baseline_ms": 0.5,
+          "warning_threshold_percent": 20,
+          "error_threshold_percent": 40,
+          "warning_threshold_ms": 0.6,
+          "error_threshold_ms": 0.7,
+          "description": "Arithmetic operations - basic computation baseline"
+        }
+      }
+    },
+    "pure_java": {
+      "description": "Pure Java bytecode benchmarks - direct bytecode emission",
+      "benchmarks": {
+        "factorial": {
+          "baseline_ms": 0.3,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 0.345,
+          "error_threshold_ms": 0.39,
+          "description": "Factorial - pure bytecode baseline"
+        },
+        "fibonacci": {
+          "baseline_ms": 1.8,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 2.07,
+          "error_threshold_ms": 2.34,
+          "description": "Fibonacci - pure bytecode baseline"
+        },
+        "list_map": {
+          "baseline_ms": 2.5,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 2.875,
+          "error_threshold_ms": 3.25,
+          "description": "List.map - higher-order function with pure bytecode"
+        },
+        "result_map_ok": {
+          "baseline_ms": 1.0,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 1.15,
+          "error_threshold_ms": 1.3,
+          "description": "Result.mapOk - Result type operations"
+        },
+        "result_map_err": {
+          "baseline_ms": 1.0,
+          "warning_threshold_percent": 15,
+          "error_threshold_percent": 30,
+          "warning_threshold_ms": 1.15,
+          "error_threshold_ms": 1.3,
+          "description": "Result.mapErr - Result type error handling"
+        }
+      }
+    }
+  },
+  "monitoring": {
+    "ci_integration": {
+      "enabled": true,
+      "fail_on_error": false,
+      "warn_on_warning": true,
+      "description": "Benchmarks run as non-blocking CI jobs with performance regression warnings"
+    },
+    "reporting": {
+      "format": "markdown",
+      "output_path": ".claude/benchmark-regression-report.md",
+      "include_charts": false,
+      "description": "Performance regression reports generated in markdown format"
+    },
+    "notification": {
+      "on_warning": "log",
+      "on_error": "log",
+      "description": "Notifications logged to console and CI output"
+    }
+  },
+  "notes": {
+    "threshold_rationale": "Warning thresholds set at 15-20% allow for normal JVM variance and system load fluctuations. Error thresholds at 30-40% indicate clear performance regressions requiring investigation.",
+    "baseline_establishment": "Baselines established from initial benchmark runs on standard hardware. Should be updated periodically as optimizations are implemented.",
+    "backend_differences": "Pure Java bytecode is fastest (direct compilation), GraalVM JIT provides optimized execution after warmup, Truffle interpreter is slowest (AST interpretation without optimization).",
+    "variance_considerations": "Benchmarks with sub-millisecond execution times (< 1ms) have higher variance and thus higher thresholds (20% vs 15%)."
+  }
+}

@@ -2,7 +2,7 @@
 import cp from 'node:child_process';
 
 function main(): void {
-  const file = process.argv[2] || 'cnl/examples/null_strict_core.json';
+  const file = process.argv[2] || 'test/cnl/programs/core-reference/null_strict_core.json';
   const env = { ...process.env, INTEROP_NULL_STRICT: 'true' };
   const r = cp.spawnSync(process.execPath, ['dist/scripts/emit-classfiles-core.js', file], {
     stdio: 'inherit',
@@ -18,4 +18,3 @@ function main(): void {
 }
 
 main();
-

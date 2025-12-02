@@ -1,0 +1,13 @@
+.vscode/**
+.vscode-test/**
+src/**
+.gitignore
+.yarnrc
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+dist/**/*.d.ts
+# 允许打包 node_modules（由 copy-bundled-resources.js 复制的生产依赖）
+# node_modules/** 已被注释，允许包含运行时依赖

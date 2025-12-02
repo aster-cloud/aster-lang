@@ -1,0 +1,7 @@
+This module is demo.eff_infer_wrapper_io.
+
+To helperWithIO, produce Text. It performs io:
+  Return Http.get("https://example.com").
+
+To wrapperWithIO, produce Text. It performs io:
+  Return helperWithIO().

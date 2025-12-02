@@ -1,5 +1,27 @@
-import { Core, Effect } from './core_ir.js';
-import type { Span } from './types.js';
+/**
+ * @module lower_to_core
+ *
+ * AST 到 Core IR 的降级器：将高级 AST 转换为小型、严格的 Core IR。
+ *
+ * **功能**：
+ * - 将 AST 节点转换为 Core IR 节点
+ * - 展开语法糖（如 `User?` → `Maybe of User`）
+ * - 规范化表达式和语句结构
+ * - 保留源代码位置信息（origin）
+ * - 为后续的类型检查和代码生成准备简化的 IR
+ *
+ * **Core IR 设计**：
+ * - 更小的节点集合（相比 AST）
+ * - 显式的作用域节点（Scope）
+ * - 规范化的模式匹配
+ * - 简化的效果标注
+ */
+
+import { Core } from './core_ir.js';
+import { parseEffect, getAllEffects, inferCapabilityFromName } from './config/semantic.js';
+import type { Effect } from './config/semantic.js';
+import { Diagnostics } from './diagnostics.js';
+import type { Span, Origin } from './types.js';
 import type {
   Module,
   Declaration,
@@ -9,144 +31,427 @@ import type {
   Expression,
   Pattern,
   Type,
+  WorkflowStmt,
+  StepStmt,
 } from './types.js';
+import { DefaultAstVisitor } from './ast_visitor.js';
+import { DefaultCoreVisitor, createVisitorContext } from './visitor.js';
+import type { CapabilityKind } from './config/semantic.js';
 
+// ==================== 类型安全的元数据辅助函数 ====================
+
+/**
+ * 从 AST 节点中提取 Span 和文件路径信息。
+ *
+ * 由于 AST 节点的 span 和 file 字段是可选的，且未在所有类型定义中显式声明，
+ * 这里需要使用类型断言来访问这些字段。这是安全的，因为这些字段在运行时确实存在。
+ */
+interface WithMetadata {
+  readonly span?: Span;
+  readonly file?: string | null;
+}
+
+/**
+ * 从 AST 节点提取元数据（span 和 file）。
+ */
+function extractMetadata(node: unknown): { span: Span | undefined; file: string | null } {
+  const n = node as WithMetadata;
+  return {
+    span: n.span,
+    file: n.file ?? null,
+  };
+}
+
+/**
+ * 将 AST 节点的元数据（origin）附加到 Core IR 节点。
+ *
+ * @param coreNode - Core IR 节点（可变对象）
+ * @param astNode - AST 节点（用于提取元数据）
+ * @returns 附加了元数据的 Core IR 节点
+ */
+function withOrigin<T extends { origin?: Origin }>(
+  coreNode: T,
+  astNode: unknown
+): T {
+  const { span, file } = extractMetadata(astNode);
+  const origin = spanToOrigin(span, file);
+  if (origin) {
+    // Core IR 构造函数返回的对象实际上是可变的，尽管类型定义声明为 readonly
+    // 这是设计上的折衷：类型系统认为它们是只读的，但在降级阶段我们需要附加元数据
+    (coreNode as { -readonly [K in keyof T]: T[K] }).origin = origin;
+  }
+  return coreNode;
+}
+
+/**
+ * 将效果能力（effectCaps）从 AST Func 节点传递到 Core IR Func 节点。
+ *
+ * @param coreFunc - Core IR Func 节点
+ * @param astFunc - AST Func 节点
+ * @returns 附加了能力元数据的 Core IR Func 节点
+ */
+function withEffectCaps(
+  coreFunc: import('./types.js').Core.Func,
+  astFunc: Func
+): import('./types.js').Core.Func {
+  type MutableFunc = {
+    -readonly [K in keyof import('./types.js').Core.Func]: (import('./types.js').Core.Func)[K]
+  };
+  const mutableFunc = coreFunc as unknown as MutableFunc;
+  mutableFunc.effectCaps = [...astFunc.effectCaps];
+  mutableFunc.effectCapsExplicit = astFunc.effectCapsExplicit;
+  return coreFunc;
+}
+
+function withFuncPiiMetadata(
+  coreFunc: import('./types.js').Core.Func
+): import('./types.js').Core.Func {
+  const metadata = aggregateFuncPii(coreFunc);
+  if (!metadata) return coreFunc;
+  type MutableFunc = {
+    -readonly [K in keyof import('./types.js').Core.Func]: (import('./types.js').Core.Func)[K]
+  };
+  const mutable = coreFunc as unknown as MutableFunc;
+  mutable.piiLevel = metadata.level;
+  mutable.piiCategories = [...metadata.categories];
+  return coreFunc;
+}
+
+type FuncPiiMeta = {
+  readonly level: import('./types.js').PiiSensitivityLevel;
+  readonly categories: readonly string[];
+};
+
+const PII_LEVEL_ORDER: Record<string, number> = { L1: 1, L2: 2, L3: 3 };
+
+function aggregateFuncPii(func: import('./types.js').Core.Func): FuncPiiMeta | null {
+  let summary: FuncPiiMeta | null = null;
+  for (const param of func.params) {
+    summary = mergeFuncPiiMeta(summary, extractPiiFromType(param.type));
+  }
+  return mergeFuncPiiMeta(summary, extractPiiFromType(func.ret));
+}
+
+function extractPiiFromType(type?: import('./types.js').Core.Type | null): FuncPiiMeta | null {
+  if (!type) return null;
+  switch (type.kind) {
+    case 'PiiType': {
+      const categories = type.category ? [type.category] : [];
+      const baseMeta = extractPiiFromType(type.baseType);
+      const current: FuncPiiMeta = { level: type.sensitivity, categories };
+      return mergeFuncPiiMeta(current, baseMeta);
+    }
+    case 'Result':
+      return mergeFuncPiiMeta(extractPiiFromType(type.ok), extractPiiFromType(type.err));
+    case 'Maybe':
+    case 'Option':
+    case 'List':
+      return extractPiiFromType(type.type);
+    case 'Map':
+      return mergeFuncPiiMeta(extractPiiFromType(type.key), extractPiiFromType(type.val));
+    case 'FuncType': {
+      let meta: FuncPiiMeta | null = null;
+      for (const param of type.params ?? []) {
+        meta = mergeFuncPiiMeta(meta, extractPiiFromType(param));
+      }
+      return mergeFuncPiiMeta(meta, extractPiiFromType(type.ret));
+    }
+    case 'TypeApp': {
+      let meta: FuncPiiMeta | null = null;
+      for (const arg of type.args ?? []) {
+        meta = mergeFuncPiiMeta(meta, extractPiiFromType(arg));
+      }
+      return meta;
+    }
+    default:
+      return null;
+  }
+}
+
+function mergeFuncPiiMeta(left: FuncPiiMeta | null, right: FuncPiiMeta | null): FuncPiiMeta | null {
+  if (!left) return right;
+  if (!right) return left;
+  return {
+    level: pickHigherPiiLevel(left.level, right.level),
+    categories: mergeCategories(left.categories, right.categories),
+  };
+}
+
+function pickHigherPiiLevel(
+  left: import('./types.js').PiiSensitivityLevel,
+  right: import('./types.js').PiiSensitivityLevel
+): import('./types.js').PiiSensitivityLevel {
+  const leftRank = PII_LEVEL_ORDER[left] ?? 0;
+  const rightRank = PII_LEVEL_ORDER[right] ?? 0;
+  return leftRank >= rightRank ? left : right;
+}
+
+function mergeCategories(
+  left: readonly string[],
+  right: readonly string[]
+): string[] {
+  const seen = new Set<string>();
+  for (const item of left) {
+    if (item) seen.add(item);
+  }
+  for (const item of right) {
+    if (item) seen.add(item);
+  }
+  return Array.from(seen);
+}
+
+function lowerAnnotations(
+  annotations: readonly import('./types.js').Annotation[] | undefined
+): readonly import('./types.js').Core.Annotation[] {
+  if (!annotations || annotations.length === 0) {
+    return [];
+  }
+  return annotations.map(ann => ({
+    name: ann.name,
+    params: Object.fromEntries(ann.params),
+  }));
+}
+
+/**
+ * 将 AST Module 降级为 Core IR Module。
+ *
+ * 这是 Aster 编译管道的第四步，将高级的抽象语法树转换为更简洁、更严格的 Core IR，
+ * 以便进行类型检查和后续的代码生成。
+ *
+ * **降级转换**：
+ * - 展开语法糖（`User?` → `Maybe of User`、`Result of A and B` → 标准 Result 类型）
+ * - 规范化函数体为 Block 和 Statement 序列
+ * - 将模式匹配转换为 Core IR 的 Case 结构
+ * - 保留原始位置信息用于错误报告
+ *
+ * @param ast - AST Module 节点（通过 parser.parse 生成）
+ * @returns Core IR Module 节点，包含所有声明的规范化表示
+ *
+ * @example
+ * ```typescript
+ * import { canonicalize, lex, parse, lowerModule } from '@wontlost-ltd/aster-lang';
+ *
+ * const src = `This module is app.
+ * To greet, produce Text:
+ *   Return "Hello".
+ * `;
+ *
+ * const ast = parse(lex(canonicalize(src)));
+ * const core = lowerModule(ast);
+ *
+ * console.log(core.kind);  // "Module"
+ * console.log(core.name);  // "app"
+ * // Core IR 是更简洁的表示，适合类型检查和代码生成
+ * ```
+ */
 export function lowerModule(ast: Module): import('./types.js').Core.Module {
   const decls = ast.decls.map(lowerDecl);
   const m = Core.Module(ast.name, decls);
-  const o = spanToOrigin((ast as any).span, (ast as any).file ?? null);
-  if (o) (m as any).origin = o;
-  return m;
+  return withOrigin(m, ast);
 }
 
 function lowerDecl(d: Declaration): import('./types.js').Core.Declaration {
   switch (d.kind) {
     case 'Import':
-      {
-        const out = Core.Import(d.name, d.asName || null);
-        const o = spanToOrigin((d as any).span, (d as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Import(d.name, d.asName || null), d);
     case 'Data':
-      {
-        const out = Core.Data(
+      return withOrigin(
+        Core.Data(
           d.name,
-          d.fields.map(f => ({ name: f.name, type: lowerType(f.type) }))
-        );
-        const o = spanToOrigin((d as any).span, (d as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+          d.fields.map(f => ({
+            name: f.name,
+            type: lowerType(f.type),
+            annotations: lowerAnnotations(f.annotations),
+          }))
+        ),
+        d
+      );
     case 'Enum':
-      {
-        const out = Core.Enum(d.name, [...d.variants]);
-        const o = spanToOrigin((d as any).span, (d as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Enum(d.name, [...d.variants]), d);
     case 'Func':
       return lowerFunc(d);
-    default:
-      throw new Error(`Unknown decl kind: ${(d as { kind: string }).kind}`);
+    default: {
+      const { span } = extractMetadata(d);
+      const kind = (d as { kind: string }).kind;
+      Diagnostics.unknownDeclKind(kind, span?.start ?? { line: 0, col: 0 }).throw();
+      throw new Error('unreachable'); // For TypeScript's control flow analysis
+    }
   }
 }
 
 function lowerFunc(f: Func): import('./types.js').Core.Func {
   const tvars = new Set<string>(f.typeParams ?? []);
-  const params = f.params.map(p => ({ name: p.name, type: lowerTypeWithVars(p.type, tvars) }));
+  const params = f.params.map(p => ({
+    name: p.name,
+    type: lowerTypeWithVars(p.type, tvars),
+    annotations: lowerAnnotations(p.annotations),
+  }));
   const ret = lowerTypeWithVars(f.retType, tvars);
-  const effects = (f.effects || []).map(e => (e === 'io' ? Effect.IO : Effect.CPU));
+  // 严格校验效果字符串，拒绝未知值，同时将效应变量保留到声明列表
+  const effectParamSet = new Set(f.effectParams ?? []);
+  const declaredEffects: Array<Effect | import('./types.js').Core.EffectVar> = [];
+  const effects: Effect[] = [];
+  for (const e of f.effects ?? []) {
+    const effect = parseEffect(e.toLowerCase());
+    if (effect !== null) {
+      effects.push(effect);
+      declaredEffects.push(effect);
+      continue;
+    }
+    if (effectParamSet.has(e)) {
+      declaredEffects.push({ kind: 'EffectVar', name: e } as import('./types.js').Core.EffectVar);
+      continue;
+    }
+    const validEffects = getAllEffects().join(', ');
+    const { span } = extractMetadata(f);
+    Diagnostics.unknownEffect(e, validEffects, span?.start ?? { line: 0, col: 0 }).throw();
+    throw new Error('unreachable'); // For TypeScript's control flow analysis
+  }
   const body = f.body ? lowerBlock(f.body) : Core.Block([]);
-  const out = Core.Func(f.name, f.typeParams ?? [], params, ret, effects, body);
-  const o = spanToOrigin((f as any).span, (f as any).file ?? null);
-  if (o) (out as any).origin = o;
-  return out;
+  const out = Core.Func(
+    f.name,
+    f.typeParams ?? [],
+    params,
+    ret,
+    effects,
+    body,
+    f.effectCaps,
+    f.effectCapsExplicit,
+    f.effectParams,
+    declaredEffects
+  );
+  // 传递能力与 PII 元数据，并附带源位置信息
+  const enriched = withFuncPiiMetadata(withEffectCaps(out, f));
+  return withOrigin(enriched, f);
 }
 
 function lowerBlock(b: Block): import('./types.js').Core.Block {
-  const out = Core.Block(b.statements.map(lowerStmt));
-  const o = spanToOrigin((b as any).span, (b as any).file ?? null);
-  if (o) (out as any).origin = o;
-  return out;
+  return withOrigin(Core.Block(b.statements.map(lowerStmt)), b);
 }
 
 function lowerStmt(s: Statement): import('./types.js').Core.Statement {
   switch (s.kind) {
     case 'Let':
-      {
-        const out = Core.Let(s.name, lowerExpr(s.expr));
-        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Let(s.name, lowerExpr(s.expr)), s);
     case 'Set':
-      {
-        const out = Core.Set(s.name, lowerExpr(s.expr));
-        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Set(s.name, lowerExpr(s.expr)), s);
     case 'Return':
-      {
-        const out = Core.Return(lowerExpr(s.expr));
-        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Return(lowerExpr(s.expr)), s);
     case 'If':
-      {
-        const out = Core.If(
+      return withOrigin(
+        Core.If(
           lowerExpr(s.cond),
           lowerBlock(s.thenBlock),
           s.elseBlock ? lowerBlock(s.elseBlock) : null
-        );
-        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+        ),
+        s
+      );
     // Scope sugar lowering placeholder: if a Block starts with a special marker, we could emit Scope. For now none.
 
     case 'Match':
-      {
-        const out = Core.Match(
+      return withOrigin(
+        Core.Match(
           lowerExpr(s.expr),
-          s.cases.map(c => {
-            const cc = Core.Case(lowerPattern(c.pattern), lowerCaseBody(c.body));
-            const co = spanToOrigin((c as any).span, (c as any).file ?? null);
-            if (co) (cc as any).origin = co;
-            return cc;
-          })
-        );
-        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+          s.cases.map(c => withOrigin(Core.Case(lowerPattern(c.pattern), lowerCaseBody(c.body)), c))
+        ),
+        s
+      );
     case 'Start':
-      {
-        const out = Core.Start(s.name, lowerExpr(s.expr));
-        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Start(s.name, lowerExpr(s.expr)), s);
     case 'Wait':
-      {
-        const out = Core.Wait(s.names);
-        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Wait(s.names), s);
+    case 'workflow':
+      return lowerWorkflow(s as WorkflowStmt);
     case 'Block':
-      {
-        const out = Core.Scope((s as Block).statements.map(lowerStmt));
-        const o = spanToOrigin((s as any).span, (s as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
-    default:
-      // For bare expressions evaluated for side-effects in v0: wrap as Return(expr) for now
-      return Core.Return(lowerExpr(s as Expression));
+      return withOrigin(Core.Scope((s as Block).statements.map(lowerStmt)), s);
+    case 'Call':
+      // Expression statement: Call used for side effects
+      // Lower to: Let _ be <call>
+      return withOrigin(
+        Core.Let('_', Core.Call(lowerExpr((s as any).target), (s as any).args.map(lowerExpr))),
+        s
+      );
+    default: {
+      // Parser now prohibits bare expressions, so this should never be reached
+      const { span } = extractMetadata(s);
+      const kind = (s as any).kind;
+      Diagnostics.unknownStmtKind(kind, span?.start ?? { line: 0, col: 0 }).throw();
+      throw new Error('unreachable'); // For TypeScript's control flow analysis
+    }
   }
+}
+
+function lowerWorkflow(stmt: WorkflowStmt): import('./types.js').Core.Workflow {
+  const steps = stmt.steps.map((step, index) => {
+    const predecessor = index > 0 ? stmt.steps[index - 1] : null;
+    return lowerStep(step, predecessor ? predecessor.name : null);
+  });
+  const effectCaps = mergeCapabilitySets(steps.map(step => step.effectCaps));
+  const retry = stmt.retry
+    ? { maxAttempts: stmt.retry.maxAttempts, backoff: stmt.retry.backoff }
+    : undefined;
+  const timeout = stmt.timeout ? { milliseconds: stmt.timeout.milliseconds } : undefined;
+  const workflow = Core.Workflow(steps, effectCaps, retry, timeout);
+  return withOrigin(workflow, stmt);
+}
+
+function lowerStep(stmt: StepStmt, prevStep: string | null): import('./types.js').Core.Step {
+  const body = lowerBlock(stmt.body);
+  const compensate = stmt.compensate ? lowerBlock(stmt.compensate) : undefined;
+  const effectCaps = mergeCapabilitySets([
+    collectCapabilitiesFromBlock(body),
+    ...(compensate ? [collectCapabilitiesFromBlock(compensate)] : []),
+  ]);
+  // 如果未显式声明依赖，则自动串行依赖前一节点以保持旧语义
+  const dependencies =
+    stmt.dependencies && stmt.dependencies.length > 0
+      ? stmt.dependencies
+      : prevStep
+        ? [prevStep]
+        : [];
+  const step = Core.Step(stmt.name, body, effectCaps, compensate, dependencies);
+  return withOrigin(step, stmt);
+}
+
+function mergeCapabilitySets(
+  lists: readonly (readonly CapabilityKind[])[]
+): CapabilityKind[] {
+  const merged: CapabilityKind[] = [];
+  const seen = new Set<CapabilityKind>();
+  for (const caps of lists) {
+    if (!caps) continue;
+    for (const cap of caps) {
+      if (!seen.has(cap)) {
+        seen.add(cap);
+        merged.push(cap);
+      }
+    }
+  }
+  return merged;
+}
+
+function collectCapabilitiesFromBlock(
+  block: import('./types.js').Core.Block
+): CapabilityKind[] {
+  const caps: CapabilityKind[] = [];
+  const seen = new Set<CapabilityKind>();
+  class WorkflowCapabilityVisitor extends DefaultCoreVisitor {
+    override visitExpression(
+      e: import('./types.js').Core.Expression,
+      context: import('./visitor.js').VisitorContext
+    ): void {
+      if (e.kind === 'Call' && e.target.kind === 'Name') {
+        const capability = inferCapabilityFromName(e.target.name);
+        if (capability && !seen.has(capability)) {
+          seen.add(capability);
+          caps.push(capability);
+        }
+      }
+      super.visitExpression(e, context);
+    }
+  }
+  new WorkflowCapabilityVisitor().visitBlock(block, createVisitorContext());
+  return caps;
 }
 
 function lowerCaseBody(
@@ -154,10 +459,7 @@ function lowerCaseBody(
 ): import('./types.js').Core.Return | import('./types.js').Core.Block {
   // Body can be a Return node or a Block
   if (body.kind === 'Return') {
-    const out = Core.Return(lowerExpr(body.expr));
-    const o = spanToOrigin((body as any).span, (body as any).file ?? null);
-    if (o) (out as any).origin = o;
-    return out;
+    return withOrigin(Core.Return(lowerExpr(body.expr)), body);
   }
   return lowerBlock(body);
 }
@@ -165,261 +467,134 @@ function lowerCaseBody(
 function lowerExpr(e: Expression): import('./types.js').Core.Expression {
   switch (e.kind) {
     case 'Name':
-      {
-        const out = Core.Name(e.name);
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Name(e.name), e);
     case 'Bool':
-      {
-        const out = Core.Bool(e.value);
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Bool(e.value), e);
     case 'Int':
-      {
-        const out = Core.Int(e.value);
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Int(e.value), e);
     case 'Long':
-      {
-        const out = Core.Long(e.value);
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Long(e.value), e);
     case 'Double':
-      {
-        const out = Core.Double(e.value);
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Double(e.value), e);
     case 'String':
-      {
-        const out = Core.String(e.value);
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.String(e.value), e);
     case 'Null':
-      {
-        const out = Core.Null();
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Null(), e);
     case 'Call':
-      {
-        const out = Core.Call(lowerExpr(e.target), e.args.map(lowerExpr));
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Call(lowerExpr(e.target), e.args.map(lowerExpr)), e);
     case 'Construct':
-      {
-        const out = Core.Construct(
+      return withOrigin(
+        Core.Construct(
           e.typeName,
           e.fields.map(f => ({ name: f.name, expr: lowerExpr(f.expr) }))
-        );
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+        ),
+        e
+      );
     case 'Ok':
-      {
-        const out = Core.Ok(lowerExpr(e.expr));
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Ok(lowerExpr(e.expr)), e);
     case 'Err':
-      {
-        const out = Core.Err(lowerExpr(e.expr));
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Err(lowerExpr(e.expr)), e);
     case 'Some':
-      {
-        const out = Core.Some(lowerExpr(e.expr));
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Some(lowerExpr(e.expr)), e);
     case 'None':
-      {
-        const out = Core.None();
-        const o = spanToOrigin((e as any).span, (e as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.None(), e);
+    case 'Await':
+      return withOrigin(Core.Await(lowerExpr(e.expr)), e);
     case 'Lambda': {
-      // Naive capture analysis: collect Name identifiers in body that are not params and not dotted
+      // 使用统一 AST 访客进行捕获变量收集
       const paramNames = new Set(e.params.map(p => p.name));
       const names = new Set<string>();
-      const visitExpr = (ex: Expression): void => {
-        switch (ex.kind) {
-          case 'Name':
-            if (!paramNames.has(ex.name) && !ex.name.includes('.')) names.add(ex.name);
-            break;
-          case 'Call':
-            visitExpr(ex.target);
-            ex.args.forEach(visitExpr);
-            break;
-          case 'Construct':
-            ex.fields.forEach(f => visitExpr(f.expr));
-            break;
-          case 'Ok':
-          case 'Err':
-          case 'Some':
-            visitExpr((ex as any).expr);
-            break;
-          default:
-            break;
+      class CaptureVisitor extends DefaultAstVisitor<void> {
+        override visitExpression(ex: Expression): void {
+          if (ex.kind === 'Name' && !paramNames.has(ex.name) && !ex.name.includes('.')) {
+            names.add(ex.name);
+          }
+          super.visitExpression(ex, undefined as unknown as void);
         }
-      };
-      const visitStmt = (s: Statement): void => {
-        switch (s.kind) {
-          case 'Let':
-            visitExpr(s.expr);
-            break;
-          case 'Set':
-            visitExpr(s.expr);
-            break;
-          case 'Return':
-            visitExpr(s.expr);
-            break;
-          case 'If':
-            visitExpr(s.cond);
-            (s.thenBlock.statements || []).forEach(visitStmt);
-            if (s.elseBlock) (s.elseBlock.statements || []).forEach(visitStmt);
-            break;
-          case 'Match':
-            visitExpr(s.expr);
-            s.cases.forEach(c => {
-              if (c.body.kind === 'Return') visitExpr(c.body.expr);
-              else (c.body.statements || []).forEach(visitStmt);
-            });
-            break;
-          default:
-            break;
-        }
-      };
-      (e.body.statements || []).forEach(visitStmt);
+      }
+      new CaptureVisitor().visitBlock(e.body, undefined as unknown as void);
       const captures = Array.from(names);
       const coreParams = e.params.map(p => ({ name: p.name, type: lowerType(p.type) }));
       const ret = lowerType(e.retType);
-      return { kind: 'Lambda', params: coreParams, ret, body: lowerBlock(e.body), captures } as any;
+      const lambda: import('./types.js').Core.Lambda = {
+        kind: 'Lambda',
+        params: coreParams,
+        retType: ret,  // BaseLambda expects retType
+        ret,            // Core.Lambda also has ret
+        body: lowerBlock(e.body),
+        captures,
+      };
+      return withOrigin(lambda, e);
     }
-    default:
-      throw new Error(`Unknown expr kind: ${(e as { kind: string }).kind}`);
+    default: {
+      const { span } = extractMetadata(e);
+      const kind = (e as { kind: string }).kind;
+      Diagnostics.unknownExprKind(kind, span?.start ?? { line: 0, col: 0 }).throw();
+      throw new Error('unreachable'); // For TypeScript's control flow analysis
+    }
   }
 }
 
 function lowerPattern(p: Pattern): import('./types.js').Core.Pattern {
   switch (p.kind) {
     case 'PatternNull':
-      {
-        const out = Core.PatNull();
-        const o = spanToOrigin((p as any).span, (p as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.PatNull(), p);
     case 'PatternInt':
-      {
-        const out = Core.PatInt(p.value);
-        const o = spanToOrigin((p as any).span, (p as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.PatInt(p.value), p);
     case 'PatternCtor': {
       const ctor = p as Pattern & { args?: readonly Pattern[] };
       const args = ctor.args ? ctor.args.map(pp => lowerPattern(pp)) : undefined;
-      const out = Core.PatCtor(p.typeName, [...(p.names ?? [])], args);
-      const o = spanToOrigin((p as any).span, (p as any).file ?? null);
-      if (o) (out as any).origin = o;
-      return out;
+      return withOrigin(Core.PatCtor(p.typeName, [...(p.names ?? [])], args), p);
     }
     case 'PatternName':
-      {
-        const out = Core.PatName(p.name);
-        const o = spanToOrigin((p as any).span, (p as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
-    default:
-      throw new Error(`Unknown pattern kind: ${(p as { kind: string }).kind}`);
+      return withOrigin(Core.PatName(p.name), p);
+    default: {
+      const { span } = extractMetadata(p);
+      const kind = (p as { kind: string }).kind;
+      Diagnostics.unknownPatternKind(kind, span?.start ?? { line: 0, col: 0 }).throw();
+      throw new Error('unreachable'); // For TypeScript's control flow analysis
+    }
   }
 }
 
-function spanToOrigin(span: Span | undefined, file: string | null): import('./types.js').Origin | null {
+function spanToOrigin(span: Span | undefined, file: string | null): Origin | null {
   if (!span) return null;
-  return { file: file ?? undefined, start: span.start, end: span.end } as any;
+  const origin: Origin = {
+    start: span.start,
+    end: span.end,
+  };
+  if (file !== null) {
+    (origin as { file?: string }).file = file;
+  }
+  return origin;
 }
 
 function lowerType(t: Type): import('./types.js').Core.Type {
   switch (t.kind) {
-    case 'TypeName': {
-      const out = Core.TypeName(t.name);
-      const o = spanToOrigin((t as any).span, (t as any).file ?? null);
-      if (o) (out as any).origin = o;
-      return out;
-    }
-    case 'TypeVar': {
-      const out = Core.TypeVar(t.name);
-      const o = spanToOrigin((t as any).span, (t as any).file ?? null);
-      if (o) (out as any).origin = o;
-      return out;
-    }
+    case 'TypeName':
+      return withOrigin(Core.TypeName(t.name), t);
+    case 'TypeVar':
+      return withOrigin(Core.TypeVar(t.name), t);
     case 'TypeApp':
-      {
-        const out = Core.TypeApp(t.base, t.args.map(lowerType));
-        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.TypeApp(t.base, t.args.map(lowerType)), t);
     case 'Maybe':
-      {
-        const out = Core.Maybe(lowerType(t.type));
-        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Maybe(lowerType(t.type)), t);
     case 'Option':
-      {
-        const out = Core.Option(lowerType(t.type));
-        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Option(lowerType(t.type)), t);
     case 'Result':
-      {
-        const out = Core.Result(lowerType(t.ok), lowerType(t.err));
-        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.Result(lowerType(t.ok), lowerType(t.err)), t);
     case 'List':
-      {
-        const out = Core.List(lowerType(t.type));
-        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
+      return withOrigin(Core.List(lowerType(t.type)), t);
     case 'Map':
-      {
-        const out = Core.Map(lowerType(t.key), lowerType(t.val));
-        const o = spanToOrigin((t as any).span, (t as any).file ?? null);
-        if (o) (out as any).origin = o;
-        return out;
-      }
-    default:
-      throw new Error(`Unknown type kind: ${(t as { kind: string }).kind}`);
+      return withOrigin(Core.Map(lowerType(t.key), lowerType(t.val)), t);
+    case 'TypePii':
+      return withOrigin(Core.Pii(lowerType(t.baseType), t.sensitivity, t.category), t);
+    default: {
+      const { span } = extractMetadata(t);
+      const kind = (t as { kind: string }).kind;
+      Diagnostics.unknownTypeKind(kind, span?.start ?? { line: 0, col: 0 }).throw();
+      throw new Error('unreachable'); // For TypeScript's control flow analysis
+    }
   }
 }
 
@@ -429,6 +604,8 @@ function lowerTypeWithVars(t: Type, vars: Set<string>): import('./types.js').Cor
       return vars.has(t.name)
         ? ({ kind: 'TypeVar', name: t.name } as import('./types.js').Core.TypeVar)
         : Core.TypeName(t.name);
+    case 'EffectVar':
+      return { kind: 'EffectVar', name: t.name } as import('./types.js').Core.EffectVar;
     case 'Maybe':
       return Core.Maybe(lowerTypeWithVars(t.type, vars));
     case 'Option':
@@ -447,6 +624,8 @@ function lowerTypeWithVars(t: Type, vars: Set<string>): import('./types.js').Cor
       } as import('./types.js').Core.Type;
     case 'TypeVar':
       return { kind: 'TypeVar', name: t.name } as import('./types.js').Core.TypeVar;
+    case 'TypePii':
+      return Core.Pii(lowerTypeWithVars(t.baseType, vars), t.sensitivity, t.category);
     default:
       return lowerType(t);
   }

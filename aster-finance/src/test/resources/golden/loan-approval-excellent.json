@@ -1,0 +1,27 @@
+{
+  "customer": {
+    "id": "C_EXCELLENT",
+    "name": "Excellent Customer",
+    "dateOfBirth": "1990-01-01",
+    "creditScore": 820,
+    "annualIncome": {
+      "amount": 120000.00,
+      "currency": "USD"
+    }
+  },
+  "loanApplication": {
+    "id": "LA_EXCELLENT",
+    "requestedAmount": {
+      "amount": 300000.00,
+      "currency": "USD"
+    },
+    "termMonths": 360,
+    "purpose": "HOME"
+  },
+  "expectedEvaluation": {
+    "approved": true,
+    "reason": "Application meets all requirements",
+    "interestRate": 0.05,
+    "riskLevel": "LOW"
+  }
+}

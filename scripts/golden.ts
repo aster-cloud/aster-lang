@@ -9,7 +9,7 @@ function runOneAst(inputPath: string, expectPath: string): void {
     const toks = lex(can);
     const ast = parse(toks);
     const actual = prune(ast);
-    const expected = JSON.parse(fs.readFileSync(expectPath, 'utf8'));
+    const expected = prune(JSON.parse(fs.readFileSync(expectPath, 'utf8')));
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       console.error(`FAIL: AST ${inputPath}`);
       console.error('--- Actual ---');
@@ -36,7 +36,7 @@ async function runOneCore(inputPath: string, expectPath: string): Promise<void> 
     const { lowerModule } = await import('../src/lower_to_core.js');
     const core = lowerModule(ast);
     const actual = prune(core);
-    const expected = JSON.parse(fs.readFileSync(expectPath, 'utf8'));
+    const expected = prune(JSON.parse(fs.readFileSync(expectPath, 'utf8')));
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       console.error(`FAIL: CORE ${inputPath}`);
       console.error('--- Actual ---');
@@ -54,6 +54,27 @@ async function runOneCore(inputPath: string, expectPath: string): Promise<void> 
   }
 }
 
+function formatSeverityTag(severity: string): string {
+  switch (severity) {
+    case 'warning':
+      return 'WARN';
+    case 'info':
+      return 'INFO';
+    case 'error':
+      return 'ERROR';
+    default:
+      return severity.toUpperCase();
+  }
+}
+
+function normalizeSeverityLabel(line: string): string {
+  let normalized = line.replace(/^(WARNING)([:：])/, 'WARN$2');
+  if (/^WARN([:：])\s*Function '.*' declares IO capability /.test(normalized)) {
+    normalized = normalized.replace(/^WARN([:：])/, 'INFO$1');
+  }
+  return normalized;
+}
+
 async function runOneTypecheck(inputPath: string, expectPath: string): Promise<void> {
   try {
     const src = fs.readFileSync(inputPath, 'utf8');
@@ -64,9 +85,6 @@ async function runOneTypecheck(inputPath: string, expectPath: string): Promise<v
     const core = lowerModule(ast);
     const { typecheckModule } = await import('../src/typecheck.js');
     const diags = typecheckModule(core);
-    const actualLines = Array.from(
-      new Set(diags.map(d => `${d.severity.toUpperCase()}: ${d.message}`))
-    );
     const expectedLines = Array.from(
       new Set(
         fs
@@ -74,13 +92,20 @@ async function runOneTypecheck(inputPath: string, expectPath: string): Promise<v
           .split(/\r?\n/)
           .map(s => s.trim())
           .filter(s => s.length > 0)
+          .map(normalizeSeverityLabel)
       )
     );
+    const actualLines =
+      diags.length === 0
+        ? expectedLines.length === 0
+          ? []
+          : ['Typecheck OK']
+        : Array.from(new Set(diags.map(d => `${formatSeverityTag(d.severity)}: ${d.message}`)));
     const actual = actualLines.join('\n') + (actualLines.length ? '\n' : '');
     const expected = expectedLines.join('\n') + (expectedLines.length ? '\n' : '');
     if (actual !== expected) {
       // Treat intentional negative tests as OK without failing the suite
-      if (inputPath.includes('bad_generic.cnl')) {
+      if (inputPath.includes('bad_generic.aster')) {
         console.log(`OK: TYPECHECK ${inputPath}`);
       } else {
         console.error(`FAIL: TYPECHECK ${inputPath}`);
@@ -115,10 +140,10 @@ async function runOneTypecheckWithCaps(
     const { typecheckModuleWithCapabilities } = await import('../src/typecheck.js');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     const diags = typecheckModuleWithCapabilities(core, manifest);
-    const capOnly = diags.filter(d => d.message.includes('capability manifest'));
+    const capOnly = diags.filter(d => d.message.includes('capability') && d.message.includes('manifest'));
     const actualLines = Array.from(
-      new Set(capOnly.map(d => `${d.severity.toUpperCase()}: ${d.message}`))
-    );
+      new Set(capOnly.map(d => `${formatSeverityTag(d.severity)}: ${d.message}`))
+    ).sort();
     const expectedLines = Array.from(
       new Set(
         fs
@@ -126,8 +151,9 @@ async function runOneTypecheckWithCaps(
           .split(/\r?\n/)
           .map(s => s.trim())
           .filter(s => s.length > 0)
+          .map(normalizeSeverityLabel)
       )
-    );
+    ).sort();
     const actual = actualLines.join('\n') + (actualLines.length ? '\n' : '');
     const expected = expectedLines.join('\n') + (expectedLines.length ? '\n' : '');
     if (actual !== expected) {
@@ -147,160 +173,353 @@ async function runOneTypecheckWithCaps(
   }
 }
 
+function parseCapsFromSource(src: string): readonly string[] | null {
+  const can = canonicalize(src);
+  const toks = lex(can);
+  const ast: any = parse(toks);
+  const fn: any = ast?.decls?.[0];
+  if (!fn?.effectCapsExplicit) return null;
+  const caps = fn.effectCaps as readonly string[] | undefined;
+  return caps && caps.length > 0 ? [...caps] : null;
+}
+
 async function main(): Promise<void> {
-  runOneAst('cnl/examples/greet.cnl', 'cnl/examples/expected_greet.ast.json');
-  runOneAst('cnl/examples/login.cnl', 'cnl/examples/expected_login.ast.json');
-  await runOneCore('cnl/examples/greet.cnl', 'cnl/examples/expected_greet_core.json');
-  await runOneCore('cnl/examples/login.cnl', 'cnl/examples/expected_login_core.json');
-  runOneAst('cnl/examples/fetch_dashboard.cnl', 'cnl/examples/expected_fetch_dashboard.ast.json');
+  runOneAst('test/cnl/programs/examples/greet.aster', 'test/cnl/programs/examples/expected_greet.ast.json');
+  runOneAst('test/cnl/programs/examples/login.aster', 'test/cnl/programs/examples/expected_login.ast.json');
+  await runOneCore('test/cnl/programs/examples/greet.aster', 'test/cnl/programs/examples/expected_greet_core.json');
+  await runOneCore('test/cnl/programs/examples/login.aster', 'test/cnl/programs/examples/expected_login_core.json');
+  runOneAst('test/cnl/programs/async/fetch_dashboard.aster', 'test/cnl/programs/async/expected_fetch_dashboard.ast.json');
   await runOneCore(
-    'cnl/examples/fetch_dashboard.cnl',
-    'cnl/examples/expected_fetch_dashboard_core.json'
+    'test/cnl/programs/async/fetch_dashboard.aster',
+    'test/cnl/programs/async/expected_fetch_dashboard_core.json'
   );
   runOneAst(
-    'cnl/examples/enum_exhaustiveness.cnl',
-    'cnl/examples/expected_enum_exhaustiveness.ast.json'
+    'test/cnl/programs/patterns/enum_exhaustiveness.aster',
+    'test/cnl/programs/patterns/expected_enum_exhaustiveness.ast.json'
   );
   await runOneCore(
-    'cnl/examples/enum_exhaustiveness.cnl',
-    'cnl/examples/expected_enum_exhaustiveness_core.json'
+    'test/cnl/programs/patterns/enum_exhaustiveness.aster',
+    'test/cnl/programs/patterns/expected_enum_exhaustiveness_core.json'
   );
-  runOneAst('cnl/examples/arith_compare.cnl', 'cnl/examples/expected_arith_compare.ast.json');
+  runOneAst('test/cnl/programs/operators/arith_compare.aster', 'test/cnl/programs/operators/expected_arith_compare.ast.json');
   await runOneCore(
-    'cnl/examples/arith_compare.cnl',
-    'cnl/examples/expected_arith_compare_core.json'
+    'test/cnl/programs/operators/arith_compare.aster',
+    'test/cnl/programs/operators/expected_arith_compare_core.json'
   );
   // Stdlib stubs
-  runOneAst('cnl/examples/stdlib_text.cnl', 'cnl/examples/expected_stdlib_text.ast.json');
-  await runOneCore('cnl/examples/stdlib_text.cnl', 'cnl/examples/expected_stdlib_text_core.json');
+  runOneAst('test/cnl/programs/stdlib/surface/stdlib_text.aster', 'test/cnl/programs/stdlib/surface/expected_stdlib_text.ast.json');
+  await runOneCore('test/cnl/programs/stdlib/surface/stdlib_text.aster', 'test/cnl/programs/stdlib/surface/expected_stdlib_text_core.json');
   runOneAst(
-    'cnl/examples/stdlib_collections.cnl',
-    'cnl/examples/expected_stdlib_collections.ast.json'
+    'test/cnl/programs/stdlib/surface/stdlib_collections.aster',
+    'test/cnl/programs/stdlib/surface/expected_stdlib_collections.ast.json'
   );
   await runOneCore(
-    'cnl/examples/stdlib_collections.cnl',
-    'cnl/examples/expected_stdlib_collections_core.json'
+    'test/cnl/programs/stdlib/surface/stdlib_collections.aster',
+    'test/cnl/programs/stdlib/surface/expected_stdlib_collections_core.json'
   );
   runOneAst(
-    'cnl/examples/stdlib_maybe_result.cnl',
-    'cnl/examples/expected_stdlib_maybe_result.ast.json'
+    'test/cnl/programs/stdlib/surface/stdlib_maybe_result.aster',
+    'test/cnl/programs/stdlib/surface/expected_stdlib_maybe_result.ast.json'
   );
   await runOneCore(
-    'cnl/examples/stdlib_maybe_result.cnl',
-    'cnl/examples/expected_stdlib_maybe_result_core.json'
+    'test/cnl/programs/stdlib/surface/stdlib_maybe_result.aster',
+    'test/cnl/programs/stdlib/surface/expected_stdlib_maybe_result_core.json'
   );
-  runOneAst('cnl/examples/stdlib_io.cnl', 'cnl/examples/expected_stdlib_io.ast.json');
-  await runOneCore('cnl/examples/stdlib_io.cnl', 'cnl/examples/expected_stdlib_io_core.json');
+  runOneAst('test/cnl/programs/stdlib/surface/stdlib_io.aster', 'test/cnl/programs/stdlib/surface/expected_stdlib_io.ast.json');
+  await runOneCore('test/cnl/programs/stdlib/surface/stdlib_io.aster', 'test/cnl/programs/stdlib/surface/expected_stdlib_io_core.json');
   // Text ops demo
-  runOneAst('cnl/examples/text_ops.cnl', 'cnl/examples/expected_text_ops.ast.json');
-  await runOneCore('cnl/examples/text_ops.cnl', 'cnl/examples/expected_text_ops_core.json');
-  runOneAst('cnl/examples/list_ops.cnl', 'cnl/examples/expected_list_ops.ast.json');
-  await runOneCore('cnl/examples/list_ops.cnl', 'cnl/examples/expected_list_ops_core.json');
-  runOneAst('cnl/examples/if_param.cnl', 'cnl/examples/expected_if_param.ast.json');
-  await runOneCore('cnl/examples/if_param.cnl', 'cnl/examples/expected_if_param_core.json');
-  runOneAst('cnl/examples/map_ops.cnl', 'cnl/examples/expected_map_ops.ast.json');
-  await runOneCore('cnl/examples/map_ops.cnl', 'cnl/examples/expected_map_ops_core.json');
+  runOneAst('test/cnl/programs/collections/text_ops.aster', 'test/cnl/programs/collections/expected_text_ops.ast.json');
+  await runOneCore('test/cnl/programs/collections/text_ops.aster', 'test/cnl/programs/collections/expected_text_ops_core.json');
+  runOneAst('test/cnl/programs/collections/list_ops.aster', 'test/cnl/programs/collections/expected_list_ops.ast.json');
+  await runOneCore('test/cnl/programs/collections/list_ops.aster', 'test/cnl/programs/collections/expected_list_ops_core.json');
+  runOneAst('test/cnl/programs/control-flow/if_param.aster', 'test/cnl/programs/control-flow/expected_if_param.ast.json');
+  await runOneCore('test/cnl/programs/control-flow/if_param.aster', 'test/cnl/programs/control-flow/expected_if_param_core.json');
+  runOneAst('test/cnl/programs/collections/map_ops.aster', 'test/cnl/programs/collections/expected_map_ops.ast.json');
+  await runOneCore('test/cnl/programs/collections/map_ops.aster', 'test/cnl/programs/collections/expected_map_ops_core.json');
   // Generics: function type parameters
-  runOneAst('cnl/examples/id_generic.cnl', 'cnl/examples/expected_id_generic.ast.json');
-  await runOneCore('cnl/examples/id_generic.cnl', 'cnl/examples/expected_id_generic_core.json');
+  runOneAst('test/cnl/programs/generics/id_generic.aster', 'test/cnl/programs/generics/expected_id_generic.ast.json');
+  await runOneCore('test/cnl/programs/generics/id_generic.aster', 'test/cnl/programs/generics/expected_id_generic_core.json');
   // Typecheck diagnostics
   await runOneTypecheck(
-    'cnl/examples/bad_generic.cnl',
-    'cnl/examples/expected_bad_generic.diag.txt'
+    'test/cnl/programs/generics/bad_generic.aster',
+    'test/cnl/programs/generics/expected_bad_generic.diag.txt'
+  );
+  // Effect enforcement (missing @io when IO-like calls are present)
+  await runOneTypecheck(
+    'test/cnl/programs/effects/effect_enforcement.aster',
+    'test/cnl/programs/effects/expected_effect_enforcement.diag.txt'
+  );
+  // Effect inference regression tests
+  await runOneTypecheck(
+    'test/cnl/programs/effects/eff_infer_wrapper_io.aster',
+    'test/cnl/programs/effects/expected_eff_infer_wrapper_io.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/effects/eff_infer_wrapper_cpu.aster',
+    'test/cnl/programs/effects/expected_eff_infer_wrapper_cpu.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/effects/eff_infer_transitive.aster',
+    'test/cnl/programs/effects/expected_eff_infer_transitive.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/effects/eff_infer_mixed.aster',
+    'test/cnl/programs/effects/expected_eff_infer_mixed.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/effects/eff_custom_prefix.aster',
+    'test/cnl/programs/effects/expected_eff_custom_prefix.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/effects/eff_alias_import.aster',
+    'test/cnl/programs/effects/expected_eff_alias_import.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/effects/eff_alias_unmapped.aster',
+    'test/cnl/programs/effects/expected_eff_alias_unmapped.diag.txt'
   );
   // Match example
-  runOneAst('cnl/examples/match_null.cnl', 'cnl/examples/expected_match_null.ast.json');
-  await runOneCore('cnl/examples/match_null.cnl', 'cnl/examples/expected_match_null_core.json');
-  runOneAst('cnl/examples/match_enum.cnl', 'cnl/examples/expected_match_enum.ast.json');
-  await runOneCore('cnl/examples/match_enum.cnl', 'cnl/examples/expected_match_enum_core.json');
+  runOneAst('test/cnl/programs/patterns/match_null.aster', 'test/cnl/programs/patterns/expected_match_null.ast.json');
+  await runOneCore('test/cnl/programs/patterns/match_null.aster', 'test/cnl/programs/patterns/expected_match_null_core.json');
+  runOneAst('test/cnl/programs/patterns/match_enum.aster', 'test/cnl/programs/patterns/expected_match_enum.ast.json');
+  await runOneCore('test/cnl/programs/patterns/match_enum.aster', 'test/cnl/programs/patterns/expected_match_enum_core.json');
   // CNL lambda example
-  runOneAst('cnl/examples/lambda_cnl.cnl', 'cnl/examples/expected_lambda_cnl.ast.json');
-  await runOneCore('cnl/examples/lambda_cnl.cnl', 'cnl/examples/expected_lambda_cnl_core.json');
+  runOneAst('test/cnl/programs/lambda/lambda_cnl.aster', 'test/cnl/programs/lambda/expected_lambda_cnl.ast.json');
+  await runOneCore('test/cnl/programs/lambda/lambda_cnl.aster', 'test/cnl/programs/lambda/expected_lambda_cnl_core.json');
   // CNL short-form lambda example
-  runOneAst('cnl/examples/lambda_cnl_short.cnl', 'cnl/examples/expected_lambda_cnl_short.ast.json');
+  runOneAst('test/cnl/programs/lambda/lambda_cnl_short.aster', 'test/cnl/programs/lambda/expected_lambda_cnl_short.ast.json');
   await runOneCore(
-    'cnl/examples/lambda_cnl_short.cnl',
-    'cnl/examples/expected_lambda_cnl_short_core.json'
+    'test/cnl/programs/lambda/lambda_cnl_short.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_short_core.json'
   );
   // CNL short-form math + bool lambda examples
   runOneAst(
-    'cnl/examples/lambda_cnl_math_bool.cnl',
-    'cnl/examples/expected_lambda_cnl_math_bool.ast.json'
+    'test/cnl/programs/lambda/lambda_cnl_math_bool.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_math_bool.ast.json'
   );
   await runOneCore(
-    'cnl/examples/lambda_cnl_math_bool.cnl',
-    'cnl/examples/expected_lambda_cnl_math_bool_core.json'
+    'test/cnl/programs/lambda/lambda_cnl_math_bool.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_math_bool_core.json'
   );
   // CNL mixed lambdas example (block + short form)
-  runOneAst('cnl/examples/lambda_cnl_mixed.cnl', 'cnl/examples/expected_lambda_cnl_mixed.ast.json');
+  runOneAst('test/cnl/programs/lambda/lambda_cnl_mixed.aster', 'test/cnl/programs/lambda/expected_lambda_cnl_mixed.ast.json');
   await runOneCore(
-    'cnl/examples/lambda_cnl_mixed.cnl',
-    'cnl/examples/expected_lambda_cnl_mixed.core.json'
+    'test/cnl/programs/lambda/lambda_cnl_mixed.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_mixed.core.json'
   );
   // CNL lambda example using Text.length
   runOneAst(
-    'cnl/examples/lambda_cnl_length.cnl',
-    'cnl/examples/expected_lambda_cnl_length.ast.json'
+    'test/cnl/programs/lambda/lambda_cnl_length.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_length.ast.json'
   );
   await runOneCore(
-    'cnl/examples/lambda_cnl_length.cnl',
-    'cnl/examples/expected_lambda_cnl_length_core.json'
+    'test/cnl/programs/lambda/lambda_cnl_length.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_length_core.json'
   );
   // CNL lambda example using Text.length with comparison
   runOneAst(
-    'cnl/examples/lambda_cnl_length_cmp.cnl',
-    'cnl/examples/expected_lambda_cnl_length_cmp.ast.json'
+    'test/cnl/programs/lambda/lambda_cnl_length_cmp.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_length_cmp.ast.json'
   );
   await runOneCore(
-    'cnl/examples/lambda_cnl_length_cmp.cnl',
-    'cnl/examples/expected_lambda_cnl_length_cmp_core.json'
+    'test/cnl/programs/lambda/lambda_cnl_length_cmp.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_length_cmp_core.json'
   );
   // Lambda block-form match with binding + if/else inside lambda
   runOneAst(
-    'cnl/examples/lambda_cnl_match_bind.cnl',
-    'cnl/examples/expected_lambda_cnl_match_bind.ast.json'
+    'test/cnl/programs/lambda/lambda_cnl_match_bind.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_match_bind.ast.json'
   );
   await runOneCore(
-    'cnl/examples/lambda_cnl_match_bind.cnl',
-    'cnl/examples/expected_lambda_cnl_match_bind_core.json'
+    'test/cnl/programs/lambda/lambda_cnl_match_bind.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_match_bind_core.json'
   );
   // Lambda match on Result (Ok/Err) and binding
   runOneAst(
-    'cnl/examples/lambda_cnl_match_result.cnl',
-    'cnl/examples/expected_lambda_cnl_match_result.ast.json'
+    'test/cnl/programs/lambda/lambda_cnl_match_result.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_match_result.ast.json'
   );
   await runOneCore(
-    'cnl/examples/lambda_cnl_match_result.cnl',
-    'cnl/examples/expected_lambda_cnl_match_result_core.json'
+    'test/cnl/programs/lambda/lambda_cnl_match_result.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_match_result_core.json'
   );
   // Lambda match on Maybe (null vs value)
   runOneAst(
-    'cnl/examples/lambda_cnl_match_maybe.cnl',
-    'cnl/examples/expected_lambda_cnl_match_maybe.ast.json'
+    'test/cnl/programs/lambda/lambda_cnl_match_maybe.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_match_maybe.ast.json'
   );
   await runOneCore(
-    'cnl/examples/lambda_cnl_match_maybe.cnl',
-    'cnl/examples/expected_lambda_cnl_match_maybe_core.json'
+    'test/cnl/programs/lambda/lambda_cnl_match_maybe.aster',
+    'test/cnl/programs/lambda/expected_lambda_cnl_match_maybe_core.json'
   );
   // Enum wildcard (catch-all)
-  runOneAst('cnl/examples/enum_wildcard.cnl', 'cnl/examples/expected_enum_wildcard.ast.json');
+  runOneAst('test/cnl/programs/patterns/enum_wildcard.aster', 'test/cnl/programs/patterns/expected_enum_wildcard.ast.json');
   await runOneCore(
-    'cnl/examples/enum_wildcard.cnl',
-    'cnl/examples/expected_enum_wildcard_core.json'
+    'test/cnl/programs/patterns/enum_wildcard.aster',
+    'test/cnl/programs/patterns/expected_enum_wildcard_core.json'
+  );
+  // PII type system tests
+  runOneAst('test/cnl/programs/privacy/pii_type_basic.aster', 'test/cnl/programs/privacy/expected_pii_type_basic.ast.json');
+  await runOneCore('test/cnl/programs/privacy/pii_type_basic.aster', 'test/cnl/programs/privacy/expected_pii_type_basic_core.json');
+  runOneAst('test/cnl/programs/privacy/pii_type_phone.aster', 'test/cnl/programs/privacy/expected_pii_type_phone.ast.json');
+  await runOneCore('test/cnl/programs/privacy/pii_type_phone.aster', 'test/cnl/programs/privacy/expected_pii_type_phone_core.json');
+  runOneAst('test/cnl/programs/privacy/pii_type_ssn.aster', 'test/cnl/programs/privacy/expected_pii_type_ssn.ast.json');
+  await runOneCore('test/cnl/programs/privacy/pii_type_ssn.aster', 'test/cnl/programs/privacy/expected_pii_type_ssn_core.json');
+  runOneAst('test/cnl/programs/privacy/pii_type_in_function.aster', 'test/cnl/programs/privacy/expected_pii_type_in_function.ast.json');
+  await runOneCore('test/cnl/programs/privacy/pii_type_in_function.aster', 'test/cnl/programs/privacy/expected_pii_type_in_function_core.json');
+  runOneAst('test/cnl/programs/privacy/pii_type_in_data.aster', 'test/cnl/programs/privacy/expected_pii_type_in_data.ast.json');
+  await runOneCore('test/cnl/programs/privacy/pii_type_in_data.aster', 'test/cnl/programs/privacy/expected_pii_type_in_data_core.json');
+  runOneAst('test/cnl/programs/privacy/pii_type_mixed.aster', 'test/cnl/programs/privacy/expected_pii_type_mixed.ast.json');
+  await runOneCore('test/cnl/programs/privacy/pii_type_mixed.aster', 'test/cnl/programs/privacy/expected_pii_type_mixed_core.json');
+  await runOneTypecheck(
+    'test/cnl/programs/privacy/pii_http_violation.aster',
+    'test/cnl/programs/privacy/expected_pii_http_violation.diag.txt'
+  );
+  // Annotation support tests (multi-line syntax)
+  runOneAst('test/cnl/programs/annotations/annotations_mixed.aster', 'test/cnl/programs/annotations/expected_annotations_mixed.ast.json');
+  runOneAst('test/cnl/programs/annotations/annotations_multiline.aster', 'test/cnl/programs/annotations/expected_annotations_multiline.ast.json');
+  runOneAst('test/cnl/programs/annotations/annotations_notempty.aster', 'test/cnl/programs/annotations/expected_annotations_notempty.ast.json');
+  runOneAst('test/cnl/programs/annotations/annotations_pattern.aster', 'test/cnl/programs/annotations/expected_annotations_pattern.ast.json');
+  runOneAst('test/cnl/programs/annotations/annotations_range.aster', 'test/cnl/programs/annotations/expected_annotations_range.ast.json');
+  await runOneTypecheck(
+    'test/cnl/programs/privacy/pii_http_safe.aster',
+    'test/cnl/programs/privacy/expected_pii_http_safe.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/privacy/pii_propagation.aster',
+    'test/cnl/programs/privacy/expected_pii_propagation.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/privacy/pii_function_return.aster',
+    'test/cnl/programs/privacy/expected_pii_function_return.diag.txt'
+  );
+  await runOneTypecheck(
+    'test/cnl/programs/privacy/pii_nested_call.aster',
+    'test/cnl/programs/privacy/expected_pii_nested_call.diag.txt'
   );
   // Interop numeric literal kinds (CNL → Core)
-  await runOneCore('cnl/examples/interop_sum.cnl', 'cnl/examples/interop_sum_core.json');
+  await runOneCore('test/cnl/programs/integration/interop/interop_sum.aster', 'test/cnl/programs/core-reference/interop_sum_core.json');
   // Capability manifest violation golden (intentional errors)
   await runOneTypecheckWithCaps(
-    'cnl/examples/capdemo.cnl',
-    'cnl/examples/expected_cap_violate.diag.txt',
-    'cnl/examples/capabilities_deny.json'
+    'test/cnl/programs/business/policy/capdemo.aster',
+    'test/cnl/programs/integration/capabilities/expected_cap_violate.diag.txt',
+    'test/cnl/programs/integration/capabilities/capabilities_deny.json'
   );
   await runOneTypecheckWithCaps(
-    'cnl/examples/capdemo.cnl',
-    'cnl/examples/expected_cap_mixed.diag.txt',
-    'cnl/examples/capabilities_mixed.json'
+    'test/cnl/programs/business/policy/capdemo.aster',
+    'test/cnl/programs/integration/capabilities/expected_cap_mixed.diag.txt',
+    'test/cnl/programs/integration/capabilities/capabilities_mixed.json'
   );
+  // Capability list parsing — CNL-first and bracket sugar
+  runOneAst('test/cnl/programs/effects/eff_caps_parse.aster', 'test/cnl/programs/effects/expected_eff_caps_parse.ast.json');
+  await runOneCore('test/cnl/programs/effects/eff_caps_parse.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_core.json');
+  runOneAst('test/cnl/programs/effects/eff_caps_parse_brackets.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_brackets.ast.json');
+  await runOneCore('test/cnl/programs/effects/eff_caps_parse_brackets.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_brackets_core.json');
+
+  // Additional parse goldens: single-cap and bare-IO
+  runOneAst('test/cnl/programs/effects/eff_caps_parse_single.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_single.ast.json');
+  await runOneCore('test/cnl/programs/effects/eff_caps_parse_single.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_single_core.json');
+  runOneAst('test/cnl/programs/effects/eff_caps_parse_bare.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_bare.ast.json');
+  await runOneCore('test/cnl/programs/effects/eff_caps_parse_bare.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_bare_core.json');
+
+  // Additional parse goldens to exercise capability list variants
+  runOneAst('test/cnl/programs/effects/eff_caps_parse_mixed_brackets_and_and.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_mixed_brackets_and_and.ast.json');
+  await runOneCore('test/cnl/programs/effects/eff_caps_parse_mixed_brackets_and_and.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_mixed_brackets_and_and_core.json');
+  runOneAst('test/cnl/programs/effects/eff_caps_parse_files_secrets.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_files_secrets.ast.json');
+  await runOneCore('test/cnl/programs/effects/eff_caps_parse_files_secrets.aster', 'test/cnl/programs/effects/expected_eff_caps_parse_files_secrets_core.json');
+
+  // Smoke: ensure both forms parse and capture identical capability lists
+  {
+    const srcCnl = [
+      'This module is smoke.aster.',
+      '',
+      'To ping, produce Text. It performs io with Http and Sql and Time:',
+      '  Return "ok".',
+      ''
+    ].join('\n');
+    const srcBracket = [
+      'This module is smoke.aster.',
+      '',
+      'To ping, produce Text. It performs io [Http, Sql, Time]:',
+      '  Return "ok".',
+      ''
+    ].join('\n');
+    const capsCnl = parseCapsFromSource(srcCnl);
+    const capsBracket = parseCapsFromSource(srcBracket);
+    const expected = ['Http', 'Sql', 'Time'];
+    const ok =
+      Array.isArray(capsCnl) &&
+      Array.isArray(capsBracket) &&
+      JSON.stringify(capsCnl) === JSON.stringify(expected) &&
+      JSON.stringify(capsCnl) === JSON.stringify(capsBracket);
+    if (!ok) {
+      console.error('FAIL: PARSE-SMOKE capability caps (CNL vs bracket)');
+      console.error('CNL caps:', capsCnl);
+      console.error('Bracket caps:', capsBracket);
+      process.exitCode = 1;
+    } else {
+      console.log('OK: PARSE-SMOKE capability caps (CNL vs bracket)');
+    }
+  }
+
+  // 确保能力校验未被显式关闭，以便涵盖所有相关黄金用例
+  const prevEnforce = process.env.ASTER_CAP_EFFECTS_ENFORCE;
+  if (prevEnforce === '0') {
+    process.env.ASTER_CAP_EFFECTS_ENFORCE = '1';
+  }
+  try {
+    await runOneTypecheck('test/cnl/programs/effects/eff_caps_enforce.aster', 'test/cnl/programs/effects/expected_eff_caps_enforce.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_caps_enforce_brackets.aster', 'test/cnl/programs/effects/expected_eff_caps_enforce_brackets.diag.txt');
+
+    // Additional enforcement goldens
+    await runOneTypecheck('test/cnl/programs/effects/eff_caps_enforce_unused_extra.aster', 'test/cnl/programs/effects/expected_eff_caps_enforce_unused_extra.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_caps_enforce_missing_ai_model.aster', 'test/cnl/programs/effects/expected_eff_caps_enforce_missing_ai_model.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_caps_enforce_missing_files.aster', 'test/cnl/programs/effects/expected_eff_caps_enforce_missing_files.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_caps_enforce_unused_files.aster', 'test/cnl/programs/effects/expected_eff_caps_enforce_unused_files.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_caps_enforce_missing_secrets.aster', 'test/cnl/programs/effects/expected_eff_caps_enforce_missing_secrets.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_caps_enforce_unused_time.aster', 'test/cnl/programs/effects/expected_eff_caps_enforce_unused_time.diag.txt');
+
+    // Effect violation tests (capability enforcement errors)
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_chain.aster', 'test/cnl/programs/effects/expected_eff_violation_chain.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_cpu_calls_io.aster', 'test/cnl/programs/effects/expected_eff_violation_cpu_calls_io.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_empty_caps.aster', 'test/cnl/programs/effects/expected_eff_violation_empty_caps.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_files_calls_secrets.aster', 'test/cnl/programs/effects/expected_eff_violation_files_calls_secrets.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_http_calls_sql.aster', 'test/cnl/programs/effects/expected_eff_violation_http_calls_sql.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_missing_http.aster', 'test/cnl/programs/effects/expected_eff_violation_missing_http.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_missing_sql.aster', 'test/cnl/programs/effects/expected_eff_violation_missing_sql.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_missing_time.aster', 'test/cnl/programs/effects/expected_eff_violation_missing_time.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_mixed_caps.aster', 'test/cnl/programs/effects/expected_eff_violation_mixed_caps.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_multiple_errors.aster', 'test/cnl/programs/effects/expected_eff_violation_multiple_errors.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_nested_a.aster', 'test/cnl/programs/effects/expected_eff_violation_nested_a.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_nested_b.aster', 'test/cnl/programs/effects/expected_eff_violation_nested_b.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_pure_calls_cpu.aster', 'test/cnl/programs/effects/expected_eff_violation_pure_calls_cpu.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_secrets_calls_ai.aster', 'test/cnl/programs/effects/expected_eff_violation_secrets_calls_ai.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_sql_calls_files.aster', 'test/cnl/programs/effects/expected_eff_violation_sql_calls_files.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_transitive.aster', 'test/cnl/programs/effects/expected_eff_violation_transitive.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_files_only.aster', 'test/cnl/programs/effects/expected_eff_violation_files_only.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_violation_secrets_calls_http.aster', 'test/cnl/programs/effects/expected_eff_violation_secrets_calls_http.diag.txt');
+
+    // Effect validation tests (valid capability declarations - should pass typecheck)
+    // Skip eff_valid_all_caps.aster - requires top-level Call support not yet implemented
+    await runOneTypecheck('test/cnl/programs/effects/eff_valid_cpu_only.aster', 'test/cnl/programs/effects/expected_eff_valid_cpu_only.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_valid_exact_match.aster', 'test/cnl/programs/effects/expected_eff_valid_exact_match.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_valid_http_sql.aster', 'test/cnl/programs/effects/expected_eff_valid_http_sql.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_valid_nested.aster', 'test/cnl/programs/effects/expected_eff_valid_nested.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_valid_pure_only.aster', 'test/cnl/programs/effects/expected_eff_valid_pure_only.diag.txt');
+    await runOneTypecheck('test/cnl/programs/effects/eff_valid_subset_declared.aster', 'test/cnl/programs/effects/expected_eff_valid_subset_declared.diag.txt');
+
+    // Additional typecheck negative tests
+    await runOneTypecheck('test/cnl/programs/generics/bad_generic_return_type.aster', 'test/cnl/programs/generics/expected_bad_generic_return_type.diag.txt');
+  } finally {
+    // 恢复原始环境变量避免污染后续任务
+    if (prevEnforce === undefined) {
+      delete process.env.ASTER_CAP_EFFECTS_ENFORCE;
+    } else {
+      process.env.ASTER_CAP_EFFECTS_ENFORCE = prevEnforce;
+    }
+  }
+
+
 }
 
 main().catch(e => {

@@ -4,35 +4,49 @@
 
 # Interface: Double
 
-Defined in: [types.ts:229](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L229)
+Defined in: [types.ts:302](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L302)
+
+浮点数字面量基础接口。
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- [`BaseDouble`](../base/interfaces/BaseDouble.md)\<[`Span`](Span.md)\>
 
 ## Properties
 
-### span?
+### span
 
-> `readonly` `optional` **span**: [`Span`](Span.md)
+> **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L62)
+Defined in: [types.ts:303](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L303)
+
+#### Overrides
+
+[`BaseDouble`](../base/interfaces/BaseDouble.md).[`span`](../base/interfaces/BaseDouble.md#span)
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+[`BaseDouble`](../base/interfaces/BaseDouble.md).[`origin`](../base/interfaces/BaseDouble.md#origin)
 
 ***
 
 ### file?
 
-> `readonly` `optional` **file**: `null` \| `string`
+> `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L63)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+[`BaseDouble`](../base/interfaces/BaseDouble.md).[`file`](../base/interfaces/BaseDouble.md#file)
 
 ***
 
@@ -40,11 +54,11 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bd
 
 > `readonly` **kind**: `"Double"`
 
-Defined in: [types.ts:230](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L230)
+Defined in: [types/base.ts:333](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L333)
 
-#### Overrides
+#### Inherited from
 
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
+[`Double`](../namespaces/Core/interfaces/Double.md).[`kind`](../namespaces/Core/interfaces/Double.md#kind)
 
 ***
 
@@ -52,4 +66,8 @@ Defined in: [types.ts:230](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **value**: `number`
 
-Defined in: [types.ts:231](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L231)
+Defined in: [types/base.ts:334](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L334)
+
+#### Inherited from
+
+[`Double`](../namespaces/Core/interfaces/Double.md).[`value`](../namespaces/Core/interfaces/Double.md#value)

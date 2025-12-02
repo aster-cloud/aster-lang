@@ -4,15 +4,33 @@
 
 # Interface: Field
 
-Defined in: [types.ts:362](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L362)
+Defined in: [types.ts:464](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L464)
+
+字段基础接口。
+
+## Extends
+
+- [`BaseField`](../../../base/interfaces/BaseField.md)\<[`Type`](../type-aliases/Type.md)\>
 
 ## Properties
+
+### annotations
+
+> `readonly` **annotations**: readonly [`Annotation`](Annotation.md)[]
+
+Defined in: [types.ts:465](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L465)
+
+***
 
 ### name
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:363](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L363)
+Defined in: [types/base.ts:74](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L74)
+
+#### Inherited from
+
+[`BaseField`](../../../base/interfaces/BaseField.md).[`name`](../../../base/interfaces/BaseField.md#name)
 
 ***
 
@@ -20,4 +38,8 @@ Defined in: [types.ts:363](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **type**: [`Type`](../type-aliases/Type.md)
 
-Defined in: [types.ts:364](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L364)
+Defined in: [types/base.ts:75](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L75)
+
+#### Inherited from
+
+[`BaseField`](../../../base/interfaces/BaseField.md).[`type`](../../../base/interfaces/BaseField.md#type)

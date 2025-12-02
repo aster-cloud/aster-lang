@@ -1,0 +1,4 @@
+This module is test.pii.ssn.
+
+To get_ssn, produce @pii(L3, ssn) Text:
+  Return "123-45-6789".

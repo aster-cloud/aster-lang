@@ -1,0 +1,4 @@
+This module is tests.typecheck.list.
+
+To numbers, produce List of Int:
+  Return [1, "two"].

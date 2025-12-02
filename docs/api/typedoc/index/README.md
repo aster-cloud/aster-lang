@@ -4,10 +4,22 @@
 
 # index
 
+## Example
+
+```typescript
+import { canonicalize, lex, parse, lowerModule } from '@wontlost-ltd/aster-lang';
+
+const src = `This module is app. To id, produce Int: Return 1.`;
+const canonical = canonicalize(src);  // 规范化源代码
+const tokens = lex(canonical);         // 词法分析
+const ast = parse(tokens);             // 语法分析
+const core = lowerModule(ast);         // 降级到 Core IR
+console.log(core);
+```
+
 ## Variables
 
 - [Node](variables/Node.md)
-- [KW](variables/KW.md)
 
 ## References
 
@@ -43,13 +55,19 @@ Re-exports [Core](../core_ir/variables/Core.md)
 
 ### Effect
 
-Re-exports [Effect](../types/enumerations/Effect.md)
+Re-exports [Effect](../config/semantic/enumerations/Effect.md)
 
 ***
 
 ### TokenKind
 
 Re-exports [TokenKind](../types/enumerations/TokenKind.md)
+
+***
+
+### KW
+
+Re-exports [KW](../config/semantic/variables/KW.md)
 
 ***
 
@@ -71,15 +89,57 @@ Re-exports [Origin](../types/interfaces/Origin.md)
 
 ***
 
+### AstMetadata
+
+Re-exports [AstMetadata](../types/interfaces/AstMetadata.md)
+
+***
+
+### EffectCapable
+
+Re-exports [EffectCapable](../types/interfaces/EffectCapable.md)
+
+***
+
+### CapabilityKind
+
+Re-exports [CapabilityKind](../types/type-aliases/CapabilityKind.md)
+
+***
+
+### EffectCaps
+
+Re-exports [EffectCaps](../types/type-aliases/EffectCaps.md)
+
+***
+
 ### Token
 
 Re-exports [Token](../types/interfaces/Token.md)
 
 ***
 
+### CommentValue
+
+Re-exports [CommentValue](../types/interfaces/CommentValue.md)
+
+***
+
+### isCommentToken
+
+Re-exports [isCommentToken](../types/functions/isCommentToken.md)
+
+***
+
+### TypecheckDiagnostic
+
+Re-exports [TypecheckDiagnostic](../types/interfaces/TypecheckDiagnostic.md)
+
+***
+
 ### AstNode
 
-Re-exports [AstNode](../types/interfaces/AstNode.md)
+Re-exports [AstNode](../types/type-aliases/AstNode.md)
 
 ***
 
@@ -98,6 +158,12 @@ Re-exports [Import](../types/interfaces/Import.md)
 ### Data
 
 Re-exports [Data](../types/interfaces/Data.md)
+
+***
+
+### Annotation
+
+Re-exports [Annotation](../types/interfaces/Annotation.md)
 
 ***
 
@@ -188,6 +254,30 @@ Re-exports [Start](../types/interfaces/Start.md)
 ### Wait
 
 Re-exports [Wait](../types/interfaces/Wait.md)
+
+***
+
+### WorkflowStmt
+
+Re-exports [WorkflowStmt](../types/interfaces/WorkflowStmt.md)
+
+***
+
+### StepStmt
+
+Re-exports [StepStmt](../types/interfaces/StepStmt.md)
+
+***
+
+### RetryPolicy
+
+Re-exports [RetryPolicy](../types/interfaces/RetryPolicy.md)
+
+***
+
+### Timeout
+
+Re-exports [Timeout](../types/interfaces/Timeout.md)
 
 ***
 
@@ -329,6 +419,42 @@ Re-exports [Type](../types/type-aliases/Type.md)
 
 ***
 
+### PiiSensitivityLevel
+
+Re-exports [PiiSensitivityLevel](../types/type-aliases/PiiSensitivityLevel.md)
+
+***
+
+### PiiDataCategory
+
+Re-exports [PiiDataCategory](../types/type-aliases/PiiDataCategory.md)
+
+***
+
+### PII\_LEVELS
+
+Re-exports [PII_LEVELS](../types/variables/PII_LEVELS.md)
+
+***
+
+### PiiLevel
+
+Re-exports [PiiLevel](../types/type-aliases/PiiLevel.md)
+
+***
+
+### PiiMeta
+
+Re-exports [PiiMeta](../types/interfaces/PiiMeta.md)
+
+***
+
+### TypePii
+
+Re-exports [TypePii](../types/interfaces/TypePii.md)
+
+***
+
 ### TypeName
 
 Re-exports [TypeName](../types/interfaces/TypeName.md)
@@ -338,6 +464,12 @@ Re-exports [TypeName](../types/interfaces/TypeName.md)
 ### TypeVar
 
 Re-exports [TypeVar](../types/interfaces/TypeVar.md)
+
+***
+
+### EffectVar
+
+Re-exports [EffectVar](../types/interfaces/EffectVar.md)
 
 ***
 

@@ -1,0 +1,10 @@
+This module is test.eff.violation.chain.
+
+To step1, produce Text. It performs io [AiModel]:
+  Return AiModel.generate("step1").
+
+To step2, produce Text. It performs io [Time]:
+  Return +(step1(), Time.now()).
+
+To step3, produce Text. It performs cpu:
+  Return +(step2(), " processed").

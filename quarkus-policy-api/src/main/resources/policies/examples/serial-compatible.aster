@@ -1,0 +1,29 @@
+This module is policies.examples.serial_compatible.
+
+To runSerialWorkflow, produce Result of Text with IO. It performs io:
+
+  workflow:
+    step validate_input:
+      return ok of "validated".
+
+    compensate:
+      return ok of "validation reverted".
+
+    step reserve_slots:
+      return ok of "slots reserved".
+
+    compensate:
+      return ok of "slots released".
+
+    step charge_customer:
+      return ok of "charged".
+
+    compensate:
+      return ok of "charge reversed".
+
+    step finalize_order:
+      return ok of "completed".
+
+    timeout: 60 seconds.
+
+  .

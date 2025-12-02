@@ -1,0 +1,76 @@
+This module is aster.finance.personal_lending.
+
+// Complex personal lending policy with nested logic and multiple dependencies
+// Evaluates individual borrowers based on credit, income, debt, and behavioral factors
+
+// BEFORE (unreadable single-line with 9 fields):
+// Define PersonalInfo with @NotEmpty applicantId: Text, @Range(min: 18, max: 120) age: Int, @NotEmpty educationLevel: Text, @NotEmpty employmentStatus: Text, @NotEmpty occupation: Text, @Range(min: 0, max: 50) yearsAtJob: Int, @Range(min: 0, max: 600) monthsAtAddress: Int, @NotEmpty maritalStatus: Text, dependents: Int.
+
+// AFTER (readable multi-line format):
+Define PersonalInfo with
+  @NotEmpty applicantId: Text,
+  @Range(min: 18, max: 120) age: Int,
+  @NotEmpty educationLevel: Text,
+  @NotEmpty employmentStatus: Text,
+  @NotEmpty occupation: Text,
+  @Range(min: 0, max: 50) yearsAtJob: Int,
+  @Range(min: 0, max: 600) monthsAtAddress: Int,
+  @NotEmpty maritalStatus: Text,
+  dependents: Int.
+
+Define IncomeProfile with
+  monthlyIncome: Int,
+  additionalIncome: Int,
+  spouseIncome: Int,
+  rentIncome: Int,
+  @NotEmpty incomeStability: Text,
+  @Range(min: 0, max: 100) incomeGrowthRate: Int.
+
+Define CreditProfile with
+  @Range(min: 300, max: 850) creditScore: Int,
+  @Range(min: 0, max: 600) creditHistory: Int,
+  activeLoans: Int,
+  creditCardCount: Int,
+  @Range(min: 0, max: 100) creditUtilization: Int,
+  latePayments: Int,
+  defaults: Int,
+  bankruptcies: Int,
+  inquiries: Int.
+
+Define DebtProfile with
+  totalMonthlyDebt: Int,
+  mortgagePayment: Int,
+  carPayment: Int,
+  studentLoanPayment: Int,
+  creditCardMinPayment: Int,
+  otherDebtPayment: Int.
+
+Define LoanRequest with
+  requestedAmount: Int,
+  @NotEmpty purpose: Text,
+  @Range(min: 0, max: 600) termMonths: Int,
+  downPayment: Int,
+  collateralValue: Int.
+
+Define LoanDecision with
+  approved: Bool,
+  approvedAmount: Int,
+  @Range(min: 0, max: 5000) interestRateBps: Int,
+  @Range(min: 0, max: 600) termMonths: Int,
+  monthlyPayment: Int,
+  downPaymentRequired: Int,
+  @NotEmpty conditions: Text,
+  @NotEmpty riskLevel: Text,
+  decisionScore: Int,
+  @NotEmpty reasonCode: Text,
+  @NotEmpty recommendations: Text.
+
+// Function with multi-line annotated parameters
+To calculatePurposeAdjustment with
+  @NotEmpty purpose: Text,
+  produce Int:
+  If =(purpose, "HOME_PURCHASE"),:
+    Return 110.
+  If =(purpose, "HOME_RENOVATION"),:
+    Return 105.
+  Return 85.

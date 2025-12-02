@@ -1,0 +1,39 @@
+This module is io.aster.ecommerce.order_fulfillment.
+
+// 订单履约 Workflow
+//
+// 实现完整的电商订单履约流程，包含验证、库存预留、支付、物流创建和通知。
+// 所有步骤按声明顺序串行执行，失败时自动按 LIFO 顺序执行补偿逻辑。
+
+To fulfillOrder, produce Result of Text with IO. It performs io [Payment, Inventory]:
+
+  workflow:
+    step validate_order:
+      return ok of "order validated".
+
+    step reserve_inventory:
+      Return ok of Inventory.reserve("order-id", List.empty()).
+
+    compensate:
+      Inventory.release("reservation-id").
+      Return ok of "inventory released".
+
+    step charge_payment:
+      Return ok of Payment.charge("order-id", 100.0).
+
+    compensate:
+      Payment.refund("payment-id").
+      Return ok of "payment refunded".
+
+    step create_shipment:
+      return ok of "shipment created".
+
+    compensate:
+      return ok of "shipment cancelled".
+
+    step notify_customer:
+      return ok of "customer notified".
+
+    timeout: 300 seconds.
+
+  .

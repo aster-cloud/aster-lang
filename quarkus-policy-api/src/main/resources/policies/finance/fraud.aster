@@ -1,0 +1,16 @@
+This module is aster.finance.fraud.
+
+Define Transaction with transactionId: Text, accountId: Text, amount: Int, timestamp: Int.
+
+Define AccountHistory with accountId: Text, averageAmount: Int, suspiciousCount: Int, accountAge: Int, lastTimestamp: Int.
+
+Define FraudResult with isSuspicious: Bool, riskScore: Int, reason: Text.
+
+To detectFraud with transaction: Transaction, history: AccountHistory, produce FraudResult:
+  If >(transaction.amount, 1000000),:
+    Return FraudResult with isSuspicious = true, riskScore = 100, reason = "Extremely large transaction".
+  If >(history.suspiciousCount, 5),:
+    Return FraudResult with isSuspicious = true, riskScore = 85, reason = "High suspicious activity history".
+  If <(history.accountAge, 30),:
+    Return FraudResult with isSuspicious = true, riskScore = 70, reason = "New account risk".
+  Return FraudResult with isSuspicious = false, riskScore = 10, reason = "Normal transaction".

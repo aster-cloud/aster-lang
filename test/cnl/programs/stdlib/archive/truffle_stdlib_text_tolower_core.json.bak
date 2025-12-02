@@ -1,0 +1,43 @@
+{
+  "kind": "Module",
+  "name": "test.text.tolower",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "run",
+      "params": [],
+      "ret": { "kind": "TypeName", "name": "Int" },
+      "effects": [],
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "result",
+            "expr": {
+              "kind": "Call",
+              "target": { "kind": "Name", "name": "Text.toLower" },
+              "args": [
+                { "kind": "String", "value": "HELLO" }
+              ]
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "If",
+              "cond": {
+                "kind": "BinOp",
+                "op": "==",
+                "left": { "kind": "Name", "name": "result" },
+                "right": { "kind": "String", "value": "hello" }
+              },
+              "then": { "kind": "Int", "value": 1 },
+              "else": { "kind": "Int", "value": 0 }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

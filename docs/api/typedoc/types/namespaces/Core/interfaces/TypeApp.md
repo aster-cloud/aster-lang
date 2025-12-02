@@ -4,23 +4,49 @@
 
 # Interface: TypeApp
 
-Defined in: [types.ts:575](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L575)
+Defined in: [types.ts:627](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L627)
+
+类型应用基础接口。
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- [`BaseTypeApp`](../../../base/interfaces/BaseTypeApp.md)\<[`Origin`](../../../interfaces/Origin.md), [`Type`](../type-aliases/Type.md)\>
 
 ## Properties
+
+### span?
+
+> `readonly` `optional` **span**: `undefined`
+
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L41)
+
+#### Inherited from
+
+[`BaseTypeApp`](../../../base/interfaces/BaseTypeApp.md).[`span`](../../../base/interfaces/BaseTypeApp.md#span)
+
+***
 
 ### origin?
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L341)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+[`BaseTypeApp`](../../../base/interfaces/BaseTypeApp.md).[`origin`](../../../base/interfaces/BaseTypeApp.md#origin)
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `string` \| `null`
+
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
+
+#### Inherited from
+
+[`BaseTypeApp`](../../../base/interfaces/BaseTypeApp.md).[`file`](../../../base/interfaces/BaseTypeApp.md#file)
 
 ***
 
@@ -28,11 +54,11 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **kind**: `"TypeApp"`
 
-Defined in: [types.ts:576](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L576)
+Defined in: [types/base.ts:451](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L451)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+[`BaseTypeApp`](../../../base/interfaces/BaseTypeApp.md).[`kind`](../../../base/interfaces/BaseTypeApp.md#kind)
 
 ***
 
@@ -40,7 +66,11 @@ Defined in: [types.ts:576](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **base**: `string`
 
-Defined in: [types.ts:577](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L577)
+Defined in: [types/base.ts:452](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L452)
+
+#### Inherited from
+
+[`BaseTypeApp`](../../../base/interfaces/BaseTypeApp.md).[`base`](../../../base/interfaces/BaseTypeApp.md#base)
 
 ***
 
@@ -48,4 +78,8 @@ Defined in: [types.ts:577](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **args**: readonly [`Type`](../type-aliases/Type.md)[]
 
-Defined in: [types.ts:578](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L578)
+Defined in: [types/base.ts:453](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L453)
+
+#### Inherited from
+
+[`BaseTypeApp`](../../../base/interfaces/BaseTypeApp.md).[`args`](../../../base/interfaces/BaseTypeApp.md#args)

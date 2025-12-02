@@ -6,7 +6,7 @@
 
 > `const` **Core**: `object`
 
-Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/core_ir.ts#L8)
+Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/core_ir.ts#L8)
 
 ## Type Declaration
 
@@ -18,7 +18,7 @@ Defined in: [core\_ir.ts:8](https://github.com/wontlost-ltd/aster-lang/blob/6af9
 
 ##### name
 
-`null` | `string`
+`string` | `null`
 
 ##### decls
 
@@ -40,7 +40,7 @@ readonly [`Declaration`](../../types/namespaces/Core/type-aliases/Declaration.md
 
 ##### asName
 
-`null` | `string`
+`string` | `null`
 
 #### Returns
 
@@ -84,7 +84,7 @@ readonly `string`[]
 
 ### Func()
 
-> **Func**: (`name`, `typeParams`, `params`, `ret`, `effects`, `body`) => [`Func`](../../types/namespaces/Core/interfaces/Func.md)
+> **Func**: (`name`, `typeParams`, `params`, `ret`, `effects`, `body`, `effectCaps`, `effectCapsExplicit`, `effectParams?`, `declaredEffects?`) => [`Func`](../../types/namespaces/Core/interfaces/Func.md)
 
 #### Parameters
 
@@ -94,7 +94,7 @@ readonly `string`[]
 
 ##### typeParams
 
-`undefined` | readonly `string`[]
+readonly `string`[] | `undefined`
 
 ##### params
 
@@ -106,11 +106,27 @@ readonly [`Parameter`](../../types/namespaces/Core/interfaces/Parameter.md)[]
 
 ##### effects
 
-readonly [`Effect`](../../types/enumerations/Effect.md)[]
+readonly [`Effect`](../../config/semantic/enumerations/Effect.md)[]
 
 ##### body
 
 [`Block`](../../types/namespaces/Core/interfaces/Block.md)
+
+##### effectCaps
+
+readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)[] = `[]`
+
+##### effectCapsExplicit
+
+`boolean` = `false`
+
+##### effectParams?
+
+readonly `string`[]
+
+##### declaredEffects?
+
+readonly ([`EffectVar`](../../types/namespaces/Core/interfaces/EffectVar.md) \| [`Effect`](../../config/semantic/enumerations/Effect.md))[]
 
 #### Returns
 
@@ -210,7 +226,7 @@ readonly [`Statement`](../../types/namespaces/Core/type-aliases/Statement.md)[]
 
 ##### elseBlock
 
-`null` | [`Block`](../../types/namespaces/Core/interfaces/Block.md)
+[`Block`](../../types/namespaces/Core/interfaces/Block.md) | `null`
 
 #### Returns
 
@@ -284,6 +300,62 @@ readonly `string`[]
 
 [`Wait`](../../types/namespaces/Core/interfaces/Wait.md)
 
+### Workflow()
+
+> **Workflow**: (`steps`, `effectCaps`, `retry?`, `timeout?`) => [`Workflow`](../../types/namespaces/Core/interfaces/Workflow.md)
+
+#### Parameters
+
+##### steps
+
+readonly [`Step`](../../types/namespaces/Core/interfaces/Step.md)[]
+
+##### effectCaps
+
+readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)[]
+
+##### retry?
+
+[`RetryPolicy`](../../types/namespaces/Core/interfaces/RetryPolicy.md)
+
+##### timeout?
+
+[`Timeout`](../../types/namespaces/Core/interfaces/Timeout.md)
+
+#### Returns
+
+[`Workflow`](../../types/namespaces/Core/interfaces/Workflow.md)
+
+### Step()
+
+> **Step**: (`name`, `body`, `effectCaps`, `compensate?`, `dependencies`) => [`Step`](../../types/namespaces/Core/interfaces/Step.md)
+
+#### Parameters
+
+##### name
+
+`string`
+
+##### body
+
+[`Block`](../../types/namespaces/Core/interfaces/Block.md)
+
+##### effectCaps
+
+readonly [`CapabilityKind`](../../config/semantic/enumerations/CapabilityKind.md)[]
+
+##### compensate?
+
+[`Block`](../../types/namespaces/Core/interfaces/Block.md)
+
+##### dependencies?
+
+readonly `string`[] = `[]`
+
+#### Returns
+
+[`Step`](../../types/namespaces/Core/interfaces/Step.md)
+
 ### Name()
 
 > **Name**: (`name`) => [`Name`](../../types/namespaces/Core/interfaces/Name.md)
@@ -334,7 +406,7 @@ readonly `string`[]
 
 ##### value
 
-`number`
+`string`
 
 #### Returns
 
@@ -586,6 +658,28 @@ readonly [`Type`](../../types/namespaces/Core/type-aliases/Type.md)[]
 
 [`TypeVar`](../../types/namespaces/Core/interfaces/TypeVar.md)
 
+### Pii()
+
+> **Pii**: (`baseType`, `sensitivity`, `category`) => [`PiiType`](../../types/namespaces/Core/interfaces/PiiType.md)
+
+#### Parameters
+
+##### baseType
+
+[`Type`](../../types/namespaces/Core/type-aliases/Type.md)
+
+##### sensitivity
+
+`"L1"` | `"L2"` | `"L3"`
+
+##### category
+
+[`PiiDataCategory`](../../types/type-aliases/PiiDataCategory.md)
+
+#### Returns
+
+[`PiiType`](../../types/namespaces/Core/interfaces/PiiType.md)
+
 ### PatNull()
 
 > **PatNull**: () => [`PatNull`](../../types/namespaces/Core/interfaces/PatNull.md)
@@ -596,7 +690,7 @@ readonly [`Type`](../../types/namespaces/Core/type-aliases/Type.md)[]
 
 ### Await()
 
-> **Await**: (`expr`) => [`Expression`](../../types/namespaces/Core/type-aliases/Expression.md)
+> **Await**: (`expr`) => [`Await`](../../types/namespaces/Core/interfaces/Await.md)
 
 #### Parameters
 
@@ -606,7 +700,7 @@ readonly [`Type`](../../types/namespaces/Core/type-aliases/Type.md)[]
 
 #### Returns
 
-[`Expression`](../../types/namespaces/Core/type-aliases/Expression.md)
+[`Await`](../../types/namespaces/Core/interfaces/Await.md)
 
 ### PatCtor()
 

@@ -1,0 +1,262 @@
+{
+  "kind": "Module",
+  "name": "demo.lambdamatchbind",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "User",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "greetUser",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "u",
+          "type": {
+            "kind": "TypeName",
+            "name": "User",
+            "annotations": []
+          }
+        },
+        {
+          "name": "pfx",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "f",
+            "expr": {
+              "kind": "Lambda",
+              "params": [
+                {
+                  "name": "x",
+                  "type": {
+                    "kind": "TypeName",
+                    "name": "User",
+                    "annotations": []
+                  }
+                }
+              ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Text",
+                "annotations": []
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Match",
+                    "expr": {
+                      "kind": "Name",
+                      "name": "x"
+                    },
+                    "cases": [
+                      {
+                        "kind": "Case",
+                        "pattern": {
+                          "kind": "PatternCtor",
+                          "typeName": "User",
+                          "names": [
+                            "id",
+                            "name"
+                          ]
+                        },
+                        "body": {
+                          "kind": "Return",
+                          "expr": {
+                            "kind": "Call",
+                            "target": {
+                              "kind": "Name",
+                              "name": "Text.concat"
+                            },
+                            "args": [
+                              {
+                                "kind": "Name",
+                                "name": "pfx"
+                              },
+                              {
+                                "kind": "Name",
+                                "name": "name"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "f"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "u"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "posOrZero",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "n",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Int",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "sel",
+            "expr": {
+              "kind": "Lambda",
+              "params": [
+                {
+                  "name": "x",
+                  "type": {
+                    "kind": "TypeName",
+                    "name": "Int",
+                    "annotations": []
+                  }
+                }
+              ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Int",
+                "annotations": []
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "If",
+                    "cond": {
+                      "kind": "Call",
+                      "target": {
+                        "kind": "Name",
+                        "name": "<"
+                      },
+                      "args": [
+                        {
+                          "kind": "Name",
+                          "name": "x"
+                        },
+                        {
+                          "kind": "Int",
+                          "value": 0
+                        }
+                      ]
+                    },
+                    "thenBlock": {
+                      "kind": "Block",
+                      "statements": [
+                        {
+                          "kind": "Return",
+                          "expr": {
+                            "kind": "Int",
+                            "value": 0
+                          }
+                        }
+                      ]
+                    },
+                    "elseBlock": {
+                      "kind": "Block",
+                      "statements": [
+                        {
+                          "kind": "Return",
+                          "expr": {
+                            "kind": "Name",
+                            "name": "x"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "sel"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "n"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

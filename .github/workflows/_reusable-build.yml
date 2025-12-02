@@ -1,0 +1,54 @@
+name: Reusable TypeScript Build
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js 版本
+        required: false
+        default: '22'
+        type: string
+      artifact-name:
+        description: 上传产物名称
+        required: false
+        default: 'build-artifacts'
+        type: string
+      working-directory:
+        description: TypeScript 项目所在目录
+        required: false
+        default: '.'
+        type: string
+    outputs:
+      artifact-name:
+        description: 构建产物名称
+        value: ${{ jobs.typescript-build.outputs.artifact-name }}
+
+jobs:
+  typescript-build:
+    name: TypeScript 构建
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: ${{ inputs.artifact-name }}
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'false'
+          node-version: ${{ inputs.node-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: 构建 TypeScript
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: npm run build
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.working-directory == '.' && 'dist/' || format('{0}/dist/', inputs.working-directory) }}
+          retention-days: 1

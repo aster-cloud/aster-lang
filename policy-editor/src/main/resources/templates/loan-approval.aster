@@ -1,0 +1,13 @@
+This module is aster.templates.loan.approval.
+
+To evaluateLoanEligibility with applicant, history is
+  Let stableIncome be applicant.income is over 90000 and applicant.employmentYears is over 3.
+  Let pristineCredit be applicant.creditScore is over 760 and history.pastDefaults is 0.
+  When pristineCredit and stableIncome then
+    approve with message "优选档：年利率 4.25% 并可附加加速放款".
+  When applicant.creditScore is over 700 and history.latePayments is under 2 then
+    approve with message "标准档：年利率 5.45%".
+  When applicant.creditScore is over 640 and applicant.creditScore is under 700 and applicant.downPaymentRatio is over 0.25 then
+    approve with message "储备档：需人工复核抵押物".
+  Else
+    deny with message "分数或现金流不足，建议先建立担保".

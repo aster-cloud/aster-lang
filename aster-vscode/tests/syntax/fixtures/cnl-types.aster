@@ -1,0 +1,96 @@
+# CNL Type Syntax Tests - Round 33
+
+# Function declaration with Map TO syntax
+To processUser with userId: UserId, produce Map UserId TO Profile:
+  Return profiles.get userId.
+
+# Result of ... and ... syntax
+To fetchData with url: Text, produce Result of Text and NetworkError:
+  Return Http.get url.
+
+# Function with angle bracket generics parameter (Round 29 L1)
+To handleResponse with payload: Result<Text, Error> and callback: Function<Response, Void>, produce Boolean:
+  Return payload.isSuccess.
+
+# Type alias with CNL generics (case variations)
+type UserMap as Map UserId TO Profile.
+type ApiResult as Result of Text and Error.
+type RuleList as list OF RuleCondition AND Constraint.
+
+# Data type with CNL field types
+Define UserProfile with
+  id: UserId,
+  permissions: list of Permission,
+  cache: Map UserId TO Result of Profile and CacheError.
+
+# Map with annotations and Maybe
+Define SecurePayload with
+  users: Map @Encrypted UserId TO @Masked Profile?,
+  data: Result of @Validated Text and ValidationError.
+
+# Nested Map with CNL generics
+type ComplexMapping as Map Result of Text and ParseError TO list of Item.
+
+# Full uppercase OF/AND
+type UpperCaseGeneric as list OF Item AND Error.
+
+# Mixed case combinations
+type MixedCase as Result Of Text And ApiError.
+
+# Legacy record syntax with CNL generics
+A UserRecord is a record of
+It has id: UserId.
+It has items: list of RuleCondition.
+It has cache: Map UserId TO Profile.
+It has result: Result OF Text AND Error.
+
+# Round 31: Optional (Maybe) parameter types with ?
+To findUser with name: Text?, produce Profile?:
+  Return users.find name.
+
+# Round 31: Optional with angle bracket generics
+To tryParse with input: Text, produce Result<Data, ParseError>?:
+  Return parser.parse input.
+
+# Round 31: Function type parameters (tuple-like)
+To transform with mapper: (Text, Int) -> Boolean and data: list of Text, produce list of Boolean:
+  Return data.map mapper.
+
+# Round 31: Nested function types with generics
+To compose with first: (A) -> B and second: (B) -> C, produce (A) -> C:
+  Return fn a: second first a.
+
+# Round 31: Combined Maybe and CNL generics
+type OptionalResult as Result of Text? and Error?.
+type MaybeMap as Map UserId? TO Profile?.
+
+# Round 31: Data type with optional fields
+Define PartialUser with
+  id: UserId,
+  name: Text?,
+  email: Result<Text, ValidationError>?,
+  callback: (Text) -> Void?.
+
+# Round 33: Define with article (per AsterParser.g4:133-134)
+Define a User with
+  name: Text,
+  age: Int.
+
+Define an Order with
+  items: list of Item,
+  total: Decimal.
+
+# Round 33: Enum with article (per AsterParser.g4:162-163)
+Define a Status as one of Pending, Active, Done.
+Define an Priority as one of Low, Medium, High, Critical.
+
+# Round 33: Function with parameter annotations
+To validateUser with @NotEmpty name: Text and @Range(min=0, max=120) age: Int, produce Boolean:
+  Return name.isNotEmpty.
+
+# Round 33: Function with capability annotation (per AsterParser.g4:125-127)
+To fetchRemoteData with url: Text, produce Result of Text and NetworkError. It performs io [Http, Logging]:
+  Return Http.get url.
+
+To processPayment with amount: Decimal, produce Result of Receipt and PaymentError. It performs io [Payment, Audit]:
+  Return Payment.process amount.

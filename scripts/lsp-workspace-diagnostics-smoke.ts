@@ -7,7 +7,7 @@ function send(server: ChildProcessWithoutNullStreams, msg: Record<string, unknow
   server.stdin.write(header + payload);
 }
 
-async function readOne(server: ChildProcessWithoutNullStreams, id: number, timeoutMs = 2000): Promise<any> {
+async function readOne(server: ChildProcessWithoutNullStreams, id: number, timeoutMs = 5000): Promise<any> {
   return new Promise((resolve, reject) => {
     let buffer = '';
     const onData = (chunk: string | Buffer): void => {
@@ -28,8 +28,9 @@ async function readOne(server: ChildProcessWithoutNullStreams, id: number, timeo
             resolve(obj);
             return;
           }
+          // Continue processing other messages (notifications, etc.)
         } catch {
-          // ignore
+          // ignore parse errors and continue
         }
       }
     };

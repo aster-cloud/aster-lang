@@ -1,0 +1,13 @@
+This module is std.io.
+
+To print with msg: Text, produce Text. It performs io:
+  Return IO.print(msg).
+
+To readLine, produce Text. It performs io:
+  Return IO.readLine().
+
+To readFile with path: Text, produce Result of Text and Text. It performs io:
+  Return IO.readFile(path).
+
+To writeFile with path: Text, contents: Text, produce Bool. It performs io:
+  Return IO.writeFile(path, contents).

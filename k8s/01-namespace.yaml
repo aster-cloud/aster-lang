@@ -1,0 +1,8 @@
+# Namespace for Aster Policy Editor deployment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aster-policy
+  labels:
+    app.kubernetes.io/name: aster-policy
+    app.kubernetes.io/part-of: aster-lang

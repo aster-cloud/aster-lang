@@ -1,0 +1,11 @@
+# Match 表达式测试
+# 测试传统语法 match 关键字
+
+enum Result:
+  Ok
+  Err
+
+func handle(result: Result) -> Text:
+  match result:
+    Ok -> return "Success"
+    Err -> return "Error"

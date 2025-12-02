@@ -10,7 +10,7 @@ function main(): void {
     decls: [
       // Interop.sum with I,J,D
       { kind: 'Func', name: 'sumI', params: [], ret: { kind: 'TypeName', name: 'Text' }, effects: [], body: { kind: 'Block', statements: [ { kind: 'Return', expr: { kind: 'Call', target: { kind: 'Name', name: 'aster.runtime.Interop.sum' }, args: [ { kind: 'Int', value: 1 }, { kind: 'Int', value: 2 } ] } } ] } },
-      { kind: 'Func', name: 'sumJ', params: [], ret: { kind: 'TypeName', name: 'Text' }, effects: [], body: { kind: 'Block', statements: [ { kind: 'Return', expr: { kind: 'Call', target: { kind: 'Name', name: 'aster.runtime.Interop.sum' }, args: [ { kind: 'Long', value: 1 }, { kind: 'Long', value: 2 } ] } } ] } },
+      { kind: 'Func', name: 'sumJ', params: [], ret: { kind: 'TypeName', name: 'Text' }, effects: [], body: { kind: 'Block', statements: [ { kind: 'Return', expr: { kind: 'Call', target: { kind: 'Name', name: 'aster.runtime.Interop.sum' }, args: [ { kind: 'Long', value: '1' }, { kind: 'Long', value: '2' } ] } } ] } },
       { kind: 'Func', name: 'sumD', params: [], ret: { kind: 'TypeName', name: 'Text' }, effects: [], body: { kind: 'Block', statements: [ { kind: 'Return', expr: { kind: 'Call', target: { kind: 'Name', name: 'aster.runtime.Interop.sum' }, args: [ { kind: 'Double', value: 1.0 }, { kind: 'Double', value: 2.0 } ] } } ] } },
       // Interop.pick with common overloads
       { kind: 'Func', name: 'pickI', params: [], ret: { kind: 'TypeName', name: 'Text' }, effects: [], body: { kind: 'Block', statements: [ { kind: 'Return', expr: { kind: 'Call', target: { kind: 'Name', name: 'aster.runtime.Interop.pick' }, args: [ { kind: 'Int', value: 1 } ] } } ] } },

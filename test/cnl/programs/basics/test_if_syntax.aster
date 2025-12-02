@@ -1,0 +1,8 @@
+This module is test.loan.
+
+Define Decision with approved: Bool, reason: Text.
+
+To check with age: Number, produce Decision:
+  If <(age, 18),:
+    Return Decision with approved = false, reason = "Too young".
+  Return Decision with approved = true, reason = "OK".

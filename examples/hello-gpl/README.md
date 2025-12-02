@@ -1,10 +1,10 @@
 # Aster Project Scaffold
 
-This folder was created by Aster's scaffold tool. It contains a minimal CNL program at `cnl/main.cnl`.
+This folder was created by Aster's scaffold tool. It contains a minimal CNL program at `test/cnl/main.aster`.
 
 ## Files
 
-- `cnl/main.cnl` — demo module with `hello` and `greet`.
+- `test/cnl/main.aster` — demo module with `hello` and `greet`.
 
 ## Try It (from aster-lang repo root)
 
@@ -14,15 +14,15 @@ This folder was created by Aster's scaffold tool. It contains a minimal CNL prog
 
 2) Parse to AST:
 
-   node dist/scripts/cli.js examples/hello-gpl/cnl/main.cnl
+   node dist/scripts/cli.js examples/hello-gpl/test/cnl/main.aster
 
 3) Emit Core IR:
 
-   node dist/scripts/emit-core.js examples/hello-gpl/cnl/main.cnl
+   node dist/scripts/emit-core.js examples/hello-gpl/test/cnl/main.aster
 
 4) Emit JVM class files and create a jar:
 
-   node dist/scripts/emit-classfiles.js examples/hello-gpl/cnl/main.cnl
+   node dist/scripts/emit-classfiles.js examples/hello-gpl/test/cnl/main.aster
    node --loader ts-node/esm scripts/jar-jvm.ts
 
 The generated jar is written to `build/aster-out/aster.jar`. You can attach it to the example Gradle apps under `examples/*` (they already depend on that jar).

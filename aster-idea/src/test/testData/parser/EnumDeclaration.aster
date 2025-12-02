@@ -1,0 +1,11 @@
+# Enum 枚举声明测试
+# 测试传统语法 enum 关键字
+
+enum Color:
+  Red
+  Green
+  Blue
+
+enum Status:
+  Active
+  Inactive

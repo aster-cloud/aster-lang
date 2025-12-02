@@ -1,4 +1,5 @@
 # Lambdas & Closures (Design Draft)
+Status: Draft | Last updated: 2025-10-07 12:06 NZST | Maintainer: Codex
 
 This document outlines a minimal design to add first-class function values to
 the Core IR and JVM emitter. The goals are predictable lowering, simple
@@ -133,4 +134,4 @@ From CNL examples end-to-end (parse → lower → emit ASM → javap):
 npm run verify:asm:lambda:cnl
 ```
 
-This emits classes for the lambda examples in `cnl/examples/` and runs `javap -v` on all emitted `.class` files.
+This emits classes for the lambda examples in `test/cnl/examples/` and runs `javap -v` on all emitted `.class` files.

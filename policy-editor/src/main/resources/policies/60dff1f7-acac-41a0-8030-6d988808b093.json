@@ -1,0 +1,15 @@
+{
+  "id" : "60dff1f7-acac-41a0-8030-6d988808b093",
+  "name" : "test-native",
+  "allow" : {
+    "rules" : {
+      "cpu" : [ "*" ],
+      "io" : [ "*" ]
+    }
+  },
+  "deny" : {
+    "rules" : {
+      "io" : [ "/etc/passwd" ]
+    }
+  }
+}

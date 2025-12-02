@@ -4,23 +4,49 @@
 
 # Interface: TypeVar
 
-Defined in: [types.ts:570](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L570)
+Defined in: [types.ts:620](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L620)
+
+类型变量基础接口。
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- [`BaseTypeVar`](../../../base/interfaces/BaseTypeVar.md)\<[`Origin`](../../../interfaces/Origin.md)\>
 
 ## Properties
+
+### span?
+
+> `readonly` `optional` **span**: `undefined`
+
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L41)
+
+#### Inherited from
+
+[`BaseTypeVar`](../../../base/interfaces/BaseTypeVar.md).[`span`](../../../base/interfaces/BaseTypeVar.md#span)
+
+***
 
 ### origin?
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L341)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+[`BaseTypeVar`](../../../base/interfaces/BaseTypeVar.md).[`origin`](../../../base/interfaces/BaseTypeVar.md#origin)
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `string` \| `null`
+
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
+
+#### Inherited from
+
+[`BaseTypeVar`](../../../base/interfaces/BaseTypeVar.md).[`file`](../../../base/interfaces/BaseTypeVar.md#file)
 
 ***
 
@@ -28,11 +54,11 @@ Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **kind**: `"TypeVar"`
 
-Defined in: [types.ts:571](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L571)
+Defined in: [types/base.ts:443](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L443)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+[`BaseTypeVar`](../../../base/interfaces/BaseTypeVar.md).[`kind`](../../../base/interfaces/BaseTypeVar.md#kind)
 
 ***
 
@@ -40,4 +66,8 @@ Defined in: [types.ts:571](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **name**: `string`
 
-Defined in: [types.ts:572](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L572)
+Defined in: [types/base.ts:444](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L444)
+
+#### Inherited from
+
+[`BaseTypeVar`](../../../base/interfaces/BaseTypeVar.md).[`name`](../../../base/interfaces/BaseTypeVar.md#name)

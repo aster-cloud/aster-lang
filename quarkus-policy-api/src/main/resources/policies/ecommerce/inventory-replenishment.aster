@@ -1,0 +1,30 @@
+This module is io.aster.ecommerce.inventory_replenishment.
+
+// 库存补货 Workflow
+//
+// 检查低库存商品并向供应商下单补货。
+// 注意：当前版本采用串行采购（supplier_a → supplier_b），
+// 待 Phase 2.4 实现 depends on 语法后可改为并发采购以提高效率。
+
+To replenishInventory, produce Result of Text with IO. It performs io:
+
+  workflow:
+    step check_stock_levels:
+      // 检查低库存商品列表
+      return ok of "low stock items identified".
+
+    step order_from_supplier_a:
+      // 向供应商 A 下单采购
+      return ok of "order placed with supplier A".
+
+    step order_from_supplier_b:
+      // 向供应商 B 下单采购（串行执行，等待 supplier_a 完成）
+      return ok of "order placed with supplier B".
+
+    step update_inventory:
+      // 更新库存数据（等待所有采购完成）
+      return ok of "inventory updated".
+
+    timeout: 600 seconds.
+
+  .

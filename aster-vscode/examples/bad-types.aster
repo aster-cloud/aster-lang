@@ -1,0 +1,7 @@
+This module is test.bad.
+
+To broken, produce Int:
+  Return "this is a string, not an int".
+
+To test_call, produce Text:
+  Return broken().

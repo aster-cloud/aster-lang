@@ -1,0 +1,118 @@
+{
+  "kind": "Module",
+  "name": "app.math",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "cmp",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        },
+        {
+          "name": "y",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "<"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "y"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "add",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        },
+        {
+          "name": "y",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Int",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "+"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "y"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+This module is boundary.result.errcase.
+
+To main, produce Result of Int and Text?:
+  Return Err(null).

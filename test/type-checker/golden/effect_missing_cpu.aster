@@ -1,0 +1,4 @@
+This module is tests.typecheck.effects.cpu.
+
+To hashText with value: Text, produce Text:
+  Return Cpu.hash(value).

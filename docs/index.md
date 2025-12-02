@@ -22,7 +22,7 @@ Aster is a programming language designed with a human-friendly Controlled Natura
 - Human-feeling syntax with deterministic semantics
 - Non-null by default, Maybe/Option distinction
 - First-class pattern matching and algebraic data types
-- Effect system (IO/CPU) from day one
+- Effect system (IO/CPU) enforced at compile-time
 
 ```text
 To greet user: maybe User, produce Text:
@@ -34,8 +34,8 @@ To greet user: maybe User, produce Text:
 ```bash
 # Try it
 npm run build
-node dist/scripts/cli.js cnl/examples/greet.cnl
-node dist/scripts/emit-core.js cnl/examples/greet.cnl
+node dist/scripts/cli.js test/cnl/examples/greet.aster
+node dist/scripts/emit-core.js test/cnl/examples/greet.aster
 ```
 
 ## Quickstart & Commands

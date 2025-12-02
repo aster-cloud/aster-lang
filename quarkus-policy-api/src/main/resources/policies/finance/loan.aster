@@ -1,0 +1,26 @@
+This module is aster.finance.loan.
+
+Define LoanApplication with @NotEmpty applicantId: Text, amount: Int, @Range(min: 0, max: 600) termMonths: Int, @NotEmpty purpose: Text.
+
+Define ApplicantProfile with @Range(min: 18, max: 120) age: Int, @Range(min: 300, max: 850) creditScore: Int, annualIncome: Int, monthlyDebt: Int, @Range(min: 0, max: 50) yearsEmployed: Int.
+
+Define LoanDecision with approved: Bool, @NotEmpty reason: Text, approvedAmount: Int, @Range(min: 0, max: 5000) interestRateBps: Int, @Range(min: 0, max: 600) termMonths: Int.
+
+To evaluateLoanEligibility with application: LoanApplication, applicant: ApplicantProfile, produce LoanDecision:
+  If <(applicant.age, 18),:
+    Return LoanDecision with approved = false, reason = "Age below 18", approvedAmount = 0, interestRateBps = 0, termMonths = 0.
+  If >(applicant.age, 75),:
+    Return LoanDecision with approved = false, reason = "Age above 75", approvedAmount = 0, interestRateBps = 0, termMonths = 0.
+  If <(applicant.creditScore, 650),:
+    Return LoanDecision with approved = false, reason = "Credit below 650", approvedAmount = 0, interestRateBps = 0, termMonths = 0.
+  Let rate be determineInterestRateBps(applicant.creditScore).
+  Return LoanDecision with approved = true, reason = "Approved", approvedAmount = application.amount, interestRateBps = rate, termMonths = application.termMonths.
+
+To determineInterestRateBps with @Range(min: 300, max: 850) creditScore: Int, produce Int:
+  If <(creditScore, 670),:
+    Return 675.
+  If <(creditScore, 740),:
+    Return 550.
+  If <(creditScore, 800),:
+    Return 425.
+  Return 350.

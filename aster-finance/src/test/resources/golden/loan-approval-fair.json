@@ -1,0 +1,27 @@
+{
+  "customer": {
+    "id": "C_FAIR",
+    "name": "Fair Credit Customer",
+    "dateOfBirth": "1995-07-25",
+    "creditScore": 670,
+    "annualIncome": {
+      "amount": 70000.00,
+      "currency": "USD"
+    }
+  },
+  "loanApplication": {
+    "id": "LA_FAIR",
+    "requestedAmount": {
+      "amount": 150000.00,
+      "currency": "USD"
+    },
+    "termMonths": 360,
+    "purpose": "HOME"
+  },
+  "expectedEvaluation": {
+    "approved": true,
+    "reason": "Application meets all requirements",
+    "interestRate": 0.10,
+    "riskLevel": "MEDIUM"
+  }
+}

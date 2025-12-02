@@ -4,32 +4,58 @@
 
 # Interface: PatNull
 
-Defined in: [types.ts:449](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L449)
+Defined in: [types.ts:533](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L533)
+
+Null 模式基础接口。
 
 ## Extends
 
-- [`CoreNode`](CoreNode.md)
+- [`BasePatternNull`](../../../base/interfaces/BasePatternNull.md)\<[`Origin`](../../../interfaces/Origin.md)\>
 
 ## Properties
+
+### span?
+
+> `readonly` `optional` **span**: `undefined`
+
+Defined in: [types/base.ts:41](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L41)
+
+#### Inherited from
+
+[`BasePatternNull`](../../../base/interfaces/BasePatternNull.md).[`span`](../../../base/interfaces/BasePatternNull.md#span)
+
+***
 
 ### origin?
 
 > `readonly` `optional` **origin**: [`Origin`](../../../interfaces/Origin.md)
 
-Defined in: [types.ts:341](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L341)
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`CoreNode`](CoreNode.md).[`origin`](CoreNode.md#origin)
+[`BasePatternNull`](../../../base/interfaces/BasePatternNull.md).[`origin`](../../../base/interfaces/BasePatternNull.md#origin)
+
+***
+
+### file?
+
+> `readonly` `optional` **file**: `string` \| `null`
+
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
+
+#### Inherited from
+
+[`BasePatternNull`](../../../base/interfaces/BasePatternNull.md).[`file`](../../../base/interfaces/BasePatternNull.md#file)
 
 ***
 
 ### kind
 
-> `readonly` **kind**: `"PatNull"`
+> `readonly` **kind**: `"PatternNull"` \| `"PatNull"`
 
-Defined in: [types.ts:450](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L450)
+Defined in: [types/base.ts:261](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L261)
 
-#### Overrides
+#### Inherited from
 
-[`CoreNode`](CoreNode.md).[`kind`](CoreNode.md#kind)
+[`BasePatternNull`](../../../base/interfaces/BasePatternNull.md).[`kind`](../../../base/interfaces/BasePatternNull.md#kind)

@@ -20,24 +20,21 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout repo
+      - name: Checkout 代码
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Java 21 (Graalvm)
-        uses: actions/setup-java@v4
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
         with:
-          distribution: graalvm
-          java-version: '21'
-          cache: 'gradle'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
+          checkout: 'false'
+          fetch-depth: '0'
+          enable-node: 'true'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+          enable-java: 'true'
+          java-provider: 'graalvm'
+          java-version: '25'
+          npm-ci: 'false'
 
       - name: Clean lockfile and node_modules
         run: |
@@ -49,7 +46,7 @@ jobs:
         run: npm run build
 
       - name: Run CI checks
-        run: npm run ci || echo "CI checks non-blocking in release workflow"
+        run: npm run ci:fast || echo "CI checks non-blocking in release workflow"
 
       - name: Create Version PR (no publish)
         id: changesets

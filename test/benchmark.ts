@@ -4,6 +4,7 @@ import { canonicalize } from '../src/canonicalizer.js';
 import { lex } from '../src/lexer.js';
 import { parse } from '../src/parser.js';
 import { lowerModule } from '../src/lower_to_core.js';
+import { generateLargeProgram } from './generators.js';
 
 function benchmark<T>(name: string, fn: () => T, iterations = 1000): { result: T; avgMs: number; opsPerSec: number } {
   // Warm up
@@ -27,34 +28,12 @@ function benchmark<T>(name: string, fn: () => T, iterations = 1000): { result: T
   return { result: result!, avgMs, opsPerSec };
 }
 
-function generateLargeProgram(size: number): string {
-  const lines = [
-    'This module is benchmark.test.',
-    '',
-    'Define User with id: Text and name: Text and email: Text.',
-    'Define Status as one of Active or Inactive or Pending.',
-    '',
-  ];
-  
-  for (let i = 0; i < size; i++) {
-    lines.push(`To process${i} with user: User, produce Status:`);
-    lines.push(`  Let id be user.id.`);
-    lines.push(`  Let name be user.name.`);
-    lines.push(`  If name,:`);
-    lines.push(`    Return Active.`);
-    lines.push(`  Return Inactive.`);
-    lines.push('');
-  }
-  
-  return lines.join('\n');
-}
-
 function main(): void {
   console.log('Running performance benchmarks...\n');
   
   // Load test files
-  const greetProgram = fs.readFileSync('cnl/examples/greet.cnl', 'utf8');
-  const loginProgram = fs.readFileSync('cnl/examples/login.cnl', 'utf8');
+  const greetProgram = fs.readFileSync('test/cnl/programs/examples/greet.aster', 'utf8');
+  const loginProgram = fs.readFileSync('test/cnl/programs/examples/login.aster', 'utf8');
   const largeProgram = generateLargeProgram(50); // 50 functions
   
   console.log('=== Small Programs ===');

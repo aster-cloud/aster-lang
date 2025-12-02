@@ -1,0 +1,54 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+out/
+target/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*.swn
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests (保留以支持 TypeScript 构建)
+
+# CI/CD
+.github/
+.circleci/
+
+# Misc
+.env
+.env.*
+*.log
+.cache/
+.tmp/
+
+# Keep necessary files
+!package.json
+!package-lock.json
+!tsconfig.json
+!build.gradle.kts
+!settings.gradle.kts
+!gradlew
+!gradle/

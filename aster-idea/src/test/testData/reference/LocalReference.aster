@@ -1,0 +1,4 @@
+func example() -> Int:
+  let x = 10
+  let y = x + 5
+  return y

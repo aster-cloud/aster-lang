@@ -1,0 +1,23 @@
+This module is examples.workflow.linear_order.
+
+To processOrder, produce Result of Text with IO. It performs io:
+  
+  workflow:
+    step validate:
+      return ok of "order validated".
+    
+    step reserve_inventory:
+      return ok of "inventory reserved".
+      
+      compensate:
+        return ok of "inventory released".
+    
+    step charge_payment:
+      return ok of "payment charged".
+      
+      compensate:
+        return ok of "payment refunded".
+    
+    timeout: 30 seconds.
+  
+  .

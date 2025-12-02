@@ -1,0 +1,200 @@
+# Aster Lang Development Environment
+#
+# 用途：本地开发和测试的完整环境
+# 启动：docker-compose up -d
+# 停止：docker-compose down
+
+version: '3.8'
+
+services:
+  # Aster Runtime
+  aster-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aster/runtime:latest
+    container_name: aster-runtime
+    ports:
+      - "8080:8080"  # HTTP API
+      - "9090:9090"  # 管理端口（健康检查、指标）
+    environment:
+      - ASTER_ENV=development
+      - ASTER_LOG_LEVEL=info
+    volumes:
+      - ./workspace:/workspace:rw  # 挂载工作空间
+    networks:
+      - aster-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "aster", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL (用于 workflow 状态持久化)
+  postgres:
+    image: docker.io/bitnami/postgresql:latest
+    container_name: policy-api-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_DATABASE=aster_policy
+    volumes:
+      - postgres-data:/bitnami/postgresql
+    networks:
+      - aster-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  policy-api:
+    image: ${POLICY_API_IMAGE:-aster/policy-api:test}
+    container_name: policy-api
+    ports:
+      - "8081:8080"
+    environment:
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://policy-api-postgres:5432/aster_policy
+      - QUARKUS_DATASOURCE_REACTIVE_URL=postgresql://policy-api-postgres:5432/aster_policy
+      - QUARKUS_DATASOURCE_USERNAME=postgres
+      - QUARKUS_DATASOURCE_PASSWORD=postgres
+      - QUARKUS_FLYWAY_MIGRATE_AT_START=true
+      - QUARKUS_REDIS_HOSTS=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - aster-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/q/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Redis (用于缓存和任务队列)
+  redis:
+    image: redis:7-alpine
+    container_name: aster-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - aster-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus (可选：用于监控)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: aster-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - aster-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana (可选：用于可视化)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: aster-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - aster-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    depends_on:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: aster-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager-data:/alertmanager
+      - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - aster-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: aster-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@policy-api-postgres:5432/aster_policy?sslmode=disable"
+    networks:
+      - aster-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    depends_on:
+      - postgres
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: aster-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "redis:6379"
+    networks:
+      - aster-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    depends_on:
+      - redis
+
+networks:
+  aster-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:

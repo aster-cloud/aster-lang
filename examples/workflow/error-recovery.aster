@@ -1,0 +1,18 @@
+This module is examples.workflow.error_recovery.
+
+To handleErrors, produce Result of Text with IO. It performs io:
+  
+  workflow:
+    step prepare:
+      return ok of "prepared".
+      
+      compensate:
+        return ok of "cleanup prepared".
+    
+    step execute:
+      return err of "execution failed".
+      
+      compensate:
+        return ok of "rollback executed".
+  
+  .

@@ -3,38 +3,139 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE'
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE'
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/policy-api
+
 jobs:
-  test:
-    name: Test (Node ${{ matrix.node-version }})
+  # 变更检测 - 确定需要运行哪些 jobs
+  changes:
+    name: 检测变更范围
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22]
-    
+    # 对于 Draft PR，仅运行基础检查
+    if: github.event.pull_request.draft != true || github.event_name != 'pull_request'
+    timeout-minutes: 5
+    outputs:
+      typescript: ${{ steps.filter.outputs.typescript }}
+      java: ${{ steps.filter.outputs.java }}
+      gradle: ${{ steps.filter.outputs.gradle }}
+      truffle: ${{ steps.filter.outputs.truffle }}
+      quarkus: ${{ steps.filter.outputs.quarkus }}
+      docker: ${{ steps.filter.outputs.docker }}
+      vscode: ${{ steps.filter.outputs.vscode }}
     steps:
-      - name: Checkout code
+      - name: Checkout 代码
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+
+      - name: 检测变更文件
+        uses: dorny/paths-filter@v3
+        id: filter
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Type check
+          filters: |
+            typescript:
+              - 'src/**'
+              - 'test/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig*.json'
+            java:
+              - 'aster-core/**'
+              - 'aster-asm-emitter/**'
+              - 'gradle/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+            gradle:
+              - 'gradle/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradlew*'
+            truffle:
+              - 'aster-truffle/**'
+              - 'aster-core/**'
+            quarkus:
+              - 'quarkus-policy-api/**'
+              - 'aster-core/**'
+            docker:
+              - 'quarkus-policy-api/Dockerfile'
+              - 'quarkus-policy-api/**'
+            vscode:
+              - 'aster-vscode/**'
+
+  # Draft PR 快速通道 - 仅运行基础检查
+  draft-check:
+    name: Draft PR 快速检查
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == true && github.event_name == 'pull_request'
+    timeout-minutes: 10
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'false'
+
+      - name: 类型检查
         run: npm run typecheck
-      
+
+      - name: Lint 检查
+        run: npm run lint
+
+  build:
+    name: Build TypeScript
+    needs: changes
+    if: always() && (needs.changes.outputs.typescript == 'true' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    uses: ./.github/workflows/_reusable-build.yml
+    with:
+      node-version: '22'
+      artifact-name: build-artifacts
+
+  # 快速质量检查 (并行执行)
+  quality-checks:
+    name: 代码质量检查
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    if: always() && needs.build.result == 'success'
+    timeout-minutes: 10
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'false'
+
+      - name: 下载 TypeScript 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: 类型检查
+        run: npm run typecheck
+
       - name: Lint (auto-fix on failure)
         id: lint
         shell: bash
@@ -46,9 +147,7 @@ jobs:
           else
             echo "Lint issues found. Attempting auto-fix..."
             npm run -s lint:fix || true
-            # Save the diff as a patch artifact for contributors
             git diff --patch > eslint-fix.patch || true
-            # Re-run lint; fail only if it still isn't clean
             if npm run -s lint; then
               echo "Auto-fix applied successfully. Proceeding with CI."
               echo "fixed=true" >> "$GITHUB_OUTPUT"
@@ -58,13 +157,13 @@ jobs:
             fi
           fi
 
-      - name: Upload lint patch
+      - name: 上传 Lint 修复补丁
         if: steps.lint.outputs.fixed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: eslint-fixes
           path: eslint-fix.patch
-      
+
       - name: Format check (auto-fix on failure)
         id: format
         shell: bash
@@ -75,11 +174,8 @@ jobs:
             echo "fixed=false" >> "$GITHUB_OUTPUT"
           else
             echo "Format issues found. Attempting auto-fix..."
-            # Try to fix formatting
             npm run -s format
-            # Save the diff as a patch artifact for contributors
             git diff --patch > prettier-fix.patch || true
-            # Re-check formatting; fail only if it still isn't clean
             if npm run -s format:check; then
               echo "Auto-fix applied successfully. Proceeding with CI."
               echo "fixed=true" >> "$GITHUB_OUTPUT"
@@ -89,107 +185,135 @@ jobs:
             fi
           fi
 
-      - name: Upload formatting patch
+      - name: 上传格式化补丁
         if: steps.format.outputs.fixed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: prettier-fixes
           path: prettier-fix.patch
-      
-      - name: Build
-        run: npm run build
-      
-      - name: Test
+
+      - name: 校验错误码
+        run: npm run verify:error-codes
+
+  # 单元测试 (与质量检查并行)
+  unit-tests:
+    name: 单元测试
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    if: always() && needs.build.result == 'success'
+    timeout-minutes: 15
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'false'
+
+      - name: 下载 TypeScript 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: 审核依赖
+        run: npm run audit
+
+      - name: 运行单元测试
         run: npm run test
-      
-      - name: Test CLI tools
+
+      - name: 测试 CLI 工具
         run: |
           echo "Testing AST CLI..."
-          node dist/scripts/cli.js cnl/examples/greet.cnl > /tmp/greet-ast.json
+          node dist/scripts/cli.js test/cnl/programs/examples/greet.aster > /tmp/greet-ast.json
           echo "Testing Core IR CLI..."
-          node dist/scripts/emit-core.js cnl/examples/greet.cnl > /tmp/greet-core.json
+          node dist/scripts/emit-core.js test/cnl/programs/examples/greet.aster > /tmp/greet-core.json
           echo "CLI tools working correctly"
 
   benchmark:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
-    needs: test
-    
+    needs: [changes, build]
+    # 仅在 main 分支或手动触发时运行 benchmark（节省时间）
+    if: always() && needs.build.result == 'success' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    timeout-minutes: 10
     steps:
-      - name: Checkout code
+      - name: Checkout 代码
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          node-version: 22
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Build
-        run: npm run build
-      
-      - name: Run benchmarks
+          checkout: 'false'
+          enable-java: 'false'
+
+      - name: 下载 TypeScript 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: 运行基准测试
         run: npm run bench
 
   security:
     name: Security Audit
     runs-on: ubuntu-latest
+    needs: changes
+    # 仅在 main 分支或 package.json 变更时运行
+    if: always() && (github.ref == 'refs/heads/main' || needs.changes.outputs.typescript == 'true')
+    timeout-minutes: 10
     continue-on-error: true
-    
     steps:
-      - name: Checkout code
+      - name: Checkout 代码
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+
+      - name: 初始化 Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          node-version: 22
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Security audit
+          checkout: 'false'
+          enable-java: 'false'
+
+      - name: npm 审计
         run: npm audit --audit-level=high
-      
+
       - name: Check for known vulnerabilities
         run: npx audit-ci --high
 
   jvm:
     name: JVM Emitter Check
     runs-on: ubuntu-latest
-    needs: test
+    needs: [changes, build]
+    # 仅在 Java/Gradle 代码变更时运行（节省约 5-8 分钟）
+    if: always() && needs.build.result == 'success' && (needs.changes.outputs.java == 'true' || needs.changes.outputs.typescript == 'true' || github.ref == 'refs/heads/main')
+    timeout-minutes: 20
     steps:
-      - name: Checkout code
+      - name: Checkout 代码
         uses: actions/checkout@v4
 
-      - name: Setup Java 21 (Graalvm)
-        uses: actions/setup-java@v4
+      - name: 初始化 GraalVM + Node 环境
+        uses: ./.github/actions/setup-env
         with:
-          distribution: graalvm
-          java-version: '21'
-          cache: 'gradle'
+          checkout: 'false'
+          enable-java: 'true'
+          enable-gradle: 'true'
 
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+      - name: 下载 TypeScript 产物
+        uses: actions/download-artifact@v4
         with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Ensure gradlew is executable
-        run: chmod +x ./gradlew
+          name: build-artifacts
+          path: dist/
 
       - name: Emit classfiles from example
-        run: npm run emit:class cnl/examples/greet.cnl
+        run: npm run emit:class test/cnl/programs/examples/greet.aster
+
+      - name: Build JAR with checksum
+        run: npm run jar:jvm
+
+      - name: Verify JAR checksum (cross-toolchain consistency)
+        run: npm run verify:jar:checksum
 
       - name: Verify generated classes with javap
         run: npm run javap:verify
@@ -199,3 +323,465 @@ jobs:
 
       - name: Verify examples compile (blocking)
         run: npm run verify:examples
+
+      - name: Run Java core module tests
+        run: ./gradlew :aster-core:test :aster-asm-emitter:test --no-configuration-cache
+
+      - name: Generate aggregated coverage report
+        run: ./gradlew jacocoAggregateReport --no-configuration-cache
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            build/reports/jacoco/aggregate/
+            aster-core/build/reports/jacoco/test/
+            aster-asm-emitter/build/reports/jacoco/test/
+
+  cross-stack-validation:
+    name: Cross-Stack Typecheck Validation
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    # 仅在 Java 或 TypeScript 变更时运行
+    if: always() && needs.build.result == 'success' && (needs.changes.outputs.java == 'true' || needs.changes.outputs.typescript == 'true' || github.ref == 'refs/heads/main')
+    timeout-minutes: 15
+    env:
+      JAVA_TYPECHECK_CMD: ${{ vars.JAVA_TYPECHECK_CMD || '' }}
+      TS_TYPECHECK_CMD: ${{ vars.TS_TYPECHECK_CMD || '' }}
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 初始化 Node + Temurin 环境
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'true'
+          java-provider: 'temurin'
+          java-distribution: 'temurin'
+          java-version: '21'
+
+      - name: 下载 TypeScript 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: Show cross-validate configuration
+        run: |
+          if [ -z "$JAVA_TYPECHECK_CMD" ] || [ -z "$TS_TYPECHECK_CMD" ]; then
+            echo "⏭️  JAVA_TYPECHECK_CMD/TS_TYPECHECK_CMD 未配置，跳過 cross_validate 執行。"
+          else
+            echo "✅ 檢測命令已配置，將執行 cross_validate。"
+          fi
+
+      - name: Run cross-stack validation
+        if: ${{ env.JAVA_TYPECHECK_CMD != '' && env.TS_TYPECHECK_CMD != '' }}
+        run: bash scripts/cross_validate.sh
+
+  quarkus-policy-api:
+    name: Quarkus Policy API Tests
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    # 仅在 Quarkus 相关代码变更时运行（节省约 3-5 分钟）
+    if: always() && needs.build.result == 'success' && (needs.changes.outputs.quarkus == 'true' || github.ref == 'refs/heads/main')
+    timeout-minutes: 15
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 初始化 GraalVM + Node 环境
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'true'
+          enable-gradle: 'true'
+
+      - name: 下载 TypeScript 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: Run Quarkus policy API service tests
+        run: ./gradlew :quarkus-policy-api:test --tests "io.aster.policy.api.*" --no-configuration-cache
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quarkus-policy-api-test-results
+          path: quarkus-policy-api/build/reports/tests/test/
+
+  policy-api-build:
+    name: Policy API Multi-arch Build
+    runs-on: ubuntu-latest
+    needs: [changes, quarkus-policy-api]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.quarkus-policy-api.result == 'success'
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+          - arch: arm64
+            platform: linux/arm64
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: Checkout 代码
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-node: 'false'
+          npm-ci: 'false'
+          enable-java: 'false'
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta-build
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+
+      - name: Start build timer
+        id: policy_build_start
+        run: echo "timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Build image (${{ matrix.platform }})
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: quarkus-policy-api/Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: ${{ steps.meta-build.outputs.labels }}
+
+      - name: Capture build duration (${{ matrix.platform }})
+        run: |
+          end=$(date +%s)
+          duration=$((end - ${{ steps.policy_build_start.outputs.timestamp }}))
+          echo "::notice::${{ matrix.platform }} build completed in ${duration}s"
+
+      - name: Save image digest (${{ matrix.arch }})
+        run: echo "${{ steps.docker_build.outputs.digest }}" > digest-${{ matrix.arch }}.txt
+
+      - name: Upload digest artifact (${{ matrix.arch }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: policy-api-digest-${{ matrix.arch }}
+          path: digest-${{ matrix.arch }}.txt
+
+  policy-api-manifest:
+    name: Policy API Multi-arch Manifest
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: policy-api-build
+    timeout-minutes: 10
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: policy-api-digest-*
+          path: digests
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+
+      - name: Publish multi-arch manifest
+        run: |
+          set -euo pipefail
+          DIGESTS=()
+          for file in digests/*.txt; do
+            [ -f "$file" ] || continue
+            DIGESTS+=("$(cat "$file")")
+          done
+          if [ ${#DIGESTS[@]} -eq 0 ]; then
+            echo "No digests found"
+            exit 1
+          fi
+          echo "Creating manifests for:"
+          printf '%s\n' "${DIGESTS[@]}"
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker buildx imagetools create -t "$tag" "${DIGESTS[@]}"
+          done <<< "${{ steps.meta.outputs.tags }}"
+
+  security-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: policy-api-manifest
+    timeout-minutes: 15
+    steps:
+      - name: Trivy SARIF scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+      - name: Enforce CRITICAL/HIGH policy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+  policy-api-metrics:
+    name: Policy API Acceptance & Metrics
+    runs-on: ubuntu-latest
+    needs: [changes, quarkus-policy-api]
+    # 仅在 Quarkus 代码变更或 main 分支时运行
+    if: always() && needs.quarkus-policy-api.result == 'success' && (needs.changes.outputs.quarkus == 'true' || github.ref == 'refs/heads/main')
+    timeout-minutes: 20
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: Checkout 代码
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-node: 'false'
+          npm-ci: 'false'
+          enable-java: 'false'
+
+      - name: Start build timer
+        id: local-build-start
+        run: echo "started=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Build local image
+        id: local-build
+        env:
+          IMAGE_TAG: policy-api-ci:${{ github.sha }}
+        run: docker build -f quarkus-policy-api/Dockerfile -t "$IMAGE_TAG" .
+
+      - name: Capture build metrics
+        id: local-build-metrics
+        env:
+          IMAGE_TAG: policy-api-ci:${{ github.sha }}
+        run: |
+          end=$(date +%s)
+          duration=$((end - ${{ steps.local-build-start.outputs.started }}))
+          size=$(docker images "$IMAGE_TAG" --format "{{.Size}}")
+          echo "seconds=$duration" >> "$GITHUB_OUTPUT"
+          echo "size=$size" >> "$GITHUB_OUTPUT"
+          echo "::notice::Local build completed in ${duration}s (size ${size})"
+
+      - name: Acceptance and benchmark
+        id: local-acceptance
+        env:
+          IMAGE_TAG: policy-api-ci:${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker network create policy-ci || true
+          docker run -d --name policy-ci-postgres --network policy-ci \
+            -e POSTGRESQL_USERNAME=postgres \
+            -e POSTGRESQL_PASSWORD=postgres \
+            -e POSTGRESQL_DATABASE=aster_policy \
+            docker.io/bitnami/postgresql:latest
+          docker run -d --name policy-ci-redis --network policy-ci \
+            docker.io/redis:7-alpine
+          for i in {1..12}; do
+            if docker exec policy-ci-postgres pg_isready -U postgres >/dev/null 2>&1; then
+              break
+            fi
+            echo "Waiting for Postgres..."
+            sleep 5
+          done
+          for i in {1..12}; do
+            if docker exec policy-ci-redis redis-cli ping >/dev/null 2>&1; then
+              echo "Redis is ready"
+              break
+            fi
+            echo "Waiting for Redis..."
+            sleep 2
+          done
+          docker run -d --name policy-ci-app --network policy-ci -p 8080:8080 \
+            -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://policy-ci-postgres:5432/aster_policy \
+            -e QUARKUS_DATASOURCE_REACTIVE_URL=postgresql://policy-ci-postgres:5432/aster_policy \
+            -e QUARKUS_DATASOURCE_USERNAME=postgres \
+            -e QUARKUS_DATASOURCE_PASSWORD=postgres \
+            -e QUARKUS_FLYWAY_MIGRATE_AT_START=true \
+            -e QUARKUS_REDIS_HOSTS=redis://policy-ci-redis:6379 \
+            "$IMAGE_TAG"
+          start=$(date +%s)
+          timeout=120
+          while true; do
+            if docker logs policy-ci-app 2>&1 | grep -q "started in"; then
+              break
+            fi
+            if [ $(( $(date +%s) - start )) -gt $timeout ]; then
+              echo "Startup timeout - application did not log 'started in'"
+              docker logs policy-ci-app
+              exit 1
+            fi
+            sleep 2
+          done
+          line=$(docker logs policy-ci-app 2>&1 | grep "started in" | tail -n 1)
+          startup=$(echo "$line" | grep -oE '[0-9]+\.[0-9]+s' | sed 's/s$//')
+          health_timeout=30
+          health_start=$(date +%s)
+          health_ready=false
+          while true; do
+            if curl -sf http://localhost:8080/q/health >/dev/null 2>&1; then
+              health_ready=true
+              break
+            fi
+            if [ $(( $(date +%s) - health_start )) -gt $health_timeout ]; then
+              echo "Health check timeout - endpoint not ready after ${health_timeout}s"
+              echo "Application logs:"
+              docker logs policy-ci-app
+              exit 1
+            fi
+            echo "Waiting for health endpoint to be ready..."
+            sleep 2
+          done
+          if [ "$health_ready" = true ]; then
+            echo "✓ Health endpoint ready"
+            curl -f http://localhost:8080/q/health
+          fi
+          echo "startup=$startup" >> "$GITHUB_OUTPUT"
+          echo "::notice::Policy API startup ${startup}s"
+
+      - name: Cleanup acceptance resources
+        if: always()
+        run: |
+          docker rm -f policy-ci-app || true
+          docker rm -f policy-ci-redis || true
+          docker rm -f policy-ci-postgres || true
+          docker network rm policy-ci || true
+
+      - name: Comment PR with metrics
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## 🚀 Policy API Performance
+
+              | Metric | Value | Target |
+              |--------|-------|--------|
+              | Image Size | ${process.env.IMAGE_SIZE} | <120 MB |
+              | Startup Time | ${process.env.STARTUP_TIME}s | <0.15 s |
+              | Build Time | ${process.env.BUILD_TIME}s | n/a |
+
+            `;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+        env:
+          IMAGE_SIZE: ${{ steps.local-build-metrics.outputs.size }}
+          STARTUP_TIME: ${{ steps.local-acceptance.outputs.startup }}
+          BUILD_TIME: ${{ steps.local-build-metrics.outputs.seconds }}
+
+  truffle-native:
+    name: Truffle Native Image Build
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    # 仅在 Truffle 相关代码变更时运行（节省约 10-15 分钟）
+    if: always() && needs.build.result == 'success' && (needs.changes.outputs.truffle == 'true' || github.ref == 'refs/heads/main')
+    timeout-minutes: 30
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 初始化 GraalVM + Node 环境
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'true'
+          enable-gradle: 'true'
+          native-image-job-reports: 'true'
+
+      - name: 下载 TypeScript 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+      - name: Run Truffle tests
+        run: ./gradlew :aster-truffle:test --no-configuration-cache
+
+      - name: Build Truffle Native Image
+        run: ./gradlew :aster-truffle:nativeCompile --no-daemon --no-configuration-cache --info
+
+      - name: Verify native binary exists
+        run: |
+          if [ ! -f aster-truffle/build/native/nativeCompile/aster ]; then
+            echo "❌ Native binary not found"
+            exit 1
+          fi
+          echo "✓ Native binary exists"
+
+      - name: Check binary size
+        run: |
+          SIZE_MB=$(du -m aster-truffle/build/native/nativeCompile/aster | cut -f1)
+          echo "Binary size: ${SIZE_MB}MB"
+          if [ "$SIZE_MB" -gt 50 ]; then
+            echo "⚠️  WARNING: Binary size ${SIZE_MB}MB exceeds 50MB (acceptable for Truffle)"
+          fi
+          echo "✓ Binary size check completed"
+
+      - name: Test native binary functionality
+        run: |
+          chmod +x aster-truffle/build/native/nativeCompile/aster
+          echo "Testing basic execution..."
+          aster-truffle/build/native/nativeCompile/aster benchmarks/core/fibonacci_20_core.json || true
+          echo "✓ Native binary can execute"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: truffle-test-results
+          path: aster-truffle/build/reports/tests/test/
+
+      - name: Upload native binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: aster-truffle-native
+          path: aster-truffle/build/native/nativeCompile/aster
+          retention-days: 7

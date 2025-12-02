@@ -6,10 +6,10 @@
 
 ## Interfaces
 
-- [CoreNode](interfaces/CoreNode.md)
 - [Module](interfaces/Module.md)
 - [Import](interfaces/Import.md)
 - [Data](interfaces/Data.md)
+- [Annotation](interfaces/Annotation.md)
 - [Field](interfaces/Field.md)
 - [Enum](interfaces/Enum.md)
 - [Func](interfaces/Func.md)
@@ -18,6 +18,10 @@
 - [Start](interfaces/Start.md)
 - [Wait](interfaces/Wait.md)
 - [Scope](interfaces/Scope.md)
+- [Workflow](interfaces/Workflow.md)
+- [Step](interfaces/Step.md)
+- [RetryPolicy](interfaces/RetryPolicy.md)
+- [Timeout](interfaces/Timeout.md)
 - [Let](interfaces/Let.md)
 - [Set](interfaces/Set.md)
 - [Return](interfaces/Return.md)
@@ -43,8 +47,11 @@
 - [Err](interfaces/Err.md)
 - [Some](interfaces/Some.md)
 - [None](interfaces/None.md)
+- [Await](interfaces/Await.md)
+- [PiiType](interfaces/PiiType.md)
 - [TypeName](interfaces/TypeName.md)
 - [TypeVar](interfaces/TypeVar.md)
+- [EffectVar](interfaces/EffectVar.md)
 - [TypeApp](interfaces/TypeApp.md)
 - [Maybe](interfaces/Maybe.md)
 - [Option](interfaces/Option.md)
@@ -55,6 +62,7 @@
 
 ## Type Aliases
 
+- [CoreNode](type-aliases/CoreNode.md)
 - [Declaration](type-aliases/Declaration.md)
 - [Statement](type-aliases/Statement.md)
 - [Pattern](type-aliases/Pattern.md)

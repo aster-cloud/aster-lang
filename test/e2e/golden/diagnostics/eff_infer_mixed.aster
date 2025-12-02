@@ -1,0 +1,8 @@
+This module is demo.eff_infer_mixed.
+
+To helperIO, produce Text. It performs io:
+  Return Http.get("https://api.example.com").
+
+To mixedFunction with data: Text, produce Text. It performs io:
+  Let result be helperIO().
+  Return Http.post("https://webhook.example.com", result).

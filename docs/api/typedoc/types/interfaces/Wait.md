@@ -4,35 +4,49 @@
 
 # Interface: Wait
 
-Defined in: [types.ts:160](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L160)
+Defined in: [types.ts:230](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L230)
+
+Wait 等待基础接口。
 
 ## Extends
 
-- [`AstNode`](AstNode.md)
+- [`BaseWait`](../base/interfaces/BaseWait.md)\<[`Span`](Span.md)\>
 
 ## Properties
 
-### span?
+### span
 
-> `readonly` `optional` **span**: [`Span`](Span.md)
+> **span**: [`Span`](Span.md)
 
-Defined in: [types.ts:62](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L62)
+Defined in: [types.ts:231](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types.ts#L231)
+
+#### Overrides
+
+[`BaseWait`](../base/interfaces/BaseWait.md).[`span`](../base/interfaces/BaseWait.md#span)
+
+***
+
+### origin?
+
+> `readonly` `optional` **origin**: `undefined`
+
+Defined in: [types/base.ts:42](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L42)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`span`](AstNode.md#span)
+[`BaseWait`](../base/interfaces/BaseWait.md).[`origin`](../base/interfaces/BaseWait.md#origin)
 
 ***
 
 ### file?
 
-> `readonly` `optional` **file**: `null` \| `string`
+> `readonly` `optional` **file**: `string` \| `null`
 
-Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L63)
+Defined in: [types/base.ts:43](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L43)
 
 #### Inherited from
 
-[`AstNode`](AstNode.md).[`file`](AstNode.md#file)
+[`BaseWait`](../base/interfaces/BaseWait.md).[`file`](../base/interfaces/BaseWait.md#file)
 
 ***
 
@@ -40,11 +54,11 @@ Defined in: [types.ts:63](https://github.com/wontlost-ltd/aster-lang/blob/6af9bd
 
 > `readonly` **kind**: `"Wait"`
 
-Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L161)
+Defined in: [types/base.ts:208](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L208)
 
-#### Overrides
+#### Inherited from
 
-[`AstNode`](AstNode.md).[`kind`](AstNode.md#kind)
+[`Wait`](../namespaces/Core/interfaces/Wait.md).[`kind`](../namespaces/Core/interfaces/Wait.md#kind)
 
 ***
 
@@ -52,4 +66,8 @@ Defined in: [types.ts:161](https://github.com/wontlost-ltd/aster-lang/blob/6af9b
 
 > `readonly` **names**: readonly `string`[]
 
-Defined in: [types.ts:162](https://github.com/wontlost-ltd/aster-lang/blob/6af9bdf2ab5ee8acfbe773a46b50d724a13df7f9/src/types.ts#L162)
+Defined in: [types/base.ts:209](https://github.com/wontlost-ltd/aster-lang/blob/40cf3fa867a79e63c55441efb659b6a20a4f9fa6/src/types/base.ts#L209)
+
+#### Inherited from
+
+[`Wait`](../namespaces/Core/interfaces/Wait.md).[`names`](../namespaces/Core/interfaces/Wait.md#names)

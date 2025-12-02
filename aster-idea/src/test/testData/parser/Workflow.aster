@@ -1,0 +1,9 @@
+This module is test.workflow.
+
+Workflow orderProcess:
+  Step validateOrder:
+    Return true.
+  Step chargePayment depends on validateOrder:
+    Return true.
+  Step shipOrder depends on chargePayment:
+    Return true.

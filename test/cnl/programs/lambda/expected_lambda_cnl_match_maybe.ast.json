@@ -1,0 +1,127 @@
+{
+  "kind": "Module",
+  "name": "demo.lambdamatchmaybe",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "fromMaybe",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "Maybe",
+            "type": {
+              "kind": "TypeName",
+              "name": "Text",
+              "annotations": []
+            }
+          }
+        },
+        {
+          "name": "d",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "f",
+            "expr": {
+              "kind": "Lambda",
+              "params": [
+                {
+                  "name": "x",
+                  "type": {
+                    "kind": "Maybe",
+                    "type": {
+                      "kind": "TypeName",
+                      "name": "Text",
+                      "annotations": []
+                    }
+                  }
+                }
+              ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Text",
+                "annotations": []
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Match",
+                    "expr": {
+                      "kind": "Name",
+                      "name": "x"
+                    },
+                    "cases": [
+                      {
+                        "kind": "Case",
+                        "pattern": {
+                          "kind": "PatternNull"
+                        },
+                        "body": {
+                          "kind": "Return",
+                          "expr": {
+                            "kind": "Name",
+                            "name": "d"
+                          }
+                        }
+                      },
+                      {
+                        "kind": "Case",
+                        "pattern": {
+                          "kind": "PatternName",
+                          "name": "v"
+                        },
+                        "body": {
+                          "kind": "Return",
+                          "expr": {
+                            "kind": "Name",
+                            "name": "v"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "f"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "x"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

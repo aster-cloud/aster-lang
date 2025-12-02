@@ -1,0 +1,81 @@
+{
+  "kind": "Module",
+  "name": "validation.regex",
+  "decls": [
+    {
+      "kind": "Data",
+      "name": "Contact",
+      "fields": [
+        {
+          "name": "email",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ]
+        },
+        {
+          "name": "phone",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Func",
+      "name": "validateEmail",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "addr",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          },
+          "annotations": [
+            {
+              "name": "Pattern",
+              "params": {}
+            }
+          ]
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Bool",
+              "value": true
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

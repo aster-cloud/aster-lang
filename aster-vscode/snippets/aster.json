@@ -1,0 +1,129 @@
+{
+  "Module Declaration": {
+    "prefix": "module",
+    "body": ["This module is ${1:app.main}."],
+    "description": "声明模块名称"
+  },
+  "Import Statement": {
+    "prefix": "use",
+    "body": ["Use ${1:Http} as ${2:H}."],
+    "description": "导入模块并设置别名"
+  },
+  "Function Declaration": {
+    "prefix": "to",
+    "body": [
+      "To ${1:functionName}, produce ${2:Text}:",
+      "  ${3:Return \"result\".}"
+    ],
+    "description": "定义函数（无参数）"
+  },
+  "Function with Parameters": {
+    "prefix": "towith",
+    "body": [
+      "To ${1:functionName} with ${2:param}: ${3:Text}, produce ${4:Text}:",
+      "  ${5:Return $2.}"
+    ],
+    "description": "定义带参数的函数"
+  },
+  "Function with Effect": {
+    "prefix": "toio",
+    "body": [
+      "To ${1:functionName}, produce ${2:Text}. It performs io:",
+      "  ${3:Return Http.get(\"/api\").}"
+    ],
+    "description": "定义执行 IO 操作的函数"
+  },
+  "Data Type Declaration": {
+    "prefix": "data",
+    "body": [
+      "A ${1:TypeName} is a record of:",
+      "  It has ${2:field}: ${3:Text}."
+    ],
+    "description": "定义数据类型（record）"
+  },
+  "Enum Declaration": {
+    "prefix": "enum",
+    "body": [
+      "An ${1:EnumName} is one of:",
+      "  ${2:VariantA}.",
+      "  ${3:VariantB}."
+    ],
+    "description": "定义枚举类型"
+  },
+  "Let Statement": {
+    "prefix": "let",
+    "body": ["Let ${1:varName} be ${2:value}."],
+    "description": "定义局部变量"
+  },
+  "Set Statement": {
+    "prefix": "set",
+    "body": ["Set ${1:varName} to ${2:newValue}."],
+    "description": "修改变量值"
+  },
+  "Return Statement": {
+    "prefix": "return",
+    "body": ["Return ${1:value}."],
+    "description": "返回值"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "If ${1:condition}:",
+      "  ${2:Return True.}",
+      "Otherwise:",
+      "  ${3:Return False.}"
+    ],
+    "description": "条件判断"
+  },
+  "Match Statement": {
+    "prefix": "match",
+    "body": [
+      "Match ${1:value}:",
+      "  When ${2:pattern}:",
+      "    ${3:Return \"matched\".}",
+      "  When otherwise:",
+      "    ${4:Return \"default\".}"
+    ],
+    "description": "模式匹配"
+  },
+  "Start Wait": {
+    "prefix": "startwait",
+    "body": [
+      "Start ${1:taskName}:",
+      "  ${2:Http.get(\"/api\").}",
+      "Wait ${1:taskName}.",
+      "Let ${3:result} be ${1:taskName}."
+    ],
+    "description": "启动异步任务并等待结果"
+  },
+  "Await Expression": {
+    "prefix": "await",
+    "body": ["Await ${1:expression}"],
+    "description": "等待异步表达式"
+  },
+  "HTTP GET": {
+    "prefix": "httpget",
+    "body": ["Http.get(\"${1:/api/endpoint}\")"],
+    "description": "HTTP GET 请求"
+  },
+  "HTTP POST": {
+    "prefix": "httppost",
+    "body": ["Http.post(\"${1:/api/endpoint}\", ${2:data})"],
+    "description": "HTTP POST 请求"
+  },
+  "Database Query": {
+    "prefix": "dbquery",
+    "body": ["Db.query(\"${1:SELECT * FROM table}\")"],
+    "description": "数据库查询"
+  },
+  "Text Concatenation": {
+    "prefix": "textconcat",
+    "body": ["Text.concat(${1:\"Hello\"}, ${2:\" World\"})"],
+    "description": "字符串拼接"
+  },
+  "Comment": {
+    "prefix": "comment",
+    "body": ["# ${1:注释内容}"],
+    "description": "单行注释"
+  }
+}

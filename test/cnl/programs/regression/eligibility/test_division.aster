@@ -1,0 +1,9 @@
+This module is test.division.
+
+To divide with x: Int, y: Int, produce Int:
+  Return /(x, y).
+
+To multiplyAndDivide with x: Int, y: Int, z: Int, produce Int:
+  Let product be *(x, y).
+  Let result be /(product, z).
+  Return result.

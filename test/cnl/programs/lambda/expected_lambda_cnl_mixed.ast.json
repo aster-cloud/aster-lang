@@ -1,0 +1,277 @@
+{
+  "kind": "Module",
+  "name": "demo.lambdamixed",
+  "decls": [
+    {
+      "kind": "Func",
+      "name": "demo",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "pfx",
+          "type": {
+            "kind": "TypeName",
+            "name": "Text",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Text",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "f",
+            "expr": {
+              "kind": "Lambda",
+              "params": [
+                {
+                  "name": "x",
+                  "type": {
+                    "kind": "TypeName",
+                    "name": "Text",
+                    "annotations": []
+                  }
+                }
+              ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Text",
+                "annotations": []
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": {
+                        "kind": "Name",
+                        "name": "Text.concat"
+                      },
+                      "args": [
+                        {
+                          "kind": "Name",
+                          "name": "pfx"
+                        },
+                        {
+                          "kind": "Name",
+                          "name": "x"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "Let",
+            "name": "g",
+            "expr": {
+              "kind": "Lambda",
+              "params": [
+                {
+                  "name": "y",
+                  "type": {
+                    "kind": "TypeName",
+                    "name": "Text",
+                    "annotations": []
+                  }
+                }
+              ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Text",
+                "annotations": []
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": {
+                        "kind": "Name",
+                        "name": "Text.concat"
+                      },
+                      "args": [
+                        {
+                          "kind": "String",
+                          "value": "2"
+                        },
+                        {
+                          "kind": "Name",
+                          "name": "y"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "Text.concat"
+              },
+              "args": [
+                {
+                  "kind": "Call",
+                  "target": {
+                    "kind": "Name",
+                    "name": "f"
+                  },
+                  "args": [
+                    {
+                      "kind": "String",
+                      "value": ""
+                    }
+                  ]
+                },
+                {
+                  "kind": "Call",
+                  "target": {
+                    "kind": "Name",
+                    "name": "g"
+                  },
+                  "args": [
+                    {
+                      "kind": "String",
+                      "value": "b"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Func",
+      "name": "compare",
+      "typeParams": [],
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        },
+        {
+          "name": "y",
+          "type": {
+            "kind": "TypeName",
+            "name": "Int",
+            "annotations": []
+          }
+        }
+      ],
+      "retType": {
+        "kind": "TypeName",
+        "name": "Bool",
+        "annotations": []
+      },
+      "effects": [],
+      "effectCaps": [],
+      "effectCapsExplicit": false,
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "kind": "Let",
+            "name": "cmp",
+            "expr": {
+              "kind": "Lambda",
+              "params": [
+                {
+                  "name": "x1",
+                  "type": {
+                    "kind": "TypeName",
+                    "name": "Int",
+                    "annotations": []
+                  }
+                },
+                {
+                  "name": "y1",
+                  "type": {
+                    "kind": "TypeName",
+                    "name": "Int",
+                    "annotations": []
+                  }
+                }
+              ],
+              "retType": {
+                "kind": "TypeName",
+                "name": "Bool",
+                "annotations": []
+              },
+              "body": {
+                "kind": "Block",
+                "statements": [
+                  {
+                    "kind": "Return",
+                    "expr": {
+                      "kind": "Call",
+                      "target": {
+                        "kind": "Name",
+                        "name": "<"
+                      },
+                      "args": [
+                        {
+                          "kind": "Name",
+                          "name": "x1"
+                        },
+                        {
+                          "kind": "Name",
+                          "name": "y1"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "Return",
+            "expr": {
+              "kind": "Call",
+              "target": {
+                "kind": "Name",
+                "name": "cmp"
+              },
+              "args": [
+                {
+                  "kind": "Name",
+                  "name": "x"
+                },
+                {
+                  "kind": "Name",
+                  "name": "y"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

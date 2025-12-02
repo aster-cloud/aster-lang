@@ -1,0 +1,6 @@
+This module is aster.healthcare.simpletest.
+
+To calculateCoverage with basePrice: Int, coveragePercent: Int, produce Int:
+  Let coverage be *(basePrice, coveragePercent).
+  Let result be /(coverage, 100).
+  Return result.

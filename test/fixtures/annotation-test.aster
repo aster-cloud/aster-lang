@@ -1,0 +1,4 @@
+This module is test.annotations.runtime.
+
+To get_user_profile with user_id: @pii(L1, name) Text, produce @pii(L2, email) Text. It performs io [Http]:
+  Return "john@example.com".
