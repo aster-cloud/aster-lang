@@ -80,7 +80,7 @@ RUN chmod +x gradlew && \
       -Dquarkus.package.type=native \
       -x test \
       -Dorg.gradle.configuration-cache=false \
-      -Dquarkus.native.additional-build-args="--no-fallback,-H:+StaticExecutableWithDynamicLibC,-H:Optimize=2,-H:-IncludeAllTimeZones,-H:+RemoveUnusedSymbols" \
+      -Dquarkus.native.additional-build-args="--no-fallback,-H:+StaticExecutableWithDynamicLibC,-H:Optimize=2,-H:-IncludeAllTimeZones,-H:+RemoveUnusedSymbols,--initialize-at-run-time=io.micrometer.common.util.internal.logging.Slf4JLoggerFactory" \
       --no-daemon --stacktrace
 
 RUN strip -s /workspace/quarkus-policy-api/build/quarkus-policy-api-unspecified-runner

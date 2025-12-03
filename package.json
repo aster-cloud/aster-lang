@@ -283,7 +283,9 @@
     "ci:asm": "npm run emit:class test/cnl/programs/examples/greet.aster && npm run javap:verify && npm run determinism:asm && npm run verify:asm:assert:listget && npm run verify:asm:interop && npm run verify:asm:sum && npm run verify:asm:intmatch && npm run verify:asm:intmatch:default && npm run verify:asm:classes && npm run verify:examples",
     "ci:truffle": "((npm run verify:truffle:smoke) || echo \"truffle smoke non-blocking\") && ((npm run verify:truffle:stdlib) || echo \"truffle stdlib non-blocking\") && npm run truffle:test",
     "ci:docs": "npm run docs:api && npm run docs:build",
-    "ci:smart": "npm run ci:quick && npm run build && npm run ci:lsp && npm run ci:asm"
+    "ci:smart": "npm run ci:quick && npm run build && npm run ci:lsp && npm run ci:asm",
+    "ci:asm:lite": "npm run emit:class test/cnl/programs/examples/greet.aster && npm run javap:verify && npm run determinism:asm && npm run verify:asm:assert:listget && npm run verify:asm:interop && npm run verify:asm:sum && npm run verify:asm:intmatch && npm run verify:asm:intmatch:default && npm run verify:asm:classes",
+    "ci:canary": "npm run ci:quick && npm run ci:lsp && npm run ci:asm:lite"
   },
   "keywords": [
     "programming-language",

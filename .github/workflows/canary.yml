@@ -50,8 +50,8 @@ jobs:
           name: canary-dist
           path: dist/
 
-      - name: 测试（智能 CI）
-        run: npm run ci:smart
+      - name: 测试（Canary CI - 轻量级）
+        run: npm run ci:canary
 
       - name: Compute canary version
         id: canary

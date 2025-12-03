@@ -1,0 +1,83 @@
+name: Reusable Policy API Build
+
+on:
+  workflow_call:
+    inputs:
+      push-image:
+        description: 'Push image to registry'
+        type: boolean
+        default: true
+      image-tag:
+        description: 'Image tag suffix'
+        type: string
+        default: ''
+      build-mode:
+        description: 'Build mode: native or jvm'
+        type: string
+        default: 'native'
+    outputs:
+      image:
+        description: 'Built image reference'
+        value: ${{ jobs.build.outputs.image }}
+
+jobs:
+  build:
+    name: Build Policy API (${{ inputs.build-mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.build-mode == 'native' && 20 || 8 }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image-ref.outputs.value }}
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image tag
+        id: tag
+        run: |
+          TAG_SUFFIX="${{ inputs.image-tag }}"
+          if [ -z "$TAG_SUFFIX" ]; then
+            TAG_SUFFIX="${{ github.sha }}"
+          fi
+          MODE="${{ inputs.build-mode }}"
+          echo "tag=ghcr.io/${{ github.repository_owner }}/policy-api:${MODE}-${TAG_SUFFIX}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push (Native mode)
+        if: inputs.build-mode == 'native'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: quarkus-policy-api/Dockerfile
+          platforms: linux/amd64
+          push: ${{ inputs.push-image }}
+          tags: ${{ steps.tag.outputs.tag }}
+          cache-from: type=gha,scope=policy-api-native
+          cache-to: type=gha,mode=max,scope=policy-api-native
+
+      - name: Build and push (JVM mode)
+        if: inputs.build-mode == 'jvm'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: quarkus-policy-api/Dockerfile.e2e
+          platforms: linux/amd64
+          push: ${{ inputs.push-image }}
+          tags: ${{ steps.tag.outputs.tag }}
+          cache-from: type=gha,scope=policy-api-jvm
+          cache-to: type=gha,mode=max,scope=policy-api-jvm
+
+      - name: Export image reference
+        id: image-ref
+        run: echo "value=${{ steps.tag.outputs.tag }}" >> "$GITHUB_OUTPUT"
