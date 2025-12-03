@@ -93,7 +93,7 @@ jobs:
           ./aster-lang-cli/build/native/nativeCompile/aster help
 
       - name: Upload Native Binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: aster-native-${{ matrix.os }}
           path: aster-lang-cli/build/native/nativeCompile/aster
