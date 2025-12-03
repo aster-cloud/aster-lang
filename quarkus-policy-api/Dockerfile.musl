@@ -68,7 +68,7 @@ ENV SKIP_GENERATE_ASTER_JAR=true
 RUN chmod +x gradlew && \
     ./gradlew :quarkus-policy-api:build \
       -Dquarkus.package.type=native \
-      -Dquarkus.native.additional-build-args="--static,--libc=musl,--no-fallback,-H:+StripDebugInfo,-H:+RemoveUnusedSymbols,-H:+ReportExceptionStackTraces" \
+      -Dquarkus.native.additional-build-args="--static,--libc=musl,--no-fallback,-H:+StripDebugInfo,-H:+RemoveUnusedSymbols,-H:+ReportExceptionStackTraces,--initialize-at-run-time=io.micrometer.common.util.internal.logging.Slf4JLoggerFactory" \
       -x test \
       -Dorg.gradle.configuration-cache=false \
       --no-daemon --stacktrace
