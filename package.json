@@ -346,7 +346,7 @@
     "typedoc": "^0.28.13",
     "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.9.2",
-    "vitepress": "v2.0.0-alpha.12"
+    "vitepress": "v2.0.0-alpha.15"
   },
   "files": [
     "dist",
