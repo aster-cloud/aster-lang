@@ -646,7 +646,7 @@ jobs:
             -e POSTGRESQL_USERNAME=postgres \
             -e POSTGRESQL_PASSWORD=postgres \
             -e POSTGRESQL_DATABASE=aster_policy \
-            docker.io/bitnami/postgresql:18
+            docker.io/bitnami/postgresql:latest
           docker run -d --name policy-ci-redis --network policy-ci \
             docker.io/redis:7-alpine
           for i in {1..12}; do

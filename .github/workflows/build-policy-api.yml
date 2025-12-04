@@ -67,8 +67,17 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      packages: read        # 需要读取 GHCR 镜像
       security-events: write
     steps:
+      # 登录 GHCR 以便 Trivy 可以拉取私有镜像
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Trivy SARIF scan
         uses: aquasecurity/trivy-action@0.30.0  # 锁定版本，避免供应链风险
         with:
