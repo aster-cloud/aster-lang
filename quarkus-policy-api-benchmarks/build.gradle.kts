@@ -37,8 +37,8 @@ dependencies {
     jmhImplementation("org.postgresql:postgresql")
 
     // Flyway 数据库迁移 (Task 4)
-    jmhImplementation("org.flywaydb:flyway-core:10.4.1")
-    jmhImplementation("org.flywaydb:flyway-database-postgresql:10.4.1")
+    jmhImplementation("org.flywaydb:flyway-core:11.18.0")
+    jmhImplementation("org.flywaydb:flyway-database-postgresql:11.18.0")
 
     // Mockito 和 Hibernate (Task 5)
     jmhImplementation("org.mockito:mockito-core:5.8.0")
