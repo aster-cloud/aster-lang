@@ -3,13 +3,23 @@ name: Cleanup Workflow Runs
 on:
   workflow_dispatch:
     inputs:
+      cleanup_mode:
+        description: '清理模式'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - standard           # 按天数清理过期记录
+          - failed_only        # 仅删除所有失败的运行记录
+          - cancelled_only     # 仅删除所有已取消的运行记录
+          - failed_and_cancelled  # 删除所有失败和已取消的运行记录
       days_old:
-        description: '删除多少天前的运行记录'
+        description: '删除多少天前的运行记录（仅 standard 模式）'
         required: false
         default: '30'
         type: string
       keep_minimum:
-        description: '每个工作流至少保留多少条记录'
+        description: '每个工作流至少保留多少条记录（仅 standard 模式）'
         required: false
         default: '5'
         type: string
@@ -27,10 +37,13 @@ permissions:
   contents: read
 
 jobs:
+  # 标准清理模式：按天数清理过期记录
   cleanup:
     name: 清理过期 Workflow Runs
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # 仅在 standard 模式或定时触发时运行
+    if: inputs.cleanup_mode == 'standard' || github.event_name == 'schedule'
 
     steps:
       - name: 清理过期的 Workflow Runs
@@ -47,14 +60,138 @@ jobs:
         run: |
           echo "## 🧹 Workflow Runs 清理完成" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **清理模式**: 标准（按天数）" >> $GITHUB_STEP_SUMMARY
           echo "- **保留天数**: ${{ inputs.days_old || '30' }} 天" >> $GITHUB_STEP_SUMMARY
           echo "- **最少保留**: ${{ inputs.keep_minimum || '5' }} 条/工作流" >> $GITHUB_STEP_SUMMARY
           echo "- **执行时间**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+  # 一键清理失败/取消的运行记录
+  cleanup-by-status:
+    name: 清理失败/取消的 Workflow Runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # 仅在非 standard 模式时运行
+    if: inputs.cleanup_mode != 'standard' && github.event_name != 'schedule'
+
+    steps:
+      - name: 删除指定状态的 Workflow Runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const cleanupMode = '${{ inputs.cleanup_mode }}';
+            const dryRun = ${{ inputs.dry_run || false }};
+
+            // 根据清理模式确定要删除的状态
+            let targetConclusions = [];
+            switch (cleanupMode) {
+              case 'failed_only':
+                targetConclusions = ['failure'];
+                break;
+              case 'cancelled_only':
+                targetConclusions = ['cancelled'];
+                break;
+              case 'failed_and_cancelled':
+                targetConclusions = ['failure', 'cancelled'];
+                break;
+              default:
+                core.setFailed(`未知的清理模式: ${cleanupMode}`);
+                return;
+            }
+
+            console.log(`🔍 清理模式: ${cleanupMode}`);
+            console.log(`📋 目标状态: ${targetConclusions.join(', ')}`);
+            console.log(`🔒 预览模式: ${dryRun}`);
+            console.log('');
+
+            // 获取所有 workflows
+            const workflows = await github.paginate(
+              github.rest.actions.listRepoWorkflows,
+              { owner, repo, per_page: 100 }
+            );
+
+            let totalDeleted = 0;
+            let totalSkipped = 0;
+            const deletedByWorkflow = {};
+
+            for (const workflow of workflows) {
+              console.log(`\n📁 处理工作流: ${workflow.name}`);
+              deletedByWorkflow[workflow.name] = 0;
+
+              // 获取该 workflow 的所有运行记录
+              try {
+                const runs = await github.paginate(
+                  github.rest.actions.listWorkflowRuns,
+                  { owner, repo, workflow_id: workflow.id, per_page: 100 }
+                );
+
+                for (const run of runs) {
+                  // 检查运行状态是否在目标列表中
+                  if (targetConclusions.includes(run.conclusion)) {
+                    if (dryRun) {
+                      console.log(`  [预览] 将删除: #${run.run_number} (${run.conclusion}) - ${run.created_at}`);
+                      totalSkipped++;
+                    } else {
+                      try {
+                        await github.rest.actions.deleteWorkflowRun({
+                          owner,
+                          repo,
+                          run_id: run.id
+                        });
+                        console.log(`  ✅ 已删除: #${run.run_number} (${run.conclusion}) - ${run.created_at}`);
+                        totalDeleted++;
+                        deletedByWorkflow[workflow.name]++;
+                      } catch (e) {
+                        console.log(`  ❌ 删除失败: #${run.run_number} - ${e.message}`);
+                      }
+                    }
+                  }
+                }
+              } catch (e) {
+                console.log(`  ⚠️ 获取运行记录失败: ${e.message}`);
+              }
+            }
+
+            // 生成摘要
+            const modeDescriptions = {
+              'failed_only': '仅失败的运行',
+              'cancelled_only': '仅已取消的运行',
+              'failed_and_cancelled': '失败和已取消的运行'
+            };
+
+            let summaryContent = `## 🧹 Workflow Runs 清理完成\n\n`;
+            summaryContent += `- **清理模式**: ${modeDescriptions[cleanupMode]}\n`;
+            summaryContent += `- **预览模式**: ${dryRun ? '是（未实际删除）' : '否'}\n`;
+            summaryContent += `- **删除数量**: ${dryRun ? `${totalSkipped} 条（预览）` : `${totalDeleted} 条`}\n`;
+            summaryContent += `- **执行时间**: ${new Date().toISOString()}\n\n`;
+
+            if (totalDeleted > 0 || totalSkipped > 0) {
+              summaryContent += `### 按工作流统计\n\n`;
+              summaryContent += `| 工作流 | 删除数量 |\n`;
+              summaryContent += `|--------|----------|\n`;
+              for (const [name, count] of Object.entries(deletedByWorkflow)) {
+                if (count > 0) {
+                  summaryContent += `| ${name} | ${count} |\n`;
+                }
+              }
+            }
+
+            core.summary.addRaw(summaryContent);
+            await core.summary.write();
+
+            console.log(`\n📊 总计: ${dryRun ? totalSkipped + ' 条（预览）' : totalDeleted + ' 条已删除'}`);
+
+            // 设置输出
+            core.setOutput('deleted_count', dryRun ? 0 : totalDeleted);
+            core.setOutput('preview_count', dryRun ? totalSkipped : 0);
 
   cleanup-caches:
     name: 清理过期 Caches
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # 仅在 standard 模式或定时触发时运行
+    if: inputs.cleanup_mode == 'standard' || github.event_name == 'schedule'
 
     steps:
       - name: 清理过期缓存
@@ -111,6 +248,8 @@ jobs:
     name: 清理过期 Artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # 仅在 standard 模式或定时触发时运行
+    if: inputs.cleanup_mode == 'standard' || github.event_name == 'schedule'
 
     steps:
       - name: 清理过期 Artifacts
@@ -167,7 +306,7 @@ jobs:
   summary:
     name: 清理汇总
     runs-on: ubuntu-latest
-    needs: [cleanup, cleanup-caches, cleanup-artifacts]
+    needs: [cleanup, cleanup-by-status, cleanup-caches, cleanup-artifacts]
     if: always()
 
     steps:
@@ -175,19 +314,38 @@ jobs:
         run: |
           echo "## 🧹 GitHub Actions 资源清理报告" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 清理模式: ${{ inputs.cleanup_mode || 'standard' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 执行状态" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| 任务 | 状态 |" >> $GITHUB_STEP_SUMMARY
           echo "|------|------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Workflow Runs | ${{ needs.cleanup.result == 'success' && '✅ 成功' || '❌ 失败' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Caches | ${{ needs.cleanup-caches.result == 'success' && '✅ 成功' || '❌ 失败' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Artifacts | ${{ needs.cleanup-artifacts.result == 'success' && '✅ 成功' || '❌ 失败' }} |" >> $GITHUB_STEP_SUMMARY
+
+          # 根据清理模式显示不同的任务状态
+          if [[ "${{ inputs.cleanup_mode }}" == "standard" ]] || [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "| Workflow Runs (按天数) | ${{ needs.cleanup.result == 'success' && '✅ 成功' || (needs.cleanup.result == 'skipped' && '⏭️ 跳过' || '❌ 失败') }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Caches | ${{ needs.cleanup-caches.result == 'success' && '✅ 成功' || (needs.cleanup-caches.result == 'skipped' && '⏭️ 跳过' || '❌ 失败') }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Artifacts | ${{ needs.cleanup-artifacts.result == 'success' && '✅ 成功' || (needs.cleanup-artifacts.result == 'skipped' && '⏭️ 跳过' || '❌ 失败') }} |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Workflow Runs (按状态) | ${{ needs.cleanup-by-status.result == 'success' && '✅ 成功' || (needs.cleanup-by-status.result == 'skipped' && '⏭️ 跳过' || '❌ 失败') }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 清理策略" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Workflow Runs**: 保留 ${{ inputs.days_old || '30' }} 天，每个工作流至少 ${{ inputs.keep_minimum || '5' }} 条" >> $GITHUB_STEP_SUMMARY
-          echo "- **Caches**: 保留 14 天内访问过的缓存" >> $GITHUB_STEP_SUMMARY
-          echo "- **Artifacts**: 保留 7 天内创建的 artifacts" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.cleanup_mode }}" == "standard" ]] || [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "- **Workflow Runs**: 保留 ${{ inputs.days_old || '30' }} 天，每个工作流至少 ${{ inputs.keep_minimum || '5' }} 条" >> $GITHUB_STEP_SUMMARY
+            echo "- **Caches**: 保留 14 天内访问过的缓存" >> $GITHUB_STEP_SUMMARY
+            echo "- **Artifacts**: 保留 7 天内创建的 artifacts" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.cleanup_mode }}" == "failed_only" ]]; then
+            echo "- **Workflow Runs**: 删除所有失败的运行记录" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.cleanup_mode }}" == "cancelled_only" ]]; then
+            echo "- **Workflow Runs**: 删除所有已取消的运行记录" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.cleanup_mode }}" == "failed_and_cancelled" ]]; then
+            echo "- **Workflow Runs**: 删除所有失败和已取消的运行记录" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*执行时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> $GITHUB_STEP_SUMMARY
