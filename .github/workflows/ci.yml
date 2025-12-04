@@ -47,7 +47,7 @@ jobs:
       vscode: ${{ steps.filter.outputs.vscode }}
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
@@ -93,7 +93,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -134,7 +134,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -219,7 +219,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -256,7 +256,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -282,7 +282,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -305,7 +305,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
@@ -365,7 +365,7 @@ jobs:
       TS_TYPECHECK_CMD: ${{ vars.TS_TYPECHECK_CMD || '' }}
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node + Temurin 环境
         uses: ./.github/actions/setup-env
@@ -403,7 +403,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
@@ -450,7 +450,7 @@ jobs:
             runner: ubuntu-24.04-arm  # GitHub 原生 arm64 runner
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout 代码
         uses: ./.github/actions/setup-env
@@ -603,7 +603,7 @@ jobs:
       pull-requests: write  # 用于 PR 评论
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout 代码
         uses: ./.github/actions/setup-env
@@ -753,7 +753,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
