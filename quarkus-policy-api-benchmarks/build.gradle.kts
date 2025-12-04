@@ -33,7 +33,7 @@ dependencies {
     jmhImplementation("org.testcontainers:postgresql:1.19.3")
 
     // HikariCP DataSource
-    jmhImplementation("com.zaxxer:HikariCP:5.1.0")
+    jmhImplementation("com.zaxxer:HikariCP:7.0.2")
     jmhImplementation("org.postgresql:postgresql")
 
     // Flyway 数据库迁移 (Task 4)
