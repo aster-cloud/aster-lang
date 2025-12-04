@@ -143,7 +143,7 @@ jobs:
           enable-java: 'false'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -228,7 +228,7 @@ jobs:
           enable-java: 'false'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -265,7 +265,7 @@ jobs:
           enable-java: 'false'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -315,7 +315,7 @@ jobs:
           enable-gradle: 'true'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -377,7 +377,7 @@ jobs:
           java-version: '21'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -413,7 +413,7 @@ jobs:
           enable-gradle: 'true'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -520,7 +520,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: policy-api-digest-*
           path: digests
@@ -764,7 +764,7 @@ jobs:
           native-image-job-reports: 'true'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
