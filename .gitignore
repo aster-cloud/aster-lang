@@ -5297,3 +5297,4 @@ reports//.aster/
 /.gradle-local/wrapper/dists/gradle-9.0.0-bin/d6wjpkvcgsg3oed0qlfss3wgl/gradle-9.0.0-bin.zip.lck
 /.gradle-local/wrapper/dists/gradle-9.0.0-bin/d6wjpkvcgsg3oed0qlfss3wgl/gradle-9.0.0-bin.zip.ok
 /.gradle-local/wrapper/dists/CACHEDIR.TAG
+.github/act-secrets

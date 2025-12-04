@@ -1,0 +1,25 @@
+{
+  "action": "published",
+  "release": {
+    "id": 1,
+    "tag_name": "v0.1.0",
+    "name": "Release v0.1.0",
+    "body": "Test release",
+    "draft": false,
+    "prerelease": false,
+    "target_commitish": "main",
+    "created_at": "2025-01-01T00:00:00Z",
+    "published_at": "2025-01-01T00:00:00Z"
+  },
+  "repository": {
+    "name": "aster-lang",
+    "full_name": "user/aster-lang",
+    "default_branch": "main",
+    "owner": {
+      "login": "user"
+    }
+  },
+  "sender": {
+    "login": "test-user"
+  }
+}

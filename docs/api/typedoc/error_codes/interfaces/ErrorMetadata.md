@@ -4,7 +4,7 @@
 
 # Interface: ErrorMetadata
 
-Defined in: [error\_codes.ts:77](https://github.com/wontlost-ltd/aster-lang/blob/7e7cdbceb2c20d2b971cb1c5025fdf096d8cadd1/src/error_codes.ts#L77)
+Defined in: [error\_codes.ts:77](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/error_codes.ts#L77)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [error\_codes.ts:77](https://github.com/wontlost-ltd/aster-lang/blob
 
 > `readonly` **code**: [`ErrorCode`](../enumerations/ErrorCode.md)
 
-Defined in: [error\_codes.ts:78](https://github.com/wontlost-ltd/aster-lang/blob/7e7cdbceb2c20d2b971cb1c5025fdf096d8cadd1/src/error_codes.ts#L78)
+Defined in: [error\_codes.ts:78](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/error_codes.ts#L78)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [error\_codes.ts:78](https://github.com/wontlost-ltd/aster-lang/blob
 
 > `readonly` **category**: [`ErrorCategory`](../type-aliases/ErrorCategory.md)
 
-Defined in: [error\_codes.ts:79](https://github.com/wontlost-ltd/aster-lang/blob/7e7cdbceb2c20d2b971cb1c5025fdf096d8cadd1/src/error_codes.ts#L79)
+Defined in: [error\_codes.ts:79](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/error_codes.ts#L79)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [error\_codes.ts:79](https://github.com/wontlost-ltd/aster-lang/blob
 
 > `readonly` **severity**: [`ErrorSeverity`](../type-aliases/ErrorSeverity.md)
 
-Defined in: [error\_codes.ts:80](https://github.com/wontlost-ltd/aster-lang/blob/7e7cdbceb2c20d2b971cb1c5025fdf096d8cadd1/src/error_codes.ts#L80)
+Defined in: [error\_codes.ts:80](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/error_codes.ts#L80)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [error\_codes.ts:80](https://github.com/wontlost-ltd/aster-lang/blob
 
 > `readonly` **message**: `string`
 
-Defined in: [error\_codes.ts:81](https://github.com/wontlost-ltd/aster-lang/blob/7e7cdbceb2c20d2b971cb1c5025fdf096d8cadd1/src/error_codes.ts#L81)
+Defined in: [error\_codes.ts:81](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/error_codes.ts#L81)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [error\_codes.ts:81](https://github.com/wontlost-ltd/aster-lang/blob
 
 > `readonly` **help**: `string`
 
-Defined in: [error\_codes.ts:82](https://github.com/wontlost-ltd/aster-lang/blob/7e7cdbceb2c20d2b971cb1c5025fdf096d8cadd1/src/error_codes.ts#L82)
+Defined in: [error\_codes.ts:82](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/error_codes.ts#L82)

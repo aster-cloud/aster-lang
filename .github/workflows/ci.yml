@@ -21,6 +21,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# 全局最小权限，各 job 按需覆盖
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/policy-api
@@ -44,6 +48,8 @@ jobs:
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: 检测变更文件
         uses: dorny/paths-filter@v3
@@ -104,7 +110,16 @@ jobs:
   build:
     name: Build TypeScript
     needs: changes
-    if: always() && (needs.changes.outputs.typescript == 'true' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    if: |
+      always() && (
+        needs.changes.outputs.typescript == 'true' ||
+        needs.changes.outputs.java == 'true' ||
+        needs.changes.outputs.gradle == 'true' ||
+        needs.changes.outputs.truffle == 'true' ||
+        needs.changes.outputs.quarkus == 'true' ||
+        github.event_name == 'workflow_dispatch' ||
+        github.ref == 'refs/heads/main'
+      )
     uses: ./.github/workflows/_reusable-build.yml
     with:
       node-version: '22'
@@ -265,7 +280,6 @@ jobs:
     # 仅在 main 分支或 package.json 变更时运行
     if: always() && (github.ref == 'refs/heads/main' || needs.changes.outputs.typescript == 'true')
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
@@ -414,158 +428,9 @@ jobs:
           name: quarkus-policy-api-test-results
           path: quarkus-policy-api/build/reports/tests/test/
 
-  policy-api-build:
-    name: Policy API Multi-arch Build
-    runs-on: ubuntu-latest
-    needs: [changes, quarkus-policy-api]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.quarkus-policy-api.result == 'success'
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        include:
-          - arch: amd64
-            platform: linux/amd64
-          - arch: arm64
-            platform: linux/arm64
-    steps:
-      - name: Checkout 代码
-        uses: actions/checkout@v4
-
-      - name: Checkout 代码
-        uses: ./.github/actions/setup-env
-        with:
-          checkout: 'false'
-          enable-node: 'false'
-          npm-ci: 'false'
-          enable-java: 'false'
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker metadata
-        id: meta-build
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
-
-      - name: Start build timer
-        id: policy_build_start
-        run: echo "timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
-
-      - name: Build image (${{ matrix.platform }})
-        id: docker_build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: quarkus-policy-api/Dockerfile
-          platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          labels: ${{ steps.meta-build.outputs.labels }}
-
-      - name: Capture build duration (${{ matrix.platform }})
-        run: |
-          end=$(date +%s)
-          duration=$((end - ${{ steps.policy_build_start.outputs.timestamp }}))
-          echo "::notice::${{ matrix.platform }} build completed in ${duration}s"
-
-      - name: Save image digest (${{ matrix.arch }})
-        run: echo "${{ steps.docker_build.outputs.digest }}" > digest-${{ matrix.arch }}.txt
-
-      - name: Upload digest artifact (${{ matrix.arch }})
-        uses: actions/upload-artifact@v4
-        with:
-          name: policy-api-digest-${{ matrix.arch }}
-          path: digest-${{ matrix.arch }}.txt
-
-  policy-api-manifest:
-    name: Policy API Multi-arch Manifest
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: policy-api-build
-    timeout-minutes: 10
-    steps:
-      - name: Download digests
-        uses: actions/download-artifact@v4
-        with:
-          pattern: policy-api-digest-*
-          path: digests
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
-
-      - name: Publish multi-arch manifest
-        run: |
-          set -euo pipefail
-          DIGESTS=()
-          for file in digests/*.txt; do
-            [ -f "$file" ] || continue
-            DIGESTS+=("$(cat "$file")")
-          done
-          if [ ${#DIGESTS[@]} -eq 0 ]; then
-            echo "No digests found"
-            exit 1
-          fi
-          echo "Creating manifests for:"
-          printf '%s\n' "${DIGESTS[@]}"
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            docker buildx imagetools create -t "$tag" "${DIGESTS[@]}"
-          done <<< "${{ steps.meta.outputs.tags }}"
-
-  security-scan:
-    name: Container Security Scan
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: policy-api-manifest
-    timeout-minutes: 15
-    steps:
-      - name: Trivy SARIF scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-      - name: Upload Trivy SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
-      - name: Enforce CRITICAL/HIGH policy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
-          format: 'table'
-          exit-code: '1'
-          severity: 'CRITICAL,HIGH'
+  # NOTE: Policy API build moved to dedicated build-policy-api.yml workflow
+  # This avoids duplicate builds on main push (saves ~30-60 min CI time)
+  # See: .github/workflows/build-policy-api.yml
 
   policy-api-metrics:
     name: Policy API Acceptance & Metrics
@@ -574,6 +439,9 @@ jobs:
     # 仅在 Quarkus 代码变更或 main 分支时运行
     if: always() && needs.quarkus-policy-api.result == 'success' && (needs.changes.outputs.quarkus == 'true' || github.ref == 'refs/heads/main')
     timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write  # 用于 PR 评论
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
@@ -619,7 +487,7 @@ jobs:
             -e POSTGRESQL_USERNAME=postgres \
             -e POSTGRESQL_PASSWORD=postgres \
             -e POSTGRESQL_DATABASE=aster_policy \
-            docker.io/bitnami/postgresql:latest
+            docker.io/bitnami/postgresql:18
           docker run -d --name policy-ci-redis --network policy-ci \
             docker.io/redis:7-alpine
           for i in {1..12}; do
@@ -693,7 +561,7 @@ jobs:
           docker network rm policy-ci || true
 
       - name: Comment PR with metrics
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v7
         with:
           script: |
@@ -743,7 +611,10 @@ jobs:
           path: dist/
 
       - name: Run Truffle tests
-        run: ./gradlew :aster-truffle:test --no-configuration-cache
+        # 排除耗时的基准测试类（fibonacci/quicksort），仅运行核心功能测试
+        run: |
+          ./gradlew :aster-truffle:test --no-configuration-cache \
+            -PexcludeBenchmarks=true
 
       - name: Build Truffle Native Image
         run: ./gradlew :aster-truffle:nativeCompile --no-daemon --no-configuration-cache --info
@@ -767,9 +638,11 @@ jobs:
 
       - name: Test native binary functionality
         run: |
+          set -euo pipefail
           chmod +x aster-truffle/build/native/nativeCompile/aster
           echo "Testing basic execution..."
-          aster-truffle/build/native/nativeCompile/aster benchmarks/core/fibonacci_20_core.json || true
+          # 使用轻量级 simple_hello 测试代替耗时的 fibonacci_20 测试
+          aster-truffle/build/native/nativeCompile/aster benchmarks/core/simple_hello_core.json
           echo "✓ Native binary can execute"
 
       - name: Upload test results

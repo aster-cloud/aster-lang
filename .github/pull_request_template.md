@@ -6,13 +6,15 @@ Briefly describe what this PR changes and why.
 - Where: list key files/paths changed
 
 ## CI
-- Ensures Node 18/20/22 matrix runs typecheck, lint, format, build, tests
-- Adds JVM emitter verification with Java 17 and `javap`
+- Runs typecheck, lint, format, build, and tests for TypeScript changes
+- Runs Gradle build for Java changes (aster-core, aster-asm-emitter)
+- Security audit for dependency vulnerabilities
 
 ## Checklist
-- [ ] CI green (tests + golden + property)
+- [ ] CI green (all applicable checks pass)
 - [ ] Formatting and lint pass (`npm run format:check`, `npm run lint`)
 - [ ] No unrelated reformatting/renames
+- [ ] Tests pass (`npm test`)
 - [ ] Docs unaffected or updated as needed
 - [ ] Changesets added if user‑facing (`npm run changeset`)
 

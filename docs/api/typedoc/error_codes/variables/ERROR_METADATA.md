@@ -6,4 +6,4 @@
 
 > `const` **ERROR\_METADATA**: `Record`\<[`ErrorCode`](../enumerations/ErrorCode.md), [`ErrorMetadata`](../interfaces/ErrorMetadata.md)\>
 
-Defined in: [error\_codes.ts:154](https://github.com/wontlost-ltd/aster-lang/blob/7e7cdbceb2c20d2b971cb1c5025fdf096d8cadd1/src/error_codes.ts#L154)
+Defined in: [error\_codes.ts:154](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/error_codes.ts#L154)

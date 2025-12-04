@@ -1,0 +1,25 @@
+{
+  "ref": "refs/tags/v0.1.0",
+  "ref_type": "tag",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "abc123def456789",
+  "created": true,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "repository": {
+    "name": "aster-lang",
+    "full_name": "user/aster-lang",
+    "default_branch": "main",
+    "owner": {
+      "login": "user"
+    }
+  },
+  "sender": {
+    "login": "test-user"
+  },
+  "head_commit": {
+    "id": "abc123def456789",
+    "message": "Release v0.1.0"
+  }
+}

@@ -1,0 +1,95 @@
+name: 'Policy API Stack'
+description: |
+  启动/停止 Policy API 及依赖服务。
+
+  前置条件 (start 操作):
+  1. 如果使用 GHCR 私有镜像，调用者必须先完成 docker/login-action 登录
+  2. 确保 docker compose 文件存在于仓库根目录
+
+inputs:
+  action:
+    description: '操作类型: start 或 stop'
+    required: true
+  image:
+    description: 'Policy API 镜像 (仅 start 时需要，如 ghcr.io/owner/policy-api:tag)'
+    required: false
+    default: ''
+  timeout:
+    description: '健康检查超时时间 (秒)'
+    required: false
+    default: '60'
+  port:
+    description: 'Policy API 端口'
+    required: false
+    default: '8081'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate inputs
+      if: inputs.action == 'start'
+      shell: bash
+      run: |
+        # 验证 timeout 是纯数字
+        if ! [[ "${{ inputs.timeout }}" =~ ^[0-9]+$ ]]; then
+          echo "::error::Invalid timeout value: ${{ inputs.timeout }}. Must be a positive integer."
+          exit 1
+        fi
+        # 验证 port 是有效端口号
+        if ! [[ "${{ inputs.port }}" =~ ^[0-9]+$ ]] || [ "${{ inputs.port }}" -lt 1 ] || [ "${{ inputs.port }}" -gt 65535 ]; then
+          echo "::error::Invalid port value: ${{ inputs.port }}. Must be between 1 and 65535."
+          exit 1
+        fi
+        # 验证 image 不包含危险字符 (如果提供)
+        if [[ -n "${{ inputs.image }}" ]]; then
+          if [[ "${{ inputs.image }}" =~ [\;\|\&\$\`] ]]; then
+            echo "::error::Invalid image name: contains forbidden characters."
+            exit 1
+          fi
+        fi
+        echo "✓ Input validation passed"
+
+    - name: Set POLICY_API_IMAGE
+      if: inputs.action == 'start' && inputs.image != ''
+      shell: bash
+      run: |
+        IMAGE="${{ inputs.image }}"
+        echo "POLICY_API_IMAGE=${IMAGE}" >> $GITHUB_ENV
+
+    - name: Verify image accessibility
+      if: inputs.action == 'start' && inputs.image != ''
+      shell: bash
+      run: |
+        IMAGE="${{ inputs.image }}"
+        echo "Verifying image accessibility: ${IMAGE}"
+        if ! docker pull "${IMAGE}"; then
+          echo "::error::Failed to pull image ${IMAGE}. Ensure GHCR login is completed before calling this action."
+          exit 1
+        fi
+        echo "✓ Image pulled successfully"
+
+    - name: Start services
+      if: inputs.action == 'start'
+      shell: bash
+      run: |
+        echo "Starting Policy API stack..."
+        if ! docker compose --profile monitoring up -d postgres redis policy-api; then
+          echo "::error::Failed to start services. Check docker compose configuration."
+          exit 1
+        fi
+        echo "✓ Services started"
+
+    - name: Wait for Policy API
+      if: inputs.action == 'start'
+      shell: bash
+      run: |
+        PORT="${{ inputs.port }}"
+        TIMEOUT="${{ inputs.timeout }}"
+        echo "Waiting for Policy API on port ${PORT}..."
+        timeout "${TIMEOUT}" bash -c "until curl -sf http://localhost:${PORT}/q/health; do sleep 2; done"
+        echo "Policy API is ready!"
+
+    - name: Stop services
+      if: inputs.action == 'stop'
+      shell: bash
+      run: docker compose down -v

@@ -1,0 +1,39 @@
+{
+  "action": "opened",
+  "number": 1,
+  "pull_request": {
+    "number": 1,
+    "title": "Test PR",
+    "body": "Test pull request for local testing",
+    "head": {
+      "ref": "feature-branch",
+      "sha": "abc123",
+      "repo": {
+        "full_name": "user/aster-lang",
+        "owner": {
+          "login": "user"
+        }
+      }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "def456"
+    },
+    "merged": false,
+    "draft": false,
+    "user": {
+      "login": "test-user"
+    }
+  },
+  "repository": {
+    "name": "aster-lang",
+    "full_name": "user/aster-lang",
+    "default_branch": "main",
+    "owner": {
+      "login": "user"
+    }
+  },
+  "sender": {
+    "login": "test-user"
+  }
+}

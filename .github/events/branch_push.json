@@ -1,0 +1,29 @@
+{
+  "ref": "refs/heads/main",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "abc123def456",
+  "repository": {
+    "name": "aster-lang",
+    "full_name": "user/aster-lang",
+    "default_branch": "main",
+    "owner": {
+      "login": "user"
+    }
+  },
+  "pusher": {
+    "name": "test-user",
+    "email": "test@example.com"
+  },
+  "sender": {
+    "login": "test-user"
+  },
+  "head_commit": {
+    "id": "abc123def456",
+    "message": "Test commit for local workflow testing",
+    "timestamp": "2025-01-01T00:00:00Z",
+    "author": {
+      "name": "Test User",
+      "email": "test@example.com"
+    }
+  }
+}

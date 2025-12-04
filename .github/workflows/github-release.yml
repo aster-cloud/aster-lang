@@ -1,4 +1,4 @@
-name: GitHub Release
+name: GitHub Release & Publish
 
 on:
   push:
@@ -11,28 +11,331 @@ on:
       tag:
         description: Tag to release (e.g. v0.2.1). If omitted, uses ref.
         required: false
+      skip-docker:
+        description: Skip Docker Hub publishing
+        type: boolean
+        default: false
+      publish-vscode:
+        description: Publish VS Code extension
+        type: boolean
+        default: true
+      publish-intellij:
+        description: Publish IntelliJ plugin
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY_GHCR: ghcr.io
+  REGISTRY_DOCKER: docker.io
+  IMAGE_NAME: ${{ github.repository_owner }}/policy-api
 
 jobs:
+  # 创建 GitHub Release
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
-
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+      version: ${{ steps.tag.outputs.version }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Determine tag
+        id: tag
+        run: |
+          TAG="${{ inputs.tag || github.event.release.tag_name || github.ref_name }}"
+          echo "value=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        if: github.event_name != 'release'
+        uses: softprops/action-gh-release@v2.0.8
         with:
-          tag_name: ${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
-          name: Release ${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.value }}
+          name: Release ${{ steps.tag.outputs.value }}
           body: |
             Automated release via tag push or manual dispatch.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Skip release creation (already exists)
+        if: github.event_name == 'release'
+        run: echo "::notice::Skipping release creation - triggered by existing release event"
+
+  # npm 发布 (需要配置 NPM_TOKEN + ENABLE_NPM_PUBLISH=true)
+  npm-publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ vars.ENABLE_NPM_PUBLISH == 'true' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Docker Hub 发布 (需要配置 DOCKERHUB_* + ENABLE_DOCKER_PUBLISH=true)
+  docker-publish:
+    name: Publish to Docker Hub
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ !inputs.skip-docker && vars.ENABLE_DOCKER_PUBLISH == 'true' }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_DOCKER }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR (source)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copy image from GHCR to Docker Hub
+        run: |
+          VERSION="${{ needs.release.outputs.version }}"
+          GHCR_IMAGE="${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}"
+          DOCKER_IMAGE="${{ env.REGISTRY_DOCKER }}/${{ env.IMAGE_NAME }}"
+
+          # 从 GHCR 拉取，记录实际使用的标签
+          if docker pull "${GHCR_IMAGE}:native-latest"; then
+            SOURCE_TAG="native-latest"
+          elif docker pull "${GHCR_IMAGE}:latest"; then
+            SOURCE_TAG="latest"
+          else
+            echo "::error::Failed to pull image from GHCR"
+            exit 1
+          fi
+
+          echo "Using source tag: ${SOURCE_TAG}"
+
+          # 推送到 Docker Hub (多标签)
+          docker tag "${GHCR_IMAGE}:${SOURCE_TAG}" "${DOCKER_IMAGE}:${VERSION}"
+          docker tag "${GHCR_IMAGE}:${SOURCE_TAG}" "${DOCKER_IMAGE}:latest"
+
+          docker push "${DOCKER_IMAGE}:${VERSION}"
+          docker push "${DOCKER_IMAGE}:latest"
+
+          echo "::notice::Published to Docker Hub: ${DOCKER_IMAGE}:${VERSION}"
+
+  # Maven Central 发布 (需要配置 MAVEN_* + GPG_* + ENABLE_MAVEN_PUBLISH=true)
+  maven-publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ vars.ENABLE_MAVEN_PUBLISH == 'true' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Publish to Maven Central
+        run: |
+          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository \
+            -Psigning.gnupg.keyName=${{ secrets.GPG_KEY_ID }} \
+            -Psigning.gnupg.passphrase=${{ secrets.GPG_PASSPHRASE }} \
+            -PsonatypeUsername=${{ secrets.MAVEN_USERNAME }} \
+            -PsonatypePassword=${{ secrets.MAVEN_PASSWORD }}
+
+  # VS Code 插件发布 (需要配置 VSCE_PAT + ENABLE_VSCODE_PUBLISH=true)
+  vscode-publish:
+    name: Publish VS Code Extension
+    runs-on: ubuntu-latest
+    needs: release
+    # tag push、release 事件或手动触发时发布
+    if: ${{ (github.event_name == 'push' || github.event_name == 'release' || inputs.publish-vscode == true) && vars.ENABLE_VSCODE_PUBLISH == 'true' }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: aster-vscode
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update version in package.json
+        run: npm version ${{ needs.release.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Package extension
+        run: npx @vscode/vsce package
+
+      - name: Publish to VS Code Marketplace
+        run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Publish to Open VSX Registry
+        run: npx ovsx publish -p ${{ secrets.OVSX_TOKEN }}
+        env:
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aster-vscode-${{ needs.release.outputs.version }}.vsix
+          path: aster-vscode/*.vsix
+          retention-days: 30
+
+  # IntelliJ 插件发布 (需要配置 JETBRAINS_TOKEN + ENABLE_INTELLIJ_PUBLISH=true)
+  intellij-publish:
+    name: Publish IntelliJ Plugin
+    runs-on: ubuntu-latest
+    needs: release
+    # tag push、release 事件或手动触发时发布
+    if: ${{ (github.event_name == 'push' || github.event_name == 'release' || inputs.publish-intellij == true) && vars.ENABLE_INTELLIJ_PUBLISH == 'true' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build plugin
+        run: ./gradlew :aster-idea:buildPlugin -Pversion=${{ needs.release.outputs.version }}
+
+      - name: Verify plugin
+        run: ./gradlew :aster-idea:verifyPlugin
+
+      - name: Publish to JetBrains Marketplace
+        run: ./gradlew :aster-idea:publishPlugin
+        env:
+          JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aster-idea-${{ needs.release.outputs.version }}.zip
+          path: aster-idea/build/distributions/*.zip
+          retention-days: 30
+
+  # 发布汇总 - 只依赖必跑的 release job，通过 API 获取其他 job 状态
+  summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: [release]
+    if: always()
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for all jobs and generate summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 等待所有 job 完成（轮询直到所有 job 结束）
+            const targetJobs = ['Create GitHub Release', 'Publish to npm', 'Publish to Docker Hub',
+                                'Publish to Maven Central', 'Publish VS Code Extension', 'Publish IntelliJ Plugin'];
+            let allCompleted = false;
+            let jobs;
+
+            for (let i = 0; i < 60; i++) { // 最多等待 10 分钟
+              const { data } = await github.rest.actions.listJobsForWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId
+              });
+              jobs = data.jobs;
+
+              // 检查所有目标 job 是否已完成
+              allCompleted = targetJobs.every(name => {
+                const job = jobs.find(j => j.name === name);
+                return !job || job.status === 'completed';
+              });
+
+              if (allCompleted) break;
+              await new Promise(r => setTimeout(r, 10000)); // 等待 10 秒
+            }
+
+            const getStatus = (name) => {
+              const job = jobs.find(j => j.name === name);
+              if (!job) return '⏭️';
+              if (job.conclusion === 'success') return '✅';
+              if (job.conclusion === 'skipped') return '⏭️';
+              if (job.conclusion === 'cancelled') return '🚫';
+              return '❌';
+            };
+
+            const version = '${{ needs.release.outputs.tag }}';
+            const date = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+
+            await core.summary
+              .addHeading('Release Summary')
+              .addRaw(`**Version**: ${version}\n**Date**: ${date}\n\n`)
+              .addHeading('Publish Results', 2)
+              .addTable([
+                [{data: 'Target', header: true}, {data: 'Status', header: true}],
+                ['GitHub Release', getStatus('Create GitHub Release')],
+                ['npm', getStatus('Publish to npm')],
+                ['Docker Hub', getStatus('Publish to Docker Hub')],
+                ['Maven Central', getStatus('Publish to Maven Central')],
+                ['VS Code', getStatus('Publish VS Code Extension')],
+                ['IntelliJ', getStatus('Publish IntelliJ Plugin')]
+              ])
+              .write();
