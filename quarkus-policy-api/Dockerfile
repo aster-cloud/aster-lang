@@ -100,7 +100,7 @@ RUN upx --best --lzma /workspace/quarkus-policy-api/build/quarkus-policy-api-uns
 # ============================================
 # Stage 3: Minimal runtime image
 # ============================================
-FROM registry.access.redhat.com/ubi9/ubi-micro:9.5
+FROM registry.access.redhat.com/ubi9/ubi-micro:9.7
 
 ENV APP_HOME=/app
 WORKDIR ${APP_HOME}
