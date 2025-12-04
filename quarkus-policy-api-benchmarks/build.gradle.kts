@@ -10,7 +10,7 @@ java {
 }
 
 dependencies {
-    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.28.3"))
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.30.2"))
     implementation("io.quarkus:quarkus-cache")
     implementation("org.openjdk.jmh:jmh-core:1.37")
     implementation(project(":quarkus-policy-api"))
