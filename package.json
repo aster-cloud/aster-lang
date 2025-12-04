@@ -318,7 +318,7 @@
     "monaco-editor": "^0.55.1",
     "monaco-languageclient": "^10.3.0",
     "openai": "^6.9.1",
-    "ora": "^8.0.0",
+    "ora": "^9.0.0",
     "p-limit": "^7.2.0",
     "reconnecting-websocket": "^4.4.0",
     "semver": "^7.7.3",
