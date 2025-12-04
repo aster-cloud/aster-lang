@@ -4,7 +4,7 @@
 # ============================================
 # Stage 1: Node builder (emit .aster → jar)
 # ============================================
-FROM node:22-bookworm AS node-builder
+FROM node:25-bookworm AS node-builder
 ARG TARGETARCH
 
 RUN apt-get update && \

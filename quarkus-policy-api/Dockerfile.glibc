@@ -9,7 +9,7 @@
 # ============================================
 # Stage 1: Node builder (emit .aster → jar)
 # ============================================
-FROM node:22-bookworm AS node-builder
+FROM node:25-bookworm AS node-builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends bash git python3 make g++ curl ca-certificates && \
