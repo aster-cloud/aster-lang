@@ -80,7 +80,7 @@ dependencies {
     testImplementation("io.quarkus:quarkus-test-vertx")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.smallrye.reactive:smallrye-mutiny-vertx-junit5")
-    testImplementation("org.assertj:assertj-core:3.26.0")
+    testImplementation("org.assertj:assertj-core:3.27.6")
     testImplementation("org.mockito:mockito-core:5.7.0")
     testImplementation("io.quarkus:quarkus-jdbc-h2")
     testImplementation("org.awaitility:awaitility:4.2.0")
