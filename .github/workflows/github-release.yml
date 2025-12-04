@@ -286,7 +286,7 @@ jobs:
       actions: read
     steps:
       - name: Wait for all jobs and generate summary
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             // 等待所有 job 完成（轮询直到所有 job 结束）
