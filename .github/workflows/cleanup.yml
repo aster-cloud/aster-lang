@@ -13,6 +13,7 @@ on:
           - failed_only        # 仅删除所有失败的运行记录
           - cancelled_only     # 仅删除所有已取消的运行记录
           - failed_and_cancelled  # 删除所有失败和已取消的运行记录
+          - all                # ⚠️ 删除所有运行记录（危险操作）
       days_old:
         description: '删除多少天前的运行记录（仅 standard 模式）'
         required: false
@@ -85,6 +86,7 @@ jobs:
 
             // 根据清理模式确定要删除的状态
             let targetConclusions = [];
+            let deleteAll = false;
             switch (cleanupMode) {
               case 'failed_only':
                 targetConclusions = ['failure'];
@@ -95,14 +97,35 @@ jobs:
               case 'failed_and_cancelled':
                 targetConclusions = ['failure', 'cancelled'];
                 break;
+              case 'all':
+                deleteAll = true;
+                break;
               default:
                 core.setFailed(`未知的清理模式: ${cleanupMode}`);
                 return;
             }
 
             console.log(`🔍 清理模式: ${cleanupMode}`);
-            console.log(`📋 目标状态: ${targetConclusions.join(', ')}`);
+            console.log(`📋 目标状态: ${deleteAll ? '所有状态' : targetConclusions.join(', ')}`);
             console.log(`🔒 预览模式: ${dryRun}`);
+
+            // 对于 'all' 模式，检查是否为管理员
+            if (deleteAll) {
+              console.log(`⚠️ 警告: 将删除所有运行记录，此操作不可逆！`);
+              console.log(`🔐 正在验证管理员权限...`);
+
+              const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner,
+                repo,
+                username: context.actor
+              });
+
+              if (permission.permission !== 'admin') {
+                core.setFailed(`❌ 权限不足: 'all' 模式仅限管理员使用。当前用户 ${context.actor} 权限为: ${permission.permission}`);
+                return;
+              }
+              console.log(`✅ 管理员权限验证通过: ${context.actor}`);
+            }
             console.log('');
 
             // 获取所有 workflows
@@ -127,8 +150,8 @@ jobs:
                 );
 
                 for (const run of runs) {
-                  // 检查运行状态是否在目标列表中
-                  if (targetConclusions.includes(run.conclusion)) {
+                  // 检查运行状态是否在目标列表中（或 all 模式删除全部）
+                  if (deleteAll || targetConclusions.includes(run.conclusion)) {
                     if (dryRun) {
                       console.log(`  [预览] 将删除: #${run.run_number} (${run.conclusion}) - ${run.created_at}`);
                       totalSkipped++;
@@ -157,7 +180,8 @@ jobs:
             const modeDescriptions = {
               'failed_only': '仅失败的运行',
               'cancelled_only': '仅已取消的运行',
-              'failed_and_cancelled': '失败和已取消的运行'
+              'failed_and_cancelled': '失败和已取消的运行',
+              'all': '⚠️ 所有运行记录（危险操作）'
             };
 
             let summaryContent = `## 🧹 Workflow Runs 清理完成\n\n`;
@@ -344,6 +368,8 @@ jobs:
             echo "- **Workflow Runs**: 删除所有已取消的运行记录" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ inputs.cleanup_mode }}" == "failed_and_cancelled" ]]; then
             echo "- **Workflow Runs**: 删除所有失败和已取消的运行记录" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.cleanup_mode }}" == "all" ]]; then
+            echo "- **Workflow Runs**: ⚠️ 删除所有运行记录（仅限管理员）" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
