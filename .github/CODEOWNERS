@@ -1,0 +1,33 @@
+# CODEOWNERS - 代码审核责任人定义
+# 详见: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# 默认审核人
+*                               @rpang
+
+# CI/CD 工作流 - 需要额外关注安全性
+/.github/workflows/             @rpang
+/.github/actions/               @rpang
+
+# 核心语言实现
+/src/                           @rpang
+/aster-core/                    @rpang
+/aster-runtime/                 @rpang
+/aster-truffle/                 @rpang
+
+# IDE 插件
+/aster-vscode/                  @rpang
+/aster-idea/                    @rpang
+
+# API 服务
+/quarkus-policy-api/            @rpang
+/aster-policy-common/           @rpang
+
+# 文档
+/docs/                          @rpang
+
+# 依赖配置变更需审核
+package.json                    @rpang
+package-lock.json               @rpang
+build.gradle.kts                @rpang
+settings.gradle.kts             @rpang
+gradle.properties               @rpang

@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: docker.io/bitnami/postgresql:latest
+    image: docker.io/bitnami/postgresql:18
     container_name: policy-api-postgres
     ports:
       - "5433:5432"

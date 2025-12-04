@@ -1,5 +1,12 @@
 name: Release
 
+# 发布流程说明:
+# 1. 本工作流在 push to main 时运行
+# 2. changesets/action 检测 changeset 文件并创建 "Version Packages" PR
+# 3. 合并 Version PR 后，需要手动创建 tag (git tag vX.Y.Z && git push --tags)
+# 4. tag push 触发 github-release.yml 执行实际发布
+# 这种设计提供了发布前的人工审核点
+
 on:
   push:
     branches:
@@ -36,17 +43,15 @@ jobs:
           java-version: '25'
           npm-ci: 'false'
 
-      - name: Clean lockfile and node_modules
-        run: |
-          rm -rf node_modules package-lock.json || true
-      - name: Install dependencies (workaround rollup optional deps)
-        run: npm i
+      - name: Install dependencies
+        # 使用 npm ci 保证可重复性
+        run: npm ci --ignore-scripts || npm ci
 
       - name: Build
         run: npm run build
 
       - name: Run CI checks
-        run: npm run ci:fast || echo "CI checks non-blocking in release workflow"
+        run: npm run ci:fast
 
       - name: Create Version PR (no publish)
         id: changesets

@@ -46,6 +46,18 @@ tasks.test {
   // Phase 3C P0-2: 支持 Profiler 数据收集
   // 通过 -Daster.profiler.enabled=true 启用 profiling
   systemProperty("aster.profiler.enabled", System.getProperty("aster.profiler.enabled", "false"))
+
+  // CI 模式：通过 -PexcludeBenchmarks=true 排除耗时的基准测试
+  // 这些测试包含 fibonacci 和 quicksort 等算法，在 CI 中执行时间过长
+  val excludeBenchmarks: String? by project
+  if (excludeBenchmarks == "true") {
+    filter {
+      excludeTestsMatching("aster.truffle.GraalVMJitBenchmark")
+      excludeTestsMatching("aster.truffle.CrossBackendBenchmark")
+      excludeTestsMatching("aster.truffle.BenchmarkTest")
+    }
+    println("[CI Mode] Excluding slow benchmark tests: GraalVMJitBenchmark, CrossBackendBenchmark, BenchmarkTest")
+  }
 }
 
 // Native Image Agent 配置生成任务

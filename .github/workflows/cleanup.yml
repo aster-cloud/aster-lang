@@ -1,0 +1,193 @@
+name: Cleanup Workflow Runs
+
+on:
+  workflow_dispatch:
+    inputs:
+      days_old:
+        description: '删除多少天前的运行记录'
+        required: false
+        default: '30'
+        type: string
+      keep_minimum:
+        description: '每个工作流至少保留多少条记录'
+        required: false
+        default: '5'
+        type: string
+      dry_run:
+        description: '仅预览，不实际删除'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # 每周日凌晨 3 点自动清理
+    - cron: '0 3 * * 0'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    name: 清理过期 Workflow Runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 清理过期的 Workflow Runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: ${{ inputs.days_old || '30' }}
+          keep_minimum_runs: ${{ inputs.keep_minimum || '5' }}
+          delete_workflow_pattern: 'all'
+          dry_run: ${{ inputs.dry_run || false }}
+
+      - name: 清理统计
+        run: |
+          echo "## 🧹 Workflow Runs 清理完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **保留天数**: ${{ inputs.days_old || '30' }} 天" >> $GITHUB_STEP_SUMMARY
+          echo "- **最少保留**: ${{ inputs.keep_minimum || '5' }} 条/工作流" >> $GITHUB_STEP_SUMMARY
+          echo "- **执行时间**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+  cleanup-caches:
+    name: 清理过期 Caches
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 清理过期缓存
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // 获取所有缓存（使用分页）
+            const caches = await github.paginate(
+              github.rest.actions.getActionsCacheList,
+              { owner, repo, per_page: 100 },
+              (response) => response.data.actions_caches || []
+            );
+
+            const now = new Date();
+            const maxAgeDays = 14; // 缓存最大保留14天
+            let deletedCount = 0;
+            let totalSize = 0;
+
+            for (const cache of caches) {
+              const cacheDate = new Date(cache.last_accessed_at);
+              const ageDays = (now - cacheDate) / (1000 * 60 * 60 * 24);
+
+              if (ageDays > maxAgeDays) {
+                try {
+                  await github.rest.actions.deleteActionsCacheById({
+                    owner,
+                    repo,
+                    cache_id: cache.id
+                  });
+                  deletedCount++;
+                  totalSize += cache.size_in_bytes || 0;
+                  console.log(`已删除缓存: ${cache.key} (${ageDays.toFixed(1)} 天前)`);
+                } catch (e) {
+                  console.log(`删除失败: ${cache.key} - ${e.message}`);
+                }
+              }
+            }
+
+            // 写入摘要
+            const sizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+            core.summary.addHeading('🗑️ 缓存清理结果', 2);
+            core.summary.addTable([
+              [{data: '指标', header: true}, {data: '值', header: true}],
+              ['删除数量', `${deletedCount} 个缓存`],
+              ['释放空间', `${sizeMB} MB`],
+              ['保留天数', `${maxAgeDays} 天`]
+            ]);
+            await core.summary.write();
+
+  cleanup-artifacts:
+    name: 清理过期 Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 清理过期 Artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // 获取所有 artifacts
+            const artifacts = await github.paginate(
+              github.rest.actions.listArtifactsForRepo,
+              { owner, repo, per_page: 100 }
+            );
+
+            const now = new Date();
+            const maxAgeDays = 7; // Artifacts 最大保留7天
+            let deletedCount = 0;
+            let totalSize = 0;
+
+            for (const artifact of artifacts) {
+              // 跳过未过期的
+              if (!artifact.expired) {
+                const artifactDate = new Date(artifact.created_at);
+                const ageDays = (now - artifactDate) / (1000 * 60 * 60 * 24);
+
+                if (ageDays > maxAgeDays) {
+                  try {
+                    await github.rest.actions.deleteArtifact({
+                      owner,
+                      repo,
+                      artifact_id: artifact.id
+                    });
+                    deletedCount++;
+                    totalSize += artifact.size_in_bytes || 0;
+                    console.log(`已删除: ${artifact.name} (${ageDays.toFixed(1)} 天前)`);
+                  } catch (e) {
+                    console.log(`删除失败: ${artifact.name} - ${e.message}`);
+                  }
+                }
+              }
+            }
+
+            const sizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+            core.summary.addHeading('📦 Artifacts 清理结果', 2);
+            core.summary.addTable([
+              [{data: '指标', header: true}, {data: '值', header: true}],
+              ['删除数量', `${deletedCount} 个 artifacts`],
+              ['释放空间', `${sizeMB} MB`],
+              ['保留天数', `${maxAgeDays} 天`]
+            ]);
+            await core.summary.write();
+
+  summary:
+    name: 清理汇总
+    runs-on: ubuntu-latest
+    needs: [cleanup, cleanup-caches, cleanup-artifacts]
+    if: always()
+
+    steps:
+      - name: 生成清理报告
+        run: |
+          echo "## 🧹 GitHub Actions 资源清理报告" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 执行状态" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 任务 | 状态 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Workflow Runs | ${{ needs.cleanup.result == 'success' && '✅ 成功' || '❌ 失败' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Caches | ${{ needs.cleanup-caches.result == 'success' && '✅ 成功' || '❌ 失败' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifacts | ${{ needs.cleanup-artifacts.result == 'success' && '✅ 成功' || '❌ 失败' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 清理策略" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow Runs**: 保留 ${{ inputs.days_old || '30' }} 天，每个工作流至少 ${{ inputs.keep_minimum || '5' }} 条" >> $GITHUB_STEP_SUMMARY
+          echo "- **Caches**: 保留 14 天内访问过的缓存" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifacts**: 保留 7 天内创建的 artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*执行时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> $GITHUB_STEP_SUMMARY

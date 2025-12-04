@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: postgres
-        image: docker.io/bitnami/postgresql:latest
+        image: docker.io/bitnami/postgresql:18
         ports:
         - containerPort: 5432
           name: postgres

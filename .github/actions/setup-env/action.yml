@@ -53,6 +53,10 @@ inputs:
     description: 是否为 gradlew 设置执行权限
     default: 'false'
     required: false
+  gradle-cache-read-only:
+    description: 是否为 Gradle 缓存设置只读模式（PR 分支推荐）
+    default: 'auto'
+    required: false
   working-directory:
     description: npm/gradle 命令执行目录
     default: '.'
@@ -108,3 +112,10 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: chmod +x ./gradlew
+
+    - name: 配置 Gradle 缓存
+      if: ${{ inputs.enable-gradle == 'true' }}
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        # PR 分支使用只读缓存避免缓存污染，main 分支写入缓存
+        cache-read-only: ${{ inputs.gradle-cache-read-only == 'auto' && github.ref != 'refs/heads/main' || inputs.gradle-cache-read-only == 'true' }}

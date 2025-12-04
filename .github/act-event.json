@@ -1,0 +1,24 @@
+{
+  "action": "push",
+  "ref": "refs/heads/main",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "HEAD",
+  "repository": {
+    "name": "aster-lang",
+    "full_name": "user/aster-lang",
+    "default_branch": "main",
+    "owner": {
+      "login": "user"
+    }
+  },
+  "sender": {
+    "login": "user"
+  },
+  "head_commit": {
+    "id": "HEAD",
+    "message": "Local test commit"
+  },
+  "inputs": {
+    "skip-native": true
+  }
+}

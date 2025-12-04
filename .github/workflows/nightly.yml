@@ -1,0 +1,234 @@
+name: Nightly Build
+
+on:
+  schedule:
+    # 每日 UTC 2:00 (北京时间 10:00)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      skip-publish:
+        description: 'Skip npm nightly publish'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NIGHTLY_TAG: nightly
+
+jobs:
+  # 完整测试套件
+  full-tests:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'true'
+          enable-gradle: 'true'
+
+      - name: Generate nightly version
+        id: version
+        run: |
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          DATE=$(date +%Y%m%d)
+          NIGHTLY_VERSION="${BASE_VERSION}-nightly.${DATE}"
+          echo "value=$NIGHTLY_VERSION" >> "$GITHUB_OUTPUT"
+          echo "::notice::Nightly version: $NIGHTLY_VERSION"
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Run all TypeScript tests
+        run: npm run test
+
+      - name: Run Java tests
+        run: ./gradlew test --no-configuration-cache
+
+      - name: Run Quarkus tests
+        run: ./gradlew :quarkus-policy-api:test --no-configuration-cache
+
+  # 性能基准测试
+  benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    needs: full-tests
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'false'
+
+      - name: Build
+        run: npm run build
+
+      - name: Run benchmarks
+        run: |
+          npm run bench 2>&1 | tee benchmark-results.txt
+          echo "## Nightly Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat benchmark-results.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ needs.full-tests.outputs.version }}
+          path: benchmark-results.txt
+          retention-days: 90
+
+  # 发布 @nightly 到 npm (需要配置 NPM_TOKEN + ENABLE_NPM_PUBLISH=true)
+  publish-nightly:
+    name: Publish @nightly
+    runs-on: ubuntu-latest
+    needs: [full-tests, benchmark]
+    if: ${{ !inputs.skip-publish && vars.ENABLE_NPM_PUBLISH == 'true' }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          checkout: 'false'
+          enable-java: 'false'
+          enable-node: 'true'
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Set nightly version
+        run: npm version ${{ needs.full-tests.outputs.version }} --no-git-tag-version
+
+      - name: Publish to npm with nightly tag
+        run: npm publish --tag nightly --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify success
+        run: |
+          echo "## Nightly Publish" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Published version: ${{ needs.full-tests.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Install with: \`npm install aster-lang@nightly\`" >> $GITHUB_STEP_SUMMARY
+
+  # 构建 Docker nightly 镜像 (需要 GHCR 权限 + ENABLE_DOCKER_PUBLISH=true)
+  docker-nightly:
+    name: Docker Nightly
+    runs-on: ubuntu-latest
+    needs: full-tests
+    if: ${{ !inputs.skip-publish && vars.ENABLE_DOCKER_PUBLISH == 'true' }}
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push nightly image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: quarkus-policy-api/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/policy-api:nightly
+            ghcr.io/${{ github.repository_owner }}/policy-api:nightly-${{ needs.full-tests.outputs.version }}
+          cache-from: type=gha,scope=policy-api-nightly
+          cache-to: type=gha,mode=max,scope=policy-api-nightly
+
+  # Nightly 总结 - 只依赖必跑的 full-tests job，通过 API 获取其他 job 状态
+  summary:
+    name: Nightly Summary
+    runs-on: ubuntu-latest
+    needs: [full-tests]
+    if: always()
+    steps:
+      - name: Wait for all jobs and generate summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 等待所有 job 完成（轮询直到所有 job 结束）
+            const targetJobs = ['Full Test Suite', 'Performance Benchmark', 'Publish @nightly', 'Docker Nightly'];
+            let allCompleted = false;
+            let jobs;
+
+            for (let i = 0; i < 60; i++) { // 最多等待 10 分钟
+              const { data } = await github.rest.actions.listJobsForWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId
+              });
+              jobs = data.jobs;
+
+              // 检查所有目标 job 是否已完成
+              allCompleted = targetJobs.every(name => {
+                const job = jobs.find(j => j.name === name);
+                return !job || job.status === 'completed';
+              });
+
+              if (allCompleted) break;
+              await new Promise(r => setTimeout(r, 10000)); // 等待 10 秒
+            }
+
+            const getStatus = (name) => {
+              const job = jobs.find(j => j.name === name);
+              if (!job) return '⏭️';
+              if (job.conclusion === 'success') return '✅';
+              if (job.conclusion === 'skipped') return '⏭️';
+              if (job.conclusion === 'cancelled') return '🚫';
+              return '❌';
+            };
+
+            const version = '${{ needs.full-tests.outputs.version }}';
+            const date = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+
+            await core.summary
+              .addHeading('Nightly Build Summary')
+              .addRaw(`**Version**: ${version}\n**Date**: ${date}\n\n`)
+              .addHeading('Job Results', 2)
+              .addTable([
+                [{data: 'Job', header: true}, {data: 'Status', header: true}],
+                ['Full Tests', getStatus('Full Test Suite')],
+                ['Benchmark', getStatus('Performance Benchmark')],
+                ['npm Publish', getStatus('Publish @nightly')],
+                ['Docker Nightly', getStatus('Docker Nightly')]
+              ])
+              .write();

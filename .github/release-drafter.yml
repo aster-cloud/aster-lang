@@ -1,0 +1,142 @@
+# Release Drafter 配置
+# 自动根据合并的 PR 生成 changelog 和版本建议
+# 文档: https://github.com/release-drafter/release-drafter
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+# 版本号解析规则 (基于 PR 标签)
+version-resolver:
+  major:
+    labels:
+      - 'breaking'
+      - 'major'
+  minor:
+    labels:
+      - 'feature'
+      - 'enhancement'
+  patch:
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'patch'
+      - 'docs'
+      - 'chore'
+  default: patch
+
+# PR 分类规则
+categories:
+  - title: '🚀 Features / 新功能'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Bug Fixes / 修复'
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+  - title: '⚡ Performance / 性能'
+    labels:
+      - 'performance'
+      - 'perf'
+  - title: '📚 Documentation / 文档'
+    labels:
+      - 'docs'
+      - 'documentation'
+  - title: '🔧 Maintenance / 维护'
+    labels:
+      - 'chore'
+      - 'maintenance'
+      - 'refactor'
+  - title: '🏗️ Build & CI'
+    labels:
+      - 'ci'
+      - 'build'
+      - 'dependencies'
+  - title: '⚠️ Breaking Changes / 破坏性变更'
+    labels:
+      - 'breaking'
+      - 'major'
+  - title: '🔐 Security / 安全'
+    labels:
+      - 'security'
+
+# 排除规则 (不包含在 changelog 中)
+exclude-labels:
+  - 'skip-changelog'
+  - 'wip'
+  - 'internal'
+
+# 自动标签规则 (根据文件路径)
+autolabeler:
+  - label: 'docs'
+    files:
+      - '*.md'
+      - 'docs/**/*'
+  - label: 'ci'
+    files:
+      - '.github/**/*'
+  - label: 'feature'
+    branch:
+      - '/^feat(ure)?[/-].+/'
+  - label: 'fix'
+    branch:
+      - '/^fix[/-].+/'
+      - '/^bug[/-].+/'
+  - label: 'chore'
+    branch:
+      - '/^chore[/-].+/'
+  - label: 'refactor'
+    branch:
+      - '/^refactor[/-].+/'
+
+# Release 模板
+template: |
+  ## What's Changed / 更新内容
+
+  $CHANGES
+
+  ## Contributors / 贡献者
+
+  $CONTRIBUTORS
+
+  ---
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+  ## Installation / 安装
+
+  ```bash
+  # npm
+  npm install aster-lang@$RESOLVED_VERSION
+
+  # Docker
+  docker pull ghcr.io/$OWNER/policy-api:$RESOLVED_VERSION
+  ```
+
+# 变更条目格式
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+
+# 无变更时的占位符
+no-changes-template: '- No changes'
+
+# 贡献者格式
+contributors-template: '@$AUTHOR'
+
+# 排序规则
+sort-by: merged_at
+sort-direction: descending
+
+# 替换规则 (清理 PR 标题)
+replacers:
+  - search: '/\[.*?\]\s*/g'
+    replace: ''
+  - search: '/^feat(\(.*?\))?:\s*/i'
+    replace: ''
+  - search: '/^fix(\(.*?\))?:\s*/i'
+    replace: ''
+  - search: '/^docs(\(.*?\))?:\s*/i'
+    replace: ''
+  - search: '/^chore(\(.*?\))?:\s*/i'
+    replace: ''

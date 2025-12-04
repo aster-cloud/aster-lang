@@ -21,6 +21,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# 全局最小权限，各 job 按需覆盖
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/policy-api
@@ -44,6 +48,8 @@ jobs:
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: 检测变更文件
         uses: dorny/paths-filter@v3
@@ -104,7 +110,16 @@ jobs:
   build:
     name: Build TypeScript
     needs: changes
-    if: always() && (needs.changes.outputs.typescript == 'true' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    if: |
+      always() && (
+        needs.changes.outputs.typescript == 'true' ||
+        needs.changes.outputs.java == 'true' ||
+        needs.changes.outputs.gradle == 'true' ||
+        needs.changes.outputs.truffle == 'true' ||
+        needs.changes.outputs.quarkus == 'true' ||
+        github.event_name == 'workflow_dispatch' ||
+        github.ref == 'refs/heads/main'
+      )
     uses: ./.github/workflows/_reusable-build.yml
     with:
       node-version: '22'
@@ -265,7 +280,6 @@ jobs:
     # 仅在 main 分支或 package.json 变更时运行
     if: always() && (github.ref == 'refs/heads/main' || needs.changes.outputs.typescript == 'true')
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
@@ -566,6 +580,9 @@ jobs:
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
+  # NOTE: Policy API build moved to dedicated build-policy-api.yml workflow
+  # This avoids duplicate builds on main push (saves ~30-60 min CI time)
+  # See: .github/workflows/build-policy-api.yml
 
   policy-api-metrics:
     name: Policy API Acceptance & Metrics
@@ -574,6 +591,9 @@ jobs:
     # 仅在 Quarkus 代码变更或 main 分支时运行
     if: always() && needs.quarkus-policy-api.result == 'success' && (needs.changes.outputs.quarkus == 'true' || github.ref == 'refs/heads/main')
     timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write  # 用于 PR 评论
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
@@ -619,7 +639,7 @@ jobs:
             -e POSTGRESQL_USERNAME=postgres \
             -e POSTGRESQL_PASSWORD=postgres \
             -e POSTGRESQL_DATABASE=aster_policy \
-            docker.io/bitnami/postgresql:latest
+            docker.io/bitnami/postgresql:18
           docker run -d --name policy-ci-redis --network policy-ci \
             docker.io/redis:7-alpine
           for i in {1..12}; do
@@ -693,7 +713,7 @@ jobs:
           docker network rm policy-ci || true
 
       - name: Comment PR with metrics
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v7
         with:
           script: |
@@ -743,7 +763,10 @@ jobs:
           path: dist/
 
       - name: Run Truffle tests
-        run: ./gradlew :aster-truffle:test --no-configuration-cache
+        # 排除耗时的基准测试类（fibonacci/quicksort），仅运行核心功能测试
+        run: |
+          ./gradlew :aster-truffle:test --no-configuration-cache \
+            -PexcludeBenchmarks=true
 
       - name: Build Truffle Native Image
         run: ./gradlew :aster-truffle:nativeCompile --no-daemon --no-configuration-cache --info
@@ -767,9 +790,11 @@ jobs:
 
       - name: Test native binary functionality
         run: |
+          set -euo pipefail
           chmod +x aster-truffle/build/native/nativeCompile/aster
           echo "Testing basic execution..."
-          aster-truffle/build/native/nativeCompile/aster benchmarks/core/fibonacci_20_core.json || true
+          # 使用轻量级 simple_hello 测试代替耗时的 fibonacci_20 测试
+          aster-truffle/build/native/nativeCompile/aster benchmarks/core/simple_hello_core.json
           echo "✓ Native binary can execute"
 
       - name: Upload test results

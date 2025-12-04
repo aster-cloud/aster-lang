@@ -1,14 +1,12 @@
 name: E2E Tests
 
 on:
-  # PR: 快速 JVM 模式测试
   pull_request:
     branches: [main]
     paths:
       - 'quarkus-policy-api/**'
       - 'docker-compose*.yml'
       - '.github/workflows/e2e-tests.yml'
-  # Main push: 复用 build-policy-api 构建的 native 镜像
   workflow_run:
     workflows: ["Build Policy API"]
     types: [completed]
@@ -16,43 +14,41 @@ on:
   workflow_dispatch:
     inputs:
       build-mode:
-        description: 'Build mode (native reuses existing image, jvm builds fresh)'
+        description: 'Build mode'
         type: choice
         options:
           - native
           - jvm
-        default: 'native'
+        default: 'jvm'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # PR 场景: 使用 JVM 快速构建
-  policy-api-build-pr:
-    name: Build (JVM - Fast)
-    if: github.event_name == 'pull_request'
+  # 构建 job (PR 和手动触发时执行实际构建，workflow_run 时跳过)
+  build:
+    name: Build Policy API
+    # workflow_run 时此 job 会被跳过
+    if: github.event_name != 'workflow_run'
     uses: ./.github/workflows/_reusable-policy-api-build.yml
     with:
-      push-image: true
-      image-tag: pr-${{ github.event.pull_request.number }}-${{ github.sha }}
-      build-mode: jvm
+      push-image: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      image-tag: ${{ github.event_name == 'pull_request' && format('pr-{0}-{1}', github.event.pull_request.number, github.sha) || format('e2e-{0}', github.sha) }}
+      build-mode: ${{ inputs.build-mode || 'jvm' }}
     permissions:
       contents: read
       packages: write
 
-  # Main push 场景 (workflow_run): 复用已构建的 native 镜像
-  e2e-native:
-    name: E2E (Native Image)
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+  # E2E 测试 job - 处理 workflow_run 场景 (build 被跳过)
+  e2e-workflow-run:
+    name: E2E Tests (workflow_run)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: read
-    env:
-      # 复用 build-policy-api 构建的镜像
-      POLICY_API_IMAGE: ghcr.io/${{ github.repository_owner }}/policy-api:native-${{ github.event.workflow_run.head_sha }}
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
@@ -64,121 +60,121 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull pre-built native image
+      - name: Determine and pull image
+        id: image
         run: |
-          echo "Pulling pre-built native image: $POLICY_API_IMAGE"
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          OWNER="${{ github.repository_owner }}"
+
+          # 尝试拉取 native 镜像，如果失败则尝试 jvm 镜像
+          NATIVE_IMAGE="ghcr.io/${OWNER}/policy-api:native-${SHA}"
+          JVM_IMAGE="ghcr.io/${OWNER}/policy-api:jvm-${SHA}"
+
+          echo "Trying native image: $NATIVE_IMAGE"
+          if docker pull "$NATIVE_IMAGE" 2>/dev/null; then
+            echo "image=$NATIVE_IMAGE" >> $GITHUB_OUTPUT
+            echo "✓ Using native image"
+          else
+            echo "Native image not found, trying JVM image: $JVM_IMAGE"
+            if docker pull "$JVM_IMAGE"; then
+              echo "image=$JVM_IMAGE" >> $GITHUB_OUTPUT
+              echo "✓ Using JVM image"
+            else
+              echo "::error::Failed to pull both native and JVM images"
+              exit 1
+            fi
+          fi
+
+      - name: Set POLICY_API_IMAGE
+        run: echo "POLICY_API_IMAGE=${{ steps.image.outputs.image }}" >> $GITHUB_ENV
+
+      - name: Start services
+        run: docker compose --profile monitoring up -d postgres redis policy-api
+
+      - name: Wait for Policy API
+        run: |
+          timeout 60 bash -c 'until curl -sf http://localhost:8081/q/health; do sleep 2; done'
+
+      - name: Run E2E checks
+        run: |
+          echo "=== GraphQL Schema Check ==="
+          curl -sf -X POST http://localhost:8081/graphql \
+            -H "Content-Type: application/json" \
+            -d '{"query":"{__schema{types{name}}}"}'
+
+          echo ""
+          echo "=== Health Checks ==="
+          curl -sf http://localhost:8081/q/health/live
+          curl -sf http://localhost:8081/q/health/ready
+
+          echo ""
+          echo "=== Metrics Sample ==="
+          curl -sf http://localhost:8081/q/metrics | head -n 50
+
+          echo ""
+          echo "✅ All E2E checks passed"
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
+
+  # E2E 测试 job - 处理 PR 和手动触发场景 (依赖 build job)
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    # 仅在 PR 或 workflow_dispatch 时运行，跳过 fork PR
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'workflow_dispatch')
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    env:
+      POLICY_API_IMAGE: ${{ needs.build.outputs.image }}
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: |
+          echo "Pulling image: $POLICY_API_IMAGE"
           docker pull $POLICY_API_IMAGE
 
       - name: Start services
         run: docker compose --profile monitoring up -d postgres redis policy-api
 
       - name: Wait for Policy API
-        run: timeout 60 bash -c 'until curl -sf http://localhost:8081/q/health; do sleep 2; done'
+        run: |
+          TIMEOUT=${{ github.event_name == 'workflow_run' && '60' || '90' }}
+          timeout $TIMEOUT bash -c 'until curl -sf http://localhost:8081/q/health; do sleep 2; done'
 
       - name: Run E2E checks
         run: |
+          echo "=== GraphQL Schema Check ==="
           curl -sf -X POST http://localhost:8081/graphql \
             -H "Content-Type: application/json" \
             -d '{"query":"{__schema{types{name}}}"}'
+
+          echo ""
+          echo "=== Health Checks ==="
           curl -sf http://localhost:8081/q/health/live
           curl -sf http://localhost:8081/q/health/ready
+
+          echo ""
+          echo "=== Metrics Sample ==="
           curl -sf http://localhost:8081/q/metrics | head -n 50
 
-      - name: Cleanup
-        if: always()
-        run: docker compose down -v
-
-  # PR 场景: E2E 测试
-  e2e-pr:
-    name: E2E (JVM - Fast)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    needs: policy-api-build-pr
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      packages: read
-    env:
-      POLICY_API_IMAGE: ${{ needs.policy-api-build-pr.outputs.image }}
-    steps:
-      - name: Checkout 代码
-        uses: actions/checkout@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Start services
-        run: docker compose --profile monitoring up -d postgres redis policy-api
-
-      - name: Wait for Policy API
-        run: timeout 90 bash -c 'until curl -sf http://localhost:8081/q/health; do sleep 2; done'
-
-      - name: Run E2E checks
-        run: |
-          curl -sf -X POST http://localhost:8081/graphql \
-            -H "Content-Type: application/json" \
-            -d '{"query":"{__schema{types{name}}}"}'
-          curl -sf http://localhost:8081/q/health/live
-          curl -sf http://localhost:8081/q/health/ready
-          curl -sf http://localhost:8081/q/metrics | head -n 50
-
-      - name: Cleanup
-        if: always()
-        run: docker compose down -v
-
-  # 手动触发场景
-  policy-api-build-manual:
-    name: Build (Manual)
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/_reusable-policy-api-build.yml
-    with:
-      push-image: true
-      image-tag: manual-${{ github.sha }}
-      build-mode: ${{ inputs.build-mode }}
-    permissions:
-      contents: read
-      packages: write
-
-  e2e-manual:
-    name: E2E (Manual)
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    needs: policy-api-build-manual
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      packages: read
-    env:
-      POLICY_API_IMAGE: ${{ needs.policy-api-build-manual.outputs.image }}
-    steps:
-      - name: Checkout 代码
-        uses: actions/checkout@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Start services
-        run: docker compose --profile monitoring up -d postgres redis policy-api
-
-      - name: Wait for Policy API
-        run: timeout 90 bash -c 'until curl -sf http://localhost:8081/q/health; do sleep 2; done'
-
-      - name: Run E2E checks
-        run: |
-          curl -sf -X POST http://localhost:8081/graphql \
-            -H "Content-Type: application/json" \
-            -d '{"query":"{__schema{types{name}}}"}'
-          curl -sf http://localhost:8081/q/health/live
-          curl -sf http://localhost:8081/q/health/ready
-          curl -sf http://localhost:8081/q/metrics | head -n 50
+          echo ""
+          echo "✅ All E2E checks passed"
 
       - name: Cleanup
         if: always()

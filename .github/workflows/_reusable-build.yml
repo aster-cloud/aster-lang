@@ -27,6 +27,7 @@ jobs:
   typescript-build:
     name: TypeScript 构建
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       artifact-name: ${{ inputs.artifact-name }}
     steps:
