@@ -230,7 +230,7 @@ jobs:
           OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
 
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: aster-vscode-${{ needs.release.outputs.version }}.vsix
           path: aster-vscode/*.vsix
@@ -270,7 +270,7 @@ jobs:
           JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
 
       - name: Upload plugin artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: aster-idea-${{ needs.release.outputs.version }}.zip
           path: aster-idea/build/distributions/*.zip
