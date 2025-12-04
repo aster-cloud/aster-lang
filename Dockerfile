@@ -9,7 +9,7 @@
 # ============================================
 # Stage 1: Build Native Image
 # ============================================
-FROM ghcr.io/graalvm/native-image:21 AS builder
+FROM ghcr.io/graalvm/native-image:22 AS builder
 
 # 安装构建依赖
 RUN microdnf install -y \
