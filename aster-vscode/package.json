@@ -171,7 +171,7 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.106.1",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/parser": "^8.48.1",
     "@vscode/vsce": "^3.6.2",
     "eslint": "^8.0.0",
     "fs-extra": "^11.3.2",
