@@ -12,7 +12,7 @@ dependencies {
   annotationProcessor("org.graalvm.truffle:truffle-dsl-processor:25.0.0")
   implementation("org.graalvm.sdk:graal-sdk:25.0.0")
   implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
-  implementation("io.quarkus:quarkus-core:3.28.3")
+  implementation("io.quarkus:quarkus-core:3.30.2")
   testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
   testImplementation("org.graalvm.truffle:truffle-api:25.0.0")
   testRuntimeOnly("org.graalvm.truffle:truffle-runtime:25.0.0")
