@@ -316,7 +316,7 @@
     "@types/semver": "^7.7.1",
     "cac": "6.7.14",
     "monaco-editor": "^0.55.1",
-    "monaco-languageclient": "^10.3.0",
+    "monaco-languageclient": "^10.4.0",
     "openai": "^6.9.1",
     "ora": "^9.0.0",
     "p-limit": "^7.2.0",
