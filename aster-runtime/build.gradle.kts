@@ -9,7 +9,7 @@ java {
 repositories { mavenCentral() }
 
 dependencies {
-  implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.28.3"))
+  implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.30.2"))
   implementation("io.quarkus:quarkus-cache")
   implementation("io.quarkus:quarkus-core")
   implementation("io.smallrye.common:smallrye-common-net") // For CidrAddress (GraalVM substitutions)

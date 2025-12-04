@@ -31,7 +31,7 @@ dependencies {
   implementation(fileTree("${rootProject.projectDir}/build/aster-out") { include("aster.jar") })
 
   // 如果需要 Truffle 支持，取消注释：
-  implementation("org.graalvm.truffle:truffle-api:25.0.0")
+  implementation("org.graalvm.truffle:truffle-api:25.0.1")
 
   testImplementation(platform("org.junit:junit-bom:6.0.0"))
   testImplementation("org.junit.jupiter:junit-jupiter")

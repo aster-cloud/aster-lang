@@ -9,7 +9,7 @@
 # ============================================
 # Stage 1: Build Native Image
 # ============================================
-FROM ghcr.io/graalvm/native-image:21 AS builder
+FROM ghcr.io/graalvm/native-image:22 AS builder
 
 # 安装构建依赖
 RUN microdnf install -y \
@@ -49,7 +49,7 @@ RUN ls -lh /build/aster-lang-cli/build/native/nativeCompile/ \
 # ============================================
 # Stage 2: Runtime Image (Minimal)
 # ============================================
-FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21 AS runtime
+FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-25 AS runtime
 
 # 安装运行时依赖（仅需 glibc 和基础库）
 USER root

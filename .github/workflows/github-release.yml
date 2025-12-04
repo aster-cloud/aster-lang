@@ -45,7 +45,7 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -81,7 +81,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.release.outputs.tag }}
 
@@ -162,7 +162,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.release.outputs.tag }}
 
@@ -203,7 +203,7 @@ jobs:
         working-directory: aster-vscode
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -230,7 +230,7 @@ jobs:
           OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
 
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: aster-vscode-${{ needs.release.outputs.version }}.vsix
           path: aster-vscode/*.vsix
@@ -247,7 +247,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -270,7 +270,7 @@ jobs:
           JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
 
       - name: Upload plugin artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: aster-idea-${{ needs.release.outputs.version }}.zip
           path: aster-idea/build/distributions/*.zip
@@ -286,7 +286,7 @@ jobs:
       actions: read
     steps:
       - name: Wait for all jobs and generate summary
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             // 等待所有 job 完成（轮询直到所有 job 结束）

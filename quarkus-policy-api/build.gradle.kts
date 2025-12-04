@@ -8,7 +8,7 @@ import java.util.zip.ZipFile
 plugins {
     id("java")
     // Using latest Quarkus 3.28.3 - testing Gradle 9.0 compatibility
-    id("io.quarkus") version "3.28.3"
+    id("io.quarkus") version "3.30.2"
     id("io.gatling.gradle") version "3.13.1"
 }
 
@@ -27,7 +27,7 @@ java {
 
 dependencies {
     // Quarkus BOM (Bill of Materials) for dependency management
-    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.28.3"))
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.30.2"))
 
     // Quarkus核心依赖 - Reactive REST endpoints (quarkus-rest already includes reactive support)
     implementation("io.quarkus:quarkus-rest")
@@ -80,7 +80,7 @@ dependencies {
     testImplementation("io.quarkus:quarkus-test-vertx")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.smallrye.reactive:smallrye-mutiny-vertx-junit5")
-    testImplementation("org.assertj:assertj-core:3.26.0")
+    testImplementation("org.assertj:assertj-core:3.27.6")
     testImplementation("org.mockito:mockito-core:5.7.0")
     testImplementation("io.quarkus:quarkus-jdbc-h2")
     testImplementation("org.awaitility:awaitility:4.2.0")
@@ -117,7 +117,7 @@ tasks.withType<Test> {
 val skipGenerateAsterJar = providers.environmentVariable("SKIP_GENERATE_ASTER_JAR").isPresent
 
 val workflowDeps = configurations.detachedConfiguration(
-    dependencies.create("io.quarkus:quarkus-cache:3.28.3@jar"),
+    dependencies.create("io.quarkus:quarkus-cache:3.30.2@jar"),
     dependencies.create("jakarta.enterprise:jakarta.enterprise.cdi-api:4.0.1"),
     dependencies.create("jakarta.inject:jakarta.inject-api:2.0.1")
 ).apply {

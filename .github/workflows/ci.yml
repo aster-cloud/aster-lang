@@ -47,7 +47,7 @@ jobs:
       vscode: ${{ steps.filter.outputs.vscode }}
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
@@ -93,7 +93,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -134,7 +134,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -143,7 +143,7 @@ jobs:
           enable-java: 'false'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -219,7 +219,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -228,7 +228,7 @@ jobs:
           enable-java: 'false'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -256,7 +256,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -265,7 +265,7 @@ jobs:
           enable-java: 'false'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -282,7 +282,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node 环境
         uses: ./.github/actions/setup-env
@@ -305,7 +305,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
@@ -315,7 +315,7 @@ jobs:
           enable-gradle: 'true'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -365,7 +365,7 @@ jobs:
       TS_TYPECHECK_CMD: ${{ vars.TS_TYPECHECK_CMD || '' }}
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 Node + Temurin 环境
         uses: ./.github/actions/setup-env
@@ -377,7 +377,7 @@ jobs:
           java-version: '21'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -403,7 +403,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
@@ -413,7 +413,7 @@ jobs:
           enable-gradle: 'true'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/
@@ -450,7 +450,7 @@ jobs:
             runner: ubuntu-24.04-arm  # GitHub 原生 arm64 runner
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout 代码
         uses: ./.github/actions/setup-env
@@ -487,7 +487,7 @@ jobs:
 
       - name: Build image (${{ matrix.platform }})
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: quarkus-policy-api/Dockerfile
@@ -520,7 +520,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: policy-api-digest-*
           path: digests
@@ -603,7 +603,7 @@ jobs:
       pull-requests: write  # 用于 PR 评论
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout 代码
         uses: ./.github/actions/setup-env
@@ -721,7 +721,7 @@ jobs:
 
       - name: Comment PR with metrics
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const body = `## 🚀 Policy API Performance
@@ -753,7 +753,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 初始化 GraalVM + Node 环境
         uses: ./.github/actions/setup-env
@@ -764,7 +764,7 @@ jobs:
           native-image-job-reports: 'true'
 
       - name: 下载 TypeScript 产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: build-artifacts
           path: dist/

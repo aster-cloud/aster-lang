@@ -9,7 +9,7 @@
 # ============================================
 # Stage 1: Node builder (emit .aster → jar)
 # ============================================
-FROM node:22-bookworm AS node-builder
+FROM node:25-bookworm AS node-builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends bash git python3 make g++ curl ca-certificates && \
@@ -89,7 +89,7 @@ RUN upx --best --lzma /workspace/quarkus-policy-api/build/quarkus-policy-api-uns
 # ============================================
 # Stage 3: Minimal runtime image
 # ============================================
-FROM registry.access.redhat.com/ubi9/ubi-micro:9.5
+FROM registry.access.redhat.com/ubi9/ubi-micro:9.7
 
 ENV APP_HOME=/app
 WORKDIR ${APP_HOME}

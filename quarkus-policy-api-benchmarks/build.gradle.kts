@@ -10,7 +10,7 @@ java {
 }
 
 dependencies {
-    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.28.3"))
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.30.2"))
     implementation("io.quarkus:quarkus-cache")
     implementation("org.openjdk.jmh:jmh-core:1.37")
     implementation(project(":quarkus-policy-api"))
@@ -33,12 +33,12 @@ dependencies {
     jmhImplementation("org.testcontainers:postgresql:1.19.3")
 
     // HikariCP DataSource
-    jmhImplementation("com.zaxxer:HikariCP:5.1.0")
+    jmhImplementation("com.zaxxer:HikariCP:7.0.2")
     jmhImplementation("org.postgresql:postgresql")
 
     // Flyway 数据库迁移 (Task 4)
-    jmhImplementation("org.flywaydb:flyway-core:10.4.1")
-    jmhImplementation("org.flywaydb:flyway-database-postgresql:10.4.1")
+    jmhImplementation("org.flywaydb:flyway-core:11.18.0")
+    jmhImplementation("org.flywaydb:flyway-database-postgresql:11.18.0")
 
     // Mockito 和 Hibernate (Task 5)
     jmhImplementation("org.mockito:mockito-core:5.8.0")
