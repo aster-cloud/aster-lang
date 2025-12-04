@@ -69,8 +69,10 @@ jobs:
       contents: read
       packages: read        # 需要读取 GHCR 镜像
       security-events: write
+    env:
+      IMAGE_REF: ghcr.io/${{ github.repository_owner }}/policy-api:${{ inputs.build-mode || 'native' }}-latest
     steps:
-      # 登录 GHCR 以便 Trivy 可以拉取私有镜像
+      # 登录 GHCR 以便拉取镜像
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -78,10 +80,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # 先拉取镜像到本地，确保 Trivy 可以从本地 Docker daemon 扫描
+      - name: Pull image for scanning
+        run: docker pull ${{ env.IMAGE_REF }}
+
       - name: Trivy SARIF scan
         uses: aquasecurity/trivy-action@0.30.0  # 锁定版本，避免供应链风险
         with:
-          image-ref: 'ghcr.io/${{ github.repository_owner }}/policy-api:${{ inputs.build-mode || ''native'' }}-latest'
+          image-ref: ${{ env.IMAGE_REF }}
           format: 'sarif'
           output: 'trivy-results.sarif'
 
@@ -93,7 +99,7 @@ jobs:
       - name: Enforce CRITICAL/HIGH policy
         uses: aquasecurity/trivy-action@0.30.0  # 锁定版本
         with:
-          image-ref: 'ghcr.io/${{ github.repository_owner }}/policy-api:${{ inputs.build-mode || ''native'' }}-latest'
+          image-ref: ${{ env.IMAGE_REF }}
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
