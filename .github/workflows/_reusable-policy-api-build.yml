@@ -56,7 +56,7 @@ jobs:
 
       - name: Build and push (Native mode)
         if: inputs.build-mode == 'native'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: quarkus-policy-api/Dockerfile
@@ -68,7 +68,7 @@ jobs:
 
       - name: Build and push (JVM mode)
         if: inputs.build-mode == 'jvm'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: quarkus-policy-api/Dockerfile.e2e
