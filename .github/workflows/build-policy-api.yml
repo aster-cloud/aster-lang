@@ -103,3 +103,4 @@ jobs:
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true  # 忽略无修复方案的漏洞（通常来自基础镜像）

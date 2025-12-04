@@ -524,6 +524,7 @@ jobs:
         with:
           pattern: policy-api-digest-*
           path: digests
+          merge-multiple: true  # 将多个 artifact 合并到同一目录
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
