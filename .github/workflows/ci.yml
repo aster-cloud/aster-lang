@@ -429,18 +429,25 @@ jobs:
           path: quarkus-policy-api/build/reports/tests/test/
 
   policy-api-build:
-    name: Policy API Multi-arch Build
-    runs-on: ubuntu-latest
+    name: Policy API Multi-arch Build (${{ matrix.arch }})
+    # 使用原生架构 runner 避免 QEMU 模拟的性能问题
+    # arm64 使用 GitHub 提供的原生 arm64 runner，大幅提升构建速度
+    runs-on: ${{ matrix.runner }}
     needs: [changes, quarkus-policy-api]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.quarkus-policy-api.result == 'success'
-    timeout-minutes: 30
+    # 增加超时时间：arm64 原生构建约需 15-20 分钟，amd64 约需 10-15 分钟
+    # 设置 45 分钟提供足够的安全余量
+    timeout-minutes: 45
     strategy:
+      fail-fast: false  # 允许各架构独立完成，不因一个失败而取消另一个
       matrix:
         include:
           - arch: amd64
             platform: linux/amd64
+            runner: ubuntu-latest
           - arch: arm64
             platform: linux/arm64
+            runner: ubuntu-24.04-arm  # GitHub 原生 arm64 runner
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4

@@ -100,7 +100,7 @@
     "typecheck:file": "node dist/scripts/typecheck-cli.js test/cnl/programs/examples/greet.aster",
     "test:nobuild": "npm run fmt:examples:nobuild && npm run test:golden:nobuild && npm run test:property:nobuild",
     "test:golden:nobuild": "npm run fmt:examples:nobuild && node dist/scripts/golden.js",
-    "test:property:nobuild": "node dist/test/property.test.js",
+    "test:property:nobuild": "node --test 'dist/test/property/**/*.test.js'",
     "test:lsp:nobuild": "node dist/test/property/lsp-props.test.js",
     "test:lossless:nobuild": "node dist/scripts/test-lossless.js && node dist/scripts/test-lossless-golden.js && node dist/test/fuzz/lossless-fuzz.test.js",
     "test:comments:nobuild": "node dist/scripts/test-comments-golden.js",

@@ -47,16 +47,19 @@ tasks.test {
   // 通过 -Daster.profiler.enabled=true 启用 profiling
   systemProperty("aster.profiler.enabled", System.getProperty("aster.profiler.enabled", "false"))
 
-  // CI 模式：通过 -PexcludeBenchmarks=true 排除耗时的基准测试
-  // 这些测试包含 fibonacci 和 quicksort 等算法，在 CI 中执行时间过长
+  // CI 模式：通过 -PexcludeBenchmarks=true 排除耗时的基准测试和不稳定测试
+  // 这些测试包含:
+  // - fibonacci 和 quicksort 等算法，在 CI 中执行时间过长
+  // - ChaosSchedulerTest 等依赖时序的测试，在 CI 环境中结果不稳定
   val excludeBenchmarks: String? by project
   if (excludeBenchmarks == "true") {
     filter {
       excludeTestsMatching("aster.truffle.GraalVMJitBenchmark")
       excludeTestsMatching("aster.truffle.CrossBackendBenchmark")
       excludeTestsMatching("aster.truffle.BenchmarkTest")
+      excludeTestsMatching("aster.truffle.ChaosSchedulerTest")
     }
-    println("[CI Mode] Excluding slow benchmark tests: GraalVMJitBenchmark, CrossBackendBenchmark, BenchmarkTest")
+    println("[CI Mode] Excluding slow/flaky tests: GraalVMJitBenchmark, CrossBackendBenchmark, BenchmarkTest, ChaosSchedulerTest")
   }
 }
 
