@@ -518,6 +518,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: policy-api-build
     timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write  # 需要写权限来创建多架构 manifest
     steps:
       - name: Download digests
         uses: actions/download-artifact@v6
