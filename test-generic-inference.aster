@@ -1,9 +1,0 @@
-This module is test.generic.
-
-To test_list, produce List of Int:
-  Let xs be List.of(1, 2, 3).
-  Return xs.
-
-To test_map, produce Map of Text and Int:
-  Let pairs be Map.empty().
-  Return pairs.

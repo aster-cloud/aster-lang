@@ -1,7 +1,0 @@
-This module is test.funcref.
-
-To double with x: Int, produce Int:
-  Return *(x, 2).
-
-To test with xs: List of Int, produce List of Int:
-  Return List.map(xs, double).

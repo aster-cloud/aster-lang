@@ -1,8 +1,0 @@
-This module is test.multiline.
-
-Define ApplicantInfo with score: Int.
-
-To calculateScore
-  with applicant: ApplicantInfo,
-  produce Int:
-  Return applicant.score.

@@ -122,3 +122,11 @@ quarkus-policy-api/.quarkus/
 # Test outputs
 test-results/
 junit-reports/
+
+# Ad-hoc test files in root (should be in test/ directory)
+/test-*.aster
+/test-*.ts
+/test-*.mjs
+/test_*.mjs
+/tmp_*.aster
+/test-output.log

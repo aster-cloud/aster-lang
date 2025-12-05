@@ -298,7 +298,20 @@ Note: The npm package is not intended for public distribution during early devel
 - `test/` — property, fuzz, and benchmark tests
 - `test/cnl/examples/` — sample programs and golden fixtures
 - `docs/` — VitePress site (API docs via TypeDoc); `dist/` — build output
-- Gradle modules: `aster-asm-emitter/`, `truffle/`, `examples/*` (Java 21 toolchain)
+- Gradle modules (Java 21+ toolchain):
+  - `aster-core/` — core language runtime and utilities
+  - `aster-runtime/` — runtime support library
+  - `aster-asm-emitter/` — JVM bytecode emitter using ASM
+  - `aster-truffle/` — GraalVM Truffle interpreter
+  - `aster-lang-cli/` — Native Image CLI
+  - `aster-idea/` — IntelliJ IDEA plugin
+  - `aster-validation/` — validation utilities
+  - `policy-editor/` — Vaadin-based policy editor web UI
+  - `quarkus-policy-api/` — Quarkus REST API for policy execution
+  - `aster-finance/` — finance domain library
+  - `aster-ecommerce/` — e-commerce domain library
+  - `aster-policy-common/` — shared policy utilities
+  - `examples/*` — JVM and native example projects
 
 ## Development
 

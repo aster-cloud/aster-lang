@@ -1,8 +1,0 @@
-This module is test.signature.
-
-To add with x: Int, y: Int, produce Int:
-  Return x + y.
-
-To main, produce Int:
-  Let result be add(1, 2).
-  Return result.
