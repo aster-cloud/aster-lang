@@ -4,7 +4,7 @@
 
 # Enumeration: CapabilityKind
 
-Defined in: [config/semantic.ts:128](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L128)
+Defined in: [config/semantic.ts:128](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L128)
 
 Capability 类型枚举。
 
@@ -16,7 +16,7 @@ Capability 定义了函数可以访问的资源和权限。
 
 > **HTTP**: `"Http"`
 
-Defined in: [config/semantic.ts:129](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L129)
+Defined in: [config/semantic.ts:129](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L129)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: [config/semantic.ts:129](https://github.com/wontlost-ltd/aster-lang/
 
 > **SQL**: `"Sql"`
 
-Defined in: [config/semantic.ts:130](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L130)
+Defined in: [config/semantic.ts:130](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L130)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [config/semantic.ts:130](https://github.com/wontlost-ltd/aster-lang/
 
 > **TIME**: `"Time"`
 
-Defined in: [config/semantic.ts:131](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L131)
+Defined in: [config/semantic.ts:131](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L131)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: [config/semantic.ts:131](https://github.com/wontlost-ltd/aster-lang/
 
 > **FILES**: `"Files"`
 
-Defined in: [config/semantic.ts:132](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L132)
+Defined in: [config/semantic.ts:132](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L132)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [config/semantic.ts:132](https://github.com/wontlost-ltd/aster-lang/
 
 > **SECRETS**: `"Secrets"`
 
-Defined in: [config/semantic.ts:133](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L133)
+Defined in: [config/semantic.ts:133](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L133)
 
 ***
 
@@ -56,7 +56,7 @@ Defined in: [config/semantic.ts:133](https://github.com/wontlost-ltd/aster-lang/
 
 > **AI\_MODEL**: `"AiModel"`
 
-Defined in: [config/semantic.ts:134](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L134)
+Defined in: [config/semantic.ts:134](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L134)
 
 ***
 
@@ -64,7 +64,7 @@ Defined in: [config/semantic.ts:134](https://github.com/wontlost-ltd/aster-lang/
 
 > **CPU**: `"Cpu"`
 
-Defined in: [config/semantic.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L135)
+Defined in: [config/semantic.ts:135](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L135)
 
 ***
 
@@ -72,7 +72,7 @@ Defined in: [config/semantic.ts:135](https://github.com/wontlost-ltd/aster-lang/
 
 > **PAYMENT**: `"Payment"`
 
-Defined in: [config/semantic.ts:136](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L136)
+Defined in: [config/semantic.ts:136](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L136)
 
 ***
 
@@ -80,4 +80,4 @@ Defined in: [config/semantic.ts:136](https://github.com/wontlost-ltd/aster-lang/
 
 > **INVENTORY**: `"Inventory"`
 
-Defined in: [config/semantic.ts:137](https://github.com/wontlost-ltd/aster-lang/blob/8dd861bbf5cdaedf2f100811eb1228c32bced27f/src/config/semantic.ts#L137)
+Defined in: [config/semantic.ts:137](https://github.com/wontlost-ltd/aster-lang/blob/08894f0ec715ec098e0d6fadc4b448f4f075653b/src/config/semantic.ts#L137)

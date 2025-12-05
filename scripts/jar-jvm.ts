@@ -39,7 +39,10 @@ function saveChecksum(jarPath: string, checksumPath: string): void {
 }
 
 function main(): void {
-  const classes = 'build/jvm-classes';
+  // 支持通过 ASTER_CLASSES_DIR 环境变量指定隔离的类输入目录（解决并行构建竞态条件）
+  const classes = process.env.ASTER_CLASSES_DIR && process.env.ASTER_CLASSES_DIR.trim().length > 0
+    ? process.env.ASTER_CLASSES_DIR
+    : 'build/jvm-classes';
   const runtimeJar = 'aster-runtime/build/libs/aster-runtime.jar';
   const outBase = process.env.ASTER_OUT_DIR && process.env.ASTER_OUT_DIR.trim().length > 0
     ? process.env.ASTER_OUT_DIR

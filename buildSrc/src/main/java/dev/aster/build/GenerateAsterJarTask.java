@@ -85,8 +85,13 @@ public abstract class GenerateAsterJarTask extends DefaultTask {
             throw new GradleException("无法创建输出目录: " + outDirFile.getAbsolutePath());
         }
 
+        // 计算隔离的类输出目录（在 outputDirectory 下的 jvm-classes 子目录）
+        // 解决并行构建时多个 generateAsterJar 任务共享 build/jvm-classes 的竞态条件
+        File classesDir = new File(outDirFile, "jvm-classes");
+
         Map<String, Object> env = new HashMap<>();
         env.put("ASTER_OUT_DIR", computeOutDirEnv(workDirFile, outDirFile));
+        env.put("ASTER_CLASSES_DIR", computeOutDirEnv(workDirFile, classesDir));
 
         var classpathEntries = getWorkflowClasspath().getFiles();
         if (!classpathEntries.isEmpty()) {

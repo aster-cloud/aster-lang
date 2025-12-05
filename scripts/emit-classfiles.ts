@@ -404,9 +404,12 @@ async function main(): Promise<void> {
 
   // Prefer running via Gradle run to get classpath deps available
   const runCmd = hasWrapper ? './gradlew' : 'gradle';
-  const outDir = path.resolve('build/jvm-classes');
+  // 支持通过 ASTER_CLASSES_DIR 环境变量指定隔离的类输出目录（解决并行构建竞态条件）
+  const outDir = process.env.ASTER_CLASSES_DIR && process.env.ASTER_CLASSES_DIR.trim().length > 0
+    ? path.resolve(process.env.ASTER_CLASSES_DIR)
+    : path.resolve('build/jvm-classes');
 
-  fs.mkdirSync('build', { recursive: true });
+  fs.mkdirSync(path.dirname(outDir), { recursive: true });
   // Clean output dir once to avoid stale classes
   if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true, force: true });
@@ -449,7 +452,7 @@ async function main(): Promise<void> {
   if (workflowModules.length > 0) {
     await emitWorkflowModules(workflowModules, outDir);
   }
-  console.log('Emitted classes to build/jvm-classes');
+  console.log('Emitted classes to', outDir);
 }
 
 main().catch(e => {
