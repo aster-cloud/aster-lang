@@ -50,7 +50,7 @@ public final class SymbolTable {
   public static final class DuplicateSymbolError extends RuntimeException {
     @Serial
     private static final long serialVersionUID = 1L;
-    private final SymbolInfo symbol;
+    private final transient SymbolInfo symbol;
 
     public DuplicateSymbolError(SymbolInfo symbol) {
       super("Duplicate symbol '" + symbol.name() + "' declared in the same scope");
