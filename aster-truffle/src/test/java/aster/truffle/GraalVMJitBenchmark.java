@@ -136,9 +136,9 @@ public class GraalVMJitBenchmark {
           }
           """,
       3_628_800,
-      1_000,
-      100,
-      2_000
+      200,   // 降低测量次数（原 1000）
+      50,    // 降低冷启动次数（原 100）
+      200    // 降低稳定化次数（原 2000）
   );
 
   private static final BenchmarkCase FIBONACCI = new BenchmarkCase(
@@ -232,9 +232,9 @@ public class GraalVMJitBenchmark {
           }
           """,
       6_765,
-      100,
-      100,
-      2_000
+      50,    // 降低冷启动次数（原 100）
+      20,    // 降低稳定化次数（原 2000）- fib(20) 每次调用代价高
+      50     // 降低测量次数（原 100）
   );
 
   private static final BenchmarkCase LIST_MAP = new BenchmarkCase(
@@ -336,9 +336,9 @@ public class GraalVMJitBenchmark {
           }
           """,
       2,
-      10_000,
-      100,
-      5_000
+      500,   // 降低测量次数（原 10000）- 简单操作，无需过多迭代
+      50,    // 降低冷启动次数（原 100）
+      200    // 降低稳定化次数（原 5000）
   );
 
   private static final BenchmarkCase QUICK_SORT = new BenchmarkCase(
@@ -347,9 +347,9 @@ public class GraalVMJitBenchmark {
       "main",
       readBenchmarkJsonUnchecked("benchmarks/core/quicksort_core.json"),
       100,
-      400,
-      200,
-      4_000
+      50,    // 降低测量次数（原 400）
+      20,    // 降低冷启动次数（原 200）
+      200    // 降低稳定化次数（原 4000）- quicksort 每次调用代价高
   );
 
   private static final BenchmarkCase BINARY_TREE = new BenchmarkCase(
@@ -358,9 +358,9 @@ public class GraalVMJitBenchmark {
       "main",
       readBenchmarkJsonUnchecked("benchmarks/core/binary_tree_traversal_core.json"),
       120,
-      1_200,
-      200,
-      4_000
+      100,   // 降低测量次数（原 1200）
+      50,    // 降低冷启动次数（原 200）
+      200    // 降低稳定化次数（原 4000）
   );
 
   private static final BenchmarkCase STRING_OPS = new BenchmarkCase(
@@ -369,9 +369,9 @@ public class GraalVMJitBenchmark {
       "main",
       readBenchmarkJsonUnchecked("benchmarks/core/string_ops_core.json"),
       139,
-      2_000,
-      200,
-      5_000
+      200,   // 降低测量次数（原 2000）
+      50,    // 降低冷启动次数（原 200）
+      200    // 降低稳定化次数（原 5000）
   );
 
   private static final BenchmarkCase FACTORIAL_HEAVY = new BenchmarkCase(
@@ -380,9 +380,9 @@ public class GraalVMJitBenchmark {
       "main",
       readBenchmarkJsonUnchecked("benchmarks/core/factorial_12_core.json"),
       479_001_600,  // Factorial(12) - fits in Int (Factorial(20) overflows)
-      600,
-      300,
-      6_000
+      100,   // 降低测量次数（原 600）
+      50,    // 降低冷启动次数（原 300）
+      200    // 降低稳定化次数（原 6000）
   );
 
   private static final BenchmarkCase FIBONACCI_HEAVY = new BenchmarkCase(
@@ -391,9 +391,9 @@ public class GraalVMJitBenchmark {
       "main",
       readBenchmarkJsonUnchecked("benchmarks/core/fibonacci_20_core.json"),
       6_765,  // Fibonacci(20) - same as base benchmark for consistency
-      200,
-      100,
-      2_000
+      50,     // 降低测量次数（原 200）
+      20,     // 降低冷启动次数（原 100）
+      50      // 降低稳定化次数（原 2000）- fib(20) 每次调用代价高
   );
 
   private static final BenchmarkCase LIST_MAP_HEAVY = new BenchmarkCase(
@@ -402,9 +402,9 @@ public class GraalVMJitBenchmark {
       "main",
       readBenchmarkJsonUnchecked("benchmarks/core/list_map_1000_core.json"),
       1_000,
-      500,
-      200,
-      5_000
+      50,    // 降低测量次数（原 500）
+      20,    // 降低冷启动次数（原 200）
+      100    // 降低稳定化次数（原 5000）- 1000 items 每次调用代价高
   );
 
   private static final BenchmarkCase ARITHMETIC = new BenchmarkCase(
@@ -472,9 +472,9 @@ public class GraalVMJitBenchmark {
           }
           """,
       233,
-      10_000,
-      100,
-      5_000
+      500,   // 降低测量次数（原 10000）- 简单算术，无需过多迭代
+      50,    // 降低冷启动次数（原 100）
+      200    // 降低稳定化次数（原 5000）
   );
 
   @Test
