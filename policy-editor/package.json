@@ -3,7 +3,6 @@
   "license": "UNLICENSED",
   "type": "module",
   "dependencies": {
-    "@codingame/monaco-jsonrpc": "^0.4.1",
     "@polymer/polymer": "3.5.2",
     "@vaadin/bundles": "24.9.5",
     "@vaadin/common-frontend": "0.0.19",
@@ -117,7 +116,6 @@
       "@vaadin/vaadin-lumo-styles": "$@vaadin/vaadin-lumo-styles",
       "@vaadin/vaadin-material-styles": "$@vaadin/vaadin-material-styles",
       "@vaadin/router": "2.0.0",
-      "@codingame/monaco-jsonrpc": "$@codingame/monaco-jsonrpc",
       "monaco-editor": "$monaco-editor",
       "monaco-languageclient": "$monaco-languageclient",
       "reconnecting-websocket": "$reconnecting-websocket",
