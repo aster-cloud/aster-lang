@@ -132,3 +132,5 @@ junit-reports/
 /test-output.log
 /debug_*.mjs
 /debug-*.mjs
+/verify-*.mjs
+/verify_*.mjs
