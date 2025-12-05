@@ -101,8 +101,8 @@ configurations.configureEach {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.compilerArgs.remove("-Werror") // Override global setting from reproducible-builds.gradle.kts
-    options.compilerArgs.addAll(listOf("-parameters", "-Xlint:all"))
-    // Note: -Werror removed due to classfile warnings from MicroProfile Config API
+    // 排除 classfile 警告（MicroProfile Config API 缺少 OSGi 注解依赖）
+    options.compilerArgs.addAll(listOf("-parameters", "-Xlint:all,-classfile"))
 }
 
 tasks.withType<Test> {

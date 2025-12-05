@@ -316,7 +316,7 @@ class WorkflowConcurrencyIntegrationTest {
         UUID wfUuid = UUID.fromString(workflowId);
 
         // 创建 workflow 状态
-        WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfUuid);
+        WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfUuid, "test-tenant");
         state.status = "RUNNING";
         state.persist();
 

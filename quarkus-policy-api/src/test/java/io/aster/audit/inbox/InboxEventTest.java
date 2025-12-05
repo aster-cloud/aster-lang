@@ -9,7 +9,7 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.core.Context;
 import io.vertx.core.impl.ContextInternal;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.pgclient.PgPool;
+import io.vertx.mutiny.sqlclient.Pool;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ class InboxEventTest {
     Vertx vertx;
 
     @Inject
-    PgPool pgPool;
+    Pool pgPool;
 
     @BeforeEach
     void cleanInboxBefore() {

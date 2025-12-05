@@ -82,7 +82,7 @@ public class PolicyVersionTrackingTest {
         String workflowId = UUID.randomUUID().toString();
         UUID wfId = UUID.fromString(workflowId);
 
-        WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfId);
+        WorkflowStateEntity state = WorkflowStateEntity.getOrCreate(wfId, "test-tenant");
         state.policyVersionId = testVersion.id;
         state.policyActivatedAt = java.time.Instant.now();
         state.persist();

@@ -3,7 +3,7 @@ package io.aster.audit;
 import io.aster.test.PostgresTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.vertx.mutiny.pgclient.PgPool;
+import io.vertx.mutiny.sqlclient.Pool;
 import io.vertx.mutiny.sqlclient.Row;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class AuditHashChainSchemaTest {
 
     @Inject
-    PgPool pgPool;
+    Pool pgPool;
 
     @Test
     void testAuditLogsTableHasHashChainColumns() {

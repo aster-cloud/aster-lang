@@ -160,6 +160,7 @@ class DeterminismSnapshotTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void testDeprecatedAlias() throws Exception {
         ClockTimesSnapshot snapshot = new ClockTimesSnapshot();
         snapshot.setClockTimes(List.of("2025-04-01T00:00:00Z"));

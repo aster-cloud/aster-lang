@@ -77,6 +77,7 @@ class PostgresEventStoreRetryTest {
 
     @Test
     @Transactional
+    @SuppressWarnings("unchecked")
     void testSnapshotWithRetryContext() throws Exception {
         String workflowId = UUID.randomUUID().toString();
 

@@ -6,7 +6,7 @@ import io.aster.policy.event.EventType;
 import io.aster.test.PostgresTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.vertx.mutiny.pgclient.PgPool;
+import io.vertx.mutiny.sqlclient.Pool;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class AuditHashChainTest {
 
     @Inject
-    PgPool pgPool;
+    Pool pgPool;
 
     @Inject
     Event<AuditEvent> auditEventProducer;

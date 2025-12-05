@@ -75,6 +75,7 @@ public class PostgresEventStore implements EventStore, aster.truffle.runtime.Pos
 
     @Transactional
     @Override
+    @SuppressWarnings("deprecation") // getOrCreate(UUID) - tenantId not available in EventStore interface
     public long appendEvent(String workflowId, String eventType, Object payload,
                             Integer attemptNumber, Long backoffDelayMs, String failureReason) {
         try {
@@ -249,6 +250,7 @@ public class PostgresEventStore implements EventStore, aster.truffle.runtime.Pos
      */
     @Transactional
     @Override
+    @SuppressWarnings({"deprecation", "unchecked"}) // getOrCreate(UUID) - tenantId not in interface; Map cast is safe
     public void saveSnapshot(String workflowId, long eventSeq, Object state) {
         try {
             UUID wfId = UUID.fromString(workflowId);

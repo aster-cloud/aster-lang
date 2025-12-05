@@ -139,7 +139,7 @@ class NonDeterminismSourceTest {
         DeterminismContext context = runtime.getDeterminismContext();
 
         Assertions.assertThat(context).isNotNull();
-        Assertions.assertThat(runtime.getClock()).isSameAs(context.clock());
+        Assertions.assertThat(runtime.getDeterminismContext().clock()).isSameAs(context.clock());
 
         context.clock().now();
         Assertions.assertThat(context.clock().getRecordedTimes()).isNotEmpty();
