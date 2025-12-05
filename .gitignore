@@ -134,3 +134,8 @@ junit-reports/
 /debug-*.mjs
 /verify-*.mjs
 /verify_*.mjs
+
+# Generated/temporary files
+*.iprof
+/operations-log.md
+/perf-report.json
