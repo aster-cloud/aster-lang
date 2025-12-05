@@ -1,0 +1,14 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+repositories {
+    gradlePluginPortal()
+    mavenCentral()
+}
+
+// 使用纯 Java 编写 buildSrc，可以使用 Java 25
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
