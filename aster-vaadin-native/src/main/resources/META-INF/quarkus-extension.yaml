@@ -1,8 +1,0 @@
-name: aster-vaadin-native
-artifact: io.aster:aster-vaadin-native
-metadata:
-  keywords:
-    - vaadin
-    - native-image
-deployment: io.aster:aster-vaadin-native-deployment
-
