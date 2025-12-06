@@ -415,6 +415,14 @@ public final class AsyncTaskRegistry {
             // 最后一个任务刚完成，退出循环
             break;
           }
+
+          // 修复死锁误报：如果仍有任务在运行，等待它们完成后重试
+          // 而不是立即抛出死锁异常（运行中的任务可能会解锁新的就绪任务）
+          if (!runningTasks.isEmpty()) {
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+            continue;
+          }
+
           throw new IllegalStateException(errorMsg.toString());
         }
 
