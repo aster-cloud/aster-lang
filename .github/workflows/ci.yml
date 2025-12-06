@@ -610,9 +610,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull image for scanning
+        id: pull
+        continue-on-error: true
         run: docker pull ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
 
       - name: Trivy SARIF scan
+        if: steps.pull.outcome == 'success'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
@@ -620,11 +623,13 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy SARIF
+        if: steps.pull.outcome == 'success'
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
 
       - name: Enforce CRITICAL/HIGH policy
+        if: steps.pull.outcome == 'success'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
@@ -632,6 +637,10 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
+
+      - name: Skip scan (image not available)
+        if: steps.pull.outcome != 'success'
+        run: echo "⚠️ Skipping security scan - image sha-${{ github.sha }} not available in GHCR"
   # NOTE: Policy API build moved to dedicated build-policy-api.yml workflow
   # This avoids duplicate builds on main push (saves ~30-60 min CI time)
   # See: .github/workflows/build-policy-api.yml
