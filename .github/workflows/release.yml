@@ -51,7 +51,7 @@ jobs:
         run: npm run build
 
       - name: Run CI checks
-        run: npm run ci:fast
+        run: npm run ci:smart
 
       - name: Create Version PR (no publish)
         id: changesets

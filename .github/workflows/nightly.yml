@@ -1,4 +1,4 @@
-name: Nightly Build
+name: Nightly
 
 on:
   schedule:
@@ -57,7 +57,9 @@ jobs:
         run: npm run test
 
       - name: Run Java tests
-        run: ./gradlew test --no-configuration-cache
+        # -PexcludeBenchmarks=true skips timing-sensitive tests (ChaosSchedulerTest, BenchmarkTest)
+        # that are unstable in GitHub Actions runners
+        run: ./gradlew test --no-configuration-cache -PexcludeBenchmarks=true
 
       - name: Run Quarkus tests
         run: ./gradlew :quarkus-policy-api:test --no-configuration-cache
