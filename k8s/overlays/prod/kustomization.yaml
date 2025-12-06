@@ -3,8 +3,13 @@ kind: Kustomization
 namespace: aster-policy
 resources:
   - ../../base
+  - cors-middleware.yaml
 patchesStrategicMerge:
   - patches/deployment.yaml
   - patches/hpa.yaml
+  - patches/ingress.yaml
 commonLabels:
   environment: prod
+images:
+  - name: ghcr.io/aster-cloud/policy-api
+    newTag: latest

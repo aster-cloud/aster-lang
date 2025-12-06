@@ -3,10 +3,13 @@ kind: Application
 metadata:
   name: aster-policy-api
   namespace: argocd
+  labels:
+    app.kubernetes.io/name: aster-policy-api
+    app.kubernetes.io/part-of: aster-cloud
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/wontlost-ltd/aster-lang.git'
+    repoURL: 'https://github.com/aster-cloud/aster-lang.git'
     targetRevision: main
     path: k8s/overlays/prod
   destination:
@@ -18,3 +21,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
