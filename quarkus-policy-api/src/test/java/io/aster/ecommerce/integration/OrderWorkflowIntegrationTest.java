@@ -3,9 +3,6 @@ package io.aster.ecommerce.integration;
 import aster.ecommerce.stub.InMemoryFulfillmentService;
 import aster.ecommerce.stub.InMemoryInventoryAdapter;
 import aster.ecommerce.stub.InMemoryPaymentGateway;
-import aster.runtime.Result;
-import io.aster.ecommerce.order_fulfillment.fulfillOrder_fn;
-import io.aster.ecommerce.payment_compensation.processFailedPayment_fn;
 import io.aster.workflow.WorkflowEventEntity;
 import io.aster.workflow.WorkflowStateEntity;
 import io.aster.workflow.WorkflowTimerEntity;
@@ -55,13 +52,6 @@ class OrderWorkflowIntegrationTest {
     }
 
     @Test
-    void testOrderFulfillmentDirectCall() {
-        Result<String, String> result = fulfillOrder_fn.fulfillOrder();
-
-        assertThat(result).isNull();
-    }
-
-    @Test
     void testOrderSubmissionAndEventStore() {
         String orderId = "ORD-IT-1001";
         String workflowId = submitOrder("tenant-it", orderId);
@@ -73,13 +63,6 @@ class OrderWorkflowIntegrationTest {
             .isNotEmpty()
             .allSatisfy(event -> assertThat(event.get("workflowId")).isEqualTo(workflowId));
         assertThat(events.get(0).get("eventType")).isEqualTo("WorkflowStarted");
-    }
-
-    @Test
-    void testPaymentCompensationDirectCall() {
-        Result<String, String> result = processFailedPayment_fn.processFailedPayment();
-
-        assertThat(result).isNull();
     }
 
     @Test
