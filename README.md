@@ -1,10 +1,10 @@
 # Aster Language
 
-[![CI](https://github.com/wontlost-ltd/aster-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/ci.yml)
-[![Docs](https://github.com/wontlost-ltd/aster-lang/actions/workflows/docs.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/docs.yml)
-[![Release Flow](https://github.com/wontlost-ltd/aster-lang/actions/workflows/release.yml/badge.svg)](https://github.com/wontlost-ltd/aster-lang/actions/workflows/release.yml)
-[![Latest Release](https://img.shields.io/github/v/release/wontlost-ltd/aster-lang?display_name=tag)](https://github.com/wontlost-ltd/aster-lang/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/wontlost-ltd/aster-lang?style=social)](https://github.com/wontlost-ltd/aster-lang)
+[![CI](https://github.com/aster-cloud/aster-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/aster-cloud/aster-lang/actions/workflows/ci.yml)
+[![Docs](https://github.com/aster-cloud/aster-lang/actions/workflows/docs.yml/badge.svg)](https://github.com/aster-cloud/aster-lang/actions/workflows/docs.yml)
+[![Release Flow](https://github.com/aster-cloud/aster-lang/actions/workflows/release.yml/badge.svg)](https://github.com/aster-cloud/aster-lang/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/aster-cloud/aster-lang?display_name=tag)](https://github.com/aster-cloud/aster-lang/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/aster-cloud/aster-lang?style=social)](https://github.com/aster-cloud/aster-lang)
 [![Node >= 22](https://img.shields.io/badge/node-%3E%3D22.0.0-339933?logo=node.js)](#installation--requirements)
 [![Java 21](https://img.shields.io/badge/Java-21-007396?logo=openjdk)](#installation--requirements)
 [![TypeScript 5.x](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](#development)
@@ -281,7 +281,7 @@ A smoke test exists in `scripts/lsp-smoke.ts`. Editor integration is in progress
 You can import the frontend as an ESM library inside Node 22+ environments:
 
 ```ts
-import { canonicalize, lex, parse, lowerModule } from '@wontlost-ltd/aster-lang';
+import { canonicalize, lex, parse, lowerModule } from '@aster-cloud/aster-lang';
 
 const src = `This module is app. To id, produce Int: Return 1.`;
 const ast = parse(lex(canonicalize(src)));

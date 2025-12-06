@@ -62,7 +62,7 @@ Aster 语言的 Visual Studio Code 扩展，提供完整的语言支持。
 
 1. **克隆仓库并构建主项目**（可选，扩展已内置）
    ```bash
-   git clone https://github.com/wontlost-ltd/aster-lang.git
+   git clone https://github.com/aster-cloud/aster-lang.git
    cd aster-lang
    npm install
    npm run build
@@ -408,8 +408,8 @@ WontLost Ltd
 
 ## 反馈与支持
 
-- 问题反馈：https://github.com/wontlost-ltd/aster-lang/issues
-- 文档：https://github.com/wontlost-ltd/aster-lang
+- 问题反馈：https://github.com/aster-cloud/aster-lang/issues
+- 文档：https://github.com/aster-cloud/aster-lang
 - 示例代码：`test/cnl/examples/`
 
 ## 更新日志

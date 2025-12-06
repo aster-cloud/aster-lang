@@ -1,5 +1,5 @@
 {
-  "name": "@wontlost-ltd/aster-lang",
+  "name": "@aster-cloud/aster-lang",
   "version": "0.2.0",
   "description": "A pragmatic, safe, fast language with human-readable CNL syntax that compiles to JVM bytecode",
   "type": "module",
@@ -300,10 +300,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wontlost-ltd/aster-lang.git"
+    "url": "https://github.com/aster-cloud/aster-lang.git"
   },
   "bugs": {
-    "url": "https://github.com/wontlost-ltd/aster-lang/issues"
+    "url": "https://github.com/aster-cloud/aster-lang/issues"
   },
   "homepage": "https://aster-lang.org",
   "engines": {

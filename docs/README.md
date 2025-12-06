@@ -7,7 +7,7 @@
 ### 选项 1：Docker 快速体验（5 分钟）
 ```bash
 # 拉取镜像并运行示例
-docker pull ghcr.io/wontlost-ltd/aster-lang:latest
+docker pull ghcr.io/aster-cloud/aster-lang:latest
 docker run --rm aster-lang aster run examples/fibonacci.aster --func=fibonacci -- 10
 ```
 
@@ -16,7 +16,7 @@ docker run --rm aster-lang aster run examples/fibonacci.aster --func=fibonacci -
 ### 选项 2：本地构建（15 分钟）
 ```bash
 # 克隆并构建
-git clone https://github.com/wontlost-ltd/aster-lang.git
+git clone https://github.com/aster-cloud/aster-lang.git
 cd aster-lang
 npm install && npm run build
 
@@ -402,7 +402,7 @@ docs/
 
 ## 📞 获取帮助
 
-- **GitHub Issues**: [https://github.com/wontlost-ltd/aster-lang/issues](https://github.com/wontlost-ltd/aster-lang/issues)
+- **GitHub Issues**: [https://github.com/aster-cloud/aster-lang/issues](https://github.com/aster-cloud/aster-lang/issues)
 - **贡献指南**: [Contributing Guide](guide/contributing.md)
 - **故障排查**: [Troubleshooting](operations/troubleshooting.md) | [Native Image Troubleshooting](native-image/troubleshooting.md)
 
@@ -410,10 +410,10 @@ docs/
 
 ## 🗺️ 相关资源
 
-- [GitHub 仓库](https://github.com/wontlost-ltd/aster-lang)
+- [GitHub 仓库](https://github.com/aster-cloud/aster-lang)
 - [GraalVM 官方文档](https://www.graalvm.org/latest/docs/)
 - [Truffle 框架文档](https://www.graalvm.org/latest/graalvm-as-a-platform/language-implementation-framework/)
-- [Docker 镜像](https://github.com/wontlost-ltd/aster-lang/pkgs/container/aster-lang)
+- [Docker 镜像](https://github.com/aster-cloud/aster-lang/pkgs/container/aster-lang)
 
 ---
 
