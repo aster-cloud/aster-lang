@@ -438,6 +438,9 @@ jobs:
     # 增加超时时间：arm64 原生构建约需 15-20 分钟，amd64 约需 10-15 分钟
     # 设置 45 分钟提供足够的安全余量
     timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write  # 需要写权限推送镜像到 GHCR
     strategy:
       fail-fast: false  # 允许各架构独立完成，不因一个失败而取消另一个
       matrix:
