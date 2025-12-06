@@ -488,17 +488,19 @@ jobs:
         id: policy_build_start
         run: echo "timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
 
-      - name: Build image (${{ matrix.platform }})
+      - name: Build and push image (${{ matrix.platform }})
         id: docker_build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: quarkus-policy-api/Dockerfile
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
+          # 使用 outputs 配置推送到 registry，push-by-digest 允许后续创建多架构 manifest
+          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: ${{ steps.meta-build.outputs.labels }}
+          provenance: false
 
       - name: Capture build duration (${{ matrix.platform }})
         run: |
@@ -514,11 +516,13 @@ jobs:
         with:
           name: policy-api-digest-${{ matrix.arch }}
           path: digest-${{ matrix.arch }}.txt
+          overwrite: true
 
   policy-api-manifest:
     name: Policy API Multi-arch Manifest
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # 仅在所有架构构建成功时运行
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.policy-api-build.result == 'success'
     needs: policy-api-build
     timeout-minutes: 10
     permissions:
@@ -550,6 +554,22 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
+
+      - name: Verify digests exist in registry
+        run: |
+          set -euo pipefail
+          echo "Verifying image digests exist in registry..."
+          for file in digests/*.txt; do
+            [ -f "$file" ] || continue
+            digest=$(cat "$file")
+            echo "Checking ${{ env.IMAGE_NAME }}@${digest}..."
+            if ! docker buildx imagetools inspect "${{ env.IMAGE_NAME }}@${digest}" >/dev/null 2>&1; then
+              echo "ERROR: Image digest not found in registry: ${digest}"
+              echo "This may indicate the build job failed to push the image."
+              exit 1
+            fi
+            echo "✓ Digest verified: ${digest}"
+          done
 
       - name: Publish multi-arch manifest
         run: |
