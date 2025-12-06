@@ -9,6 +9,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
@@ -39,84 +40,104 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
   }
 
   /**
-   * Guards helper methods
+   * Guards helper methods - 标记为 @Idempotent 因为结果仅依赖于 @CompilationFinal 字段
    */
+  @Idempotent
   protected boolean isAdd() {
     return "add".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isSub() {
     return "sub".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isMul() {
     return "mul".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isDiv() {
     return "div".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isMod() {
     return "mod".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isEq() {
     return "eq".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isLt() {
     return "lt".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isGt() {
     return "gt".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isLte() {
     return "lte".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isGte() {
     return "gte".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isAnd() {
     return "and".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isOr() {
     return "or".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isNot() {
     return "not".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isTextConcat() {
     return "Text.concat".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isTextLength() {
     return "Text.length".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isListLength() {
     return "List.length".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isListAppend() {
     return "List.append".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isListMap() {
     return "List.map".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean isListFilter() {
     return "List.filter".equals(builtinName);
   }
 
+  @Idempotent
   protected boolean hasTwoArgs() {
     return argNodes.length == 2;
   }
@@ -133,6 +154,7 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
     return listObj instanceof List<?> list && list.size() <= 10;
   }
 
+  @Idempotent
   protected boolean hasOneArg() {
     return argNodes.length == 1;
   }
