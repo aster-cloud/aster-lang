@@ -1,0 +1,1 @@
+import{_ as l,c as i,o as a,aj as t}from"./chunks/framework.Bz2R-749.js";const u=JSON.parse('{"title":"测试执行记录","description":"","frontmatter":{},"headers":[],"relativePath":"testing.md","filePath":"testing.md"}'),s={name:"testing.md"};function o(r,e,d,c,n,p){return a(),i("div",null,[...e[0]||(e[0]=[t("",165)])])}const k=l(s,[["render",o]]);export{u as __pageData,k as default};

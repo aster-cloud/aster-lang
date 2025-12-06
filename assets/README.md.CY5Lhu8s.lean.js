@@ -1,0 +1,1 @@
+import{_ as e,c as i,o as s,aj as l}from"./chunks/framework.Bz2R-749.js";const m=JSON.parse('{"title":"Aster 语言文档导航","description":"","frontmatter":{},"headers":[],"relativePath":"README.md","filePath":"README.md"}'),n={name:"README.md"};function r(t,a,h,p,o,d){return s(),i("div",null,[...a[0]||(a[0]=[l("",119)])])}const g=e(n,[["render",r]]);export{m as __pageData,g as default};

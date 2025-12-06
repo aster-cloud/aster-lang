@@ -1,0 +1,1 @@
+import{_ as i,c as a,o as e,aj as t}from"./chunks/framework.Bz2R-749.js";const c=JSON.parse('{"title":"Lexer","description":"","frontmatter":{},"headers":[],"relativePath":"api/lexer.md","filePath":"api/lexer.md"}'),n={name:"api/lexer.md"};function l(r,s,h,p,k,d){return e(),a("div",null,[...s[0]||(s[0]=[t("",3)])])}const g=i(n,[["render",l]]);export{c as __pageData,g as default};

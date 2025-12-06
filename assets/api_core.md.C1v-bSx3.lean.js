@@ -1,0 +1,1 @@
+import{_ as i,c as a,o as s,aj as t}from"./chunks/framework.Bz2R-749.js";const k=JSON.parse('{"title":"Core IR","description":"","frontmatter":{},"headers":[],"relativePath":"api/core.md","filePath":"api/core.md"}'),r={name:"api/core.md"};function o(c,e,l,n,d,p){return s(),a("div",null,[...e[0]||(e[0]=[t("",4)])])}const f=i(r,[["render",o]]);export{k as __pageData,f as default};
