@@ -9,6 +9,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Exclusive;
 import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -638,6 +639,7 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
    * @param invokeNode InvokeNode 提供 DirectCallNode 缓存 (limit=3 单态缓存)
    * @return 映射后的列表
    */
+  @SuppressWarnings({"truffle-static-method", "truffle-unused", "truffle-sharing"})
   @Specialization(guards = {"isListMap()", "hasTwoArgs()", "!isSmallList(frame)"})
   protected List<Object> doListMap(
       VirtualFrame frame,
@@ -770,6 +772,7 @@ public abstract class BuiltinCallNode extends AsterExpressionNode {
    * @param invokeNode InvokeNode 提供 DirectCallNode 缓存 (limit=3 单态缓存)
    * @return 过滤后的列表
    */
+  @SuppressWarnings({"truffle-static-method", "truffle-unused", "truffle-sharing"})
   @Specialization(guards = {"isListFilter()", "hasTwoArgs()", "!isSmallList(frame)"})
   protected List<Object> doListFilter(
       VirtualFrame frame,

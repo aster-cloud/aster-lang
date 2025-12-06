@@ -21,7 +21,7 @@ import java.util.List;
  *
  * 内存优化：
  * - InvokeNode 使用 @GenerateInline 内联模式，内存占用从 28 字节降至 9 字节
- * - 使用 @Cached 注入内联节点，通过 @Bind("this") 绑定 inlining target
+ * - 使用 @Cached 注入内联节点，Node 参数自动绑定 $node (inlining target)
  */
 public abstract class CallNode extends AsterExpressionNode {
   @Child protected Node target;
@@ -36,10 +36,11 @@ public abstract class CallNode extends AsterExpressionNode {
     return CallNodeGen.create(target, args);
   }
 
+  @SuppressWarnings({"truffle-static-method", "truffle-unused", "truffle-sharing", "truffle"})
   @Specialization
   protected Object doCall(
       VirtualFrame frame,
-      @Bind("this") Node node,
+      @Bind("$node") Node node,
       @Cached(inline = true) InvokeNode invokeNode) {
 
     Profiler.inc("call");
