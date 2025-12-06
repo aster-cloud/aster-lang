@@ -81,8 +81,8 @@ ENV ORG_GRADLE_PROJECT_org_gradle_configuration_cache=false
 COPY . .
 
 # 复用 Node 阶段生成的策略产物，避免在 Gradle 阶段重复 npm 步骤
+# jvm-classes 现在位于 build/aster-out/jvm-classes（隔离目录解决并行构建竞态条件）
 COPY --from=node-builder /workspace/build/aster-out ./build/aster-out
-COPY --from=node-builder /workspace/build/jvm-classes ./build/jvm-classes
 
 ENV SKIP_GENERATE_ASTER_JAR=true
 

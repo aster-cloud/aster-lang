@@ -221,7 +221,8 @@ val cleanPolicyClasses by tasks.registering(Delete::class) {
 
 val syncPolicyClasses by tasks.registering(Copy::class) {
     dependsOn(generateAsterJar, cleanPolicyClasses)
-    from(rootProject.layout.projectDirectory.dir("build/jvm-classes"))
+    // 类文件现在输出到隔离目录 build/aster-out/jvm-classes（解决并行构建竞态条件）
+    from(sharedAsterOut.map { it.dir("jvm-classes") })
     into(layout.projectDirectory.dir("src/main/resources"))
 }
 
