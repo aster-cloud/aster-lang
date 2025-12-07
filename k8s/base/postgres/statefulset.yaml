@@ -67,7 +67,9 @@ spec:
         fsGroup: 1001
         runAsUser: 1001
   volumeClaimTemplates:
-    - metadata:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
         name: postgres-data
       spec:
         accessModes: ["ReadWriteOnce"]
