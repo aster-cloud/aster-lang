@@ -55,6 +55,11 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: POSTGRESQL_PASSWORD
+            - name: QUARKUS_REDIS_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: policy-api-config
+                  key: QUARKUS_REDIS_HOSTS
           resources:
             requests:
               memory: "256Mi"
