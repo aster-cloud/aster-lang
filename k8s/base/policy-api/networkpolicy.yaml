@@ -11,17 +11,19 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Allow traffic from ingress controller
     - from:
         - namespaceSelector:
             matchLabels:
-              name: kube-system
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: TCP
           port: 8080
+    # Allow traffic from monitoring namespace
     - from:
         - namespaceSelector:
             matchLabels:
-              name: monitoring
+              kubernetes.io/metadata.name: monitoring
         - podSelector:
             matchLabels:
               app: prometheus
@@ -36,12 +38,15 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
+    # Allow DNS resolution (CoreDNS in kube-system)
     - to:
         - namespaceSelector:
             matchLabels:
-              name: kube-system
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: UDP
+          port: 53
+        - protocol: TCP
           port: 53
     - to:
         - namespaceSelector: {}
