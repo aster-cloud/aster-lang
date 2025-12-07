@@ -18,6 +18,8 @@ spec:
         app: policy-api
         app.kubernetes.io/name: policy-api
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
