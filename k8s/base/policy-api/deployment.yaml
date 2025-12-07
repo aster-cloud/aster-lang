@@ -24,7 +24,7 @@ spec:
         fsGroup: 65534
       containers:
         - name: policy-api
-          image: ghcr.io/wontlost-ltd/policy-api:latest
+          image: ghcr.io/aster-cloud/policy-api:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
