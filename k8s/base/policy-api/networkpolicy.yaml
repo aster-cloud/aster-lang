@@ -31,6 +31,7 @@ spec:
         - protocol: TCP
           port: 8080
   egress:
+    # Allow connection to PostgreSQL
     - to:
         - podSelector:
             matchLabels:
@@ -38,6 +39,14 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
+    # Allow connection to Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
     # Allow DNS resolution (CoreDNS in kube-system)
     - to:
         - namespaceSelector:

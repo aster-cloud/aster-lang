@@ -14,3 +14,4 @@ data:
   QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/aster_policy
   QUARKUS_DATASOURCE_REACTIVE_URL: postgresql://postgres:5432/aster_policy
   QUARKUS_FLYWAY_MIGRATE_AT_START: "true"
+  QUARKUS_REDIS_HOSTS: redis://redis:6379

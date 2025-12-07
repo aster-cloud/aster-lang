@@ -9,6 +9,8 @@ resources:
   - postgres/statefulset.yaml
   - postgres/networkpolicy.yaml
   - postgres/pdb.yaml
+  - redis/deployment.yaml
+  - redis/service.yaml
   - policy-api/configmap.yaml
   - policy-api/deployment.yaml
   - policy-api/service.yaml
