@@ -3,6 +3,8 @@ kind: NetworkPolicy
 metadata:
   name: postgres-netpol
   namespace: aster-policy
+  labels:
+    app: postgres
 spec:
   podSelector:
     matchLabels:
@@ -10,17 +12,9 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # Allow from any pod in the same namespace
     - from:
-        - podSelector:
-            matchLabels:
-              app: policy-api
-      ports:
-        - protocol: TCP
-          port: 5432
-    - from:
-        - podSelector:
-            matchLabels:
-              app: postgres-exporter
+        - podSelector: {}
       ports:
         - protocol: TCP
           port: 5432
