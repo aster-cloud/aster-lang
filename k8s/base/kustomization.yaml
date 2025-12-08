@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: aster-policy
 resources:
   - namespace.yaml
+  - cert-manager/clusterissuer-http.yaml
   - postgres/configmap.yaml
   - postgres/secret.yaml
   - postgres/service.yaml
