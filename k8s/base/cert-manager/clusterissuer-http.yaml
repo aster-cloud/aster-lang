@@ -13,14 +13,3 @@ spec:
     - http01:
         ingress:
           class: traefik
-          podTemplate:
-            spec:
-              containers:
-              - name: acme-solver
-                resources:
-                  requests:
-                    cpu: 100m
-                    memory: 128Mi
-                  limits:
-                    cpu: 200m
-                    memory: 256Mi
