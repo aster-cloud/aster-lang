@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: aster-policy
 resources:
   - ../../base
+  - ../../base/cert-manager/clusterissuer-http.yaml
   - cors-middleware.yaml
 patchesStrategicMerge:
   - patches/deployment.yaml
