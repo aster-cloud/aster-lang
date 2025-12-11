@@ -1,6 +1,6 @@
 {
   "name": "@aster-cloud/aster-lang",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A pragmatic, safe, fast language with human-readable CNL syntax that compiles to JVM bytecode",
   "type": "module",
   "main": "./dist/index.js",
