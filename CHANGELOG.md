@@ -1,5 +1,12 @@
 # aster-lang
 
+## 0.2.1
+
+### Patch Changes
+
+- 8b9e368: Bug fix and small improvements
+- cbb5cbd: docs: document bracket sugar syntax and add examples; tests: run both CNL and bracket forms in goldens and add additional capability enforcement cases (AiModel, Files, Secrets, Time). No runtime behavior changes.
+
 ## Unreleased
 
 ### 🚨 Breaking Changes
