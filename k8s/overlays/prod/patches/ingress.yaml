@@ -6,7 +6,7 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-http
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     # CORS for aster-lang.cloud frontend
     traefik.ingress.kubernetes.io/router.middlewares: aster-policy-cors@kubernetescrd
 spec:
