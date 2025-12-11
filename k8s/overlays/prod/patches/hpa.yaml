@@ -4,8 +4,8 @@ metadata:
   name: policy-api-hpa
   namespace: aster-policy
 spec:
-  minReplicas: 3
-  maxReplicas: 15
+  minReplicas: 1
+  maxReplicas: 5
   metrics:
     - type: Resource
       resource:
