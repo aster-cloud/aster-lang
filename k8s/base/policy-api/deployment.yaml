@@ -40,10 +40,10 @@ spec:
             readOnlyRootFilesystem: true
           resources:
             requests:
-              memory: "16Mi"
+              memory: "32Mi"
               cpu: "10m"
             limits:
-              memory: "32Mi"
+              memory: "64Mi"
               cpu: "50m"
       containers:
         - name: policy-api
